@@ -21,6 +21,7 @@ from subprocess import Popen
 import threading
 from time import time
 import win32com.client
+import sys
 
 # TODO: set volume
 # TODO: test auto update. Need to create github repo
@@ -32,7 +33,8 @@ import win32com.client
 # TODO: Add gui for settings
 # TODO: virtual env
 
-starting_dir = os.getcwd()
+# starting_dir = os.getcwd()
+starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
 while True:
@@ -49,9 +51,9 @@ SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetric
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
-    'comments': ['Restart the program after editing this file!'],
     'version': '0.0.0',
     'previous device': None,
+    'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
     'run on startup': True,
     'music directories': [home_music_dir],
@@ -76,8 +78,8 @@ try:
     with open(settings_file) as json_file:
         loaded_settings = json.load(json_file)
         for k in settings.keys():
-            if k != 'DEBUG':
-                loaded_settings[k]
+            if k not in loaded_settings:
+                raise KeyError
         settings = loaded_settings
 except (FileNotFoundError, KeyError):
     save_json()
@@ -92,12 +94,14 @@ if settings['auto update']:
     latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
     major, minor, patch = (int(x) for x in current_version.split('.'))
     lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
-    if latest_version != current_version:
+    if (lt_major > major or lt_major == major and lt_minor > minor
+            or lt_major == major and lt_minor == minor and lt_patch > patch):
+        os.chdir(starting_dir)
         if settings.get('DEBUG'):
-            Popen(f'python "{starting_dir}/updater.py"')
+            Popen('python updater.py')
         else:
             os.startfile('Updater.exe')
-        exit()
+        sys.exit()
 
 USER_NAME = getpass.getuser()
 shortcut_path = f'C:/Users/{USER_NAME}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
