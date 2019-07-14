@@ -14,7 +14,7 @@ import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
 import PySimpleGUIQt as sg
-import PySide2
+# import PySide2
 from random import shuffle
 import requests
 from subprocess import Popen
@@ -90,6 +90,8 @@ if settings['auto update']:
     release_entry = soup.find('div', class_='release-entry')
     current_version = settings['version']
     latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
+    major, minor, patch = (int(x) for x in current_version.split('.'))
+    lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
     if latest_version != current_version:
         if settings.get('DEBUG'):
             Popen(f'python "{starting_dir}/updater.py"')
