@@ -10,6 +10,7 @@ from mutagen.mp3 import MP3
 import os
 from pathlib import Path
 import pychromecast.controllers.media
+from pychromecast.error import *
 import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
@@ -20,7 +21,10 @@ import requests
 from subprocess import Popen
 import threading
 from time import time
+import win32api
 import win32com.client
+import win32event
+from winerror import ERROR_ALREADY_EXISTS
 import sys
 
 # TODO: repeat and repeat all
@@ -34,7 +38,12 @@ import sys
 # TODO: Add gui for settings
 # TODO: virtual env
 
-# starting_dir = os.getcwd()
+mutex = win32event.CreateMutex(None, False, 'name')
+last_error = win32api.GetLastError()
+
+if last_error == ERROR_ALREADY_EXISTS:
+   sys.exit()
+
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -219,30 +228,37 @@ def pause():
         tray.Hide()
         tray = tray_3
         tray.UnHide()
-        if mc is not None:
-            mc.pause()
-        else:
-            song_position += local_music_player.music.get_pos()/1000
-            local_music_player.music.pause()
-        playing_status = 'PAUSED'
+        try:
+            if mc is not None:
+                mc.update_status()
+                mc.pause()
+                song_position = mc.status.adjusted_current_time
+            else:
+                song_position += local_music_player.music.get_pos()/1000
+                local_music_player.music.pause()
+            playing_status = 'PAUSED'
+        except UnsupportedNamespace:
+            song_position = 0
+            playing_status = 'NOT PLAYING'
 
 
 def resume():
-    global tray, playing_status, song_end
+    global tray, playing_status, song_end, song_position
     if playing_status == 'PAUSED':
         tray.Hide()
         tray = tray_2
         tray.UnHide()
-        if mc is not None:
-            mc.update_status()
-            passed_time = mc.status.adjusted_current_time
-            mc.play()
-            mc.block_until_active()
-        else:
-            passed_time = song_position
-            local_music_player.music.unpause()
-        song_end = time() + song_length - passed_time
-        playing_status = 'PLAYING'
+        try:
+            if mc is not None:
+                mc.update_status()
+                mc.play()
+                mc.block_until_active()
+            else:
+                local_music_player.music.unpause()
+            song_end = time() + song_length - song_position
+            playing_status = 'PLAYING'
+        except UnsupportedNamespace:
+            play_file(music_queue[0], song_start=song_position)
 
 
 def play_pause_media_key():
