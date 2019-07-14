@@ -23,6 +23,7 @@ from time import time
 import win32com.client
 import sys
 
+# TODO: repeat and repeat all
 # TODO: set volume
 # TODO: test auto update. Need to create github repo
 # TODO: refresh list menu option
