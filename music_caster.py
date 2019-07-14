@@ -16,7 +16,6 @@ from pygame import mixer as local_music_player  # https://www.pygame.org/docs/re
 from pynput.keyboard import Listener
 import PySimpleGUIQt as sg
 import PySide2
-import pythoncom
 from random import shuffle
 import requests
 from subprocess import Popen
@@ -101,7 +100,7 @@ if settings['auto update']:
         exit()
 
 USER_NAME = getpass.getuser()
-shortcut_path = shortcut_path = f'C:/Users/{USER_NAME}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+shortcut_path = f'C:/Users/{USER_NAME}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
 shortcut_exists = os.path.exists(shortcut_path)
 if settings['run on startup'] and not shortcut_exists and not settings.get('DEBUG'):
     # C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
@@ -143,7 +142,7 @@ filled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4
 tray_1 = sg.SystemTray(menu=menu_def_1, data_base64=unfilled_logo_data, tooltip='Music Caster')
 tray_2 = sg.SystemTray(menu=menu_def_2, data_base64=filled_logo_data, tooltip='Music Caster')
 tray_3 = sg.SystemTray(menu=menu_def_3, data_base64=filled_logo_data, tooltip='Music Caster')
-
+# TODO: tray.Update()
 tray_2.Hide()
 tray_3.Hide()
 tray = tray_1
@@ -282,11 +281,7 @@ def on_press(key):
         previous()
 
 
-def on_release(key):
-    pass
-
-
-listener_thread = Listener(on_press=on_press, on_release=None)
+listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 
@@ -361,7 +356,6 @@ while True:
                 tray.Hide()
                 tray = tray_2
                 tray.UnHide()
-        
     elif playing_status == 'PLAYING' and time() > song_end:
         next_song()
     elif menu_item == 'Stop':

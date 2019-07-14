@@ -1,8 +1,10 @@
-PySimpleGUIQt
-PyInstaller
-PySide2
-pychromecast
+bs4
 mutagen
-pynput
+pychromecast
 pygame
+PyInstaller
+pynput
+PySide2
+PySimpleGUIQt
 playsound
+requests
