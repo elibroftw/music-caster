@@ -6,5 +6,5 @@ PyInstaller
 pynput
 PySide2
 PySimpleGUIQt
-playsound
 requests
+pypiwin32

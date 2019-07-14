@@ -1,7 +1,6 @@
 import json
-from datetime import datetime
 
-default_settings  = {
+default_settings = {
     'comments': ['Restart the program after editing this file!'],
     'version': '1.0.0',
     'previous device': None,

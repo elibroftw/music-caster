@@ -9,7 +9,6 @@ from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
 import os
 from pathlib import Path
-# import playsound
 import pychromecast.controllers.media
 import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
@@ -22,7 +21,6 @@ from subprocess import Popen
 import threading
 from time import time
 import win32com.client
-
 
 # TODO: set volume
 # TODO: test auto update. Need to create github repo

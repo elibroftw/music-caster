@@ -6,7 +6,6 @@ import io
 import os
 from time import sleep
 
-
 sleep(1)  # wait for calling script to exit
 with open('settings.json') as json_file:
     settings = json.load(json_file)
