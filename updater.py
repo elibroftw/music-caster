@@ -30,5 +30,4 @@ if not settings.get('DEBUG'):
     settings['version'] = latest_version
     with open('settings.json', 'w') as outfile:
         json.dump(settings, outfile, indent=4)
-
-os.startfile('Music Caster.exe')
+    os.startfile('Music Caster.exe')
