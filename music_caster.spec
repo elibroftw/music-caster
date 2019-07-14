@@ -8,7 +8,7 @@ block_cipher = None
 a = Analysis(['music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
-             datas=[('settings.json', '.')],
+             datas=[],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -35,3 +35,12 @@ exe = EXE(pyz,
           console=False,
           icon='Icons/icon.ico'
            )
+#  coll = COLLECT(
+#    exe,
+#    a.binaries,
+#    a.zipfiles,
+#    a.datas,
+#    name='Music Caster',
+#    strip=False,
+#    upx=True
+#)

@@ -257,7 +257,8 @@ def next_song():
         playing_status = 'NOT PLAYING'
         song = music_queue.pop(0)
         done_queue.append(song)
-        play_file(music_queue[0])
+        if music_queue:
+            play_file(music_queue[0])
 
 
 def previous():

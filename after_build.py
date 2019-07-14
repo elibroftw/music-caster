@@ -2,7 +2,7 @@ import json
 import zipfile
 
 default_settings = {
-    'version': '1.1.1',
+    'version': '1.1.2',
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
