@@ -1,0 +1,8 @@
+PySimpleGUIQt
+PyInstaller
+PySide2
+pychromecast
+mutagen
+pynput
+pygame
+playsound

@@ -1,0 +1,7 @@
+.idea/
+.vscode/
+build/
+dist/
+__pycache__/
+settings.json
+test.py
