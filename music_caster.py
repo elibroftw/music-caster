@@ -33,7 +33,7 @@ import sys
 # TODO: refresh list menu option
 # TODO: toast notifications
 # TODO: seeking
-# TODO: make a listview of all music files when play file is selected
+# TODO: make a list view of all music files when play file is selected
 # TODO: playlist support
 # TODO: Add gui for settings
 # TODO: virtual env
@@ -42,7 +42,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 
 if last_error == ERROR_ALREADY_EXISTS:
-   sys.exit()
+    sys.exit()
 
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
@@ -195,7 +195,7 @@ def play_file(filename, position=0):
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
     else:
-        title = artist = None
+        title = artist = 'Unknown'
         song_length = MP3(filename).info.length
         with suppress(Exception):
             title = EasyID3(filename)['title'][0]
@@ -216,9 +216,6 @@ def play_file(filename, position=0):
         song_start = time()
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
-    # music_text = sg.Text(f"Now Playing {artist.split(', ')[0]} - {title}", font='Helvetica', background_color='black', text_color='white')
-    # music_text = f"Now Playing {artist.split(', ')[0]} - {title}"
-    # sg.Popup(custom_text=music_text, non_blocking=True, text_color='white', background_color='black', auto_close=True, auto_close_duration=4, no_titlebar=True, grab_anywhere=False, keep_on_top=True, location=(SCREEN_WIDTH * 0.9, SCREEN_HEIGHT * 0.9))
 
 
 # NOTE: there might be a bug if the media has been paused for a while
@@ -258,7 +255,7 @@ def resume():
             song_end = time() + song_length - song_position
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
-            play_file(music_queue[0], song_start=song_position)
+            play_file(music_queue[0], position=song_position)
 
 
 def play_pause_media_key():
@@ -324,7 +321,8 @@ while True:
         tray = tray_2
         tray_2.UnHide()
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
-        path_to_file = sg.PopupGetFile('Select Music file', file_types=(('Audio', '*mp3'),), initial_folder=DEFAULT_DIR, no_window=True)
+        path_to_file = sg.PopupGetFile('Select Music file', file_types=(('Audio', '*mp3'),), initial_folder=DEFAULT_DIR,
+                                       no_window=True)
         if os.path.exists(path_to_file):
             play_file(path_to_file)
             for directory in music_directories:
@@ -387,4 +385,3 @@ while True:
             elif local_music_player.music.get_busy():
                 local_music_player.music.stop()
             playing_status = 'STOPPED'
-
