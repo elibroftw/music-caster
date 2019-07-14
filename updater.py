@@ -26,7 +26,7 @@ if not settings.get('DEBUG'):
     r = requests.get(download_link, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
     z.extract('Music Caster.exe')
-    # z.extractall()
+    z.close()
     settings['version'] = latest_version
     with open('settings.json', 'w') as outfile:
         json.dump(settings, outfile, indent=4)

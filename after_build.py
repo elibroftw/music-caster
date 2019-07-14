@@ -3,7 +3,7 @@ from datetime import datetime
 
 default_settings  = {
     'comments': ['Restart the program after editing this file!'],
-    'version': '1.0',
+    'version': '1.0.0',
     'previous device': None,
     'auto update': True,
     'run on startup': True,

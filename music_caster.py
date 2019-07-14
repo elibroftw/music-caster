@@ -35,6 +35,7 @@ print('Imported modules succesfully!')
 # TODO: make a listview of all music files when play file is selected
 # TODO: playlist support
 # TODO: Add gui for settings
+# TODO: virtual env
 
 starting_dir = os.getcwd()
 os.chdir('C:/')
@@ -54,7 +55,7 @@ sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
     'comments': ['Restart the program after editing this file!'],
-    'version': '1.0',
+    'version': '0.0.0',
     'previous device': None,
     'auto update': True,
     'run on startup': True,
@@ -77,24 +78,29 @@ def save_json():
 
 try:
     with open(settings_file) as json_file:
-        settings = json.load(json_file)
-except FileNotFoundError:
+        loaded_settings = json.load(json_file)
+        for k in settings.keys():
+            if k != 'DEBUG':
+                # check if settings file is valid
+                loaded_settings[k]
+
+except (FileNotFoundError, KeyError):
     save_json()
 
 
-# if settings['auto update']:
-#     github_url = 'https://github.com/SamDel/ChromeCast-Desktop-Audio-Streamer/releases'
-#     html_doc = requests.get(github_url).text
-#     soup = BeautifulSoup(html_doc, features='html.parser')
-#     release_entry = soup.find('div', class_='release-entry')
-#     current_version = settings['version']
-#     latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
-#     if latest_version != current_version:
-#         if settings.get('DEBUG'):
-#             Popen(f'python "{starting_dir}/updater.py"')
-#         else:
-#             os.startfile('Updater.exe')
-#         exit()
+if settings['auto update']:
+    github_url = 'https://github.com/elibroftw/music-caster/releases'
+    html_doc = requests.get(github_url).text
+    soup = BeautifulSoup(html_doc, features='html.parser')
+    release_entry = soup.find('div', class_='release-entry')
+    current_version = settings['version']
+    latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
+    if latest_version != current_version:
+        if settings.get('DEBUG'):
+            Popen(f'python "{starting_dir}/updater.py"')
+        else:
+            os.startfile('Updater.exe')
+        exit()
 
 USER_NAME = getpass.getuser()
 shortcut_path = shortcut_path = f'C:/Users/{USER_NAME}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
@@ -110,7 +116,7 @@ if settings['run on startup'] and not shortcut_exists and not settings.get('DEBU
 elif not settings['run on startup'] and shortcut_exists:
     os.remove(shortcut_path)
 
-previous_device = settings.get('previous device')
+previous_device = settings['previous device']
 local_music_player.init()
 print('Retrieving chromecasts...')
 chromecasts = pychromecast.get_chromecasts()
