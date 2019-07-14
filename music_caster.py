@@ -1,4 +1,3 @@
-print('Importing modules')
 from bs4 import BeautifulSoup
 from contextlib import suppress
 import ctypes
@@ -24,7 +23,6 @@ from subprocess import Popen
 import threading
 from time import time
 import win32com.client
-print('Imported modules succesfully!')
 
 
 # TODO: set volume
@@ -76,14 +74,14 @@ def save_json():
         json.dump(settings, outfile, indent=4)
 
 
+# check if settings file is valid
 try:
     with open(settings_file) as json_file:
         loaded_settings = json.load(json_file)
         for k in settings.keys():
             if k != 'DEBUG':
-                # check if settings file is valid
                 loaded_settings[k]
-
+        settings = loaded_settings
 except (FileNotFoundError, KeyError):
     save_json()
 
