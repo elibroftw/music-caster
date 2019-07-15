@@ -36,7 +36,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "{#SourcePath}\dist\Music Caster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Source: "C:\Users\maste\Dropbox\Python Projects\PySimpleGui\dist\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}\dist\settings.json"; DestDir: "{app}"; Flags: ignoreversion
+; Source: "{#SourcePath}\dist\settings.json"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

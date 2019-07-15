@@ -5,9 +5,10 @@ import zipfile
 import io
 import os
 from time import sleep
+from contextlib import suppress
 
 
-try:
+with suppress(FileNotFoundError):
     sleep(1)  # wait for calling script to exit
     os.chdir(os.path.dirname(os.path.realpath(__file__)))  # just in case
     with open('settings.json') as json_file:
@@ -37,7 +38,3 @@ try:
         z.extract('Music Caster.exe')
         z.close()
         os.startfile('Music Caster.exe')
-except Exception as e:
-    print(e)
-    print(os.getcwd())
-    input('Press Enter to exit...')

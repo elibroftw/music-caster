@@ -25,6 +25,6 @@ print('Created dist/settings.json!')
 with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Music Caster.exe', 'Music Caster.exe')
     zf.write('dist/Updater.exe', 'Updater.exe')
-    zf.write('dist/settings.json', 'settings.json')
+    # zf.write('dist/settings.json', 'settings.json')
 
 print('Created dist/Portable.zip')
