@@ -15,6 +15,7 @@ import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
 import PySimpleGUIQt as sg
+# import PySimpleGUIWx as sg
 # import PySide2
 from random import shuffle
 import requests
@@ -50,7 +51,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetric
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
-    'version': '0.0.0',
+    'version': '1.2.1',
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
