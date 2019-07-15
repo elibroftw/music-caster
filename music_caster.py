@@ -27,17 +27,6 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import sys
 
-# TODO: repeat and repeat all
-# TODO: set volume
-# TODO: test auto update. Need to create github repo
-# TODO: refresh list menu option
-# TODO: toast notifications
-# TODO: seeking
-# TODO: make a list view of all music files when play file is selected
-# TODO: playlist support
-# TODO: Add gui for settings
-# TODO: virtual env
-
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 
