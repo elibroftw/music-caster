@@ -32,7 +32,6 @@ with suppress(FileNotFoundError):
         from subprocess import Popen
         Popen('python music_caster.py')
     else:
-        print('Downloading New Exe...')
         r = requests.get(download_link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extract('Music Caster.exe')
