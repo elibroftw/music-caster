@@ -122,6 +122,7 @@ if settings['run on startup'] and not shortcut_exists and not settings.get('DEBU
     shell = win32com.client.Dispatch('WScript.Shell')
     shortcut = shell.CreateShortCut(shortcut_path)
     shortcut.Targetpath = target
+    shortcut.WorkingDirectory = starting_dir
     shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
     shortcut.save()
 elif not settings['run on startup'] and shortcut_exists:
