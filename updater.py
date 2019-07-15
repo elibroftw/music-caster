@@ -23,7 +23,7 @@ with suppress(FileNotFoundError):
     download_link = [link['href'] for link in details.find_all('a') if link.get('href')][1]
     download_link = f'https://github.com{download_link}'
 
-    with open('settings.json', 'w') as outfile:
+    with open('settings.json', 'w') as outfile:  # TODO: remove completely
         settings['version'] = latest_version
         json.dump(settings, outfile, indent=4)
 

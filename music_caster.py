@@ -50,8 +50,9 @@ user32 = ctypes.windll.user32
 SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
+CURRENT_VERSION = '1.3.0'
 settings = {  # default settings
-    'version': '1.2.1',
+    'version': CURRENT_VERSION,  # TODO: remove completely
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
@@ -90,9 +91,8 @@ if settings['auto update']:
     html_doc = requests.get(github_url).text
     soup = BeautifulSoup(html_doc, features='html.parser')
     release_entry = soup.find('div', class_='release-entry')
-    current_version = settings['version']
     latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
-    major, minor, patch = (int(x) for x in current_version.split('.'))
+    major, minor, patch = (int(x) for x in CURRENT_VERSION.split('.'))
     lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
     if (lt_major > major or lt_major == major and lt_minor > minor
             or lt_major == major and lt_minor == minor and lt_patch > patch):
