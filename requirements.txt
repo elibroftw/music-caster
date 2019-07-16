@@ -6,5 +6,6 @@ PyInstaller
 pynput
 PySide2
 PySimpleGUIQt
+PySimpleGUIWx
 requests
 pypiwin32

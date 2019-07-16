@@ -6,3 +6,5 @@ __pycache__/
 venv/
 settings.json
 test.py
+test.pyw
+test.spec

@@ -2,7 +2,6 @@ import json
 import zipfile
 
 default_settings = {
-    'version': '1.3.0',  # TODO: remove completely
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
@@ -20,11 +19,15 @@ default_settings = {
 with open('dist/settings.json', 'w') as outfile:
     json.dump(default_settings, outfile, indent=4)
 
-print('Created dist/settings.json!')
-
 with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Music Caster.exe', 'Music Caster.exe')
     zf.write('dist/Updater.exe', 'Updater.exe')
-    # zf.write('dist/settings.json', 'settings.json')
 
 print('Created dist/Portable.zip')
+
+with zipfile.ZipFile('dist/Python Files.zip', 'w') as zf:
+    zf.write('music_caster.py', 'music_caster.pyw')
+    zf.write('updater.py', 'updater.pyw')
+    zf.write('Icons/icon.ico', 'icon.ico')
+
+print('Created dist/Python Files.zip')

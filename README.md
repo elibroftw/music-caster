@@ -17,8 +17,12 @@ TLDR: If you have music all over the place, right click icon in tray and open se
 
 This app supports media keys. There might be an issue with skipping though so please let me know!
 
+# Limitations and known issues
+- Music control limited to exit if next/previous song is spammed
+
 # Build Instructions
 1. Make sure all the required modules are installed
 2. Make sure Python scripts folder is on path
 3. OPTIONAL: Having Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on path
 4. Run build.bat
+
