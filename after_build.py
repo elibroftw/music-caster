@@ -31,3 +31,6 @@ with zipfile.ZipFile('dist/Python Files.zip', 'w') as zf:
     zf.write('Icons/icon.ico', 'icon.ico')
 
 print('Created dist/Python Files.zip')
+
+# TODO: add a file check to check if versions are same
+print('ARE THE FILES PROPERLY VERSIONED?')
