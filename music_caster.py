@@ -14,8 +14,9 @@ from pychromecast.error import *
 import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
-import PySimpleGUIQt as sg
-# import PySimpleGUIWx as sg
+# import PySimpleGUIQt as sg
+import PySimpleGUIWx as sg
+import wx
 from random import shuffle
 import requests
 from subprocess import Popen
@@ -30,8 +31,7 @@ import sys
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 
-if last_error == ERROR_ALREADY_EXISTS:  # one instance
-    sys.exit()
+if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
@@ -49,7 +49,7 @@ user32 = ctypes.windll.user32
 SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-CURRENT_VERSION = '2.0.0'
+CURRENT_VERSION = '2.1.0'
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
@@ -315,9 +315,12 @@ while True:
         break
     elif menu_item == 'Play File':
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
-        path_to_file = sg.PopupGetFile('Select Music file', file_types=(('Audio', '*mp3'),),
-                                       initial_folder=DEFAULT_DIR, no_window=True)
-        if os.path.exists(path_to_file):
+        # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
+        #                                initial_folder=DEFAULT_DIR, no_window=True)
+        fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        if fd.ShowModal() != wx.ID_CANCEL:
+            path_to_file = fd.GetPath()
+        # if os.path.exists(path_to_file):
             play_file(path_to_file)
             music_queue.clear()
             done_queue.clear()

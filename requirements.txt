@@ -7,5 +7,6 @@ pynput
 PySide2
 PySimpleGUIQt
 PySimpleGUIWx
-requests
 pypiwin32
+wxpython
+requests
