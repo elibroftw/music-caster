@@ -49,7 +49,7 @@ user32 = ctypes.windll.user32
 SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-CURRENT_VERSION = '2.1.0'
+CURRENT_VERSION = '2.2.0'
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
