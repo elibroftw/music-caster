@@ -10,7 +10,7 @@ from mutagen.mp3 import MP3
 import os
 from pathlib import Path
 import pychromecast.controllers.media
-from pychromecast.error import *
+from pychromecast.error import UnsupportedNamespace
 import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
@@ -164,6 +164,7 @@ unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IAr
 filled_logo_data = b'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\n'
 
 tray = sg.SystemTray(menu=menu_def_1, data_base64=unfilled_logo_data, tooltip='Music Caster')
+tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
 music_directories = settings['music directories']
 if not music_directories:
     music_directories = settings['music directories'] = [home_music_dir]
@@ -221,6 +222,7 @@ def play_file(filename, position=0):
         song_start = time()
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
+    tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
 
 
 def pause():
