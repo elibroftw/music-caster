@@ -152,12 +152,12 @@ try:
 except StopIteration: cast = None
 # device_names = [f'{i + 1}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
 device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
-menu_def_1 = ['File', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
+menu_def_1 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
-menu_def_2 = ['File', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
+menu_def_2 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
                        'Next Song', 'Previous Song', 'Pause', 'E&xit']]
 
-menu_def_3 = ['File', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
+menu_def_3 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
                        'Next Song', 'Previous Song', 'Resume', 'E&xit']]
 
 unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4c6QAABMpJREFUeAHt\nWztrFFEY3ZXEKoooBvGBiC98IDZaCGqKINiInTZWESwstfMHKCKkUCEQbbRRRFBLkWgwWKmFKL4g\nIIqKoIIKvrOeIzu7d8bvzJ01O/u8Hxzmzve49/tOZu69M5spFIIEBgIDgYHAQGAgMBAYCAwEBgwG\nioauUCqVqB8qYz2OfZZfB+g+o4ZHwFmiWCyWkjX9QxDIWQCn88Bg0rnDz2+gvn0g6a1bZ4yg8pVz\nHQ7dRk7ECUna4V5JMyJL+cjbqlvJIQWsnRxUJEnQ/oqlexsxgpK3GCetTp2Qs/7Jv+AWmxU5Jwn6\nZxanIwJiflFwux8x53rrTd5i7V5z3fMPBHkoDQQFgjwMeMzhCgoEeRjwmMMVFAjyMOAx97j2Tt0Q\nujXW2g63mIexQFAgyMOAxxyuoECQhwGPObaK4en/O/z5Toj4ADwHngKPgQmscq9w7CqJvedR70cc\nRkjYGHAJuAnCphxb2zVVvXK7w4Aa5CV8jwJL2o6ZcsKqVlmPCvDov8M+CiyXHbeoQdUl01UBGfU/\n4XcCaJt32qquvAiKxnuFxm45SAsZooSTRzfF5CQ9E0a+0Z8NLAVWA+uAAYA/Qcf8cZ4mp2E8hAmP\nK2NLComxEpOTtOUc6dDXfGAIuAVMAVnkHpxadhJXBUQ1//cRHa8ELgJZiOJqt/a/B8sxEHmZUrch\n0fsmYMwcJa58j9PNdRu4Th3FU6ye1an7ajfoeicwWR3CbJGklrqSzCyhrFZWxxb6nQdwfkoT3m4t\nMyepRF1aYqsSAvgM9toBn8GuYVZ/4AapNuJ7YTsJHFA+0N8HtrTC6kaCrDzlKsYAIbx9hoENVodJ\nHfwOAr8AJaeSMc04V8nJXFSAo/+N9jmAe6RUgQ9JSpOmbyZVcrIwFWDov0F3HODGUgrsI0ZspOKO\nu6mPJVEiyWNaQUlf3/kEHPpVh7D1AmkT9wkV2wi9Kk6OrQI8+hewb1SdwsbVTW0B+IC7QsXmrcfY\npshx4d0HrAIGgMPAbYDzjk8+wyGNJO6TlJyRCeVsUAnVNCw66Qc433xVHZb1vJLSbje14/6BuKbs\njVQ9NREUObMI4LLqtKznnGRO3NDzsWSq7Jc8HIvGaeQxmUR0Pq0c0MkRQBXKMY6rAWC7QAdDuMNu\n+E9QRh5/VSr/zHr0shdQJHELYO6ToOdbABU3mDmBOjkiF1Pq0j165pWk5JwaBAFq2R9RMXnpVfJy\nPARwNXoCjALevyh81JzElc98LIF+CLDkmUwsJ4OVBHVyOCNgHLpVKgA2TtxqdRu24uDPN5PqNlts\nxeSlQx6myPFM71LpI/TbVRBs3AJYMpkS88AKgG6vislDL3KIXUFZVo45SO4KOlNXEh8XrF9YlyHG\nvM3gPy4KXiP0BVXMdPRiLL7yqUgWguhMkkYrUU4D707e4fSOo3Kbu9wTp/3QabtN/orSbOEHdhXJ\nShADtuGvpSbuq5Ue4w11RfAfIixZaSkbrDvrjlcLQYzb4wY77btO220udE+c9gun7TbnuidNaPOD\numkRtFUk/VroFUGfhH/lMyRhz1NNcvhJZmyS7qlxxEXC/43QK4JiE6ET22iCvmBszoe8asyPep3c\nQjMwEBgIDAQGAgOBgcBAYCAwUGXgD8G4G3+pxN+sAAAAAElFTkSuQmCC\n'
