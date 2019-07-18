@@ -178,12 +178,6 @@ mc: pychromecast.controllers.media.MediaController = None
 song_end = song_length = song_position = song_start = 0
 playing_status = 'NOT PLAYING'
 
-# sample_layout = [[sg.InputText(default_text='Audio File', disabled=True),
-#                        sg.FileBrowse(button_text='Select File', initial_folder=MUSIC_DIR, size=(10, 1),
-#                                      file_types=(('Audio', '*mp3'),), button_color=('black', 'cyan'))],
-#                       [sg.Button('Play!', button_color=('black', 'cyan'), size=(10, 1)),
-#                       sg.Cancel(button_color=('black', 'cyan'), size=(10, 1))]]
-
 
 def play_file(filename, position=0):
     global mc, song_start, song_end, playing_status, song_length, song_position
@@ -353,16 +347,18 @@ while True:
                 settings['previous device'] = str(cast.uuid)
             save_json()
             current_pos = 0
-            if playing_status in ('PLAYING', 'PAUSED'):
-                if local_music_player.music.get_busy():
+            
+            if local_music_player.music.get_busy():
                     current_pos = song_position + local_music_player.music.get_pos()/1000
                     local_music_player.music.stop()
-                    play_file(music_queue[0], position=current_pos)
-                elif mc is not None:
-                    mc.update_status()  # Switch device without playback loss
-                    current_pos = mc.status.adjusted_current_time
-                    mc.stop()
-                    play_file(music_queue[0], position=current_pos)
+            elif mc is not None:
+                mc.update_status()  # Switch device without playback loss
+                current_pos = mc.status.adjusted_current_time
+                mc.stop()
+            
+            if playing_status == 'PLAYING':
+                play_file(music_queue[0], position=current_pos)
+                
     elif menu_item == 'Settings':
         os.startfile(settings_file)
     elif 'Next Song' in (menu_item, keyboard_command):
