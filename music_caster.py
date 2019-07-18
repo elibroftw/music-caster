@@ -385,16 +385,18 @@ while True:
                 settings['previous device'] = str(cast.uuid)
             save_json()
             current_pos = 0
-            if playing_status in ('PLAYING', 'PAUSED'):
-                if local_music_player.music.get_busy():
+            
+            if local_music_player.music.get_busy():
                     current_pos = song_position + local_music_player.music.get_pos()/1000
                     local_music_player.music.stop()
-                    play_file(music_queue[0], position=current_pos)
-                elif mc is not None:
-                    mc.update_status()  # Switch device without playback loss
-                    current_pos = mc.status.adjusted_current_time
-                    mc.stop()
-                    play_file(music_queue[0], position=current_pos)
+            elif mc is not None:
+                mc.update_status()  # Switch device without playback loss
+                current_pos = mc.status.adjusted_current_time
+                mc.stop()
+            
+            if playing_status == 'PLAYING':
+                play_file(music_queue[0], position=current_pos)
+                
     elif menu_item == 'Settings':
         settings_window.Finalize()
 
