@@ -15,6 +15,7 @@ import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
 # import PySimpleGUIQt as sg
+import PySimpleGUI as Sg
 import PySimpleGUIWx as sg
 import wx
 from random import shuffle
@@ -49,12 +50,14 @@ user32 = ctypes.windll.user32
 SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-CURRENT_VERSION = '2.2.1'
+CURRENT_VERSION = '2.3.0'
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
     'run on startup': True,
+    'volume': 100,
+    'local volume': 100,
     'music directories': [home_music_dir],
     'sample music directories': [
         'C:/Users/maste/Documents/MEGAsync/Music',
@@ -76,11 +79,14 @@ def save_json():
 try:
     with open(settings_file) as json_file:
         loaded_settings = json.load(json_file)
-        for k in settings.keys():
+        save_settings = False
+        for k, v in settings.items():
             if k not in loaded_settings:
-                raise KeyError
+                loaded_settings[k] = v
+                save_settings = True
         settings = loaded_settings
-except (FileNotFoundError, KeyError):
+    if save_settings: save_json()
+except FileNotFoundError:
     save_json()
 
 
@@ -103,29 +109,35 @@ if settings['auto update']:
             Popen('pythonw updater.pyw')
         sys.exit()
 
+
 USER_NAME = getpass.getuser()
 shortcut_path = f'C:/Users/{USER_NAME}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-shortcut_exists = os.path.exists(shortcut_path)
-if settings['run on startup'] and not shortcut_exists and not settings.get('DEBUG'):
-    shell = win32com.client.Dispatch('WScript.Shell')
-    shortcut = shell.CreateShortCut(shortcut_path)
-    if getattr(sys, 'frozen', False):  # Running in a bundle
-        # C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
-        target = f'{starting_dir}\\Music Caster.exe'
-    else:  # set shortcut to python script; __file__
-        bat_file = f'{starting_dir}\\music_caster.bat'
-        if os.path.exists(bat_file):
-            with open('music_caster.bat', 'w') as f:
-                f.write(f'pythonw {os.path.basename(__file__)}')
-        target = bat_file
-        shortcut.IconLocation = f'{starting_dir}\\icon.ico'
-    shortcut.Targetpath = target
-    shortcut.WorkingDirectory = starting_dir
-    shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
-    shortcut.save()
 
-elif not settings['run on startup'] and shortcut_exists:
-    os.remove(shortcut_path)
+
+def startup_setting():
+    run_on_startup = settings['run on startup']
+    shortcut_exists = os.path.exists(shortcut_path)
+    if run_on_startup and not shortcut_exists and not settings.get('DEBUG'):
+        shell = win32com.client.Dispatch('WScript.Shell')
+        shortcut = shell.CreateShortCut(shortcut_path)
+        if getattr(sys, 'frozen', False):  # Running in a bundle
+            # C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+            target = f'{starting_dir}\\Music Caster.exe'
+        else:  # set shortcut to python script; __file__
+            bat_file = f'{starting_dir}\\music_caster.bat'
+            if os.path.exists(bat_file):
+                with open('music_caster.bat', 'w') as f:
+                    f.write(f'pythonw {os.path.basename(__file__)}')
+            target = bat_file
+            shortcut.IconLocation = f'{starting_dir}\\icon.ico'
+        shortcut.Targetpath = target
+        shortcut.WorkingDirectory = starting_dir
+        shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
+        shortcut.save()
+    elif not run_on_startup and shortcut_exists:
+        os.remove(shortcut_path)
+
+startup_setting()
 
 # device_names = ['1. Local Device']
 # chromecasts = []
@@ -142,15 +154,17 @@ elif not settings['run on startup'] and shortcut_exists:
 
 
 previous_device = settings['previous device']
-local_music_player.init()
+local_music_player.init(44100, -16, 2, 2048)
+volume = settings['volume']/100
+local_music_player.music.set_volume(volume)
 print('Retrieving chromecasts...')
 chromecasts = pychromecast.get_chromecasts()
 print('Retrieved chromecasts')
 try:
     cast = next(cc for cc in chromecasts if str(cc.device.uuid) == previous_device)
     cast.wait()
+    cast.set_volume(volume)
 except StopIteration: cast = None
-# device_names = [f'{i + 1}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
 device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
 menu_def_1 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
@@ -160,8 +174,9 @@ menu_def_2 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Pl
 menu_def_3 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
                        'Next Song', 'Previous Song', 'Resume', 'E&xit']]
 
-unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4c6QAABMpJREFUeAHt\nWztrFFEY3ZXEKoooBvGBiC98IDZaCGqKINiInTZWESwstfMHKCKkUCEQbbRRRFBLkWgwWKmFKL4g\nIIqKoIIKvrOeIzu7d8bvzJ01O/u8Hxzmzve49/tOZu69M5spFIIEBgIDgYHAQGAgMBAYCAwEBgwG\nioauUCqVqB8qYz2OfZZfB+g+o4ZHwFmiWCyWkjX9QxDIWQCn88Bg0rnDz2+gvn0g6a1bZ4yg8pVz\nHQ7dRk7ECUna4V5JMyJL+cjbqlvJIQWsnRxUJEnQ/oqlexsxgpK3GCetTp2Qs/7Jv+AWmxU5Jwn6\nZxanIwJiflFwux8x53rrTd5i7V5z3fMPBHkoDQQFgjwMeMzhCgoEeRjwmMMVFAjyMOAx97j2Tt0Q\nujXW2g63mIexQFAgyMOAxxyuoECQhwGPObaK4en/O/z5Toj4ADwHngKPgQmscq9w7CqJvedR70cc\nRkjYGHAJuAnCphxb2zVVvXK7w4Aa5CV8jwJL2o6ZcsKqVlmPCvDov8M+CiyXHbeoQdUl01UBGfU/\n4XcCaJt32qquvAiKxnuFxm45SAsZooSTRzfF5CQ9E0a+0Z8NLAVWA+uAAYA/Qcf8cZ4mp2E8hAmP\nK2NLComxEpOTtOUc6dDXfGAIuAVMAVnkHpxadhJXBUQ1//cRHa8ELgJZiOJqt/a/B8sxEHmZUrch\n0fsmYMwcJa58j9PNdRu4Th3FU6ye1an7ajfoeicwWR3CbJGklrqSzCyhrFZWxxb6nQdwfkoT3m4t\nMyepRF1aYqsSAvgM9toBn8GuYVZ/4AapNuJ7YTsJHFA+0N8HtrTC6kaCrDzlKsYAIbx9hoENVodJ\nHfwOAr8AJaeSMc04V8nJXFSAo/+N9jmAe6RUgQ9JSpOmbyZVcrIwFWDov0F3HODGUgrsI0ZspOKO\nu6mPJVEiyWNaQUlf3/kEHPpVh7D1AmkT9wkV2wi9Kk6OrQI8+hewb1SdwsbVTW0B+IC7QsXmrcfY\npshx4d0HrAIGgMPAbYDzjk8+wyGNJO6TlJyRCeVsUAnVNCw66Qc433xVHZb1vJLSbje14/6BuKbs\njVQ9NREUObMI4LLqtKznnGRO3NDzsWSq7Jc8HIvGaeQxmUR0Pq0c0MkRQBXKMY6rAWC7QAdDuMNu\n+E9QRh5/VSr/zHr0shdQJHELYO6ToOdbABU3mDmBOjkiF1Pq0j165pWk5JwaBAFq2R9RMXnpVfJy\nPARwNXoCjALevyh81JzElc98LIF+CLDkmUwsJ4OVBHVyOCNgHLpVKgA2TtxqdRu24uDPN5PqNlts\nxeSlQx6myPFM71LpI/TbVRBs3AJYMpkS88AKgG6vislDL3KIXUFZVo45SO4KOlNXEh8XrF9YlyHG\nvM3gPy4KXiP0BVXMdPRiLL7yqUgWguhMkkYrUU4D707e4fSOo3Kbu9wTp/3QabtN/orSbOEHdhXJ\nShADtuGvpSbuq5Ue4w11RfAfIixZaSkbrDvrjlcLQYzb4wY77btO220udE+c9gun7TbnuidNaPOD\numkRtFUk/VroFUGfhH/lMyRhz1NNcvhJZmyS7qlxxEXC/43QK4JiE6ET22iCvmBszoe8asyPep3c\nQjMwEBgIDAQGAgOBgcBAYCAwUGXgD8G4G3+pxN+sAAAAAElFTkSuQmCC\n'
-filled_logo_data = b'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\n'
+unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
+filled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
+window_icon = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4c6QAABV9JREFUeAHt\nWUtsVUUYvhQsG0qMDaQQTUPwEVkQN7gsTXGhG+JO9zRhwZaN1o1xISEkJmIISWVDQoILG1iXtNfY\nUBe6MRrAR1OjK+MjqSaK2ML3lU47d/J/M+fce8+B9s6ffDlzvvlf83fOPG4bjSy5ArkCuQK5ArkC\nuQK5ArkCuQIlKrANuuPAPPAXcH+LYmltjBwrx1xIhqA1DWzVoqhxccwce1RYxV4sjisaxx6dSZxq\nTrlXn6yBlC/Q06uFcePmursu4XTigrxrvbc3G39j2ANu6GGBWEVLQj1LZzNyyfH2bcZR1ZlzLlCi\n2rlAuUCJCiS68wxKFGhHoj/VrXaBlF3d/W3vwnkGJf5UuUCJAoWfWNtTMRFn03Z3OoOWN+3ICybe\naYGeQZwJ4MeC8XpWjZ/mGDAFuFvx4/RUfxiVo9LvCv8yvMwCKvij4NXAVC5Kv6v8q/D2NaCSqJNX\nA1M5rOuHu9Zd9PA3IeIP4HvgDnALmAN+AcpIP5TfA04Dna53ZeKGuuE4XT8LZInST/61v4O3i8Ax\noMyAR6C/CKi/WNU8Qpui4prKJJWBxf8M/fcB7mRFZDeUrgGWr6o5lZ+Kq/TbSp6f5SRwUHrd6OCs\nuwCoxKriNzJobal4rVremzIowt+Dn3NAkd+034ZeEZ/d0vGG2NJU/luU/BdlUIbnQv6671S0x8GX\n8duJrkhBxlf6De46g8ABYBQ4CXwIcLteAcok+RH0dwIxqWsmqRzUeJR+lN+D3hNAEyharK+gm1rE\n61iTkIYpXS2QH+E5vHwCFCkUd7tDvnHQ3o73qne3IOT6a2UFchGOoDEDqECO/x06vIIo4RFgEXD6\n3X6quCqO0m+bfw2WC4AKSJ5Fis2kEfQvJ3zE/Mf64NYUZWMqd0pycW8CKih5fm6xNelMwj7mO9YH\nt6YoG1OZJO9gvHvNAleAd4DDQFF5Aoq8iqjA5Llwq92Nu2gVF1y4NUXlaSqTVAb8fD4AihbrFHT/\nj/jjEUAJfwVQebTLq1jKn9JPJsY14jIwLD1sdLBIKgHyscPkbMI25tfq28iqtWXpkpOiDEL+X3g4\nC/CTiEnsc+OJW11LuOOFMTt5Vzkqn0q/dFJz8LRXems0uCY1AZUI725KptCh7MryKobyo/TbSugn\neHtJenx4dVFHAF5wnxW2Y+DVAMryIoT0r/RXp/zz6B0F+Cvg50CRswl3v1iReE5Sg/oYfZbwV70f\nAGVXhrf8k1M+lL7J8xPievMPoByS50yKfW4zwv4/8Ops9JawieVh9cGNKZYuubaEg/gUUE7Jc01S\nCzevJSvCngdES/aBjB0XYrn4fZZvcr6O31b6hfgJaKmBMghnm5Kr6PATcW2esPuUUYW8ix8+Ow75\nJjyoIvEIMCwi8FcAZfeKsKmSDgvj3rsSkzPJOQyfPEwqaaIj1Oc7z0x1i5UHOSncjW4Dk0CRv6ha\nk7jzqWvJCfRZifFfSnWLlUe0QKHBZ8iY274SLtxqd+PdzRL+Mqk+s6ctgwq5cLzuXYZ0Cv7zT2gf\nlRYPF2Vf37UXIjbqxs61rU5xuYZPmUOo6N5ZJDWTePbhJ+V0/af6zM4L/XfBK/H9Vtle8hMourU+\nCSOuS5b8CvKm1QHuuOC/EfwLgq+T/tYPVrRAtBkB1MJ93XfqtV/02n6TP8pZwmPAo5ZLfgJlCkS7\nN3xjr/2l1/ab+/0Xr81riSVPWWSN3A3EailQGDv1bfMIYAnXJ8tWzZRBof+b5XyNs/x3k5tGnKFI\n/NWuVECekywZAGnZKv1+oX/Xcr7GWf475ZjfPDAObFuLkx+5ArkCuQK5ArkCuQK5ArkCuQLpCjwA\nMCQ8Gt1a8k0AAAAASUVORK5CYII=\n'
 
 tray = sg.SystemTray(menu=menu_def_1, data_base64=unfilled_logo_data, tooltip='Music Caster')
 tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
@@ -182,39 +197,23 @@ playing_status = 'NOT PLAYING'
 # Settings Window
 fg = '#aaaaaa'
 bg = '#121212'
-font_family = 'SourceSans'
+font_family = 'SourceSans', 11
 button_color = ('black', '#4285f4')
 settings_layout = [
-    [sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
-    [sg.Checkbox('Auto Update', default=True, text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
-    [sg.Checkbox('Run on Startup', default=True, text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-    [sg.Listbox(['Listbox 1', 'Listbox 2', 'Listbox 3'], size=(20, 5), select_mode=sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
-     sg.Frame('', [[sg.Button(button_text='Remove Selected Folder', button_color=button_color,
-               key='Remove Folder', enable_events=True, font=font_family)],
-     [sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)],
-     [sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]
-]
-settings_window = sg.Window('Music Caster Settings', settings_layout)
-
-
-class SettingsWindow:
-    is_shown = False
-    window = settings_window
-    
-    def Show(self):
-        if not self.is_shown:
-            window.Show()
-            self.is_shown = True
-    
-    def Finalize(self):
-        if not self.is_shown:
-            window.Finalize()
-            self.is_shown = True
-
-    def start_reading(self):
-        pass
-        
-            
+    [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
+    [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
+    [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+    # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(40, 1))],
+    [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+    [Sg.Listbox(music_directories, size=(41, 5), select_mode=sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
+     Sg.Frame('', [
+            [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
+            [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
+            [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)
+        ]
+    ]
+# settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg)
+settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon)
 
 
 def play_file(filename, position=0):
@@ -398,9 +397,44 @@ while True:
                 play_file(music_queue[0], position=current_pos)
                 
     elif menu_item == 'Settings':
-        settings_window.Finalize()
-
-        os.startfile(settings_file)
+        settings_window.Show()
+        # settings_window.SetIcon(icon=filled_logo_data)
+        # settings_window.Refresh()s
+        # settings_window.GrabAnyWhereOn()
+        while True:
+            event, values = settings_window.Read(timeout=100)
+            if event in (None, 'Exit'):
+                settings_window.Close()
+                break
+            value = values.get(event)            
+            # if event != '__TIMEOUT__':
+            #     print(event)
+            if event in ('auto update', 'run on startup'):
+                settings[event] = value
+                save_json()
+                if event == 'run on startup':
+                    startup_setting()
+            elif event == 'volume':
+                settings[event] = value
+                save_json()
+                volume = value/100
+                if cast is None:
+                    local_music_player.music.set_volume(volume)
+                else:
+                    cast.set_volume(volume)
+            elif event == 'Remove Folder':
+                selected_item = values['music_dirs'][0]
+                if selected_item in music_directories:
+                    music_directories.remove(selected_item)
+                    save_json()
+                    settings_window.Element('music_dirs').Update(music_directories)
+            elif event == 'Add Folder':
+                if value not in music_directories and os.path.exists(value):
+                    music_directories.append(value)
+                    save_json()
+                    settings_window.Element('music_dirs').Update(music_directories)
+            elif event == 'Open Settings':
+                os.startfile(settings_file)
     elif 'Next Song' in (menu_item, keyboard_command):
         next_song()
     elif 'Previous Song' in (menu_item, keyboard_command):
