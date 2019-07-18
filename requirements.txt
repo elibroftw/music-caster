@@ -5,6 +5,7 @@ pygame
 PyInstaller
 pynput
 PySide2
+PySimpleGUI
 PySimpleGUIQt
 PySimpleGUIWx
 pypiwin32
