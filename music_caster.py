@@ -49,7 +49,7 @@ user32 = ctypes.windll.user32
 SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 sg.ChangeLookAndFeel('Black')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-CURRENT_VERSION = '2.2.0'
+CURRENT_VERSION = '2.2.1'
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
@@ -188,6 +188,13 @@ playing_status = 'NOT PLAYING'
 def play_file(filename, position=0):
     global mc, song_start, song_end, playing_status, song_length, song_position
     song_position = position
+    title = artist = 'Unknown'
+    song_length = MP3(filename).info.length
+    with suppress(Exception):
+        title = EasyID3(filename)['title'][0]
+        artist = EasyID3(filename)['artist']
+        artist = ', '.join(artist)
+        # album = EasyID3(filename)['album']
     if cast is None:
         mc = None
         song_length = MP3(filename).info.length
@@ -199,14 +206,6 @@ def play_file(filename, position=0):
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
     else:
-        title = artist = 'Unknown'
-        song_length = MP3(filename).info.length
-        with suppress(Exception):
-            title = EasyID3(filename)['title'][0]
-            artist = EasyID3(filename)['artist']
-            artist = ', '.join(artist)
-            # album = EasyID3(filename)['album']
-
         uri_safe = Path(filename).as_uri()[11:]
         url = f'http://192.168.2.17:{PORT}/{uri_safe}'
         cast.wait()
