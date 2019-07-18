@@ -178,11 +178,43 @@ mc: pychromecast.controllers.media.MediaController = None
 song_end = song_length = song_position = song_start = 0
 playing_status = 'NOT PLAYING'
 
-# sample_layout = [[sg.InputText(default_text='Audio File', disabled=True),
-#                        sg.FileBrowse(button_text='Select File', initial_folder=MUSIC_DIR, size=(10, 1),
-#                                      file_types=(('Audio', '*mp3'),), button_color=('black', 'cyan'))],
-#                       [sg.Button('Play!', button_color=('black', 'cyan'), size=(10, 1)),
-#                       sg.Cancel(button_color=('black', 'cyan'), size=(10, 1))]]
+
+# Settings Window
+fg = '#aaaaaa'
+bg = '#121212'
+font_family = 'SourceSans'
+button_color = ('black', '#4285f4')
+settings_layout = [
+    [sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
+    [sg.Checkbox('Auto Update', default=True, text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
+    [sg.Checkbox('Run on Startup', default=True, text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+    [sg.Listbox(['Listbox 1', 'Listbox 2', 'Listbox 3'], size=(20, 5), select_mode=sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
+     sg.Frame('', [[sg.Button(button_text='Remove Selected Folder', button_color=button_color,
+               key='Remove Folder', enable_events=True, font=font_family)],
+     [sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)],
+     [sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]
+]
+settings_window = sg.Window('Music Caster Settings', settings_layout)
+
+
+class SettingsWindow:
+    is_shown = False
+    window = settings_window
+    
+    def Show(self):
+        if not self.is_shown:
+            window.Show()
+            self.is_shown = True
+    
+    def Finalize(self):
+        if not self.is_shown:
+            window.Finalize()
+            self.is_shown = True
+
+    def start_reading(self):
+        pass
+        
+            
 
 
 def play_file(filename, position=0):
@@ -364,6 +396,8 @@ while True:
                     mc.stop()
                     play_file(music_queue[0], position=current_pos)
     elif menu_item == 'Settings':
+        settings_window.Finalize()
+
         os.startfile(settings_file)
     elif 'Next Song' in (menu_item, keyboard_command):
         next_song()
