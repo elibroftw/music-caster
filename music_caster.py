@@ -21,8 +21,8 @@ import wx
 from random import shuffle
 import requests
 from subprocess import Popen
-import threading
 from time import time
+import threading
 import win32api
 import win32com.client
 import win32event
@@ -194,26 +194,12 @@ song_end = song_length = song_position = song_start = 0
 playing_status = 'NOT PLAYING'
 
 
-# Settings Window
+# Styling
 fg = '#aaaaaa'
 bg = '#121212'
 font_family = 'SourceSans', 11
 button_color = ('black', '#4285f4')
-settings_layout = [
-    [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
-    [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
-    [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-    # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(40, 1))],
-    [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
-    [Sg.Listbox(music_directories, size=(41, 5), select_mode=sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
-     Sg.Frame('', [
-            [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
-            [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
-            [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)
-        ]
-    ]
-# settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg)
-settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon)
+
 
 
 def play_file(filename, position=0):
@@ -329,11 +315,12 @@ def on_press(key):
 
 
 keyboard_command = None
+settings_active = False
 listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
-    menu_item = tray.Read(timeout=100)
+    menu_item = tray.Read(timeout=0)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
     if menu_item == 'Exit':
@@ -396,45 +383,25 @@ while True:
             if playing_status == 'PLAYING':
                 play_file(music_queue[0], position=current_pos)
                 
-    elif menu_item == 'Settings':
-        settings_window.Show()
-        # settings_window.SetIcon(icon=filled_logo_data)
-        # settings_window.Refresh()s
+    elif menu_item == 'Settings' and not settings_active:
+        settings_active = True
+        # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
+        settings_layout = [
+            [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
+            [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+            # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(40, 1))],
+            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+            [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
+            Sg.Frame('', [
+                    [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
+                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
+                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)
+                ]
+            ]
+        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
         # settings_window.GrabAnyWhereOn()
-        while True:
-            event, values = settings_window.Read(timeout=100)
-            if event in (None, 'Exit'):
-                settings_window.Close()
-                break
-            value = values.get(event)            
-            # if event != '__TIMEOUT__':
-            #     print(event)
-            if event in ('auto update', 'run on startup'):
-                settings[event] = value
-                save_json()
-                if event == 'run on startup':
-                    startup_setting()
-            elif event == 'volume':
-                settings[event] = value
-                save_json()
-                volume = value/100
-                if cast is None:
-                    local_music_player.music.set_volume(volume)
-                else:
-                    cast.set_volume(volume)
-            elif event == 'Remove Folder':
-                selected_item = values['music_dirs'][0]
-                if selected_item in music_directories:
-                    music_directories.remove(selected_item)
-                    save_json()
-                    settings_window.Element('music_dirs').Update(music_directories)
-            elif event == 'Add Folder':
-                if value not in music_directories and os.path.exists(value):
-                    music_directories.append(value)
-                    save_json()
-                    settings_window.Element('music_dirs').Update(music_directories)
-            elif event == 'Open Settings':
-                os.startfile(settings_file)
+        
     elif 'Next Song' in (menu_item, keyboard_command):
         next_song()
     elif 'Previous Song' in (menu_item, keyboard_command):
@@ -452,4 +419,49 @@ while True:
             elif local_music_player.music.get_busy():
                 local_music_player.music.stop()
             playing_status = 'STOPPED'
+
+   # SETTINGS WINDOW
+    if settings_active:
+        settings_event, settings_values = settings_window.Read(timeout=0)
+        if settings_event is None:
+            settings_active = False
+            continue
+        settings_value = settings_values.get(settings_event)            
+        if settings_event != '__TIMEOUT__':
+            print(settings_event)
+        if settings_event in ('auto update', 'run on startup'):
+            settings[settings_event] = settings_value
+            save_json()
+            if settings_event == 'run on startup':
+                startup_setting()
+        elif settings_event in ('volume', 'a', 'd') or settings_event.isdigit():
+            update_slider = False
+            if settings_event.isdigit():
+                update_slider = True
+                new_volume = int(settings_event) * 10
+            else:
+                delta = 0
+                if settings_event == 'a': delta = -5
+                elif settings_event == 'd': delta = 5
+                new_volume = settings_values['volume'] + delta
+            settings['volume'] = new_volume
+            save_json()
+            volume = new_volume/100
+            if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
+            if cast is None: local_music_player.music.set_volume(volume)
+            else: cast.set_volume(volume)
+        elif settings_event == 'Remove Folder' and settings_values['music_dirs']:
+            selected_item = settings_values['music_dirs'][0]
+            if selected_item in music_directories:
+                music_directories.remove(selected_item)
+                save_json()
+                settings_window.Element('music_dirs').Update(music_directories)
+        elif settings_event == 'Add Folder':
+            if settings_value not in music_directories and os.path.exists(settings_value):
+                music_directories.append(settings_value)
+                save_json()
+                settings_window.Element('music_dirs').Update(music_directories)
+        elif settings_event == 'Open Settings':
+            os.startfile(settings_file)
+
     if keyboard_command is not None: keyboard_command = None
