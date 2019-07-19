@@ -399,6 +399,7 @@ while True:
                 ]
             ]
         settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
+        settings_window.BringToFront()
         # settings_window.GrabAnyWhereOn()
         
     elif 'Next Song' in (menu_item, keyboard_command):
