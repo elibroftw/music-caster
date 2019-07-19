@@ -31,9 +31,9 @@ import sys
 
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
-
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
+CURRENT_VERSION = '3.0.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -47,10 +47,9 @@ while True:
         PORT += 1
 
 user32 = ctypes.windll.user32
-SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-sg.ChangeLookAndFeel('Black')
+# SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-CURRENT_VERSION = '2.3.0'
+
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
