@@ -4,8 +4,6 @@ Music Caster lets you cast your local music files to a Google Home or Home Mini.
 
 [Download from releases page](https://github.com/elibroftw/music-caster/releases)
 
-[Donation Link](paypal.me/elibroftw)
-
 # Usage
 On the first startup, the app will be in your hidden tray. You can move it onto the Taskbar and it'll stay in sight for future launches.
 If you right click the icon, a menu will pop up. Click Settings to open settings (no longer a file).
