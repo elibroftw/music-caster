@@ -6,12 +6,11 @@ Music Caster lets you cast your local music files to a Google Home or Home Mini.
 [Donation Link](paypal.me/elibroftw)
 
 # Usage
-On first startup, the app will be in your tray. You can move it onto the Taskbar and it'll stay out of the tray on for launches.
-If you right click the icon, a menu will pop up. Click Settings to open settings.
-Now you may change your music directories.
-By default, your home music directory is put into the music directories list.
+On the first startup, the app will be in your hidden tray. You can move it onto the Taskbar and it'll stay in sight for future launches.
+If you right click the icon, a menu will pop up. Click Settings to open settings (no longer a file).
+Now you may add or remove music directories. By default, your home music directory is put into the music directories list.
 When you click Play All, all the music from these directories all shuffled into a list and played.
-When you click Play File, you can select a file to play and all of the music in your music directories are shuffle added.
+When you click Play File, you can select a file to play and all of the music in your music directories are shuffled into the music queue.
 
 TLDR: If you have music all over the place, right click icon in tray and open settings
 
