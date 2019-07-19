@@ -91,22 +91,26 @@ except FileNotFoundError:
 
 if settings['auto update']:
     github_url = 'https://github.com/elibroftw/music-caster/releases'
-    html_doc = requests.get(github_url).text
-    soup = BeautifulSoup(html_doc, features='html.parser')
-    release_entry = soup.find('div', class_='release-entry')
-    latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
-    major, minor, patch = (int(x) for x in CURRENT_VERSION.split('.'))
-    lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
-    if (lt_major > major or lt_major == major and lt_minor > minor
-            or lt_major == major and lt_minor == minor and lt_patch > patch):
-        os.chdir(starting_dir)
-        if settings.get('DEBUG') or os.path.exists('updater.py'):
-            Popen('python updater.py')
-        elif os.path.exists('Updater.exe'):
-            os.startfile('Updater.exe')
-        elif os.path.exists('updater.pyw'):
-            Popen('pythonw updater.pyw')
-        sys.exit()
+    try:
+        html_doc = requests.get(github_url).text
+        soup = BeautifulSoup(html_doc, features='html.parser')
+        release_entry = soup.find('div', class_='release-entry')
+        latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
+        major, minor, patch = (int(x) for x in CURRENT_VERSION.split('.'))
+        lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
+        if (lt_major > major or lt_major == major and lt_minor > minor
+                or lt_major == major and lt_minor == minor and lt_patch > patch):
+            os.chdir(starting_dir)
+            if settings.get('DEBUG') or os.path.exists('updater.py'):
+                Popen('python updater.py')
+            elif os.path.exists('Updater.exe'):
+                os.startfile('Updater.exe')
+            elif os.path.exists('updater.pyw'):
+                Popen('pythonw updater.pyw')
+            sys.exit()
+    except requests.ConnectionError:  # Should handle more errors?
+        pass
+        # start a thread to check every 20 seconds
 
 
 USER_NAME = getpass.getuser()
