@@ -14,6 +14,7 @@ from pychromecast.error import UnsupportedNamespace
 import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
+import socket
 # import PySimpleGUIQt as sg
 import PySimpleGUI as Sg
 import PySimpleGUIWx as sg
@@ -36,6 +37,9 @@ if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 CURRENT_VERSION = '3.1.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
+hostname = socket.gethostname()    
+ipv4_address = socket.gethostbyname(hostname)  
+
 PORT = 2001
 while True:
     try:
@@ -168,12 +172,12 @@ try:
     cast.wait()
 except StopIteration: cast = None
 device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
-menu_def_1 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
+menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
-menu_def_2 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
+menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
                        'Next Song', 'Previous Song', 'Pause', 'E&xit']]
 
-menu_def_3 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
+menu_def_3 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
                        'Next Song', 'Previous Song', 'Resume', 'E&xit']]
 
 unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
@@ -228,7 +232,7 @@ def play_file(filename, position=0):
         playing_status = 'PLAYING'
     else:
         uri_safe = Path(filename).as_uri()[11:]
-        url = f'http://192.168.2.17:{PORT}/{uri_safe}'
+        url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
         cast.wait()
         cast.set_volume(volume)
         mc = cast.media_controller
@@ -328,7 +332,33 @@ while True:
     menu_item = tray.Read(timeout=0)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
-    if menu_item == 'Exit':
+    if menu_item == 'Refresh Devices': pass
+    elif menu_item.split('.')[0].isdigit():  # if user selected a device
+        device = ' '.join(menu_item.split('.')[1:])[1:]
+        try:
+            new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
+        except StopIteration:
+            new_cast = None
+        if cast != new_cast:
+            cast = new_cast
+            if cast is None:
+                settings['previous device'] = None
+            else:
+                settings['previous device'] = str(cast.uuid)
+            save_json()
+            current_pos = 0
+            
+            if local_music_player.music.get_busy():
+                    current_pos = song_position + local_music_player.music.get_pos()/1000
+                    local_music_player.music.stop()
+            elif mc is not None:
+                mc.update_status()  # Switch device without playback loss
+                current_pos = mc.status.adjusted_current_time
+                mc.stop()
+            
+            if playing_status == 'PLAYING':
+                play_file(music_queue[0], position=current_pos)
+    elif menu_item == 'Exit':
         tray.Hide()
         if cast is not None and cast.app_id == 'CC1AD845':
             cast.quit_app()
@@ -362,32 +392,6 @@ while True:
             done_queue.clear()
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=filled_logo_data)
-    elif menu_item.split('.')[0].isdigit():  # if user selected a device
-        device = ' '.join(menu_item.split('.')[1:])[1:]
-        try:
-            new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
-        except StopIteration:
-            new_cast = None
-        if cast != new_cast:
-            cast = new_cast
-            if cast is None:
-                settings['previous device'] = None
-            else:
-                settings['previous device'] = str(cast.uuid)
-            save_json()
-            current_pos = 0
-            
-            if local_music_player.music.get_busy():
-                    current_pos = song_position + local_music_player.music.get_pos()/1000
-                    local_music_player.music.stop()
-            elif mc is not None:
-                mc.update_status()  # Switch device without playback loss
-                current_pos = mc.status.adjusted_current_time
-                mc.stop()
-            
-            if playing_status == 'PLAYING':
-                play_file(music_queue[0], position=current_pos)
-                
     elif menu_item == 'Settings' and not settings_active:
         settings_active = True
         # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
