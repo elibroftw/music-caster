@@ -33,7 +33,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '3.0.1'
+CURRENT_VERSION = '3.1.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -55,6 +55,7 @@ settings = {  # default settings
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
     'auto update': True,
     'run on startup': True,
+    'notifications': True,
     'volume': 100,
     'local volume': 100,
     'music directories': [home_music_dir],
@@ -182,7 +183,8 @@ filled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALG
 window_icon = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4c6QAABV9JREFUeAHt\nWUtsVUUYvhQsG0qMDaQQTUPwEVkQN7gsTXGhG+JO9zRhwZaN1o1xISEkJmIISWVDQoILG1iXtNfY\nUBe6MRrAR1OjK+MjqSaK2ML3lU47d/J/M+fce8+B9s6ffDlzvvlf83fOPG4bjSy5ArkCuQK5ArkC\nuQK5ArkCuQIlKrANuuPAPPAXcH+LYmltjBwrx1xIhqA1DWzVoqhxccwce1RYxV4sjisaxx6dSZxq\nTrlXn6yBlC/Q06uFcePmursu4XTigrxrvbc3G39j2ANu6GGBWEVLQj1LZzNyyfH2bcZR1ZlzLlCi\n2rlAuUCJCiS68wxKFGhHoj/VrXaBlF3d/W3vwnkGJf5UuUCJAoWfWNtTMRFn03Z3OoOWN+3ICybe\naYGeQZwJ4MeC8XpWjZ/mGDAFuFvx4/RUfxiVo9LvCv8yvMwCKvij4NXAVC5Kv6v8q/D2NaCSqJNX\nA1M5rOuHu9Zd9PA3IeIP4HvgDnALmAN+AcpIP5TfA04Dna53ZeKGuuE4XT8LZInST/61v4O3i8Ax\noMyAR6C/CKi/WNU8Qpui4prKJJWBxf8M/fcB7mRFZDeUrgGWr6o5lZ+Kq/TbSp6f5SRwUHrd6OCs\nuwCoxKriNzJobal4rVremzIowt+Dn3NAkd+034ZeEZ/d0vGG2NJU/luU/BdlUIbnQv6671S0x8GX\n8duJrkhBxlf6De46g8ABYBQ4CXwIcLteAcok+RH0dwIxqWsmqRzUeJR+lN+D3hNAEyharK+gm1rE\n61iTkIYpXS2QH+E5vHwCFCkUd7tDvnHQ3o73qne3IOT6a2UFchGOoDEDqECO/x06vIIo4RFgEXD6\n3X6quCqO0m+bfw2WC4AKSJ5Fis2kEfQvJ3zE/Mf64NYUZWMqd0pycW8CKih5fm6xNelMwj7mO9YH\nt6YoG1OZJO9gvHvNAleAd4DDQFF5Aoq8iqjA5Llwq92Nu2gVF1y4NUXlaSqTVAb8fD4AihbrFHT/\nj/jjEUAJfwVQebTLq1jKn9JPJsY14jIwLD1sdLBIKgHyscPkbMI25tfq28iqtWXpkpOiDEL+X3g4\nC/CTiEnsc+OJW11LuOOFMTt5Vzkqn0q/dFJz8LRXems0uCY1AZUI725KptCh7MryKobyo/TbSugn\neHtJenx4dVFHAF5wnxW2Y+DVAMryIoT0r/RXp/zz6B0F+Cvg50CRswl3v1iReE5Sg/oYfZbwV70f\nAGVXhrf8k1M+lL7J8xPievMPoByS50yKfW4zwv4/8Ops9JawieVh9cGNKZYuubaEg/gUUE7Jc01S\nCzevJSvCngdES/aBjB0XYrn4fZZvcr6O31b6hfgJaKmBMghnm5Kr6PATcW2esPuUUYW8ix8+Ow75\nJjyoIvEIMCwi8FcAZfeKsKmSDgvj3rsSkzPJOQyfPEwqaaIj1Oc7z0x1i5UHOSncjW4Dk0CRv6ha\nk7jzqWvJCfRZifFfSnWLlUe0QKHBZ8iY274SLtxqd+PdzRL+Mqk+s6ctgwq5cLzuXYZ0Cv7zT2gf\nlRYPF2Vf37UXIjbqxs61rU5xuYZPmUOo6N5ZJDWTePbhJ+V0/af6zM4L/XfBK/H9Vtle8hMourU+\nCSOuS5b8CvKm1QHuuOC/EfwLgq+T/tYPVrRAtBkB1MJ93XfqtV/02n6TP8pZwmPAo5ZLfgJlCkS7\nN3xjr/2l1/ab+/0Xr81riSVPWWSN3A3EailQGDv1bfMIYAnXJ8tWzZRBof+b5XyNs/x3k5tGnKFI\n/NWuVECekywZAGnZKv1+oX/Xcr7GWf475ZjfPDAObFuLkx+5ArkCuQK5ArkCuQK5ArkCuQLpCjwA\nMCQ8Gt1a8k0AAAAASUVORK5CYII=\n'
 
 tray = sg.SystemTray(menu=menu_def_1, data_base64=unfilled_logo_data, tooltip='Music Caster')
-tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
+notifications_enabled = settings['notifications']
+if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
 music_directories = settings['music directories']
 if not music_directories:
     music_directories = settings['music directories'] = [home_music_dir]
@@ -241,7 +243,7 @@ def play_file(filename, position=0):
         song_start = time()
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
-    tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
+    if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
 
 
 def pause():
@@ -393,7 +395,7 @@ while True:
             [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
             [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
             [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-            # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(40, 1))],
+            [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
             [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
             [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
             Sg.Frame('', [
@@ -433,11 +435,13 @@ while True:
         settings_value = settings_values.get(settings_event)            
         if settings_event != '__TIMEOUT__':
             print(settings_event)
-        if settings_event in ('auto update', 'run on startup'):
+        if settings_event in ('auto update', 'run on startup', 'notifications'):
             settings[settings_event] = settings_value
             save_json()
             if settings_event == 'run on startup':
                 startup_setting()
+            elif settings_event == 'notifications':
+                notifications_enabled = settings_value
         elif settings_event in ('volume', 'a', 'd') or settings_event.isdigit():
             update_slider = False
             if settings_event.isdigit():
