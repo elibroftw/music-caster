@@ -206,7 +206,6 @@ font_family = 'SourceSans', 11
 button_color = ('black', '#4285f4')
 
 
-
 def play_file(filename, position=0):
     global mc, song_start, song_end, playing_status, song_length, song_position
     song_position = position
