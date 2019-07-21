@@ -37,9 +37,6 @@ if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 CURRENT_VERSION = '3.1.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
-hostname = socket.gethostname()    
-ipv4_address = socket.gethostbyname(hostname)  
-
 PORT = 2001
 while True:
     try:
@@ -210,6 +207,8 @@ button_color = ('black', '#4285f4')
 
 def play_file(filename, position=0):
     global mc, song_start, song_end, playing_status, song_length, song_position
+    hostname = socket.gethostname()    
+    ipv4_address = socket.gethostbyname(hostname)
     song_position = position
     title = artist = 'Unknown'
     song_length = MP3(filename).info.length
