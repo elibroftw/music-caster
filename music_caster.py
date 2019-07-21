@@ -33,7 +33,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '3.1.0'
+CURRENT_VERSION = '3.1.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -160,14 +160,12 @@ startup_setting()
 previous_device = settings['previous device']
 local_music_player.init(44100, -16, 2, 2048)
 volume = settings['volume']/100
-local_music_player.music.set_volume(volume)
 print('Retrieving chromecasts...')
 chromecasts = pychromecast.get_chromecasts()
 print('Retrieved chromecasts')
 try:
     cast = next(cc for cc in chromecasts if str(cc.device.uuid) == previous_device)
     cast.wait()
-    cast.set_volume(volume)
 except StopIteration: cast = None
 device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
 menu_def_1 = ['', ['Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
@@ -211,6 +209,7 @@ def play_file(filename, position=0):
     song_position = position
     title = artist = 'Unknown'
     song_length = MP3(filename).info.length
+    volume = settings['volume']/100
     with suppress(Exception):
         title = EasyID3(filename)['title'][0]
         artist = EasyID3(filename)['artist']
@@ -222,6 +221,7 @@ def play_file(filename, position=0):
         if local_music_player.music.get_busy():
             local_music_player.music.stop()
         local_music_player.music.load(filename)
+        local_music_player.music.set_volume(volume)
         local_music_player.music.play(start=position)
         song_start = time()
         song_end = song_start + song_length - position
@@ -230,6 +230,7 @@ def play_file(filename, position=0):
         uri_safe = Path(filename).as_uri()[11:]
         url = f'http://192.168.2.17:{PORT}/{uri_safe}'
         cast.wait()
+        cast.set_volume(volume)
         mc = cast.media_controller
         if mc.is_playing or mc.is_paused:
             mc.stop()
