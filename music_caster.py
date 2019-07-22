@@ -6,12 +6,12 @@ from glob import glob
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 from mutagen.easyid3 import EasyID3
-from mutagen.mp3 import MP3
 import os
 from pathlib import Path
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
+from pydub.utils import mediainfo
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
 import socket
@@ -169,12 +169,6 @@ local_music_player.init(44100, -16, 2, 2048)
 # print('Retrieving chromecasts...')
 # chromecasts = pychromecast.get_chromecasts()
 stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-# print('Retrieved chromecasts')
-# try:
-#     cast = next(cc for cc in chromecasts if str(cc.device.uuid) == previous_device)
-#     cast.wait()
-# except StopIteration: cast = None
-# device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
 menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
 menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
@@ -212,12 +206,19 @@ button_color = ('black', '#4285f4')
 
 
 def play_file(filename, position=0):
-    global mc, song_start, song_end, playing_status, song_length, song_position
+    global mc, song_start, song_end, playing_status, song_length, song_position, volume
     hostname = socket.gethostname()    
     ipv4_address = socket.gethostbyname(hostname)
     song_position = position
+    media_info = mediainfo(filename)
+    song_length = float(media_info['duration'])
+    # tags = media_info['TAG']
+    # title = tags['title']
+    # artist = tags['artist']
+    # album = tags['album']
+    # noinspection PyUnusedLocal
     title = artist = album = 'Unknown'
-    song_length = MP3(filename).info.length
+    # song_length = MP3(filename).info.length
     volume = settings['volume']/100
     with suppress(Exception):
         title = EasyID3(filename)['title'][0]
@@ -226,9 +227,9 @@ def play_file(filename, position=0):
         album = EasyID3(filename)['album']
     if cast is None:
         mc = None
-        song_length = MP3(filename).info.length
-        if local_music_player.music.get_busy():
-            local_music_player.music.stop()
+        sampling_rate = int(media_info['sample_rate'])
+        local_music_player.quit()
+        local_music_player.init(sampling_rate, -16, 2, 2048)
         local_music_player.music.load(filename)
         local_music_player.music.set_volume(volume)
         local_music_player.music.play(start=position)
@@ -371,8 +372,8 @@ while True:
             current_pos = 0
             
             if local_music_player.music.get_busy():
-                    current_pos = song_position + local_music_player.music.get_pos()/1000
-                    local_music_player.music.stop()
+                current_pos = song_position + local_music_player.music.get_pos()/1000
+                local_music_player.music.stop()
             elif mc is not None:
                 mc.update_status()  # Switch device without playback loss
                 current_pos = mc.status.adjusted_current_time
@@ -390,14 +391,15 @@ while True:
             [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
             [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
             [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
-            Sg.Frame('', [
+             Sg.Frame('', [
                     [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
                     [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
-                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)
-                ]
+                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)]
             ]
         settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
         settings_window.BringToFront()
+        # settings_window.TKroot.attributes('-topmost', 1)
+        # settings_window.TKroot.attributes('-topmost', 0)
         # settings_window.GrabAnyWhereOn()
     elif menu_item == 'Play File':
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
