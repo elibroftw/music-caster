@@ -1,7 +1,6 @@
 # Music Caster
 
-Music Caster is a music player which lets you cast your local music files to a Google Home or Home Mini.
-Chromecast support is on the way!
+Music Caster is a music player which lets you cast your local music files to a Google Chromecast device (includes Google Home's)
 
 [Download from releases page](https://github.com/elibroftw/music-caster/releases)
 
