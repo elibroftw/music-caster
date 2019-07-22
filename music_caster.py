@@ -17,6 +17,7 @@ from pynput.keyboard import Listener
 import socket
 # import PySimpleGUIQt as sg
 import PySimpleGUI as Sg
+# noinspection PyPep8Naming
 import PySimpleGUIWx as sg
 import wx
 from random import shuffle
@@ -34,7 +35,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '4.0.0'
+CURRENT_VERSION = '4.1.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -42,7 +43,7 @@ while True:
     try:
         httpd = HTTPServer(('0.0.0.0', PORT), SimpleHTTPRequestHandler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()  # TODO: multiprocess
-        print('Running server')
+        # print('Running server')
         break
     except OSError:
         PORT += 1
@@ -145,38 +146,42 @@ def startup_setting():
 
 startup_setting()
 
-# device_names = ['1. Local Device']
-# chromecasts = []
-#
-#
-# def chrome_cast_callback(chromecast):
-#     chromecasts.append(chromecast)
-#     devices = len(device_names)
-#     device_names.append(f'{devices + 2}. {chromecast.device.friendly_name}')
-#
-#     if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-#     elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-#     else: tray.Update(menu=menu_def_1)
+update_devices = False
+chromecasts = []
+device_names = ['1. Local Device']
+cast = None
 
 
-previous_device = settings['previous device']
+def chromecast_callback(chromecast):
+    global update_devices, cast
+    previous_device = settings['previous device']
+    if str(chromecast.device.uuid) == previous_device and cast != chromecast:
+        cast = chromecast
+        cast.wait()
+    chromecasts.append(chromecast)
+    devices = len(device_names)
+    device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
+    update_devices = True
+
+
 local_music_player.init(44100, -16, 2, 2048)
-volume = settings['volume']/100
-print('Retrieving chromecasts...')
-chromecasts = pychromecast.get_chromecasts()
-print('Retrieved chromecasts')
-try:
-    cast = next(cc for cc in chromecasts if str(cc.device.uuid) == previous_device)
-    cast.wait()
-except StopIteration: cast = None
-device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
+# volume = settings['volume']/100
+# print('Retrieving chromecasts...')
+# chromecasts = pychromecast.get_chromecasts()
+stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
+# print('Retrieved chromecasts')
+# try:
+#     cast = next(cc for cc in chromecasts if str(cc.device.uuid) == previous_device)
+#     cast.wait()
+# except StopIteration: cast = None
+# device_names = ['1. Local Device'] + [f'{i + 2}. {cc.device.friendly_name}' for i, cc in enumerate(chromecasts)]
 menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
 menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
-                       'Next Song', 'Previous Song', 'Pause', 'E&xit']]
+                   'Next Song', 'Previous Song', 'Pause', 'E&xit']]
 
 menu_def_3 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
-                       'Next Song', 'Previous Song', 'Resume', 'E&xit']]
+                   'Next Song', 'Previous Song', 'Resume', 'E&xit']]
 
 unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
 filled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
@@ -241,7 +246,9 @@ def play_file(filename, position=0):
             mc.block_until_active(5)
         music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
         mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
-        # TODO: not sure if thumb actually works, test on Chromecast
+        # mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=url)
+        # TODO: not sure if thumb actually works, test on my Chromecast!
+        # Otherwise, you could extract image and upload it / store it in a directory
         mc.block_until_active()
         if position > 0:
             mc.seek(position)
@@ -334,7 +341,18 @@ while True:
     menu_item = tray.Read(timeout=0)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
-    if menu_item == 'Refresh Devices': pass
+    if menu_item == 'Refresh Devices':
+        update_devices = True
+        stop_discovery()
+        chromecasts.clear()
+        device_names.clear()
+        device_names.append('1. Local Device')
+        stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
+    if update_devices:
+        update_devices = False
+        if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+        elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+        else: tray.Update(menu=menu_def_1)
     elif menu_item.split('.')[0].isdigit():  # if user selected a device
         device = ' '.join(menu_item.split('.')[1:])[1:]
         try:
@@ -360,21 +378,32 @@ while True:
             
             if playing_status == 'PLAYING':
                 play_file(music_queue[0], position=current_pos)
-    elif menu_item == 'Exit':
-        tray.Hide()
-        if cast is not None and cast.app_id == 'CC1AD845':
-            cast.quit_app()
-            # TODO: implement fadeout?
-        elif local_music_player.music.get_busy():
-            # local_music_player.music.fadeout(3)  # needs to be threaded
-            local_music_player.music.stop()
-        break
+    elif menu_item == 'Settings' and not settings_active:
+        settings_active = True
+        # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
+        settings_layout = [
+            [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
+            [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+            [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
+            Sg.Frame('', [
+                    [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
+                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
+                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)
+                ]
+            ]
+        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
+        settings_window.BringToFront()
+        # settings_window.GrabAnyWhereOn()
     elif menu_item == 'Play File':
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
         # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
         #                                initial_folder=DEFAULT_DIR, no_window=True)
         if music_directories: DEFAULT_DIR = music_directories[0]
-        fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if fd.ShowModal() != wx.ID_CANCEL:
             path_to_file = fd.GetPath()
         # if os.path.exists(path_to_file):
@@ -395,36 +424,6 @@ while True:
             done_queue.clear()
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=filled_logo_data)
-    elif menu_item == 'Settings' and not settings_active:
-        settings_active = True
-        # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
-        settings_layout = [
-            [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
-            [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
-            [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
-            Sg.Frame('', [
-                    [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
-                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
-                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)
-                ]
-            ]
-        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
-        settings_window.BringToFront()
-        # settings_window.GrabAnyWhereOn()
-        
-    elif 'Next Song' in (menu_item, keyboard_command):
-        next_song()
-    elif 'Previous Song' in (menu_item, keyboard_command):
-        previous()
-    elif 'Resume' in (menu_item, keyboard_command):
-        resume()
-    elif 'Pause' in (menu_item, keyboard_command):
-        pause()
-    elif playing_status == 'PLAYING' and time() > song_end:
-        next_song()
     elif menu_item == 'Stop':
         if playing_status in ('PLAYING', 'PAUSED'):
             if mc is not None:
@@ -432,8 +431,21 @@ while True:
             elif local_music_player.music.get_busy():
                 local_music_player.music.stop()
             playing_status = 'STOPPED'
+    elif 'Next Song' in (menu_item, keyboard_command) or playing_status == 'PLAYING' and time() > song_end: next_song()
+    elif 'Previous Song' in (menu_item, keyboard_command): previous()
+    elif 'Resume' in (menu_item, keyboard_command): resume()
+    elif 'Pause' in (menu_item, keyboard_command): pause()
+    elif menu_item == 'Exit':
+        tray.Hide()
+        if cast is not None and cast.app_id == 'CC1AD845':
+            cast.quit_app()
+            # TODO: implement fadeout?
+        elif local_music_player.music.get_busy():
+            # local_music_player.music.fadeout(3)  # needs to be threaded
+            local_music_player.music.stop()
+        break
 
-   # SETTINGS WINDOW
+    # SETTINGS WINDOW
     if settings_active:
         settings_event, settings_values = settings_window.Read(timeout=0)
         if settings_event is None:
@@ -449,13 +461,14 @@ while True:
                 startup_setting()
             elif settings_event == 'notifications':
                 notifications_enabled = settings_value
+                if settings_value: tray.ShowMessage('Music Caster', 'Notifications have been enabled', time=500)
         elif settings_event in ('volume', 'a', 'd') or settings_event.isdigit():
             update_slider = False
+            delta = 0
             if settings_event.isdigit():
                 update_slider = True
                 new_volume = int(settings_event) * 10
             else:
-                delta = 0
                 if settings_event == 'a': delta = -5
                 elif settings_event == 'd': delta = 5
                 new_volume = settings_values['volume'] + delta
