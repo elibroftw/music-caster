@@ -35,7 +35,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '4.1.0'
+CURRENT_VERSION = '4.2.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
