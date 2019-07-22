@@ -35,7 +35,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '4.2.0'
+CURRENT_VERSION = '4.3.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -398,8 +398,8 @@ while True:
             ]
         settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
         settings_window.BringToFront()
-        # settings_window.TKroot.attributes('-topmost', 1)
-        # settings_window.TKroot.attributes('-topmost', 0)
+        settings_window.TKroot.attributes('-topmost', 1)
+        settings_window.TKroot.attributes('-topmost', 0)
         # settings_window.GrabAnyWhereOn()
     elif menu_item == 'Play File':
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
