@@ -365,6 +365,7 @@ while True:
                 settings['previous device'] = None
             else:
                 settings['previous device'] = str(cast.uuid)
+                cast.set_volume(settings['volume']/100)
             save_json()
             current_pos = 0
             
