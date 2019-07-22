@@ -397,6 +397,7 @@ while True:
                     [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)]
             ]
         settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
+        settings_window.Finalize()
         settings_window.BringToFront()
         # settings_window.TKroot.attributes('-topmost', 1)
         # settings_window.TKroot.attributes('-topmost', 0)
