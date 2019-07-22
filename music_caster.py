@@ -398,6 +398,7 @@ while True:
             ]
         settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
         settings_window.BringToFront()
+        settings_window.Finalize()
         settings_window.TKroot.attributes('-topmost', 1)
         settings_window.TKroot.attributes('-topmost', 0)
         # settings_window.GrabAnyWhereOn()
