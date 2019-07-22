@@ -142,6 +142,7 @@ def startup_setting():
     elif not run_on_startup and shortcut_exists:
         os.remove(shortcut_path)
 
+
 startup_setting()
 
 # device_names = ['1. Local Device']
@@ -210,14 +211,14 @@ def play_file(filename, position=0):
     hostname = socket.gethostname()    
     ipv4_address = socket.gethostbyname(hostname)
     song_position = position
-    title = artist = 'Unknown'
+    title = artist = album = 'Unknown'
     song_length = MP3(filename).info.length
     volume = settings['volume']/100
     with suppress(Exception):
         title = EasyID3(filename)['title'][0]
         artist = EasyID3(filename)['artist']
         artist = ', '.join(artist)
-        # album = EasyID3(filename)['album']
+        album = EasyID3(filename)['album']
     if cast is None:
         mc = None
         song_length = MP3(filename).info.length
@@ -238,8 +239,9 @@ def play_file(filename, position=0):
         if mc.is_playing or mc.is_paused:
             mc.stop()
             mc.block_until_active(5)
-        mc.play_media(url, 'audio/mp3', title=f'{artist} - {title}', current_time=position)
-        # NOTE: tested on Google Home Mini. # TODO: test on chromecast
+        music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
+        # TODO: not sure if thumb actually works, test on Chromecast
         mc.block_until_active()
         if position > 0:
             mc.seek(position)
@@ -323,6 +325,7 @@ def on_press(key):
 
 
 keyboard_command = None
+settings_window = None
 settings_active = False
 listener_thread = Listener(on_press=on_press)
 listener_thread.start()
@@ -370,6 +373,7 @@ while True:
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
         # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
         #                                initial_folder=DEFAULT_DIR, no_window=True)
+        if music_directories: DEFAULT_DIR = music_directories[0]
         fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if fd.ShowModal() != wx.ID_CANCEL:
             path_to_file = fd.GetPath()
@@ -436,8 +440,8 @@ while True:
             settings_active = False
             continue
         settings_value = settings_values.get(settings_event)            
-        if settings_event != '__TIMEOUT__':
-            print(settings_event)
+        # if settings_event != '__TIMEOUT__':
+        #     print(settings_event)
         if settings_event in ('auto update', 'run on startup', 'notifications'):
             settings[settings_event] = settings_value
             save_json()
