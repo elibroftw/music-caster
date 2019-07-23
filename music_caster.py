@@ -339,7 +339,7 @@ listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
-    menu_item = tray.Read(timeout=0)
+    menu_item = tray.Read(timeout=10)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
     if menu_item == 'Refresh Devices':
@@ -450,7 +450,7 @@ while True:
 
     # SETTINGS WINDOW
     if settings_active:
-        settings_event, settings_values = settings_window.Read(timeout=0)
+        settings_event, settings_values = settings_window.Read(timeout=10)
         if settings_event is None:
             settings_active = False
             continue
