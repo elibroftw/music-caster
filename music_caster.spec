@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
-# TODO: 32 bit and 64 bit
 
 block_cipher = None
 

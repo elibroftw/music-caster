@@ -6,12 +6,12 @@ from glob import glob
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 from mutagen.easyid3 import EasyID3
+import mutagen
 import os
 from pathlib import Path
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
-from pydub.utils import mediainfo
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
 import socket
@@ -35,7 +35,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '4.3.0'
+CURRENT_VERSION = '4.2.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -55,7 +55,7 @@ home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
-    'auto update': True,
+    'auto update': False,
     'run on startup': True,
     'notifications': True,
     'volume': 100,
@@ -78,7 +78,7 @@ def save_json():
 
 
 # check if settings file is valid
-try:
+if os.path.exists(settings_file):
     with open(settings_file) as json_file:
         loaded_settings = json.load(json_file)
         save_settings = False
@@ -88,8 +88,7 @@ try:
                 save_settings = True
         settings = loaded_settings
     if save_settings: save_json()
-except FileNotFoundError:
-    save_json()
+else: save_json()
 
 
 if settings['auto update']:
@@ -207,56 +206,53 @@ button_color = ('black', '#4285f4')
 
 def play_file(filename, position=0):
     global mc, song_start, song_end, playing_status, song_length, song_position, volume
-    hostname = socket.gethostname()    
-    ipv4_address = socket.gethostbyname(hostname)
-    song_position = position
-    media_info = mediainfo(filename)
-    song_length = float(media_info['duration'])
-    # tags = media_info['TAG']
-    # title = tags['title']
-    # artist = tags['artist']
-    # album = tags['album']
-    # noinspection PyUnusedLocal
-    title = artist = album = 'Unknown'
-    # song_length = MP3(filename).info.length
-    volume = settings['volume']/100
-    with suppress(Exception):
-        title = EasyID3(filename)['title'][0]
-        artist = EasyID3(filename)['artist']
-        artist = ', '.join(artist)
-        album = EasyID3(filename)['album']
-    if cast is None:
-        mc = None
-        sampling_rate = int(media_info['sample_rate'])
-        local_music_player.quit()
-        local_music_player.init(sampling_rate, -16, 2, 2048)
-        local_music_player.music.load(filename)
-        local_music_player.music.set_volume(volume)
-        local_music_player.music.play(start=position)
-        song_start = time()
-        song_end = song_start + song_length - position
-        playing_status = 'PLAYING'
-    else:
-        uri_safe = Path(filename).as_uri()[11:]
-        url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
-        cast.wait()
-        cast.set_volume(volume)
-        mc = cast.media_controller
-        if mc.is_playing or mc.is_paused:
-            mc.stop()
-            mc.block_until_active(5)
-        music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
-        # mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=url)
-        # TODO: not sure if thumb actually works, test on my Chromecast!
-        # Otherwise, you could extract image and upload it / store it in a directory
-        mc.block_until_active()
-        if position > 0:
-            mc.seek(position)
-        song_start = time()
-        song_end = song_start + song_length - position
-        playing_status = 'PLAYING'
-    if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
+    try:
+        hostname = socket.gethostname()
+        ipv4_address = socket.gethostbyname(hostname)
+        song_position = position
+        title = artist = album = 'Unknown'
+        audio_info = mutagen.File(filename).info
+        song_length = audio_info.length
+        volume = settings['volume']/100
+        with suppress(Exception):
+            title = EasyID3(filename)['title'][0]
+            artist = EasyID3(filename)['artist']
+            artist = ', '.join(artist)
+            album = EasyID3(filename)['album']
+        if cast is None:
+            mc = None
+            sampling_rate = audio_info.sample_rate
+            local_music_player.quit()
+            local_music_player.init(sampling_rate, -16, 2, 2048)
+            local_music_player.music.load(filename)
+            local_music_player.music.set_volume(volume)
+            local_music_player.music.play(start=position)
+            song_start = time()
+            song_end = song_start + song_length - position
+            playing_status = 'PLAYING'
+        else:
+            uri_safe = Path(filename).as_uri()[11:]
+            url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
+            cast.wait()
+            cast.set_volume(volume)
+            mc = cast.media_controller
+            if mc.is_playing or mc.is_paused:
+                mc.stop()
+                mc.block_until_active(5)
+            music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
+            # mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=url)
+            # TODO: not sure if thumb actually works, test on my Chromecast!
+            # Otherwise, you could extract image and upload it / store it in a directory
+            mc.block_until_active()
+            if position > 0:
+                mc.seek(position)
+            song_start = time()
+            song_end = song_start + song_length - position
+            playing_status = 'PLAYING'
+        if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
+    except Exception as e:
+        print(e)
 
 
 def pause():
@@ -339,7 +335,7 @@ listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
-    menu_item = tray.Read(timeout=0)
+    menu_item = tray.Read(timeout=10)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
     if menu_item == 'Refresh Devices':
@@ -397,10 +393,8 @@ while True:
                     [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)]
             ]
         settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
-        settings_window.BringToFront()
         settings_window.Finalize()
-        settings_window.TKroot.attributes('-topmost', 1)
-        settings_window.TKroot.attributes('-topmost', 0)
+        settings_window.TKroot.focus_force()
         # settings_window.GrabAnyWhereOn()
     elif menu_item == 'Play File':
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
@@ -452,7 +446,7 @@ while True:
 
     # SETTINGS WINDOW
     if settings_active:
-        settings_event, settings_values = settings_window.Read(timeout=0)
+        settings_event, settings_values = settings_window.Read(timeout=10)
         if settings_event is None:
             settings_active = False
             continue
