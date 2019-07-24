@@ -1,6 +1,4 @@
 from bs4 import BeautifulSoup
-from contextlib import suppress
-import ctypes
 import getpass
 from glob import glob
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -15,7 +13,6 @@ import pychromecast
 from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
 from pynput.keyboard import Listener
 import socket
-# import PySimpleGUIQt as sg
 import PySimpleGUI as Sg
 # noinspection PyPep8Naming
 import PySimpleGUIWx as sg
@@ -34,8 +31,9 @@ import sys
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
+del mutex, last_error
 
-CURRENT_VERSION = '4.2.1'
+CURRENT_VERSION = '4.2.2'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('C:/')
 PORT = 2001
@@ -43,15 +41,11 @@ while True:
     try:
         httpd = HTTPServer(('0.0.0.0', PORT), SimpleHTTPRequestHandler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()  # TODO: multiprocess
-        # print('Running server')
         break
     except OSError:
         PORT += 1
 
-user32 = ctypes.windll.user32
-# SCREEN_WIDTH, SCREEN_HEIGHT = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-
 settings = {  # default settings
     'previous device': None,
     'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
@@ -90,7 +84,6 @@ if os.path.exists(settings_file):
     if save_settings: save_json()
 else: save_json()
 
-
 if settings['auto update']:
     github_url = 'https://github.com/elibroftw/music-caster/releases'
     try:
@@ -114,9 +107,7 @@ if settings['auto update']:
         pass
         # start a thread to check every 20 seconds
 
-
-USER_NAME = getpass.getuser()
-shortcut_path = f'C:/Users/{USER_NAME}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+shortcut_path = f'C:/Users/{getpass.getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
 
 
 def startup_setting():
@@ -139,8 +130,7 @@ def startup_setting():
         shortcut.WorkingDirectory = starting_dir
         shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
         shortcut.save()
-    elif not run_on_startup and shortcut_exists:
-        os.remove(shortcut_path)
+    elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
 
 
 startup_setting()
@@ -164,9 +154,6 @@ def chromecast_callback(chromecast):
 
 
 local_music_player.init(44100, -16, 2, 2048)
-# volume = settings['volume']/100
-# print('Retrieving chromecasts...')
-# chromecasts = pychromecast.get_chromecasts()
 stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
 menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
@@ -196,7 +183,6 @@ mc: pychromecast.controllers.media.MediaController = None
 song_end = song_length = song_position = song_start = 0
 playing_status = 'NOT PLAYING'
 
-
 # Styling
 fg = '#aaaaaa'
 bg = '#121212'
@@ -206,53 +192,52 @@ button_color = ('black', '#4285f4')
 
 def play_file(filename, position=0):
     global mc, song_start, song_end, playing_status, song_length, song_position, volume
+    hostname = socket.gethostname()
+    ipv4_address = socket.gethostbyname(hostname)
+    song_position = position
+    audio_info = mutagen.File(filename).info
+    song_length = audio_info.length
+    volume = settings['volume'] / 100
     try:
-        hostname = socket.gethostname()
-        ipv4_address = socket.gethostbyname(hostname)
-        song_position = position
-        title = artist = album = 'Unknown'
-        audio_info = mutagen.File(filename).info
-        song_length = audio_info.length
-        volume = settings['volume']/100
-        with suppress(Exception):
-            title = EasyID3(filename)['title'][0]
-            artist = EasyID3(filename)['artist']
-            artist = ', '.join(artist)
-            album = EasyID3(filename)['album']
-        if cast is None:
-            mc = None
-            sampling_rate = audio_info.sample_rate
-            local_music_player.quit()
-            local_music_player.init(sampling_rate, -16, 2, 2048)
-            local_music_player.music.load(filename)
-            local_music_player.music.set_volume(volume)
-            local_music_player.music.play(start=position)
-            song_start = time()
-            song_end = song_start + song_length - position
-            playing_status = 'PLAYING'
-        else:
-            uri_safe = Path(filename).as_uri()[11:]
-            url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
-            cast.wait()
-            cast.set_volume(volume)
-            mc = cast.media_controller
-            if mc.is_playing or mc.is_paused:
-                mc.stop()
-                mc.block_until_active(5)
-            music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-            mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
-            # mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=url)
-            # TODO: not sure if thumb actually works, test on my Chromecast!
-            # Otherwise, you could extract image and upload it / store it in a directory
-            mc.block_until_active()
-            if position > 0:
-                mc.seek(position)
-            song_start = time()
-            song_end = song_start + song_length - position
-            playing_status = 'PLAYING'
-        if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
+        title = EasyID3(filename).get('title', ['Unknown'])[0]
+        artist = EasyID3(filename).get('artist', ['Unknown'])
+        artist = ', '.join(artist)
+        album = EasyID3(filename).get('album', 'Unknown')
     except Exception as e:
         print(e)
+        title = artist = album = 'Unknown'
+    if cast is None:
+        mc = None
+        sampling_rate = audio_info.sample_rate
+        local_music_player.quit()
+        local_music_player.init(sampling_rate, -16, 2, 2048)
+        local_music_player.music.load(filename)
+        local_music_player.music.set_volume(volume)
+        local_music_player.music.play(start=position)
+        song_start = time()
+        song_end = song_start + song_length - position
+        playing_status = 'PLAYING'
+    else:
+        uri_safe = Path(filename).as_uri()[11:]
+        url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
+        cast.wait()
+        cast.set_volume(volume)
+        mc = cast.media_controller
+        if mc.is_playing or mc.is_paused:
+            mc.stop()
+            mc.block_until_active(5)
+        music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
+        # mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=url)
+        # TODO: not sure if thumb actually works, test on my Chromecast!
+        # Otherwise, you could extract image and upload it / store it in a directory
+        mc.block_until_active()
+        if position > 0:
+            mc.seek(position)
+        song_start = time()
+        song_end = song_start + song_length - position
+        playing_status = 'PLAYING'
+    if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
 
 
 def pause():
@@ -266,7 +251,7 @@ def pause():
                 mc.pause()
                 song_position = mc.status.adjusted_current_time
             else:
-                song_position += local_music_player.music.get_pos()/1000
+                song_position += local_music_player.music.get_pos() / 1000
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
         except UnsupportedNamespace:
@@ -347,52 +332,62 @@ while True:
         stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     if update_devices:
         update_devices = False
-        if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-        elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-        else: tray.Update(menu=menu_def_1)
+        if playing_status == 'PLAYING':
+            tray.Update(menu=menu_def_2)
+        elif playing_status == 'PAUSED':
+            tray.Update(menu=menu_def_3)
+        else:
+            tray.Update(menu=menu_def_1)
     elif menu_item.split('.')[0].isdigit():  # if user selected a device
         device = ' '.join(menu_item.split('.')[1:])[1:]
-        try:
-            new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
-        except StopIteration:
-            new_cast = None
+        try: new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
+        except StopIteration: new_cast = None
         if cast != new_cast:
             cast = new_cast
-            if cast is None:
-                settings['previous device'] = None
+            if cast is None: settings['previous device'] = None
             else:
                 settings['previous device'] = str(cast.uuid)
                 cast.wait()
-                cast.set_volume(settings['volume']/100)
+                cast.set_volume(settings['volume'] / 100)
             save_json()
             current_pos = 0
-            
+
             if local_music_player.music.get_busy():
-                current_pos = song_position + local_music_player.music.get_pos()/1000
+                current_pos = song_position + local_music_player.music.get_pos() / 1000
                 local_music_player.music.stop()
             elif mc is not None:
                 mc.update_status()  # Switch device without playback loss
                 current_pos = mc.status.adjusted_current_time
                 mc.stop()
-            
+
             if playing_status == 'PLAYING':
                 play_file(music_queue[0], position=current_pos)
     elif menu_item == 'Settings' and not settings_active:
         settings_active = True
         # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
         settings_layout = [
-            [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg, font=font_family)],
-            [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,  background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg, background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume', tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
-            [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE , text_color=fg, key='music_dirs', background_color=bg, font=font_family, enable_events=True),
+            [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
+                     font=font_family)],
+            [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
+                         background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
+                         background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg,
+                         background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
+                       tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
+                       size=(50, 15))],
+            [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+                        key='music_dirs', background_color=bg, font=font_family, enable_events=True),
              Sg.Frame('', [
-                    [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder', enable_events=True, font=font_family)],
-                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
-                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family, enable_events=True)]], background_color=bg, border_width=0)]
-            ]
-        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon, return_keyboard_events=True, use_default_focus=False)
+                 [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder',
+                            enable_events=True, font=font_family)],
+                 [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
+                 [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family,
+                            enable_events=True)]], background_color=bg, border_width=0)]
+        ]
+        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon,
+                                    return_keyboard_events=True, use_default_focus=False)
         settings_window.Finalize()
         settings_window.TKroot.focus_force()
         # settings_window.GrabAnyWhereOn()
@@ -405,7 +400,7 @@ while True:
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if fd.ShowModal() != wx.ID_CANCEL:
             path_to_file = fd.GetPath()
-        # if os.path.exists(path_to_file):
+            # if os.path.exists(path_to_file):
             play_file(path_to_file)
             music_queue.clear()
             done_queue.clear()
@@ -443,14 +438,13 @@ while True:
             # local_music_player.music.fadeout(3)  # needs to be threaded
             local_music_player.music.stop()
         break
-
     # SETTINGS WINDOW
     if settings_active:
         settings_event, settings_values = settings_window.Read(timeout=10)
         if settings_event is None:
             settings_active = False
             continue
-        settings_value = settings_values.get(settings_event)            
+        settings_value = settings_values.get(settings_event)
         # if settings_event != '__TIMEOUT__':
         #     print(settings_event)
         if settings_event in ('auto update', 'run on startup', 'notifications'):
@@ -468,15 +462,19 @@ while True:
                 update_slider = True
                 new_volume = int(settings_event) * 10
             else:
-                if settings_event == 'a': delta = -5
-                elif settings_event == 'd': delta = 5
+                if settings_event == 'a':
+                    delta = -5
+                elif settings_event == 'd':
+                    delta = 5
                 new_volume = settings_values['volume'] + delta
             settings['volume'] = new_volume
             save_json()
-            volume = new_volume/100
+            volume = new_volume / 100
             if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
-            if cast is None: local_music_player.music.set_volume(volume)
-            else: cast.set_volume(volume)
+            if cast is None:
+                local_music_player.music.set_volume(volume)
+            else:
+                cast.set_volume(volume)
         elif settings_event == 'Remove Folder' and settings_values['music_dirs']:
             selected_item = settings_values['music_dirs'][0]
             if selected_item in music_directories:
