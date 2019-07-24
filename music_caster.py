@@ -320,7 +320,7 @@ listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
-    menu_item = tray.Read(timeout=10)
+    menu_item = tray.Read(timeout=0)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
     if menu_item == 'Refresh Devices':
