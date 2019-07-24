@@ -462,7 +462,9 @@ while True:
         settings_value = settings_values.get(settings_event)
         # if settings_event != '__TIMEOUT__':
         #     print(settings_event)
-        if settings_event in ('auto update', 'run on startup', 'notifications'):
+        if settings_event in ('Esc', 'q'):
+            settings_window.CloseNonBlocking()
+        elif settings_event in ('auto update', 'run on startup', 'notifications'):
             settings[settings_event] = settings_value
             save_json()
             if settings_event == 'run on startup':
