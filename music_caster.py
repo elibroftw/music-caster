@@ -463,6 +463,7 @@ while True:
         # if settings_event != '__TIMEOUT__':
         #     print(settings_event)
         if settings_event in ('Esc', 'q'):
+            settings_active = False
             settings_window.CloseNonBlocking()
         elif settings_event in ('auto update', 'run on startup', 'notifications'):
             settings[settings_event] = settings_value
