@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.2.2"
+#define MyAppVersion "4.3.0"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.herokuapp.com/"
 #define MyAppExeName "Music Caster.exe"
@@ -35,8 +35,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "{#SourcePath}\dist\Music Caster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Source: "C:\Users\maste\Dropbox\Python Projects\PySimpleGui\dist\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
-; Source: "{#SourcePath}\dist\settings.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\Icons\default.png"; DestDir: "{app}\images"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
