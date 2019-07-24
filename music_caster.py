@@ -2,7 +2,6 @@ from bs4 import BeautifulSoup
 import getpass
 from glob import glob
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from io import BytesIO
 import json
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
@@ -79,9 +78,9 @@ if os.path.exists(settings_file):
     with open(settings_file) as json_file:
         loaded_settings = json.load(json_file)
         save_settings = False
-        for k, v in settings.items():
-            if k not in loaded_settings:
-                loaded_settings[k] = v
+        for setting_name, setting_value in settings.items():
+            if setting_name not in loaded_settings:
+                loaded_settings[setting_name] = setting_value
                 save_settings = True
         settings = loaded_settings
     if save_settings: save_json()
@@ -227,17 +226,17 @@ def play_file(file_path, position=0):
         thumb = images_dir + f'/{Path(file_path).stem}.png'
         if not os.path.exists(thumb):
             tags = ID3(file_path)
-            for k in tags.keys():
-                if 'APIC' in k:
-                    pict = tags.get(k)
+            pict = None
+            for tag in tags.keys():
+                if 'AsPIC' in tag:
+                    pict = tags[tag]
                     break
-            if pict:
+            if pict is not None:
                 pict = pict.data
                 images_dir = r"C:\Users\maste\Documents\GitHub\music-caster\images"
                 with open(thumb, 'wb') as f: f.write(pict)
             else: thumb = images_dir + f'/default.png'
         thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-        print(thumb)
         cast.wait()
         cast.set_volume(volume)
         mc = cast.media_controller

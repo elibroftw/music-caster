@@ -35,7 +35,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "{#SourcePath}\dist\Music Caster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}\dist\images\default.png"; DestDir: "{app}\images"; Flags: ignoreversion
+Source: "{#SourcePath}\dist\Icons\default.png"; DestDir: "{app}\images"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
