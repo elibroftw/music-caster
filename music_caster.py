@@ -9,7 +9,6 @@ from mutagen.id3 import ID3
 import mutagen
 import os
 from pathlib import Path
-from PIL import Image
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
@@ -235,8 +234,7 @@ def play_file(file_path, position=0):
             if pict:
                 pict = pict.data
                 images_dir = r"C:\Users\maste\Documents\GitHub\music-caster\images"
-                im = Image.open(BytesIO(pict))
-                im.save(thumb)
+                with open(thumb, 'wb') as f: f.write(pict)
             else: thumb = images_dir + f'/default.png'
         thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
         print(thumb)
