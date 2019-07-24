@@ -4,6 +4,7 @@ build/
 dist/
 __pycache__/
 venv/
+images/
 Memory Leak/
 settings.json
 test.py

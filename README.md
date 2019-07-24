@@ -24,3 +24,6 @@ This app supports media keys. There might be an issue with skipping though so pl
 3. OPTIONAL: Having Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on path
 4. Run build.bat
 
+
+# Credits
+default.png by <a href="https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">ivke32</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">Pixabay</a>

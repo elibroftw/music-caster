@@ -2,11 +2,14 @@ from bs4 import BeautifulSoup
 import getpass
 from glob import glob
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from io import BytesIO
 import json
 from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3
 import mutagen
 import os
 from pathlib import Path
+from PIL import Image
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
@@ -31,10 +34,11 @@ import sys
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
-del mutex, last_error
 
-CURRENT_VERSION = '4.2.2'
+CURRENT_VERSION = '4.3.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
+images_dir = starting_dir + '/images'
+if not os.path.exists('images'): os.mkdir('images')
 os.chdir('C:/')
 PORT = 2001
 while True:
@@ -190,19 +194,19 @@ font_family = 'SourceSans', 11
 button_color = ('black', '#4285f4')
 
 
-def play_file(filename, position=0):
-    global mc, song_start, song_end, playing_status, song_length, song_position, volume
+def play_file(file_path, position=0):
+    global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir
     hostname = socket.gethostname()
     ipv4_address = socket.gethostbyname(hostname)
     song_position = position
-    audio_info = mutagen.File(filename).info
+    audio_info = mutagen.File(file_path).info
     song_length = audio_info.length
     volume = settings['volume'] / 100
     try:
-        title = EasyID3(filename).get('title', ['Unknown'])[0]
-        artist = EasyID3(filename).get('artist', ['Unknown'])
+        title = EasyID3(file_path).get('title', ['Unknown'])[0]
+        artist = EasyID3(file_path).get('artist', ['Unknown'])
         artist = ', '.join(artist)
-        album = EasyID3(filename).get('album', 'Unknown')
+        album = EasyID3(file_path).get('album', 'Unknown')
     except Exception as e:
         print(e)
         title = artist = album = 'Unknown'
@@ -211,15 +215,31 @@ def play_file(filename, position=0):
         sampling_rate = audio_info.sample_rate
         local_music_player.quit()
         local_music_player.init(sampling_rate, -16, 2, 2048)
-        local_music_player.music.load(filename)
+        local_music_player.music.load(file_path)
         local_music_player.music.set_volume(volume)
         local_music_player.music.play(start=position)
         song_start = time()
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
     else:
-        uri_safe = Path(filename).as_uri()[11:]
+        os.chdir(file_path[:3])
+        uri_safe = Path(file_path).as_uri()[11:]
         url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
+        thumb = images_dir + f'/{Path(file_path).stem}.png'
+        if not os.path.exists(thumb):
+            tags = ID3(file_path)
+            for k in tags.keys():
+                if 'APIC' in k:
+                    pict = tags.get(k)
+                    break
+            if pict:
+                pict = pict.data
+                images_dir = r"C:\Users\maste\Documents\GitHub\music-caster\images"
+                im = Image.open(BytesIO(pict))
+                im.save(thumb)
+            else: thumb = images_dir + f'/default.png'
+        thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
+        print(thumb)
         cast.wait()
         cast.set_volume(volume)
         mc = cast.media_controller
@@ -227,10 +247,8 @@ def play_file(filename, position=0):
             mc.stop()
             mc.block_until_active(5)
         music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata)
-        # mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=url)
-        # TODO: not sure if thumb actually works, test on my Chromecast!
-        # Otherwise, you could extract image and upload it / store it in a directory
+        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb)
+        
         mc.block_until_active()
         if position > 0:
             mc.seek(position)
