@@ -228,7 +228,7 @@ def play_file(file_path, position=0):
             tags = ID3(file_path)
             pict = None
             for tag in tags.keys():
-                if 'AsPIC' in tag:
+                if 'APIC' in tag:
                     pict = tags[tag]
                     break
             if pict is not None:
