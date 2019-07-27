@@ -1,9 +1,9 @@
 # Music Caster
+[![Download Count](https://img.shields.io/github/downloads/elibroftw/music-caster/total?color=blue&label=Downloads&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases)
 
-Music Caster is a music player which lets you cast your local music files to a Google Chromecast device (includes Google Home's)
+Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc...)
 
-[Download from releases page](https://github.com/elibroftw/music-caster/releases)
-
+[Download Page](https://github.com/elibroftw/music-caster/releases)
 # Usage
 On the first startup, the app will be in your hidden tray. You can move it onto the Taskbar and it'll stay in sight for future launches.
 If you right click the icon, a menu will pop up. Click Settings to open settings (no longer a file).
@@ -26,4 +26,4 @@ This app supports media keys. There might be an issue with skipping though so pl
 
 
 # Credits
-default.png by <a href="https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">ivke32</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">Pixabay</a>
+default.png made by <a href="https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">ivke32</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">Pixabay</a>
