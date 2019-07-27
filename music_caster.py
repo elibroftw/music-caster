@@ -20,24 +20,27 @@ import PySimpleGUIWx as sg
 import wx
 from random import shuffle
 import requests
+from shutil import copyfile
 from subprocess import Popen
+import sys
 from time import time
 import threading
 import win32api
 import win32com.client
 import win32event
 from winerror import ERROR_ALREADY_EXISTS
-import sys
 
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
 
-CURRENT_VERSION = '4.3.1'
+CURRENT_VERSION = '4.3.2'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
+cc_music_dir = starting_dir + '/music files'
 if not os.path.exists('images'): os.mkdir('images')
-os.chdir('C:/')
+if not os.path.exists('music files'): os.mkdir('music files')
+os.chdir(os.getcwd()[:3])
 PORT = 2001
 while True:
     try:
@@ -220,22 +223,26 @@ def play_file(file_path, position=0):
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
     else:
-        os.chdir(file_path[:3])
-        uri_safe = Path(file_path).as_uri()[11:]
+        
+        drive = file_path[:3]
+        file_path_obj = Path(file_path)
+        if drive != os.getcwd():
+            new_file_path = f'{cc_music_dir}/{file_path_obj.name}'
+            copyfile(file_path, new_file_path)
+        else: new_file_path = file_path
+        uri_safe = Path(new_file_path).as_uri()[11:]
         url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
-        thumb = images_dir + f'/{Path(file_path).stem}.png'
-        if not os.path.exists(thumb):
-            tags = ID3(file_path)
-            pict = None
-            for tag in tags.keys():
-                if 'APIC' in tag:
-                    pict = tags[tag]
-                    break
-            if pict is not None:
-                pict = pict.data
-                images_dir = r"C:\Users\maste\Documents\GitHub\music-caster\images"
-                with open(thumb, 'wb') as f: f.write(pict)
-            else: thumb = images_dir + f'/default.png'
+        thumb = images_dir + f'/{file_path_obj.stem}.png'
+        tags = ID3(file_path)
+        pict = None
+        for tag in tags.keys():
+            if 'APIC' in tag:
+                pict = tags[tag]
+                break
+        if pict is not None:
+            pict = pict.data
+            with open(thumb, 'wb') as f: f.write(pict)
+        else: thumb = images_dir + f'/default.png'
         thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
         cast.wait()
         cast.set_volume(volume)
@@ -247,8 +254,7 @@ def play_file(file_path, position=0):
         mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb)
         
         mc.block_until_active()
-        if position > 0:
-            mc.seek(position)
+        if position > 0: mc.seek(position)
         song_start = time()
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'

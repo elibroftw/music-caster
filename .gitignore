@@ -5,6 +5,7 @@ dist/
 __pycache__/
 venv/
 images/
+music files/
 Memory Leak/
 settings.json
 test.py
