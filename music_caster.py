@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
-import getpass
+from flask import Flask
+from getpass import getuser
 from glob import glob
-from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
@@ -11,7 +11,7 @@ from pathlib import Path
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
-from pygame import mixer as local_music_player  # https://www.pygame.org/docs/ref/music.html
+from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import socket
 import PySimpleGUI as Sg
@@ -30,11 +30,12 @@ import win32com.client
 import win32event
 from winerror import ERROR_ALREADY_EXISTS
 
+# Check if app is running already
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
-if last_error == ERROR_ALREADY_EXISTS: sys.exit()  # one instance
+if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.3.2'
+CURRENT_VERSION = '4.4.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -42,10 +43,10 @@ if not os.path.exists('images'): os.mkdir('images')
 if not os.path.exists('music files'): os.mkdir('music files')
 os.chdir(os.getcwd()[:3])
 PORT = 2001
+app = Flask(__name__, static_folder='/', static_url_path='/')
 while True:
     try:
-        httpd = HTTPServer(('0.0.0.0', PORT), SimpleHTTPRequestHandler)
-        threading.Thread(target=httpd.serve_forever, daemon=True).start()  # TODO: multiprocess
+        threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
         break
     except OSError:
         PORT += 1
@@ -112,7 +113,8 @@ if settings['auto update']:
         pass
         # start a thread to check every 20 seconds
 
-shortcut_path = f'C:/Users/{getpass.getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/' \
+                f'Windows/Start Menu/Programs/Startup/Music Caster.lnk'
 
 
 def startup_setting():
@@ -265,7 +267,6 @@ def pause():
     global tray, playing_status, song_position
     if playing_status == 'PLAYING':
         tray.Update(menu=menu_def_3, data_base64=unfilled_logo_data)
-        # tray: sg.SystemTray
         try:
             if mc is not None:
                 mc.update_status()
@@ -309,7 +310,6 @@ def next_song():
 
 def previous():
     global playing_status
-    # NOTE: restart song if current_time > 5?
     if done_queue:
         playing_status = 'NOT PLAYING'
         song = done_queue.pop()
@@ -322,16 +322,12 @@ def on_press(key):
     if str(key) == '<179>':
         if playing_status == 'PLAYING':
             keyboard_command = 'Pause'
-            # pause()
         elif playing_status == 'PAUSED':
             keyboard_command = 'Resume'
-            # resume()
     elif str(key) == '<176>':
         keyboard_command = 'Next Song'
-        # next_song()
     elif str(key) == '<177>':
         keyboard_command = 'Previous Song'
-        # previous()
 
 
 keyboard_command = None
@@ -341,7 +337,7 @@ listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
-    menu_item = tray.Read(timeout=0)
+    menu_item = tray.Read(timeout=30)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
     if menu_item == 'Refresh Devices':

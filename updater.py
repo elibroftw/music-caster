@@ -4,7 +4,6 @@ import json
 import zipfile
 import io
 import os
-import sys
 from time import sleep
 from contextlib import suppress
 from subprocess import Popen
@@ -25,11 +24,6 @@ with suppress(FileNotFoundError):
     download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
     bundle_download_link = f'https://github.com{download_links[1]}'
     source_download_link = f'https://github.com{download_links[-2]}'
-
-    with open('settings.json', 'w') as outfile:  # TODO: remove completely
-        settings['version'] = latest_version
-        json.dump(settings, outfile, indent=4)
-
     if settings.get('DEBUG'):
         print(bundle_download_link)
         print(source_download_link)

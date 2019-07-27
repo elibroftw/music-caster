@@ -1,4 +1,5 @@
 bs4
+flask
 mutagen
 pychromecast
 pygame
