@@ -12,9 +12,10 @@ from subprocess import Popen
 with suppress(FileNotFoundError):
     sleep(1)  # wait for calling script to exit
     os.chdir(os.path.dirname(os.path.realpath(__file__)))  # just in case
-    with open('settings.json') as json_file:
-        settings = json.load(json_file)
-
+    if os.path.exists('settings.json'):
+        with open('settings.json') as json_file:
+            debug_setting = json.load(json_file).get('DEBUG', False)
+    else: debug_setting = False
     github_url = 'https://github.com/elibroftw/music-caster/releases'
     html_doc = requests.get(github_url).text
     soup = BeautifulSoup(html_doc, features='html.parser')
@@ -24,7 +25,7 @@ with suppress(FileNotFoundError):
     download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
     bundle_download_link = f'https://github.com{download_links[1]}'
     source_download_link = f'https://github.com{download_links[-2]}'
-    if settings.get('DEBUG'):
+    if debug_setting:
         print(bundle_download_link)
         print(source_download_link)
         Popen('python music_caster.py')
@@ -38,10 +39,11 @@ with suppress(FileNotFoundError):
         os.rename(f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
         os.rmdir(f'music-caster-{latest_version}')
         Popen('pythonw music_caster.pyw')
-    elif os.path.exists('Music Caster.exe'):  # Update the bundle
+    else:  # Update the bundle; 'Music Caster.exe'
         r = requests.get(bundle_download_link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extract('Music Caster.exe')
         z.close()
         os.startfile('Music Caster.exe')
         # music_caster
+    input('Press enter to quit')
