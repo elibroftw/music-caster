@@ -225,7 +225,6 @@ def play_file(file_path, position=0):
         song_end = song_start + song_length - position
         playing_status = 'PLAYING'
     else:
-        
         drive = file_path[:3]
         file_path_obj = Path(file_path)
         if drive != os.getcwd():
@@ -337,6 +336,7 @@ listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
+    # TODO: constantly check if music is still playing if cast is None since you can pause from mobile
     menu_item = tray.Read(timeout=30)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
