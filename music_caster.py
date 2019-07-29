@@ -239,7 +239,7 @@ def play_file(file_path, position=0, autoplay=True):
     else:
         drive = file_path[:3]
         file_path_obj = Path(file_path)
-        if drive != os.getcwd():
+        if drive != os.getcwd().replace('\\', '/'):
             new_file_path = f'{cc_music_dir}/{file_path_obj.name}'
             copyfile(file_path, new_file_path)
         else: new_file_path = file_path
