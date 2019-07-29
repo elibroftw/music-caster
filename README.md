@@ -9,6 +9,18 @@ Music Caster is a music player which lets you cast your local music files to a G
   <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" alt="Settings window screenshot">
 </p>
 
+<p align="center">
+  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Startup.jpg?raw=true" alt="Tray startup screenshot">
+</p>
+
+<p align="center">
+  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Playing.jpg?raw=true" alt="Tray playing screenshot">
+</p>
+
+<p align="center">
+  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Paused.jpg?raw=true" alt="Settings window screenshot">
+</p>
+
 # Usage
 On the first startup, the app will be in your hidden tray. You can move it onto the Taskbar and it'll stay in sight for future launches.
 If you right click the icon, a menu will pop up. Click Settings to open settings (no longer a file).
