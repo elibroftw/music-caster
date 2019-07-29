@@ -35,12 +35,25 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.5.1'
+CURRENT_VERSION = '4.5.2'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
 if not os.path.exists('music files'): os.mkdir('music files')
-# TODO: delete files in music files and images
+if not os.path.exists('images'): os.mkdir('images')
+if not os.path.exists('images/default.png'):
+    if os.path.exists('resources/default.png'):  # running from source code
+        copyfile('resources/default.png', 'images/default.png')
+    else:  # just in case the user decided to delete the default image
+        response = requests.get('https://github.com/elibroftw/music-caster/blob/master/resources/default.png', stream=True)
+        with open('images/default.png', 'wb') as handle:
+            for data in tqdm(response.iter_content()):
+                handle.write(data)
+for file in glob('music files/*.*'):
+    os.remove(file)
+for file in glob('images/*.*'):
+    file = file.replace('\\', '/')
+    if file != 'images/default.png': os.remove(file)
 os.chdir(os.getcwd()[:3])
 PORT = 2001
 app = Flask(__name__, static_folder='/', static_url_path='/')

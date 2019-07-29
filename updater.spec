@@ -31,4 +31,4 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='Icons/ico1401.ico' )
+          icon='resources/updater.ico' )
