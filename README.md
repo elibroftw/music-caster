@@ -17,6 +17,7 @@ This app supports media keys. There might be an issue with skipping though so pl
 
 # Limitations and known issues
 - Music control limited to exit if next/previous song is spammed
+- The GUI library I use does have a memory leak issue which will be fixed soon
 
 # Build Instructions
 1. Make sure all the required modules are installed
