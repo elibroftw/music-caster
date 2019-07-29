@@ -35,7 +35,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.5.0'
+CURRENT_VERSION = '4.5.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -398,6 +398,13 @@ while True:
     elif menu_item == 'Settings' and not settings_active:
         settings_active = True
         # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
+        volume = settings['volume']
+        cast: pychromecast.Chromecast
+        mc: pychromecast.controllers.media.MediaController
+        cast_volume = mc.status.volume_level * 100
+        if volume != cast_volume:
+            volume = settings['volume'] = cast_volume
+            save_json()
         settings_layout = [
             [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
                      font=font_family)],
@@ -407,7 +414,7 @@ while True:
                          background_color=bg, font=font_family, enable_events=True)],
             [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg,
                          background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
+            [Sg.Slider((0, 100), default_value=volume, orientation='horizontal', key='volume',
                        tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
                        size=(50, 15))],
             [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
