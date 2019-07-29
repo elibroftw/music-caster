@@ -45,7 +45,7 @@ if not os.path.exists('images/default.png'):
     if os.path.exists('resources/default.png'):  # running from source code
         copyfile('resources/default.png', 'images/default.png')
     else:  # just in case the user decided to delete the default image
-        response = requests.get('https://github.com/elibroftw/music-caster/blob/master/resources/default.png', stream=True)
+        response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png', stream=True)
         with open('images/default.png', 'wb') as handle:
             for data in tqdm(response.iter_content()):
                 handle.write(data)
