@@ -2,8 +2,13 @@
 [![Download Count](https://img.shields.io/github/downloads/elibroftw/music-caster/total?color=blue&label=Downloads&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases)
 
 Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc...)
-
 [Download Page](https://github.com/elibroftw/music-caster/releases)
+
+# Screenshots
+<p align="center">
+  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" alt="Settings window screenshot">
+</p>
+
 # Usage
 On the first startup, the app will be in your hidden tray. You can move it onto the Taskbar and it'll stay in sight for future launches.
 If you right click the icon, a menu will pop up. Click Settings to open settings (no longer a file).
