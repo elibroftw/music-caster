@@ -6,7 +6,7 @@ Music Caster is a music player which lets you cast your local music files to a G
 
 # Screenshots
 <p align="center">
-  <img widht=200px src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" alt="Settings window screenshot">
+  <img width=470px src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" alt="Settings window screenshot">
   <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Startup.png?raw=true" alt="Tray startup screenshot">
 </p>
 <p align="center">
