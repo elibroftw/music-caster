@@ -529,7 +529,7 @@ while True:
             playing_status = 'NOT PLAYING'
             song_position = 0
         volume = settings['volume']
-        cast_volume = mc.status.volume_level * 100
+        cast_volume = int(cast.status.volume_level * 100)
         if volume != cast_volume:
             volume = settings['volume'] = cast_volume
             save_json()
