@@ -35,12 +35,12 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.4.0'
+CURRENT_VERSION = '4.5.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
-if not os.path.exists('images'): os.mkdir('images')
 if not os.path.exists('music files'): os.mkdir('music files')
+# TODO: delete files in music files and images
 os.chdir(os.getcwd()[:3])
 PORT = 2001
 app = Flask(__name__, static_folder='/', static_url_path='/')
@@ -165,16 +165,16 @@ stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecas
 menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
 menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
-                   'Next Song', 'Previous Song', 'Pause', 'E&xit']]
+                   'Next Song', 'Previous Song', 'Pause', 'Stop', 'E&xit']]
 
 menu_def_3 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
-                   'Next Song', 'Previous Song', 'Resume', 'E&xit']]
+                   'Next Song', 'Previous Song', 'Resume', 'Stop', 'E&xit']]
 
-unfilled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
-filled_logo_data = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
-window_icon = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4c6QAABV9JREFUeAHt\nWUtsVUUYvhQsG0qMDaQQTUPwEVkQN7gsTXGhG+JO9zRhwZaN1o1xISEkJmIISWVDQoILG1iXtNfY\nUBe6MRrAR1OjK+MjqSaK2ML3lU47d/J/M+fce8+B9s6ffDlzvvlf83fOPG4bjSy5ArkCuQK5ArkC\nuQK5ArkCuQIlKrANuuPAPPAXcH+LYmltjBwrx1xIhqA1DWzVoqhxccwce1RYxV4sjisaxx6dSZxq\nTrlXn6yBlC/Q06uFcePmursu4XTigrxrvbc3G39j2ANu6GGBWEVLQj1LZzNyyfH2bcZR1ZlzLlCi\n2rlAuUCJCiS68wxKFGhHoj/VrXaBlF3d/W3vwnkGJf5UuUCJAoWfWNtTMRFn03Z3OoOWN+3ICybe\naYGeQZwJ4MeC8XpWjZ/mGDAFuFvx4/RUfxiVo9LvCv8yvMwCKvij4NXAVC5Kv6v8q/D2NaCSqJNX\nA1M5rOuHu9Zd9PA3IeIP4HvgDnALmAN+AcpIP5TfA04Dna53ZeKGuuE4XT8LZInST/61v4O3i8Ax\noMyAR6C/CKi/WNU8Qpui4prKJJWBxf8M/fcB7mRFZDeUrgGWr6o5lZ+Kq/TbSp6f5SRwUHrd6OCs\nuwCoxKriNzJobal4rVremzIowt+Dn3NAkd+034ZeEZ/d0vGG2NJU/luU/BdlUIbnQv6671S0x8GX\n8duJrkhBxlf6De46g8ABYBQ4CXwIcLteAcok+RH0dwIxqWsmqRzUeJR+lN+D3hNAEyharK+gm1rE\n61iTkIYpXS2QH+E5vHwCFCkUd7tDvnHQ3o73qne3IOT6a2UFchGOoDEDqECO/x06vIIo4RFgEXD6\n3X6quCqO0m+bfw2WC4AKSJ5Fis2kEfQvJ3zE/Mf64NYUZWMqd0pycW8CKih5fm6xNelMwj7mO9YH\nt6YoG1OZJO9gvHvNAleAd4DDQFF5Aoq8iqjA5Llwq92Nu2gVF1y4NUXlaSqTVAb8fD4AihbrFHT/\nj/jjEUAJfwVQebTLq1jKn9JPJsY14jIwLD1sdLBIKgHyscPkbMI25tfq28iqtWXpkpOiDEL+X3g4\nC/CTiEnsc+OJW11LuOOFMTt5Vzkqn0q/dFJz8LRXems0uCY1AZUI725KptCh7MryKobyo/TbSugn\neHtJenx4dVFHAF5wnxW2Y+DVAMryIoT0r/RXp/zz6B0F+Cvg50CRswl3v1iReE5Sg/oYfZbwV70f\nAGVXhrf8k1M+lL7J8xPievMPoByS50yKfW4zwv4/8Ops9JawieVh9cGNKZYuubaEg/gUUE7Jc01S\nCzevJSvCngdES/aBjB0XYrn4fZZvcr6O31b6hfgJaKmBMghnm5Kr6PATcW2esPuUUYW8ix8+Ow75\nJjyoIvEIMCwi8FcAZfeKsKmSDgvj3rsSkzPJOQyfPEwqaaIj1Oc7z0x1i5UHOSncjW4Dk0CRv6ha\nk7jzqWvJCfRZifFfSnWLlUe0QKHBZ8iY274SLtxqd+PdzRL+Mqk+s6ctgwq5cLzuXYZ0Cv7zT2gf\nlRYPF2Vf37UXIjbqxs61rU5xuYZPmUOo6N5ZJDWTePbhJ+V0/af6zM4L/XfBK/H9Vtle8hMourU+\nCSOuS5b8CvKm1QHuuOC/EfwLgq+T/tYPVrRAtBkB1MJ93XfqtV/02n6TP8pZwmPAo5ZLfgJlCkS7\nN3xjr/2l1/ab+/0Xr81riSVPWWSN3A3EailQGDv1bfMIYAnXJ8tWzZRBof+b5XyNs/x3k5tGnKFI\n/NWuVECekywZAGnZKv1+oX/Xcr7GWf475ZjfPDAObFuLkx+5ArkCuQK5ArkCuQK5ArkCuQLpCjwA\nMCQ8Gt1a8k0AAAAASUVORK5CYII=\n'
+UNFILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
+FILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
+WINDOW_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAAAXNSR0IArs4c6QAABV9JREFUeAHt\nWUtsVUUYvhQsG0qMDaQQTUPwEVkQN7gsTXGhG+JO9zRhwZaN1o1xISEkJmIISWVDQoILG1iXtNfY\nUBe6MRrAR1OjK+MjqSaK2ML3lU47d/J/M+fce8+B9s6ffDlzvvlf83fOPG4bjSy5ArkCuQK5ArkC\nuQK5ArkCuQIlKrANuuPAPPAXcH+LYmltjBwrx1xIhqA1DWzVoqhxccwce1RYxV4sjisaxx6dSZxq\nTrlXn6yBlC/Q06uFcePmursu4XTigrxrvbc3G39j2ANu6GGBWEVLQj1LZzNyyfH2bcZR1ZlzLlCi\n2rlAuUCJCiS68wxKFGhHoj/VrXaBlF3d/W3vwnkGJf5UuUCJAoWfWNtTMRFn03Z3OoOWN+3ICybe\naYGeQZwJ4MeC8XpWjZ/mGDAFuFvx4/RUfxiVo9LvCv8yvMwCKvij4NXAVC5Kv6v8q/D2NaCSqJNX\nA1M5rOuHu9Zd9PA3IeIP4HvgDnALmAN+AcpIP5TfA04Dna53ZeKGuuE4XT8LZInST/61v4O3i8Ax\noMyAR6C/CKi/WNU8Qpui4prKJJWBxf8M/fcB7mRFZDeUrgGWr6o5lZ+Kq/TbSp6f5SRwUHrd6OCs\nuwCoxKriNzJobal4rVremzIowt+Dn3NAkd+034ZeEZ/d0vGG2NJU/luU/BdlUIbnQv6671S0x8GX\n8duJrkhBxlf6De46g8ABYBQ4CXwIcLteAcok+RH0dwIxqWsmqRzUeJR+lN+D3hNAEyharK+gm1rE\n61iTkIYpXS2QH+E5vHwCFCkUd7tDvnHQ3o73qne3IOT6a2UFchGOoDEDqECO/x06vIIo4RFgEXD6\n3X6quCqO0m+bfw2WC4AKSJ5Fis2kEfQvJ3zE/Mf64NYUZWMqd0pycW8CKih5fm6xNelMwj7mO9YH\nt6YoG1OZJO9gvHvNAleAd4DDQFF5Aoq8iqjA5Llwq92Nu2gVF1y4NUXlaSqTVAb8fD4AihbrFHT/\nj/jjEUAJfwVQebTLq1jKn9JPJsY14jIwLD1sdLBIKgHyscPkbMI25tfq28iqtWXpkpOiDEL+X3g4\nC/CTiEnsc+OJW11LuOOFMTt5Vzkqn0q/dFJz8LRXems0uCY1AZUI725KptCh7MryKobyo/TbSugn\neHtJenx4dVFHAF5wnxW2Y+DVAMryIoT0r/RXp/zz6B0F+Cvg50CRswl3v1iReE5Sg/oYfZbwV70f\nAGVXhrf8k1M+lL7J8xPievMPoByS50yKfW4zwv4/8Ops9JawieVh9cGNKZYuubaEg/gUUE7Jc01S\nCzevJSvCngdES/aBjB0XYrn4fZZvcr6O31b6hfgJaKmBMghnm5Kr6PATcW2esPuUUYW8ix8+Ow75\nJjyoIvEIMCwi8FcAZfeKsKmSDgvj3rsSkzPJOQyfPEwqaaIj1Oc7z0x1i5UHOSncjW4Dk0CRv6ha\nk7jzqWvJCfRZifFfSnWLlUe0QKHBZ8iY274SLtxqd+PdzRL+Mqk+s6ctgwq5cLzuXYZ0Cv7zT2gf\nlRYPF2Vf37UXIjbqxs61rU5xuYZPmUOo6N5ZJDWTePbhJ+V0/af6zM4L/XfBK/H9Vtle8hMourU+\nCSOuS5b8CvKm1QHuuOC/EfwLgq+T/tYPVrRAtBkB1MJ93XfqtV/02n6TP8pZwmPAo5ZLfgJlCkS7\nN3xjr/2l1/ab+/0Xr81riSVPWWSN3A3EailQGDv1bfMIYAnXJ8tWzZRBof+b5XyNs/x3k5tGnKFI\n/NWuVECekywZAGnZKv1+oX/Xcr7GWf475ZjfPDAObFuLkx+5ArkCuQK5ArkCuQK5ArkCuQLpCjwA\nMCQ8Gt1a8k0AAAAASUVORK5CYII=\n'
 
-tray = sg.SystemTray(menu=menu_def_1, data_base64=unfilled_logo_data, tooltip='Music Caster')
+tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 notifications_enabled = settings['notifications']
 if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
 music_directories = settings['music directories']
@@ -185,11 +185,10 @@ DEFAULT_DIR = music_directories[0]
 
 music_queue = []
 done_queue = []
-# noinspection PyTypeChecker
-mc: pychromecast.controllers.media.MediaController = None
+mc = None
 song_end = song_length = song_position = song_start = 0
 playing_status = 'NOT PLAYING'
-
+cast_last_checked = time()
 # Styling
 fg = '#aaaaaa'
 bg = '#121212'
@@ -197,7 +196,7 @@ font_family = 'SourceSans', 11
 button_color = ('black', '#4285f4')
 
 
-def play_file(file_path, position=0):
+def play_file(file_path, position=0, autoplay=True):
     global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir
     hostname = socket.gethostname()
     ipv4_address = socket.gethostbyname(hostname)
@@ -213,6 +212,7 @@ def play_file(file_path, position=0):
     except Exception as e:
         print(e)
         title = artist = album = 'Unknown'
+    if autoplay: playing_status = 'PLAYING'
     if cast is None:
         mc = None
         sampling_rate = audio_info.sample_rate
@@ -221,9 +221,9 @@ def play_file(file_path, position=0):
         local_music_player.music.load(file_path)
         local_music_player.music.set_volume(volume)
         local_music_player.music.play(start=position)
+        if not autoplay: local_music_player.music.pause()
         song_start = time()
         song_end = song_start + song_length - position
-        playing_status = 'PLAYING'
     else:
         drive = file_path[:3]
         file_path_obj = Path(file_path)
@@ -252,21 +252,19 @@ def play_file(file_path, position=0):
             mc.stop()
             mc.block_until_active(5)
         music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb)
-        
+        mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
         mc.block_until_active()
-        if position > 0: mc.seek(position)
         song_start = time()
         song_end = song_start + song_length - position
-        playing_status = 'PLAYING'
     if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
 
 
 def pause():
     global tray, playing_status, song_position
     if playing_status == 'PLAYING':
-        tray.Update(menu=menu_def_3, data_base64=unfilled_logo_data)
+        tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
         try:
+            playing_status = 'PAUSED'
             if mc is not None:
                 mc.update_status()
                 mc.pause()
@@ -274,7 +272,6 @@ def pause():
             else:
                 song_position += local_music_player.music.get_pos() / 1000
                 local_music_player.music.pause()
-            playing_status = 'PAUSED'
         except UnsupportedNamespace:
             song_position = 0
             playing_status = 'NOT PLAYING'
@@ -283,8 +280,9 @@ def pause():
 def resume():
     global tray, playing_status, song_end, song_position
     if playing_status == 'PAUSED':
-        tray.Update(menu=menu_def_2, data_base64=filled_logo_data)
+        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         try:
+            playing_status = 'PLAYING'
             if mc is not None:
                 mc.update_status()
                 mc.play()
@@ -292,9 +290,19 @@ def resume():
             else:
                 local_music_player.music.unpause()
             song_end = time() + song_length - song_position
-            playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
+
+
+def stop():
+    global playing_status, song_position, cast
+    if playing_status in ('PLAYING', 'PAUSED'):
+        tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
+        if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
+        elif local_music_player.music.get_busy():
+            local_music_player.music.stop()
+        playing_status = 'NOT PLAYING'
+        song_position = 0
 
 
 def next_song():
@@ -327,6 +335,8 @@ def on_press(key):
         keyboard_command = 'Next Song'
     elif str(key) == '<177>':
         keyboard_command = 'Previous Song'
+    elif str(key) == '<178>':
+        keyboard_command = 'Stop'
 
 
 keyboard_command = None
@@ -336,7 +346,6 @@ listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
 while True:
-    # TODO: constantly check if music is still playing if cast is None since you can pause from mobile
     menu_item = tray.Read(timeout=30)
     # if menu_item != '__TIMEOUT__':
     #     print(menu_item)
@@ -356,19 +365,25 @@ while True:
         else:
             tray.Update(menu=menu_def_1)
     elif menu_item.split('.')[0].isdigit():  # if user selected a device
-        device = ' '.join(menu_item.split('.')[1:])[1:]
-        try: new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
-        except StopIteration: new_cast = None
+        temp = menu_item.split('. ')
+        number = temp[0]
+        device = ' '.join(temp[1:])
+        if number == '1': new_cast = None
+        else:
+            try: new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
+            except StopIteration: new_cast = None
         if cast != new_cast:
             cast = new_cast
-            if cast is None: settings['previous device'] = None
+            volume = settings['volume'] / 100
+            if cast is None:
+                settings['previous device'] = None
+                local_music_player.music.set_volume(volume)
             else:
                 settings['previous device'] = str(cast.uuid)
                 cast.wait()
-                cast.set_volume(settings['volume'] / 100)
+                cast.set_volume(volume)
             save_json()
             current_pos = 0
-
             if local_music_player.music.get_busy():
                 current_pos = song_position + local_music_player.music.get_pos() / 1000
                 local_music_player.music.stop()
@@ -376,9 +391,10 @@ while True:
                 mc.update_status()  # Switch device without playback loss
                 current_pos = mc.status.adjusted_current_time
                 mc.stop()
+                mc = None
+            if playing_status in ('PAUSED', 'PLAYING'):
+                play_file(music_queue[0], position=current_pos, autoplay=False if playing_status == 'PAUSED' else True)
 
-            if playing_status == 'PLAYING':
-                play_file(music_queue[0], position=current_pos)
     elif menu_item == 'Settings' and not settings_active:
         settings_active = True
         # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
@@ -403,7 +419,7 @@ while True:
                  [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family,
                             enable_events=True)]], background_color=bg, border_width=0)]
         ]
-        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=window_icon,
+        settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False)
         settings_window.Finalize()
         settings_window.TKroot.focus_force()
@@ -425,7 +441,7 @@ while True:
                 music_queue.extend([file for file in glob(f'{directory}/*.mp3') if file != path_to_file])
             shuffle(music_queue)
             music_queue.insert(0, path_to_file)
-            tray.Update(menu=menu_def_2, data_base64=filled_logo_data)
+            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     elif menu_item == 'Play All':
         music_queue.clear()
         for directory in music_directories:
@@ -434,14 +450,8 @@ while True:
             shuffle(music_queue)
             done_queue.clear()
             play_file(music_queue[0])
-            tray.Update(menu=menu_def_2, data_base64=filled_logo_data)
-    elif menu_item == 'Stop':
-        if playing_status in ('PLAYING', 'PAUSED'):
-            if mc is not None:
-                mc.stop()
-            elif local_music_player.music.get_busy():
-                local_music_player.music.stop()
-            playing_status = 'STOPPED'
+            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+    elif 'Stop' in (menu_item, keyboard_command): stop()
     elif 'Next Song' in (menu_item, keyboard_command) or playing_status == 'PLAYING' and time() > song_end: next_song()
     elif 'Previous Song' in (menu_item, keyboard_command): previous()
     elif 'Resume' in (menu_item, keyboard_command): resume()
@@ -510,3 +520,12 @@ while True:
             os.startfile(settings_file)
 
     if keyboard_command is not None: keyboard_command = None
+    if mc is not None and time() - cast_last_checked > 2:
+        mc.update_status()
+        if mc.is_paused and playing_status != 'PAUSED': pause()
+        elif mc.is_playing and playing_status != 'PLAYING': resume()
+        # elif not mc.is_playing and not mc.is_paused and playing_status != 'NOT PLAYING': stop()
+        if cast is not None and cast.app_id != 'CC1AD845':
+            playing_status = 'NOT PLAYING'
+            song_position = 0
+        cast_last_checked = time()
