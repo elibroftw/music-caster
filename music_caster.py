@@ -398,13 +398,6 @@ while True:
     elif menu_item == 'Settings' and not settings_active:
         settings_active = True
         # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
-        volume = settings['volume']
-        cast: pychromecast.Chromecast
-        mc: pychromecast.controllers.media.MediaController
-        cast_volume = mc.status.volume_level * 100
-        if volume != cast_volume:
-            volume = settings['volume'] = cast_volume
-            save_json()
         settings_layout = [
             [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
                      font=font_family)],
@@ -414,7 +407,7 @@ while True:
                          background_color=bg, font=font_family, enable_events=True)],
             [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg,
                          background_color=bg, font=font_family, enable_events=True)],
-            [Sg.Slider((0, 100), default_value=volume, orientation='horizontal', key='volume',
+            [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
                        tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
                        size=(50, 15))],
             [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
@@ -535,4 +528,9 @@ while True:
         if cast is not None and cast.app_id != 'CC1AD845':
             playing_status = 'NOT PLAYING'
             song_position = 0
+        volume = settings['volume']
+        cast_volume = mc.status.volume_level * 100
+        if volume != cast_volume:
+            volume = settings['volume'] = cast_volume
+            save_json()
         cast_last_checked = time()
