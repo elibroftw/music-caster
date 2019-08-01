@@ -1,3 +1,4 @@
+from contextlib import suppress
 from bs4 import BeautifulSoup
 from flask import Flask
 from getpass import getuser
@@ -35,7 +36,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.5.2'
+CURRENT_VERSION = '4.6.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -47,7 +48,7 @@ if not os.path.exists('images/default.png'):
     else:  # just in case the user decided to delete the default image
         response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png', stream=True)
         with open('images/default.png', 'wb') as handle:
-            for data in tqdm(response.iter_content()):
+            for data in response.iter_content():
                 handle.write(data)
 for file in glob('music files/*.*'):
     os.remove(file)
@@ -79,6 +80,7 @@ settings = {  # default settings
         'Put in a valid path',
         'First path is the default directory when selecting a file to play. FOR NOW'
     ],
+    'repeat': True,
     'playlists': {},
     'playlists_example': {'NAME': ['PATHS']}
 }
@@ -285,7 +287,6 @@ def pause():
             local_music_player.music.pause()
         playing_status = 'PAUSED'
     except UnsupportedNamespace:
-        song_position = 0
         playing_status = 'NOT PLAYING'
 
 
@@ -299,8 +300,8 @@ def resume():
             mc.block_until_active()
         else:
             local_music_player.music.unpause()
-        playing_status = 'PLAYING'
         song_end = time() + song_length - song_position
+        playing_status = 'PLAYING'
     except UnsupportedNamespace:
         play_file(music_queue[0], position=song_position)
 
@@ -312,26 +313,28 @@ def stop():
     elif local_music_player.music.get_busy():
         local_music_player.music.stop()
     playing_status = 'NOT PLAYING'
-    song_position = 0
 
 
-def next_song():
+def next_song(from_keyboard=False):
     global playing_status
-    if music_queue:
+    if cast is not None and cast.app_id != 'CC1AD845':
         playing_status = 'NOT PLAYING'
-        song = music_queue.pop(0)
-        done_queue.append(song)
-        if music_queue:
+    elif music_queue:
+        if not settings['repeat'] or from_keyboard: done_queue.append(music_queue.pop(0))
+        with suppress(IndexError):
             play_file(music_queue[0])
 
 
 def previous():
     global playing_status
-    if done_queue:
+    if cast is not None and cast.app_id != 'CC1AD845':
         playing_status = 'NOT PLAYING'
+    elif done_queue:
         song = done_queue.pop()
         music_queue.insert(0, song)
         play_file(song)
+    elif music_queue:
+        play_file(music_queue[0])
 
 
 def on_press(key):
@@ -532,12 +535,6 @@ while True:
     if keyboard_command is not None: keyboard_command = None
     if mc is not None and time() - cast_last_checked > 5:
         mc.update_status()
-        if cast is not None and cast.app_id != 'CC1AD845':
-            playing_status = 'NOT PLAYING'
-            song_position = 0
-        elif mc.status.player_is_idle and playing_status != 'NOT PLAYING':
-            playing_status = 'NOT PLAYING'
-            song_position = 0
         # if mc.is_paused and playing_status != 'PAUSED': playing_status = 'PAUSED'
         # elif mc.is_playing and playing_status != 'PLAYING': playing_status = 'PLAYING'
         volume = settings['volume']
