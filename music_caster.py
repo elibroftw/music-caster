@@ -465,7 +465,8 @@ while True:
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     elif 'Stop' in (menu_item, keyboard_command): stop()
-    elif 'Next Song' in (menu_item, keyboard_command) or playing_status == 'PLAYING' and time() > song_end: next_song()
+    elif 'Next Song' in (menu_item, keyboard_command) or playing_status == 'PLAYING' and time() > song_end:
+        next_song(from_keyboard=True if keyboard_command == 'Next Song' else False)
     elif 'Previous Song' in (menu_item, keyboard_command): previous()
     elif 'Resume' in (menu_item, keyboard_command): resume()
     elif 'Pause' in (menu_item, keyboard_command): pause()
