@@ -80,7 +80,7 @@ settings = {  # default settings
         'Put in a valid path',
         'First path is the default directory when selecting a file to play. FOR NOW'
     ],
-    'repeat': True,
+    'repeat': False,
     'playlists': {},
     'playlists_example': {'NAME': ['PATHS']}
 }
@@ -317,8 +317,6 @@ def stop():
 
 def next_song(from_timeout=False):
     global playing_status
-    print(settings['repeat'])
-    print(from_timeout)
     if cast is not None and cast.app_id != 'CC1AD845':
         playing_status = 'NOT PLAYING'
     elif music_queue:
