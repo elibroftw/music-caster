@@ -320,7 +320,10 @@ def next_song(from_timeout=False):
     if cast is not None and cast.app_id != 'CC1AD845':
         playing_status = 'NOT PLAYING'
     elif music_queue:
-        if not settings['repeat'] or not from_timeout: done_queue.append(music_queue.pop(0))
+        if not settings['repeat'] or not from_timeout:
+            settings['repeat'] = False
+            sace_json()
+            done_queue.append(music_queue.pop(0))
         with suppress(IndexError):
             play_file(music_queue[0])
 
