@@ -469,8 +469,11 @@ while True:
         next_song(from_timeout=time() > song_end)
     elif 'Previous Song' in (menu_item, keyboard_command): previous()
     elif menu_item == 'Repeat':
-        settings['repeat'] = not settings['repeat']
+        repeat_setting = settings['repeat'] = not settings['repeat']
         save_json()
+        if notifications_enabled:
+            if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
+            else: tray.ShowMessage('Music Caster', 'Repeating music queue')
     elif 'Resume' in (menu_item, keyboard_command): resume()
     elif 'Pause' in (menu_item, keyboard_command): pause()
     elif menu_item == 'Exit':
