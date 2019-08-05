@@ -36,7 +36,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.6.0'
+CURRENT_VERSION = '4.6.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -476,7 +476,7 @@ while True:
         save_json()
         if notifications_enabled:
             if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
-            else: tray.ShowMessage('Music Caster', 'Repeating music queue')
+            else: tray.ShowMessage('Music Caster', 'Not repeating current song')
     elif 'Resume' in (menu_item, keyboard_command): resume()
     elif 'Pause' in (menu_item, keyboard_command): pause()
     elif menu_item == 'Exit':
