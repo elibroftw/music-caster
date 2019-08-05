@@ -92,6 +92,11 @@ def save_json():
         json.dump(settings, outfile, indent=4)
 
 
+def change_settings(name, value):
+    settings[name] = value
+    save_json()
+    return value
+
 # check if settings file is valid
 if os.path.exists(settings_file):
     with open(settings_file) as json_file:
@@ -193,9 +198,7 @@ tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music 
 notifications_enabled = settings['notifications']
 if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
 music_directories = settings['music directories']
-if not music_directories:
-    music_directories = settings['music directories'] = [home_music_dir]
-    save_json()
+if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
 DEFAULT_DIR = music_directories[0]
 
 music_queue = []
@@ -392,13 +395,12 @@ while True:
             cast = new_cast
             volume = settings['volume'] / 100
             if cast is None:
-                settings['previous device'] = None
+                change_settings('previous device', None)
                 local_music_player.music.set_volume(volume)
             else:
-                settings['previous device'] = str(cast.uuid)
+                change_settings('previous device', str(cast.uuid))
                 cast.wait()
                 cast.set_volume(volume)
-            save_json()
             current_pos = 0
             if local_music_player.music.get_busy():
                 current_pos = song_position + local_music_player.music.get_pos() / 1000
@@ -472,8 +474,7 @@ while True:
         next_song(from_timeout=time() > song_end)
     elif 'Previous Song' in (menu_item, keyboard_command): previous()
     elif menu_item == 'Repeat':
-        repeat_setting = settings['repeat'] = not settings['repeat']
-        save_json()
+        repeat_setting = change_settings('repeat', not settings['repeat'])
         if notifications_enabled:
             if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
             else: tray.ShowMessage('Music Caster', 'Not repeating current song')
@@ -501,8 +502,7 @@ while True:
             settings_active = False
             settings_window.CloseNonBlocking()
         elif settings_event in ('auto update', 'run on startup', 'notifications'):
-            settings[settings_event] = settings_value
-            save_json()
+            change_settings(settings_event, settings_value)
             if settings_event == 'run on startup':
                 startup_setting()
             elif settings_event == 'notifications':
@@ -520,8 +520,7 @@ while True:
                 elif settings_event == 'd':
                     delta = 5
                 new_volume = settings_values['volume'] + delta
-            settings['volume'] = new_volume
-            save_json()
+            change_settings('volume', new_volume)
             volume = new_volume / 100
             if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
             if cast is None:
@@ -550,6 +549,5 @@ while True:
         volume = settings['volume']
         cast_volume = int(cast.status.volume_level * 100)
         if volume != cast_volume:
-            volume = settings['volume'] = cast_volume
-            save_json()
+            volume = change_settings('volume', cast_volume)
         cast_last_checked = time()
