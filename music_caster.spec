@@ -32,7 +32,8 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='resources/music caster.ico')
+          icon='resources/music caster.ico',
+          version='file_version_info.txt')
 #  coll = COLLECT(
 #    exe,
 #    a.binaries,
