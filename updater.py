@@ -42,23 +42,12 @@ with suppress(FileNotFoundError):
         print(bundle_download_link)
         print(source_download_link)
         Popen('python music_caster.py')
-    # add .py case
-
+    elif os.path.exists('music_caster.py'):
+        download_and_extract(source_download_link, f'music-caster-{latest_version}/music_caster.py', 'music_caster.py')
+        Popen('pythonw music_caster.py')
     elif os.path.exists('music_caster.pyw'):  # Update python file
-        # download_and_extract(source_download_link, f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
-        r = requests.get(source_download_link, stream=True)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        z.extract(f'music-caster-{latest_version}/music_caster.py')
-        z.close()
-        if os.path.exists('music_caster.pyw'): os.remove('music_caster.pyw')
-        os.rename(f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
-        os.rmdir(f'music-caster-{latest_version}')
+        download_and_extract(source_download_link, f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
         Popen('pythonw music_caster.pyw')
     else:  # Update Music Caster.exe;  Change if statements so that .pyw is last
-        # download_and_extract(bundle_download_link, 'Music Caster.exe')
-        r = requests.get(bundle_download_link, stream=True)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        if os.path.exists('Music Caster.exe'): os.remove('Music Caster.exe')
-        z.extract('Music Caster.exe')
-        z.close()
+        download_and_extract(bundle_download_link, 'Music Caster.exe')
         os.startfile('Music Caster.exe')

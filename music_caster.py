@@ -119,11 +119,9 @@ else: save_json()
 def download_and_extract(link, infile, outfile=None):
     r = requests.get(link, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
-    # NOTE: I'm unsure weather I need to delete the file before extracting. Test the exe
     if outfile is None: z.extract(infile)
     else:
         new_file = z.open(infile)
-        # f'music-caster-{latest_version}/music_caster.py'
         target = open(outfile, 'wb')
         with new_file, target: copyfileobj(new_file, target)
 
@@ -147,32 +145,13 @@ if settings['auto update']:
             os.chdir(starting_dir)
             if settings.get('DEBUG'): Popen('python updater.py')
             elif os.path.exists('updater.py'):
-                # download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
-                r = requests.get(source_download_link, stream=True)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extract(f'music-caster-{latest_version}/updater.py')
-                z.close()
-                if os.path.exists('updater.py'): os.remove('updater.py')
-                os.rename(f'music-caster-{latest_version}/updater.py', 'updater.py')
-                os.rmdir(f'music-caster-{latest_version}')
+                download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
                 Popen('pythonw updater.py')
             elif os.path.exists('Updater.exe'):
-                # download_and_extract(bundle_download_link, 'Updater.exe')
-                r = requests.get(bundle_download_link, stream=True)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                os.remove('Updater.exe')
-                z.extract('Updater.exe')
-                z.close()
+                download_and_extract(bundle_download_link, 'Updater.exe')
                 os.startfile('Updater.exe')
             elif os.path.exists('updater.pyw'):
-                # download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
-                r = requests.get(source_download_link, stream=True)
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extract(f'music-caster-{latest_version}/updater.py')
-                z.close()
-                if os.path.exists('updater.pyw'): os.remove('updater.pyw')
-                os.rename(f'music-caster-{latest_version}/updater.py', 'updater.pyw')
-                os.rmdir(f'music-caster-{latest_version}')
+                download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                 Popen('pythonw updater.pyw')
             sys.exit()
 
