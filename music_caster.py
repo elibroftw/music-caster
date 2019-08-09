@@ -36,7 +36,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.6.1'
+CURRENT_VERSION = '4.6.2'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -97,6 +97,7 @@ def change_settings(name, value):
     save_json()
     return value
 
+
 # check if settings file is valid
 if os.path.exists(settings_file):
     with open(settings_file) as json_file:
@@ -129,6 +130,7 @@ if settings['auto update']:
             elif os.path.exists('updater.pyw'):
                 Popen('pythonw updater.pyw')
             sys.exit()
+            # os.execl(sys.executable, *([sys.executable] + sys.argv))
     except requests.ConnectionError:  # Should handle more errors?
         pass
         # start a thread to check every 20 seconds
@@ -325,7 +327,7 @@ def next_song(from_timeout=False):
     elif music_queue:
         if not settings['repeat'] or not from_timeout:
             settings['repeat'] = False
-            sace_json()
+            save_json()
             done_queue.append(music_queue.pop(0))
         with suppress(IndexError):
             play_file(music_queue[0])
@@ -406,10 +408,11 @@ while True:
                 current_pos = song_position + local_music_player.music.get_pos() / 1000
                 local_music_player.music.stop()
             elif mc is not None:
-                mc.update_status()  # Switch device without playback loss
-                current_pos = mc.status.adjusted_current_time
-                mc.stop()
-                mc = None
+                with suppress(UnsupportedNamespace):
+                    mc.update_status()  # Switch device without playback loss
+                    current_pos = mc.status.adjusted_current_time
+                    mc.stop()
+            mc = None if cast is None else cast.media_controller
             if playing_status in ('PAUSED', 'PLAYING'):
                 play_file(music_queue[0], position=current_pos, autoplay=False if playing_status == 'PAUSED' else True)
 
@@ -482,12 +485,9 @@ while True:
     elif 'Pause' in (menu_item, keyboard_command): pause()
     elif menu_item == 'Exit':
         tray.Hide()
-        if cast is not None and cast.app_id == 'CC1AD845':
-            cast.quit_app()
-            # TODO: implement fadeout?
-        elif local_music_player.music.get_busy():
-            # local_music_player.music.fadeout(3)  # needs to be threaded
-            local_music_player.music.stop()
+        with suppress(UnsupportedNamespace):
+            if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
+            elif local_music_player.music.get_busy(): local_music_player.music.stop()
         break
     # SETTINGS WINDOW
     if settings_active:
@@ -543,11 +543,14 @@ while True:
 
     if keyboard_command is not None: keyboard_command = None
     if mc is not None and time() - cast_last_checked > 5:
-        mc.update_status()
-        # if mc.is_paused and playing_status != 'PAUSED': playing_status = 'PAUSED'
-        # elif mc.is_playing and playing_status != 'PLAYING': playing_status = 'PLAYING'
-        volume = settings['volume']
-        cast_volume = int(cast.status.volume_level * 100)
-        if volume != cast_volume:
-            volume = change_settings('volume', cast_volume)
+        with suppress(UnsupportedNamespace):
+            if cast is not None and cast.app_id == 'CC1AD845':
+                mc.update_status()
+                # if mc.is_paused and playing_status != 'PAUSED': playing_status = 'PAUSED'
+                # elif mc.is_playing and playing_status != 'PLAYING': playing_status = 'PLAYING'
+                # elif not mc.is_paused and not mc.is_playing: playing_status = 'NOT PLAYING'
+                volume = settings['volume']
+                cast_volume = int(cast.status.volume_level * 100)
+                if volume != cast_volume:
+                    volume = change_settings('volume', cast_volume)
         cast_last_checked = time()

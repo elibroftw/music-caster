@@ -46,4 +46,3 @@ with suppress(FileNotFoundError):
         z.close()
         os.startfile('Music Caster.exe')
         # music_caster
-    input('Press enter to quit')
