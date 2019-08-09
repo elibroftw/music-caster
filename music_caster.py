@@ -48,11 +48,12 @@ if not os.path.exists('images/default.png'):
     if os.path.exists('resources/default.png'):  # running from source code
         copyfile('resources/default.png', 'images/default.png')
     else:  # just in case the user decided to delete the default image
-        response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png',
-                                stream=True)
-        with open('images/default.png', 'wb') as handle:
-            for data in response.iter_content():
-                handle.write(data)
+        with suppress(requests.ConnectionError):
+            response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png',
+                                    stream=True)
+            with open('images/default.png', 'wb') as handle:
+                for data in response.iter_content():
+                    handle.write(data)
 for file in glob('music files/*.*') + glob('images/*.*'):
     file = file.replace('\\', '/')
     if file != 'images/default.png': os.remove(file)
@@ -129,7 +130,7 @@ def download_and_extract(link, infile, outfile=None):
 
 if settings['auto update']:
     github_url = 'https://github.com/elibroftw/music-caster/releases'
-    try:
+    with suppress(requests.ConnectionError):
         github_url = 'https://github.com/elibroftw/music-caster/releases'
         html_doc = requests.get(github_url).text
         soup = BeautifulSoup(html_doc, features='html.parser')
@@ -174,9 +175,6 @@ if settings['auto update']:
                 os.rmdir(f'music-caster-{latest_version}')
                 Popen('pythonw updater.pyw')
             sys.exit()
-    except requests.ConnectionError:  # Should handle more errors?
-        pass
-        # start a thread to check every 20 seconds
 
 shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
 
