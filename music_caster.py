@@ -48,16 +48,15 @@ if not os.path.exists('images/default.png'):
     if os.path.exists('resources/default.png'):  # running from source code
         copyfile('resources/default.png', 'images/default.png')
     else:  # just in case the user decided to delete the default image
-        response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png', stream=True)
+        response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png',
+                                stream=True)
         with open('images/default.png', 'wb') as handle:
             for data in response.iter_content():
                 handle.write(data)
-for file in glob('music files/*.*'):
-    os.remove(file)
-for file in glob('images/*.*'):
+for file in glob('music files/*.*') + glob('images/*.*'):
     file = file.replace('\\', '/')
     if file != 'images/default.png': os.remove(file)
-os.chdir(os.getcwd()[:3])
+os.chdir(os.getcwd()[:3])  # set drive as the working dir
 PORT = 2001
 app = Flask(__name__, static_folder='/', static_url_path='/')
 while True:
@@ -562,7 +561,7 @@ while True:
                 settings_window.Element('music_dirs').Update(music_directories)
         elif settings_event == 'Add Folder':
             if settings_value not in music_directories and os.path.exists(settings_value):
-                music_directories.append(settings_value)
+                music_directories.append(settings_value.replace('\\', '/'))
                 save_json()
                 settings_window.Element('music_dirs').Update(music_directories)
         elif settings_event == 'Open Settings':
