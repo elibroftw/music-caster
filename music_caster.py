@@ -38,7 +38,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.6.3'
+CURRENT_VERSION = '4.6.4'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -103,12 +103,14 @@ def change_settings(name, value):
 # check if settings file is valid
 if os.path.exists(settings_file):
     with open(settings_file) as json_file:
-        loaded_settings = json.load(json_file)
+        loaded_settings: dict = json.load(json_file)
         save_settings = False
         for setting_name, setting_value in settings.items():
             if setting_name not in loaded_settings:
                 loaded_settings[setting_name] = setting_value
                 save_settings = True
+        for setting_name in loaded_settings:
+            if setting_name not in settings: loaded_settings.pop(setting_name)
         settings = loaded_settings
     if save_settings: save_json()
 else: save_json()
@@ -162,6 +164,7 @@ if settings['auto update']:
         # start a thread to check every 20 seconds
 
 shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+
 
 def startup_setting():
     run_on_startup = settings['run on startup']

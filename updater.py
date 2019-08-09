@@ -1,13 +1,12 @@
+from time import sleep
 from bs4 import BeautifulSoup
 import requests
 import json
 import zipfile
 import io
 import os
-from time import sleep
 from contextlib import suppress
 from subprocess import Popen
-
 
 with suppress(FileNotFoundError):
     sleep(1)  # wait for calling script to exit
@@ -29,6 +28,7 @@ with suppress(FileNotFoundError):
         print(bundle_download_link)
         print(source_download_link)
         Popen('python music_caster.py')
+    # add .py case
     elif os.path.exists('music_caster.pyw'):  # Update python file
         r = requests.get(source_download_link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
