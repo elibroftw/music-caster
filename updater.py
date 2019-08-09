@@ -7,6 +7,20 @@ import io
 import os
 from contextlib import suppress
 from subprocess import Popen
+from shutil import copyfileobj
+
+
+def download_and_extract(link, infile, outfile=None):
+    r = requests.get(link, stream=True)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    # NOTE: I'm unsure weather I need to delete the file before extracting. Test the exe
+    if outfile is None: z.extract(infile)
+    else:
+        new_file = z.open(infile)
+        # f'music-caster-{latest_version}/music_caster.py'
+        target = open(outfile, 'wb')
+        with new_file, target: copyfileobj(new_file, target)
+
 
 with suppress(FileNotFoundError):
     sleep(1)  # wait for calling script to exit
@@ -29,7 +43,9 @@ with suppress(FileNotFoundError):
         print(source_download_link)
         Popen('python music_caster.py')
     # add .py case
+
     elif os.path.exists('music_caster.pyw'):  # Update python file
+        # download_and_extract(source_download_link, f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
         r = requests.get(source_download_link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extract(f'music-caster-{latest_version}/music_caster.py')
@@ -39,6 +55,7 @@ with suppress(FileNotFoundError):
         os.rmdir(f'music-caster-{latest_version}')
         Popen('pythonw music_caster.pyw')
     else:  # Update Music Caster.exe;  Change if statements so that .pyw is last
+        # download_and_extract(bundle_download_link, 'Music Caster.exe')
         r = requests.get(bundle_download_link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         if os.path.exists('Music Caster.exe'): os.remove('Music Caster.exe')

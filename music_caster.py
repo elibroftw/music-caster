@@ -23,7 +23,7 @@ import PySimpleGUIWx as sg
 import wx
 from random import shuffle
 import requests
-from shutil import copyfile
+from shutil import copyfile, copyfileobj
 from subprocess import Popen
 import sys
 from time import time
@@ -38,7 +38,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.6.4'
+CURRENT_VERSION = '4.6.5'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -114,6 +114,19 @@ if os.path.exists(settings_file):
     if save_settings: save_json()
 else: save_json()
 
+
+def download_and_extract(link, infile, outfile=None):
+    r = requests.get(link, stream=True)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    # NOTE: I'm unsure weather I need to delete the file before extracting. Test the exe
+    if outfile is None: z.extract(infile)
+    else:
+        new_file = z.open(infile)
+        # f'music-caster-{latest_version}/music_caster.py'
+        target = open(outfile, 'wb')
+        with new_file, target: copyfileobj(new_file, target)
+
+
 if settings['auto update']:
     github_url = 'https://github.com/elibroftw/music-caster/releases'
     try:
@@ -133,6 +146,7 @@ if settings['auto update']:
             os.chdir(starting_dir)
             if settings.get('DEBUG'): Popen('python updater.py')
             elif os.path.exists('updater.py'):
+                # download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
                 r = requests.get(source_download_link, stream=True)
                 z = zipfile.ZipFile(io.BytesIO(r.content))
                 z.extract(f'music-caster-{latest_version}/updater.py')
@@ -142,6 +156,7 @@ if settings['auto update']:
                 os.rmdir(f'music-caster-{latest_version}')
                 Popen('pythonw updater.py')
             elif os.path.exists('Updater.exe'):
+                # download_and_extract(bundle_download_link, 'Updater.exe')
                 r = requests.get(bundle_download_link, stream=True)
                 z = zipfile.ZipFile(io.BytesIO(r.content))
                 os.remove('Updater.exe')
@@ -149,6 +164,7 @@ if settings['auto update']:
                 z.close()
                 os.startfile('Updater.exe')
             elif os.path.exists('updater.pyw'):
+                # download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                 r = requests.get(source_download_link, stream=True)
                 z = zipfile.ZipFile(io.BytesIO(r.content))
                 z.extract(f'music-caster-{latest_version}/updater.py')
