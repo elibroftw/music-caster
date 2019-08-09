@@ -70,7 +70,7 @@ while True:
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
     'previous device': None,
-    'comments': ['Edit only the variables below', 'Restart the program after editing this file!'],
+    'comments': ['Edit only the variables below', 'Restart Music Caster after editing this file!'],
     'auto update': False,
     'run on startup': True,
     'notifications': True,
