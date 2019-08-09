@@ -34,15 +34,14 @@ with suppress(FileNotFoundError):
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extract(f'music-caster-{latest_version}/music_caster.py')
         z.close()
-        if os.path.exists('music_caster.pyw'):
-            os.remove('music_caster.pyw')
+        if os.path.exists('music_caster.pyw'): os.remove('music_caster.pyw')
         os.rename(f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
         os.rmdir(f'music-caster-{latest_version}')
         Popen('pythonw music_caster.pyw')
-    else:  # Update the bundle; 'Music Caster.exe'
+    else:  # Update Music Caster.exe;  Change if statements so that .pyw is last
         r = requests.get(bundle_download_link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
+        if os.path.exists('Music Caster.exe'): os.remove('Music Caster.exe')
         z.extract('Music Caster.exe')
         z.close()
         os.startfile('Music Caster.exe')
-        # music_caster

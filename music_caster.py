@@ -1,3 +1,5 @@
+import io
+import zipfile
 from contextlib import suppress
 from bs4 import BeautifulSoup
 from flask import Flask
@@ -36,7 +38,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.6.2'
+CURRENT_VERSION = '4.6.3'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -114,6 +116,7 @@ else: save_json()
 if settings['auto update']:
     github_url = 'https://github.com/elibroftw/music-caster/releases'
     try:
+        github_url = 'https://github.com/elibroftw/music-caster/releases'
         html_doc = requests.get(github_url).text
         soup = BeautifulSoup(html_doc, features='html.parser')
         release_entry = soup.find('div', class_='release-entry')
@@ -122,21 +125,43 @@ if settings['auto update']:
         lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
         if (lt_major > major or lt_major == major and lt_minor > minor
                 or lt_major == major and lt_minor == minor and lt_patch > patch):
+            details = release_entry.find('details', class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+            download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
+            bundle_download_link = f'https://github.com{download_links[1]}'
+            source_download_link = f'https://github.com{download_links[-2]}'
             os.chdir(starting_dir)
-            if settings.get('DEBUG') or os.path.exists('updater.py'):
-                Popen('python updater.py')
+            if settings.get('DEBUG'): Popen('python updater.py')
+            elif os.path.exists('updater.py'):
+                r = requests.get(source_download_link, stream=True)
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                z.extract(f'music-caster-{latest_version}/updater.py')
+                z.close()
+                if os.path.exists('updater.py'): os.remove('updater.py')
+                os.rename(f'music-caster-{latest_version}/updater.py', 'updater.py')
+                os.rmdir(f'music-caster-{latest_version}')
+                Popen('pythonw updater.py')
             elif os.path.exists('Updater.exe'):
+                r = requests.get(bundle_download_link, stream=True)
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                os.remove('Updater.exe')
+                z.extract('Updater.exe')
+                z.close()
                 os.startfile('Updater.exe')
             elif os.path.exists('updater.pyw'):
+                r = requests.get(source_download_link, stream=True)
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                z.extract(f'music-caster-{latest_version}/updater.py')
+                z.close()
+                if os.path.exists('updater.pyw'): os.remove('updater.pyw')
+                os.rename(f'music-caster-{latest_version}/updater.py', 'updater.pyw')
+                os.rmdir(f'music-caster-{latest_version}')
                 Popen('pythonw updater.pyw')
             sys.exit()
     except requests.ConnectionError:  # Should handle more errors?
         pass
         # start a thread to check every 20 seconds
 
-shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/' \
-                f'Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-
+shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
 
 def startup_setting():
     run_on_startup = settings['run on startup']
