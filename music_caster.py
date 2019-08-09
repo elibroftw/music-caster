@@ -130,7 +130,6 @@ if settings['auto update']:
             elif os.path.exists('updater.pyw'):
                 Popen('pythonw updater.pyw')
             sys.exit()
-            # os.execl(sys.executable, *([sys.executable] + sys.argv))
     except requests.ConnectionError:  # Should handle more errors?
         pass
         # start a thread to check every 20 seconds
