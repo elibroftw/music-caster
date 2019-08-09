@@ -109,7 +109,7 @@ if os.path.exists(settings_file):
             if setting_name not in loaded_settings:
                 loaded_settings[setting_name] = setting_value
                 save_settings = True
-        for setting_name in loaded_settings:
+        for setting_name in list(loaded_settings.keys()):
             if setting_name not in settings: loaded_settings.pop(setting_name)
         settings = loaded_settings
     if save_settings: save_json()
