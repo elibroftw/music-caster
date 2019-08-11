@@ -113,7 +113,7 @@ if os.path.exists(settings_file):
     if save_settings: save_json()
 else: save_json()
 
-
+    
 def download_and_extract(link, infile, outfile=None):
     r = requests.get(link, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
