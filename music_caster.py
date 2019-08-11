@@ -294,7 +294,8 @@ def play_file(file_path, position=0, autoplay=True):
         while not mc.is_playing: pass
         song_start = time()
         song_end = song_start + song_length - position
-    if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
+    if notifications_enabled and not settings['repeat']:
+        tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
     if autoplay: playing_status = 'PLAYING'
 
 
