@@ -1,10 +1,9 @@
-import io
-import zipfile
-from contextlib import suppress
 from bs4 import BeautifulSoup
+from contextlib import suppress
 from flask import Flask
 from getpass import getuser
 from glob import glob
+import io
 import json
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
@@ -32,30 +31,31 @@ import win32api
 import win32com.client
 import win32event
 from winerror import ERROR_ALREADY_EXISTS
+import zipfile
 
 # Check if app is running already
 mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.7.1'
-starting_dir = os.path.dirname(os.path.realpath(__file__))
+CURRENT_VERSION = '4.7.2'
+starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
-if not os.path.exists('music files'): os.mkdir('music files')
-if not os.path.exists('images'): os.mkdir('images')
-if not os.path.exists('images/default.png'):
+if not os.path.exists(cc_music_dir): os.mkdir(cc_music_dir)
+if not os.path.exists(images_dir): os.mkdir(images_dir)
+if not os.path.exists(f'{images_dir}/default.png'):  # in case the user decided to delete the default image
     if os.path.exists('resources/default.png'):  # running from source code
         copyfile('resources/default.png', 'images/default.png')
-    else:  # just in case the user decided to delete the default image
+    else:  # download the default image
         with suppress(requests.ConnectionError):
-            resp = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png',
-                                stream=True)
-            with open('images/default.png', 'wb') as handle:
-                for data in resp.iter_content(): handle.write(data)
-for file in glob('music files/*.*') + glob('images/*.*'):
+            default_img_url = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
+            response = requests.get(default_img_url, stream=True)
+            with open(f'{images_dir}/default.png', 'wb') as handle:
+                for data in response.iter_content(): handle.write(data)
+for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
     file = file.replace('\\', '/')
-    if file != 'images/default.png': os.remove(file)
+    if file != f'{images_dir}/default.png': os.remove(file)
 os.chdir(os.getcwd()[:3])  # set drive as the working dir
 PORT = 2001
 app = Flask(__name__, static_folder='/', static_url_path='/')
@@ -63,8 +63,7 @@ while True:
     try:
         threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
         break
-    except OSError:
-        PORT += 1
+    except OSError: PORT += 1
 
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -126,7 +125,6 @@ def download_and_extract(link, infile, outfile=None):
 
 
 if settings['auto update']:
-    github_url = 'https://github.com/elibroftw/music-caster/releases'
     with suppress(requests.ConnectionError):
         github_url = 'https://github.com/elibroftw/music-caster/releases'
         html_doc = requests.get(github_url).text
@@ -137,19 +135,20 @@ if settings['auto update']:
         lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
         if (lt_major > major or lt_major == major and lt_minor > minor
                 or lt_major == major and lt_minor == minor and lt_patch > patch):
-            details = release_entry.find('details', class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+            details = release_entry.find('details',
+                                         class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
             download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
             bundle_download_link = f'https://github.com{download_links[1]}'
             source_download_link = f'https://github.com{download_links[-2]}'
             os.chdir(starting_dir)
             if settings.get('DEBUG'): Popen('python updater.py')
-            elif os.path.exists('updater.py'):
+            elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                 download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
                 Popen('pythonw updater.py')
-            elif os.path.exists('Updater.exe'):
+            elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
                 download_and_extract(bundle_download_link, 'Updater.exe')
                 os.startfile('Updater.exe')
-            elif os.path.exists('updater.pyw'):
+            elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
                 download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                 Popen('pythonw updater.pyw')
             sys.exit()

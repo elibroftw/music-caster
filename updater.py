@@ -42,12 +42,12 @@ with suppress(FileNotFoundError):
         print(bundle_download_link)
         print(source_download_link)
         Popen('python music_caster.py')
+    elif os.path.exists('Music Caster.exe'):
+        download_and_extract(bundle_download_link, 'Music Caster.exe')
+        os.startfile('Music Caster.exe')
     elif os.path.exists('music_caster.py'):
         download_and_extract(source_download_link, f'music-caster-{latest_version}/music_caster.py', 'music_caster.py')
         Popen('pythonw music_caster.py')
-    elif os.path.exists('music_caster.pyw'):  # Update python file
+    else:  # Update python file
         download_and_extract(source_download_link, f'music-caster-{latest_version}/music_caster.py', 'music_caster.pyw')
         Popen('pythonw music_caster.pyw')
-    else:  # Update Music Caster.exe;  Change if statements so that .pyw is last
-        download_and_extract(bundle_download_link, 'Music Caster.exe')
-        os.startfile('Music Caster.exe')
