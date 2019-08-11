@@ -38,7 +38,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.7.0'
+CURRENT_VERSION = '4.7.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 images_dir = starting_dir + '/images'
 cc_music_dir = starting_dir + '/music files'
@@ -49,11 +49,10 @@ if not os.path.exists('images/default.png'):
         copyfile('resources/default.png', 'images/default.png')
     else:  # just in case the user decided to delete the default image
         with suppress(requests.ConnectionError):
-            response = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png',
-                                    stream=True)
+            resp = requests.get('https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png',
+                                stream=True)
             with open('images/default.png', 'wb') as handle:
-                for data in response.iter_content():
-                    handle.write(data)
+                for data in resp.iter_content(): handle.write(data)
 for file in glob('music files/*.*') + glob('images/*.*'):
     file = file.replace('\\', '/')
     if file != 'images/default.png': os.remove(file)
@@ -292,6 +291,7 @@ def play_file(file_path, position=0, autoplay=True):
         music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
         mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
         mc.block_until_active()
+        while not mc.is_playing: pass
         song_start = time()
         song_end = song_start + song_length - position
     if notifications_enabled: tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
@@ -322,6 +322,8 @@ def resume():
             mc.update_status()
             mc.play()
             mc.block_until_active()
+            while not mc.is_playing: pass
+            song_position = mc.status.adjusted_current_time
         else:
             local_music_player.music.unpause()
         song_end = time() + song_length - song_position
@@ -341,8 +343,7 @@ def stop():
 
 def next_song(from_timeout=False):
     global playing_status
-    if cast is not None and cast.app_id != 'CC1AD845':
-        playing_status = 'NOT PLAYING'
+    if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
     elif music_queue:
         if not settings['repeat'] or not from_timeout:
             settings['repeat'] = False
@@ -354,8 +355,7 @@ def next_song(from_timeout=False):
 
 def previous():
     global playing_status
-    if cast is not None and cast.app_id != 'CC1AD845':
-        playing_status = 'NOT PLAYING'
+    if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
     elif done_queue:
         song = done_queue.pop()
         music_queue.insert(0, song)
@@ -522,11 +522,8 @@ while True:
             settings_window.CloseNonBlocking()
         elif settings_event in ('auto update', 'run on startup', 'notifications'):
             change_settings(settings_event, settings_value)
-            if settings_event == 'run on startup':
-                startup_setting()
-            elif settings_event == 'notifications':
-                notifications_enabled = settings_value
-                if settings_value: tray.ShowMessage('Music Caster', 'Notifications have been enabled', time=500)
+            if settings_event == 'run on startup': startup_setting()
+            elif settings_event == 'notifications': notifications_enabled = settings_value
         elif settings_event in ('volume', 'a', 'd') or settings_event.isdigit():
             update_slider = False
             delta = 0
@@ -561,13 +558,15 @@ while True:
             os.startfile(settings_file)
 
     if keyboard_command is not None: keyboard_command = None
-    if mc is not None and time() - cast_last_checked > 5:
+    if mc is not None and time() - cast_last_checked > 2:
         with suppress(UnsupportedNamespace):
             if cast is not None and cast.app_id == 'CC1AD845':
                 mc.update_status()
-                # if mc.is_paused and playing_status != 'PAUSED': playing_status = 'PAUSED'
-                # elif mc.is_playing and playing_status != 'PLAYING': playing_status = 'PLAYING'
-                # elif not mc.is_paused and not mc.is_playing: playing_status = 'NOT PLAYING'
+                if mc.is_paused and playing_status != 'PAUSED': pause()
+                elif mc.is_playing and playing_status != 'PLAYING': resume()
+                elif not (mc.is_paused or mc.is_playing) and playing_status != 'NOT PLAYING': stop()
+
+                # TODO: check if playback was scrubbed
                 volume = settings['volume']
                 cast_volume = int(cast.status.volume_level * 100)
                 if volume != cast_volume:
