@@ -566,7 +566,7 @@ while True:
         elif settings_event == 'Open Settings':
             os.startfile(settings_file)
 
-    if keyboard_command is not None: keyboard_command = None
+    keyboard_command = None
     if mc is not None and time() - cast_last_checked > 2:
         with suppress(UnsupportedNamespace):
             if cast is not None:
