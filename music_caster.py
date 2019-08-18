@@ -38,7 +38,7 @@ mutex = win32event.CreateMutex(None, False, 'name')
 last_error = win32api.GetLastError()
 if last_error == ERROR_ALREADY_EXISTS: sys.exit()
 
-CURRENT_VERSION = '4.7.8'
+CURRENT_VERSION = '4.8.0'
 UNFILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
 FILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
 WINDOW_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfjBxIQARbl3afoAAACwElEQVRo3u2ZPUxTURiGH2osS3UhNphADFE6MBgXGbVBB9kcu9OEwZVFYGESGxISJaRJnUhIygBxJ7EQTOrC0gkMKRgcMSTcQVDqdejg+c49t1HuXxPPe7fvu7336fl5v3PPASsrKysrX/VQpI6DG+N1Rp0iPSacfjZjRVGvTfq9rZMcThtJa6ViojguLkUJ9ClxoLoEchIHciSQmopTvu+1QBbovwGKYoJboFCA/qaPuwLostuAbjPNQTcBtddKY2x0E1Bbo9S6CwjgGY24gC444ZBdqsxRYMAXKc1rWnH7kIvLZ8o8IWWEesRR/EDt65hXDBqQbvI+GSAXlwsq3PUgpVhOCsjF5ScLZDxQ08kBubh85bkHqRgdUJo+hsgzyRsa/PJ51BK9IbTSFXzoFhNsGbF2PYN8OT5jHGbNAHXMiLjr2j/PuEBO/ZAPngd+Y1QzgaN4S8c4TQ/SiGaVrXhrWR9bno6TY2k+bCCHfWqsMst9I9J1yp7h3StmaSM6H2qyaMR6oa0fl7SVQKTG2GKFOwYkeZe0ylrUTn1OibSGVNbcOyOWcDGUjo9ktbEkh/eCyG7EUcu+8ECbcU1Rdu8pubHwgDLkyDPFjsFRHA1pXGTfic+Bg/B9KEuJ755Wkh2nuvcP4UgvozHGQdY9YyktCopa4+bFd9xlVE49oxXWkshWhWunwt+OMakgkM6FLw2L3NN4gGBG/GBF5NTpXw4fyGGPiuGfrgv3VgvKhPhoimwHbZucNrzVGbcoVpVqpw1Et6V3ymORKYmyq0qt74Uo9xhPRStlhVWqnfZWic8F3uY661Q6tkVuR8nMKvFJJV4NDFTvXMvU4T2lxFeVeF4s14ICFTsDVXxeXFPiQ0r8MCCQ5wBPv2FPyeWU+L6o+3/iJ4GADEecnU6vbvjE02JL4mpAjv8hsJWVlZUVAL8BFtCPUbUhaGYAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTktMDctMThUMTU6NTg6MTArMDA6MDBEk3wFAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE5LTA3LTE4VDE1OjU4OjEwKzAwOjAwNc7EuQAAAABJRU5ErkJggg=='
@@ -187,7 +187,6 @@ def startup_setting():
 
 
 startup_setting()
-
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -199,7 +198,7 @@ def chromecast_callback(chromecast):
     previous_device = settings['previous device']
     if str(chromecast.device.uuid) == previous_device and cast != chromecast:
         cast = chromecast
-        cast.wait()
+        cast.wait(timeout=5)
     chromecasts.append(chromecast)
     devices = len(device_names)
     device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
@@ -211,12 +210,11 @@ stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecas
 discovery_started = time()
 menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
 
-menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
+menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play Next...', 'Play All',
                    'Next Song', 'Previous Song', 'Repeat', 'Pause', 'Stop', 'E&xit']]
 
-menu_def_3 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All',
+menu_def_3 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play Next...', 'Play All',
                    'Next Song', 'Previous Song', 'Repeat', 'Resume', 'Stop', 'E&xit']]
-
 tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 notifications_enabled = settings['notifications']
 if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
@@ -226,6 +224,7 @@ DEFAULT_DIR = music_directories[0]
 
 music_queue = []
 done_queue = []
+next_queue = []
 mc = None
 song_end = song_length = song_position = song_start = 0
 playing_status = 'NOT PLAYING'
@@ -285,7 +284,8 @@ def play_file(file_path, position=0, autoplay=True):
             with open(thumb, 'wb') as f: f.write(pict)
         else: thumb = images_dir + f'/default.png'
         thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-        cast.wait()
+        # cast: pychromecast.Chromecast
+        cast.wait(timeout=10)
         cast.set_volume(volume)
         mc = cast.media_controller
         if mc.is_playing or mc.is_paused:
@@ -344,47 +344,42 @@ def stop():
     global playing_status, song_position, cast
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
     if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
-    elif local_music_player.music.get_busy():
-        local_music_player.music.stop()
+    elif local_music_player.music.get_busy(): local_music_player.music.stop()
     playing_status = 'NOT PLAYING'
 
 
 def next_song(from_timeout=False):
     global playing_status
     if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
-    elif music_queue:
-        if not settings['repeat'] or not from_timeout:
+    elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
+        if not settings['repeat'] or not from_timeout or not music_queue:
             settings['repeat'] = False
             save_json()
-            done_queue.append(music_queue.pop(0))
-        with suppress(IndexError):
-            play_file(music_queue[0])
+            if music_queue: done_queue.append(music_queue.pop(0))
+            if next_queue: music_queue.insert(0, next_queue.pop(0))
+        if music_queue: play_file(music_queue[0])
+        else: stop()
 
 
 def previous():
     global playing_status
     if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
-    elif done_queue:
-        song = done_queue.pop()
-        music_queue.insert(0, song)
-        play_file(song)
-    elif music_queue:
-        play_file(music_queue[0])
+    elif playing_status != 'NOT PLAYING':
+        if done_queue:
+            song = done_queue.pop()
+            music_queue.insert(0, song)
+            play_file(song)
+        elif music_queue: play_file(music_queue[0])
 
 
 def on_press(key):
     global keyboard_command
     if str(key) == '<179>':
-        if playing_status == 'PLAYING':
-            keyboard_command = 'Pause'
-        elif playing_status == 'PAUSED':
-            keyboard_command = 'Resume'
-    elif str(key) == '<176>':
-        keyboard_command = 'Next Song'
-    elif str(key) == '<177>':
-        keyboard_command = 'Previous Song'
-    elif str(key) == '<178>':
-        keyboard_command = 'Stop'
+        if playing_status == 'PLAYING': keyboard_command = 'Pause'
+        elif playing_status == 'PAUSED': keyboard_command = 'Resume'
+    elif str(key) == '<176>': keyboard_command = 'Next Song'
+    elif str(key) == '<177>': keyboard_command = 'Previous Song'
+    elif str(key) == '<178>': keyboard_command = 'Stop'
 
 
 keyboard_command = None
@@ -395,8 +390,6 @@ listener_thread.start()
 
 while True:
     menu_item = tray.Read(timeout=30)
-    # if menu_item != '__TIMEOUT__':
-    #     print(menu_item)
     if discovery_started and time() - discovery_started > 5:
         discovery_started = 0
         stop_discovery()
@@ -443,7 +436,6 @@ while True:
             mc = None if cast is None else cast.media_controller
             if playing_status in {'PAUSED', 'PLAYING'}:
                 play_file(music_queue[0], position=current_pos, autoplay=False if playing_status == 'PAUSED' else True)
-
     elif menu_item == 'Settings' and not settings_active:
         settings_active = True
         # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
@@ -500,6 +492,16 @@ while True:
             done_queue.clear()
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+    elif menu_item == 'Play Next...':
+        if music_directories: DEFAULT_DIR = music_directories[0]
+        fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        if fd.ShowModal() != wx.ID_CANCEL:
+            path_to_file = fd.GetPath()
+            next_queue.append(path_to_file)
+            if playing_status == 'NOT PLAYING':
+                if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
+                next_song()
     elif 'Stop' in {menu_item, keyboard_command}: stop()
     elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
         next_song(from_timeout=time() > song_end)
@@ -524,8 +526,6 @@ while True:
             settings_active = False
             continue
         settings_value = settings_values.get(settings_event)
-        # if settings_event != '__TIMEOUT__':
-        #     print(settings_event)
         if settings_event in {'Esc', 'q'}:
             settings_active = False
             settings_window.CloseNonBlocking()

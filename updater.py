@@ -13,7 +13,6 @@ from shutil import copyfileobj
 def download_and_extract(link, infile, outfile=None):
     r = requests.get(link, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
-    # NOTE: I'm unsure weather I need to delete the file before extracting. Test the exe
     if outfile is None: z.extract(infile)
     else:
         new_file = z.open(infile)
