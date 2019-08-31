@@ -21,12 +21,13 @@ Now you may add or remove music directories. By default, your home music directo
 When you click Play All, all the music from these directories all shuffled into a list and played.
 When you click Play File, you can select a file to play and all of the music in your music directories are shuffled into the music queue.
 
-TLDR: If you have music all over the place, right click icon in tray and open settings
+TLDR: If you have music files in different folders, right click icon in tray and open settings
 
-This app supports media keys. There might be an issue with skipping though so please let me know!
+This app supports media keys.
 
 # Limitations and known issues
 - The GUI library I use does have a memory leak issue, I'm planning on porting to wxPython
+- So restart if you feel the app is laggy
 - If you find a bug, please create an issue or email me, I am very fast at pushing fixes if the issues are huge
 
 # Build Instructions
