@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from contextlib import suppress
+from datetime import datetime, timedelta
 from flask import Flask
 from getpass import getuser
 from glob import glob
@@ -33,41 +34,9 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-# Check if app is running already
-mutex = win32event.CreateMutex(None, False, 'name')
-last_error = win32api.GetLastError()
-if last_error == ERROR_ALREADY_EXISTS: sys.exit()
+CURRENT_VERSION = '4.9.0'
 
-CURRENT_VERSION = '4.8.1'
-UNFILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
-FILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
-WINDOW_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfjBxIQARbl3afoAAACwElEQVRo3u2ZPUxTURiGH2osS3UhNphADFE6MBgXGbVBB9kcu9OEwZVFYGESGxISJaRJnUhIygBxJ7EQTOrC0gkMKRgcMSTcQVDqdejg+c49t1HuXxPPe7fvu7336fl5v3PPASsrKysrX/VQpI6DG+N1Rp0iPSacfjZjRVGvTfq9rZMcThtJa6ViojguLkUJ9ClxoLoEchIHciSQmopTvu+1QBbovwGKYoJboFCA/qaPuwLostuAbjPNQTcBtddKY2x0E1Bbo9S6CwjgGY24gC444ZBdqsxRYMAXKc1rWnH7kIvLZ8o8IWWEesRR/EDt65hXDBqQbvI+GSAXlwsq3PUgpVhOCsjF5ScLZDxQ08kBubh85bkHqRgdUJo+hsgzyRsa/PJ51BK9IbTSFXzoFhNsGbF2PYN8OT5jHGbNAHXMiLjr2j/PuEBO/ZAPngd+Y1QzgaN4S8c4TQ/SiGaVrXhrWR9bno6TY2k+bCCHfWqsMst9I9J1yp7h3StmaSM6H2qyaMR6oa0fl7SVQKTG2GKFOwYkeZe0ylrUTn1OibSGVNbcOyOWcDGUjo9ktbEkh/eCyG7EUcu+8ECbcU1Rdu8pubHwgDLkyDPFjsFRHA1pXGTfic+Bg/B9KEuJ755Wkh2nuvcP4UgvozHGQdY9YyktCopa4+bFd9xlVE49oxXWkshWhWunwt+OMakgkM6FLw2L3NN4gGBG/GBF5NTpXw4fyGGPiuGfrgv3VgvKhPhoimwHbZucNrzVGbcoVpVqpw1Et6V3ymORKYmyq0qt74Uo9xhPRStlhVWqnfZWic8F3uY661Q6tkVuR8nMKvFJJV4NDFTvXMvU4T2lxFeVeF4s14ICFTsDVXxeXFPiQ0r8MCCQ5wBPv2FPyeWU+L6o+3/iJ4GADEecnU6vbvjE02JL4mpAjv8hsJWVlZUVAL8BFtCPUbUhaGYAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTktMDctMThUMTU6NTg6MTArMDA6MDBEk3wFAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE5LTA3LTE4VDE1OjU4OjEwKzAwOjAwNc7EuQAAAABJRU5ErkJggg=='
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
-images_dir = starting_dir + '/images'
-cc_music_dir = starting_dir + '/music files'
-if not os.path.exists(cc_music_dir): os.mkdir(cc_music_dir)
-if not os.path.exists(images_dir): os.mkdir(images_dir)
-if not os.path.exists(f'{images_dir}/default.png'):  # in case the user decided to delete the default image
-    if os.path.exists('resources/default.png'):  # running from source code
-        copyfile('resources/default.png', 'images/default.png')
-    else:  # download the default image
-        with suppress(requests.ConnectionError):
-            default_img_url = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
-            response = requests.get(default_img_url, stream=True)
-            with open(f'{images_dir}/default.png', 'wb') as handle:
-                for data in response.iter_content(): handle.write(data)
-for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
-    file = file.replace('\\', '/')
-    if file != f'{images_dir}/default.png': os.remove(file)
-os.chdir(os.getcwd()[:3])  # set drive as the working dir
-PORT = 2001
-app = Flask(__name__, static_folder='/', static_url_path='/')
-while True:
-    try:
-        threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
-        break
-    except OSError: PORT += 1
-
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
     'previous device': None,
@@ -84,6 +53,7 @@ settings = {  # default settings
         'First path is the default directory when selecting a file to play. FOR NOW'
     ],
     'repeat': False,
+    'timer_shut_off_computer': False,
     'playlists': {},
     'playlists_example': {'NAME': ['PATHS']},
     'DEBUG': False
@@ -117,6 +87,37 @@ if os.path.exists(settings_file):
     if save_settings: save_json()
 else: save_json()
 
+# Check if app is running already
+mutex = win32event.CreateMutex(None, False, 'name')
+last_error = win32api.GetLastError()
+if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False): sys.exit()
+UNFILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
+FILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACxUlEQVRo3u2ZT0hUURSHn0bjxtpIYqCElLNwEW1yWYO1yF3L2fvARVs3\nqRtX2SAIJTFgK0HQRdJeaBSDaePGlYaoYUtD8C3ScvpaKHTOfe8NOu/fQPe3PGec+bz3nN+57z7H\nsbKysrIKEy24VPFIU8dUcWkJwulihay0Qpd/dbLDOUfSq4RL1nI10JfMgaoayMscyNNAQql2dtjv\nWiAL9N8AJdHfFigWoMvscXMAnTUb0G3G2GkioIuz0iDLTQR08acDVJoKyHEch2dsptX2pxyyxwaL\nTFKkOxQpx2tqKfsQAF8p84TWQKhH7KcPdK4DXtETgHSTj9kAAZwyx10fUivvsgIC+M007T6oseyA\nAL7z3IfkJgeUo4NeCozwhk3+hHzXLG3RV6kBH+IWw6wGYm2YRX71WmrYGOljKQDqgH71qWtX7bho\nw/Uhn3zf+IMBwwT2Ux0dDLHrQ+o3rLKW6iyjg1XfxqlaYiruLvPYpsICE9wPRLpO2VfebapLN5Pz\noV1mgrB4YZwfZ42TQKLGWGOeOwFIWsoqL3teatypTyiRM5DKhnu3qyNcCqPjM51GLenynlbZ5TRm\n2TceGB23q8buPZEbjA+onTwFRlkPcBTPQBpS2ffqcWAndh+ikxI/faukN0669y/pSLxMZrj28MFX\nSzk1UOSMm1LPcWcJOTXjxmAtqeyicu3W2K9jAj9cVEgn0pfoU7mnqQA5DuNqjeZVTrZ/Of4LK48t\n5vz/qaqlmhwoDMuHpuRu0NbIG+UtO25GnSrlpnUnd6V3xGOVKcmxqzJyvhcTvGPkSK4Sncoq5aa9\nFfHJyNdcx/VGx5rKrYvMhIiPiPhiZKBq/VkmyptREV8Q8YI8rkUGcusDzYX8cEXEe0V8LyKQ7wWe\nqS2Ry4v4tpr7/3QYCSjgFWedt1fcCInn5JVEg0Be6EtgKysrK6tz/QVPmZ3Bw5RmTgAAACV0RVh0\nZGF0ZTpjcmVhdGUAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMGlsBI8AAAAldEVYdGRhdGU6bW9k\naWZ5ADIwMTktMDctMTRUMDA6NDY6MzIrMDA6MDAYMbwzAAAAAElFTkSuQmCC\n'
+WINDOW_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfjBxIQARbl3afoAAACwElEQVRo3u2ZPUxTURiGH2osS3UhNphADFE6MBgXGbVBB9kcu9OEwZVFYGESGxISJaRJnUhIygBxJ7EQTOrC0gkMKRgcMSTcQVDqdejg+c49t1HuXxPPe7fvu7336fl5v3PPASsrKysrX/VQpI6DG+N1Rp0iPSacfjZjRVGvTfq9rZMcThtJa6ViojguLkUJ9ClxoLoEchIHciSQmopTvu+1QBbovwGKYoJboFCA/qaPuwLostuAbjPNQTcBtddKY2x0E1Bbo9S6CwjgGY24gC444ZBdqsxRYMAXKc1rWnH7kIvLZ8o8IWWEesRR/EDt65hXDBqQbvI+GSAXlwsq3PUgpVhOCsjF5ScLZDxQ08kBubh85bkHqRgdUJo+hsgzyRsa/PJ51BK9IbTSFXzoFhNsGbF2PYN8OT5jHGbNAHXMiLjr2j/PuEBO/ZAPngd+Y1QzgaN4S8c4TQ/SiGaVrXhrWR9bno6TY2k+bCCHfWqsMst9I9J1yp7h3StmaSM6H2qyaMR6oa0fl7SVQKTG2GKFOwYkeZe0ylrUTn1OibSGVNbcOyOWcDGUjo9ktbEkh/eCyG7EUcu+8ECbcU1Rdu8pubHwgDLkyDPFjsFRHA1pXGTfic+Bg/B9KEuJ755Wkh2nuvcP4UgvozHGQdY9YyktCopa4+bFd9xlVE49oxXWkshWhWunwt+OMakgkM6FLw2L3NN4gGBG/GBF5NTpXw4fyGGPiuGfrgv3VgvKhPhoimwHbZucNrzVGbcoVpVqpw1Et6V3ymORKYmyq0qt74Uo9xhPRStlhVWqnfZWic8F3uY661Q6tkVuR8nMKvFJJV4NDFTvXMvU4T2lxFeVeF4s14ICFTsDVXxeXFPiQ0r8MCCQ5wBPv2FPyeWU+L6o+3/iJ4GADEecnU6vbvjE02JL4mpAjv8hsJWVlZUVAL8BFtCPUbUhaGYAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTktMDctMThUMTU6NTg6MTArMDA6MDBEk3wFAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE5LTA3LTE4VDE1OjU4OjEwKzAwOjAwNc7EuQAAAABJRU5ErkJggg=='
+images_dir = starting_dir + '/images'
+cc_music_dir = starting_dir + '/music files'
+if not os.path.exists(cc_music_dir): os.mkdir(cc_music_dir)
+if not os.path.exists(images_dir): os.mkdir(images_dir)
+if not os.path.exists(f'{images_dir}/default.png'):  # in case the user decided to delete the default image
+    if os.path.exists('resources/default.png'):  # running from source code
+        copyfile('resources/default.png', 'images/default.png')
+    else:  # download the default image
+        with suppress(requests.ConnectionError):
+            default_img_url = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
+            response = requests.get(default_img_url, stream=True)
+            with open(f'{images_dir}/default.png', 'wb') as handle:
+                for data in response.iter_content(): handle.write(data)
+for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
+    file = file.replace('\\', '/')
+    if file != f'{images_dir}/default.png': os.remove(file)
+os.chdir(os.getcwd()[:3])  # set drive as the working dir
+PORT = 2001
+app = Flask(__name__, static_folder='/', static_url_path='/')
+while True:
+    try:
+        threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
+        break
+    except OSError: PORT += 1
 
 def download_and_extract(link, infile, outfile=None):
     r = requests.get(link, stream=True)
@@ -208,13 +209,13 @@ def chromecast_callback(chromecast):
 local_music_player.init(44100, -16, 2, 2048)
 stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
 discovery_started = time()
-menu_def_1 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play All', 'E&xit']]
+menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Play &File', 'Play All', 'E&xit']]
 
-menu_def_2 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play Next...', 'Play All',
-                   'Repeat', 'Pause', 'Stop', 'Next Song', 'Previous Song', 'E&xit']]
+menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
+                   'Play Next...', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
 
-menu_def_3 = ['', ['Refresh Devices', 'Select &Device', device_names, 'Settings', 'Play &File', 'Play Next...', 'Play All',
-                   'Repeat', 'Resume', 'Stop', 'Next Song', 'Previous Song', 'E&xit']]
+menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
+                   'Play Next...', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
 tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 notifications_enabled = settings['notifications']
 if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
@@ -382,9 +383,9 @@ def on_press(key):
     elif str(key) == '<178>': keyboard_command = 'Stop'
 
 
-keyboard_command = None
-settings_window = None
-settings_active = False
+keyboard_command = settings_window = timer_window = None
+timer = 0
+settings_active = timer_window_active = False
 listener_thread = Listener(on_press=on_press)
 listener_thread.start()
 
@@ -465,6 +466,18 @@ while True:
         settings_window.Finalize()
         settings_window.TKroot.focus_force()
         # settings_window.GrabAnyWhereOn()
+    elif menu_item == 'Set timer' and not timer_window_active:
+        timer_window_active = True
+        settings_layout = [
+            [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_family)],
+            # [Sg.Checkbox('Shut off computer', default=settings['timer_shut_off_computer'], key='shut_off',
+            # text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+            [Sg.Input(key='minutes', focus=True), Sg.Submit()]
+        ]
+        timer_window = Sg.Window('Music Caster Set Timer', settings_layout, background_color=bg, icon=WINDOW_ICON,
+                                 return_keyboard_events=True, use_default_focus=False)
+        timer_window.Finalize()
+        timer_window.TKroot.focus_force()
     elif menu_item == 'Play File':
         # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
         # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
@@ -502,7 +515,7 @@ while True:
             if playing_status == 'NOT PLAYING':
                 if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
                 next_song()
-    elif 'Stop' in {menu_item, keyboard_command}: stop()
+    elif 'Stop' in {menu_item, keyboard_command} or (timer and time() > timer): stop()
     elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
         next_song(from_timeout=time() > song_end)
     elif 'Previous Song' in {menu_item, keyboard_command}: previous()
@@ -522,9 +535,7 @@ while True:
     # SETTINGS WINDOW
     if settings_active:
         settings_event, settings_values = settings_window.Read(timeout=10)
-        if settings_event is None:
-            settings_active = False
-            continue
+        if settings_event is None: settings_active = False; continue
         settings_value = settings_values.get(settings_event)
         if settings_event in {'Esc', 'q'}:
             settings_active = False
@@ -563,9 +574,26 @@ while True:
                 music_directories.append(settings_value.replace('\\', '/'))
                 save_json()
                 settings_window.Element('music_dirs').Update(music_directories)
-        elif settings_event == 'Open Settings':
-            os.startfile(settings_file)
-
+        elif settings_event == 'Open Settings': os.startfile(settings_file)
+    if timer_window_active:
+        timer_event, timer_values = timer_window.Read(timeout=10)
+        if timer_event is None: timer_window_active = False
+        elif timer_event in {'Esc', 'q'}:
+            timer_window_active = False
+            timer_window.CloseNonBlocking()
+        elif timer_event == 'Submit':
+            try:
+                minutes = abs(float(timer_values['minutes']))
+                timer = time() + 60 * minutes
+                if notifications_enabled:
+                    timer_set_to = datetime.now() + timedelta(minutes=minutes)
+                    timer_set_to = timer_set_to.strftime('%#I:%M %p')
+                    # timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+                    tray.ShowMessage('Music Caster', f'Timer set to {timer_set_to}', time=500)
+                timer_window_active = False
+                timer_window.CloseNonBlocking()
+            except ValueError:
+                Sg.PopupOK('Input a number!')
     keyboard_command = None
     if mc is not None and time() - cast_last_checked > 2:
         with suppress(UnsupportedNamespace):
