@@ -235,7 +235,11 @@ try:
 
 
     def play_file(file_path, position=0, autoplay=True):
-        global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked
+        global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked, music_queue
+        while not os.path.exists(file_path): 
+            music_queue.remove(file_path)
+            file_path = music_queue[0]
+            position=0
         hostname = socket.gethostname()
         ipv4_address = socket.gethostbyname(hostname)
         song_position = position
