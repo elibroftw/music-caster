@@ -518,7 +518,9 @@ try:
                 if playing_status == 'NOT PLAYING':
                     if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
                     next_song()
-        elif 'Stop' in {menu_item, keyboard_command} or (timer and time() > timer): stop()
+        elif 'Stop' in {menu_item, keyboard_command} or (timer and time() > timer):
+            timer = None
+            stop()
         elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
             next_song(from_timeout=time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command}: previous()
