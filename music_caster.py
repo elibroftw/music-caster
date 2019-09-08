@@ -1,47 +1,46 @@
-try:
-    from bs4 import BeautifulSoup
-    from contextlib import suppress
-    from datetime import datetime, timedelta
-    from flask import Flask
-    from getpass import getuser
-    from glob import glob
-    import io
-    import json
-    from mutagen.easyid3 import EasyID3
-    from mutagen.id3 import ID3
-    import mutagen
-    import os
-    from pathlib import Path
-    import pychromecast.controllers.media
-    from pychromecast.error import UnsupportedNamespace
-    import pychromecast
-    from pygame import mixer as local_music_player
-    from pynput.keyboard import Listener
-    import pyperclip
-    import socket
-    import PySimpleGUI as Sg
-    # noinspection PyPep8Naming
-    import PySimpleGUIWx as sg
-    import wx
-    from random import shuffle
-    import requests
-    from shutil import copyfile, copyfileobj
-    from subprocess import Popen
-    import sys
-    from time import time
-    import threading
-    import traceback
-    import win32api
-    import win32com.client
-    import win32event
-    from winerror import ERROR_ALREADY_EXISTS
-    import zipfile
+from bs4 import BeautifulSoup
+from contextlib import suppress
+from datetime import datetime, timedelta
+from flask import Flask
+from getpass import getuser
+from glob import glob
+import io
+import json
+from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3
+import mutagen
+import os
+from pathlib import Path
+import pychromecast.controllers.media
+from pychromecast.error import UnsupportedNamespace
+import pychromecast
+from pygame import mixer as local_music_player
+from pynput.keyboard import Listener
+import pyperclip
+import socket
+import PySimpleGUI as Sg
+# noinspection PyPep8Naming
+import PySimpleGUIWx as sg
+import wx
+from random import shuffle
+import requests
+from shutil import copyfile, copyfileobj
+from subprocess import Popen
+import sys
+from time import time
+import threading
+import traceback
+import webbrowser
+import win32api
+import win32com.client
+import win32event
+from winerror import ERROR_ALREADY_EXISTS
+import zipfile
 
-    CURRENT_VERSION = '4.11.0'
-
-    starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
-    home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-    settings = {  # default settings
+VERSION = '4.11.1'
+starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
+home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
+settings = {  # default settings
         'previous device': None,
         'comments': ['Edit only the variables below', 'Restart Music Caster after editing this file!'],
         'auto update': False,
@@ -61,9 +60,8 @@ try:
         'playlists_example': {'NAME': ['PATHS']},
         'DEBUG': False
     }
-    settings_file = f'{starting_dir}/settings.json'
-
-
+settings_file = f'{starting_dir}/settings.json'
+try:    
     def save_json():
         with open(settings_file, 'w') as outfile:
             json.dump(settings, outfile, indent=4)
@@ -173,7 +171,7 @@ try:
             soup = BeautifulSoup(html_doc, features='html.parser')
             release_entry = soup.find('div', class_='release-entry')
             latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
-            major, minor, patch = (int(x) for x in CURRENT_VERSION.split('.'))
+            major, minor, patch = (int(x) for x in VERSION.split('.'))
             lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
             if (lt_major > major or lt_major == major and lt_minor > minor
                     or lt_major == major and lt_minor == minor and lt_patch > patch):
@@ -232,7 +230,8 @@ try:
     # Styling
     fg = '#aaaaaa'
     bg = '#121212'
-    font_family = 'SourceSans', 11
+    font_normal = 'SourceSans', 11
+    font_link = 'SourceSans', 11, 'underline'
     button_color = ('black', '#4285f4')
 
 
@@ -443,27 +442,27 @@ try:
             settings_active = True
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
             settings_layout = [
-                [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
-                        font=font_family)],
-                # [Sg.Text(f'Email: elijahllopezz@gmail.com', text_color=fg, background_color=bg, font=font_family)],
-                [Sg.Text(f'Email: elijahllopezz@gmail.com', text_color=fg, background_color=bg, font=font_family),  # TODO
-                Sg.Button(button_text='Copy', button_color=button_color, key='copy email', enable_events=True, font=font_family)],
+                [Sg.Text(f'Music Caster Version {VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
+                        font=font_normal)],
+                [Sg.Text(f'Email:', text_color='#3ea6ff', background_color=bg, font=font_normal, pad=((5, 0), 3)),
+                Sg.Text(f'elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
+                Sg.Button(button_text='Copy address', button_color=button_color, key='copy email', enable_events=True, font=font_normal)],
                 [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
-                            background_color=bg, font=font_family, enable_events=True)],
+                            background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
-                            background_color=bg, font=font_family, enable_events=True)],
+                            background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg,
-                            background_color=bg, font=font_family, enable_events=True)],
+                            background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
                         tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
                         size=(50, 15))],
                 [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                            key='music_dirs', background_color=bg, font=font_family, enable_events=True),
+                            key='music_dirs', background_color=bg, font=font_normal, enable_events=True),
                 Sg.Frame('', [
                     [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder',
-                                enable_events=True, font=font_family)],
-                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_family, enable_events=True)],
-                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_family,
+                                enable_events=True, font=font_normal)],
+                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_normal, enable_events=True)],
+                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_normal,
                                 enable_events=True)]], background_color=bg, border_width=0)]
             ]
             settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
@@ -474,7 +473,7 @@ try:
         elif menu_item == 'Set timer' and not timer_window_active:
             timer_window_active = True
             settings_layout = [
-                [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_family)],
+                [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
                 # [Sg.Checkbox('Shut off computer', default=settings['timer_shut_off_computer'], key='shut_off',
                 # text_color=fg, background_color=bg, font=font_family, enable_events=True)],
                 [Sg.Input(key='minutes', focus=True), Sg.Submit()]
@@ -545,11 +544,11 @@ try:
             if settings_event in {'Esc', 'q'}:
                 settings_active = False
                 settings_window.CloseNonBlocking()
+            elif settings_event == 'email':
+                webbrowser.open('mailto:elijahllopezz@gmail.com?subject=REGARDING%20Music%20Caster')
             elif settings_event == 'copy email':
                 pyperclip.copy('elijahllopezz@gmail.com')
                 if settings['notifications']: tray.ShowMessage('Music Caster', f'Email address copied', time=500)
-                # webbrowser.open('mailto:', new=1)
-                # TODO: hyperlink to mailto
             elif settings_event in {'auto update', 'run on startup', 'notifications'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run on startup': startup_setting()
@@ -620,9 +619,8 @@ try:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time()
-except ImportError as e:
-    raise e
 except Exception as e:
+    if settings.get('DEBUG', False): raise e
     with open(f'{starting_dir}/error.log', 'a+') as f:
         f.write(str(datetime.now()))
         f.write('\n')
