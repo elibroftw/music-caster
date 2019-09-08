@@ -253,7 +253,6 @@ try:
             artist = ', '.join(artist)
             album = EasyID3(file_path).get('album', 'Unknown')
         except Exception as e:
-            print(e)
             title = artist = album = 'Unknown'
         if cast is None:
             mc = None
