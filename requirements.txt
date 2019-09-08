@@ -5,6 +5,7 @@ pychromecast
 pygame
 PyInstaller
 pynput
+pyperclip
 PySide2
 PySimpleGUI
 PySimpleGUIQt

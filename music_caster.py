@@ -17,6 +17,7 @@ try:
     import pychromecast
     from pygame import mixer as local_music_player
     from pynput.keyboard import Listener
+    import pyperclip
     import socket
     import PySimpleGUI as Sg
     # noinspection PyPep8Naming
@@ -29,13 +30,14 @@ try:
     import sys
     from time import time
     import threading
+    import traceback
     import win32api
     import win32com.client
     import win32event
     from winerror import ERROR_ALREADY_EXISTS
     import zipfile
 
-    CURRENT_VERSION = '4.10.0'
+    CURRENT_VERSION = '4.11.0'
 
     starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
     home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
@@ -443,6 +445,9 @@ try:
             settings_layout = [
                 [Sg.Text(f'Music Caster Version {CURRENT_VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
                         font=font_family)],
+                # [Sg.Text(f'Email: elijahllopezz@gmail.com', text_color=fg, background_color=bg, font=font_family)],
+                [Sg.Text(f'Email: elijahllopezz@gmail.com', text_color=fg, background_color=bg, font=font_family),  # TODO
+                Sg.Button(button_text='Copy', button_color=button_color, key='copy email', enable_events=True, font=font_family)],
                 [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
                             background_color=bg, font=font_family, enable_events=True)],
                 [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
@@ -540,6 +545,11 @@ try:
             if settings_event in {'Esc', 'q'}:
                 settings_active = False
                 settings_window.CloseNonBlocking()
+            elif settings_event == 'copy email':
+                pyperclip.copy('elijahllopezz@gmail.com')
+                if settings['notifications']: tray.ShowMessage('Music Caster', f'Email address copied', time=500)
+                # webbrowser.open('mailto:', new=1)
+                # TODO: hyperlink to mailto
             elif settings_event in {'auto update', 'run on startup', 'notifications'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run on startup': startup_setting()
@@ -610,9 +620,13 @@ try:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time()
+except ImportError as e:
+    raise e
 except Exception as e:
     with open(f'{starting_dir}/error.log', 'a+') as f:
         f.write(str(datetime.now()))
         f.write('\n')
-        f.write(str(e))
-    tray.ShowMessage('Music Caster', 'An error has occured. check error.log')
+        f.write(traceback.format_exc())
+        f.write('\n')
+    tray.ShowMessage('Music Caster', 'An error has occured. Email author.')
+    stop()
