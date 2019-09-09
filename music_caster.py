@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.11.1'
+VERSION = '4.12.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -473,8 +473,8 @@ try:
             timer_window_active = True
             settings_layout = [
                 [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
-                # [Sg.Checkbox('Shut off computer', default=settings['timer_shut_off_computer'], key='shut_off',
-                # text_color=fg, background_color=bg, font=font_family, enable_events=True)],
+                [Sg.Checkbox('Shut off computer', default=settings['timer_shut_off_computer'], key='shut_off',
+                text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Input(key='minutes', focus=True), Sg.Submit()]
             ]
             timer_window = Sg.Window('Music Caster Set Timer', settings_layout, background_color=bg, icon=WINDOW_ICON,
@@ -518,9 +518,16 @@ try:
                 if playing_status == 'NOT PLAYING':
                     if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
                     next_song()
-        elif 'Stop' in {menu_item, keyboard_command} or (timer and time() > timer):
+        elif 'Stop' in {menu_item, keyboard_command}: stop()
+        elif timer and time() > timer:
             timer = None
             stop()
+            if settings['timer_shut_off_computer']:
+                if sys.platform == 'win32':
+                    import ctypes
+                    user32 = ctypes.WinDLL('user32')
+                    user32.ExitWindowsEx(0x00000008, 0x00000000)
+                else: os.system('sudo shutdown now')
         elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
             next_song(from_timeout=time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command}: previous()
@@ -604,6 +611,9 @@ try:
                     timer_window.CloseNonBlocking()
                 except ValueError:
                     Sg.PopupOK('Input a number!')
+            elif timer_event == 'shut_off':
+                print(timer_values)
+                change_settings('timer_shut_off_computer', timer_values['shut_off'])
         keyboard_command = None
         if mc is not None and time() - cast_last_checked > 2:
             with suppress(UnsupportedNamespace):
