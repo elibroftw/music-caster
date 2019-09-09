@@ -472,13 +472,13 @@ try:
         elif menu_item == 'Set timer' and not timer_window_active:
             timer_window_active = True
             settings_layout = [
-                [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
                 [Sg.Checkbox('Shut off computer', default=settings['timer_shut_off_computer'], key='shut_off',
-                text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
+                             text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
+                [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
                 [Sg.Input(key='minutes', focus=True), Sg.Submit()]
             ]
             timer_window = Sg.Window('Music Caster Set Timer', settings_layout, background_color=bg, icon=WINDOW_ICON,
-                                    return_keyboard_events=True, use_default_focus=False)
+                                     return_keyboard_events=True, use_default_focus=False)
             timer_window.Finalize()
             timer_window.TKroot.focus_force()
         elif menu_item == 'Play File':
@@ -520,13 +520,11 @@ try:
                     next_song()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time() > timer:
-            timer = None
             stop()
+            timer = None
             if settings['timer_shut_off_computer']:
                 if sys.platform == 'win32':
-                    import ctypes
-                    user32 = ctypes.WinDLL('user32')
-                    user32.ExitWindowsEx(0x00000008, 0x00000000)
+                    os.system('shutdown /p /f')
                 else: os.system('sudo shutdown now')
         elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
             next_song(from_timeout=time() > song_end)
@@ -612,7 +610,6 @@ try:
                 except ValueError:
                     Sg.PopupOK('Input a number!')
             elif timer_event == 'shut_off':
-                print(timer_values)
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])
         keyboard_command = None
         if mc is not None and time() - cast_last_checked > 2:
