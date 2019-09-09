@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.12.0'
+VERSION = '4.12.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -606,7 +606,7 @@ try:
                         timer_set_to = datetime.now() + timedelta(minutes=minutes)
                         timer_set_to = timer_set_to.strftime('%#I:%M %p')
                         # timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
-                        tray.ShowMessage('Music Caster', f'Timer set to {timer_set_to}', time=500)
+                        tray.ShowMessage('Music Caster', f'Timer set for {timer_set_to}', time=500)
                     timer_window_active = False
                     timer_window.CloseNonBlocking()
                 except ValueError:
