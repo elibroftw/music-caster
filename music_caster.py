@@ -472,7 +472,7 @@ try:
         elif menu_item == 'Set timer' and not timer_window_active:
             timer_window_active = True
             settings_layout = [
-                [Sg.Checkbox('Shut off computer', default=settings['timer_shut_off_computer'], key='shut_off',
+                [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'], key='shut_off',
                              text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
                 [Sg.Input(key='minutes', focus=True), Sg.Submit()]
