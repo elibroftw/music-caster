@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.12.2'
+VERSION = '4.13.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -169,14 +169,17 @@ try:
             github_url = 'https://github.com/elibroftw/music-caster/releases'
             html_doc = requests.get(github_url).text
             soup = BeautifulSoup(html_doc, features='html.parser')
-            release_entry = soup.find('div', class_='release-entry')
-            latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
+            release_entries = soup.find_all('div', class_='release-entry')
+            for entry in release_entries:
+                latest_version = entry.find('a', class_='muted-link css-truncate')['title'][1:]
+                release_type = entry.find('span').text.strip()
+                if release_type == 'Latest release': break
             major, minor, patch = (int(x) for x in VERSION.split('.'))
             lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
             if (lt_major > major or lt_major == major and lt_minor > minor
                     or lt_major == major and lt_minor == minor and lt_patch > patch):
-                details = release_entry.find('details',
-                                            class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+                details = entry.find('details',
+                                     class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
                 download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
                 bundle_download_link = f'https://github.com{download_links[1]}'
                 source_download_link = f'https://github.com{download_links[-2]}'
@@ -475,7 +478,7 @@ try:
                 [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'], key='shut_off',
                              text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
-                [Sg.Input(key='minutes', focus=True), Sg.Submit()]
+                [Sg.Input(key='minutes', focus=True), Sg.Submit(button_color=button_color, font=font_normal)]
             ]
             timer_window = Sg.Window('Music Caster Set Timer', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                      return_keyboard_events=True, use_default_focus=False)

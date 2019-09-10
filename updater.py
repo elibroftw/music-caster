@@ -31,8 +31,11 @@ with suppress(FileNotFoundError):
     github_url = 'https://github.com/elibroftw/music-caster/releases'
     html_doc = requests.get(github_url).text
     soup = BeautifulSoup(html_doc, features='html.parser')
-    release_entry = soup.find('div', class_='release-entry')
-    latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
+    release_entries = soup.find_all('div', class_='release-entry')
+    for release_entry in release_entries:
+        latest_version = release_entry.find('a', class_='muted-link css-truncate')['title'][1:]
+        release_type = release_entry.find('span').text.strip()
+        if release_type == 'Latest release': break
     details = release_entry.find('details', class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
     download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
     bundle_download_link = f'https://github.com{download_links[1]}'
