@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.0'
+VERSION = '4.13.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -445,29 +445,31 @@ try:
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
             settings_layout = [
                 [Sg.Text(f'Music Caster Version {VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
-                        font=font_normal)],
-                [Sg.Text(f'Email:', text_color='#3ea6ff', background_color=bg, font=font_normal),
-                Sg.Text(f'elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
-                Sg.Button(button_text='Copy address', button_color=button_color, key='copy email', enable_events=True, font=font_normal)],
+                         font=font_normal)],
+                [Sg.Text(f'Email:', text_color=fg, background_color=bg, font=font_normal),
+                 Sg.Text(f'elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link,
+                         click_submits=True, key='email'),
+                 Sg.Button(button_text='Copy address', button_color=button_color, key='copy email', enable_events=True,
+                           font=font_normal)],
                 [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
-                            background_color=bg, font=font_normal, enable_events=True)],
+                             background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
-                            background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications', text_color=fg,
-                            background_color=bg, font=font_normal, enable_events=True)],
+                             background_color=bg, font=font_normal, enable_events=True)],
+                [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications',
+                             text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
-                        tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
-                        size=(50, 15))],
+                           tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
+                           size=(50, 15))],
                 [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                             key='music_dirs', background_color=bg, font=font_normal, enable_events=True),
                 Sg.Frame('', [
                     [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder',
-                                enable_events=True, font=font_normal)],
+                               enable_events=True, font=font_normal)],
                     [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_normal, enable_events=True)],
                     [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_normal,
-                                enable_events=True)]], background_color=bg, border_width=0)]
+                               enable_events=True)]], background_color=bg, border_width=0)]
             ]
-            settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
+            -settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
             settings_window.Finalize()
             settings_window.TKroot.focus_force()
