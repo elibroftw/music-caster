@@ -469,7 +469,7 @@ try:
                     [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_normal,
                                enable_events=True)]], background_color=bg, border_width=0)]
             ]
-            -settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
+            settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
             settings_window.Finalize()
             settings_window.TKroot.focus_force()
