@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.2'
+VERSION = '4.13.3'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -76,6 +76,7 @@ try:
     def download_and_extract(link, infile, outfile=None):
         r = requests.get(link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
+        # z.extractall(f'{starting_dir}/Update')  # extracts to a folder called Update
         if outfile is None: z.extract(infile)
         else:
             new_file = z.open(infile)

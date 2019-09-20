@@ -11,14 +11,20 @@ from shutil import copyfileobj
 
 
 def download_and_extract(link, infile, outfile=None):
-    r = requests.get(link, stream=True)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    if outfile is None: z.extract(infile)
+    if os.path.exists(f'Update/{infile}'):
+        # TODO: test this
+        if not outfile: outfile = infile
+        if os.path.exists(outfile): os.remove(outfile)
+        os.rename(f'Update/{infile}', outfile)
     else:
-        new_file = z.open(infile)
-        # f'music-caster-{latest_version}/music_caster.py'
-        target = open(outfile, 'wb')
-        with new_file, target: copyfileobj(new_file, target)
+        r = requests.get(link, stream=True)
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        if outfile is None: z.extract(infile)
+        else:
+            new_file = z.open(infile)
+            # f'music-caster-{latest_version}/music_caster.py'
+            target = open(outfile, 'wb')
+            with new_file, target: copyfileobj(new_file, target)
 
 
 with suppress(FileNotFoundError):
@@ -43,6 +49,7 @@ with suppress(FileNotFoundError):
     source_download_link = f'https://github.com{download_links[-2]}'
     start = time()
     print('Downloading file...')
+    # TODO: check if Update folder exists!
     if debug_setting:
         print(bundle_download_link)
         print(source_download_link)
