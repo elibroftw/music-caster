@@ -48,7 +48,6 @@ with suppress(FileNotFoundError):
     source_download_link = f'https://github.com{download_links[-2]}'
     start = time()
     print('Downloading file...')
-    # TODO: check if Update folder exists!
     if debug_setting:
         print(bundle_download_link)
         print(source_download_link)
