@@ -7,22 +7,21 @@ import io
 import os
 from contextlib import suppress
 from subprocess import Popen
-from shutil import copyfileobj
+from shutil import copyfileobj, rmtree
 
 
 def download_and_extract(link, infile, outfile=None):
     if os.path.exists(f'Update/{infile}'):
-        # TODO: test this
         if not outfile: outfile = infile
         if os.path.exists(outfile): os.remove(outfile)
         os.rename(f'Update/{infile}', outfile)
+        rmtree('Update')
     else:
         r = requests.get(link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         if outfile is None: z.extract(infile)
         else:
             new_file = z.open(infile)
-            # f'music-caster-{latest_version}/music_caster.py'
             target = open(outfile, 'wb')
             with new_file, target: copyfileobj(new_file, target)
 

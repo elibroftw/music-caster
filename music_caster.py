@@ -76,17 +76,10 @@ try:
     def download_and_extract(link, infile, outfile=None):
         r = requests.get(link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        # TODO: test this
-        # z.extractall(f'{starting_dir}/Update')  # extracts to a folder called Update
-        # if outfile is None: outfile = infile
-        # os.remove(outfile)
-        # os.rename(f'{starting_dir}/Update/{infile}')
-        # os.rename(f'{starting_dir}/{outfile}')
-        if outfile is None: z.extract(infile)
-        else:
-            new_file = z.open(infile)
-            target = open(outfile, 'wb')
-            with new_file, target: copyfileobj(new_file, target)
+        z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
+        if outfile is None: outfile = infile
+        with suppress(FileNotFoundError): os.remove(outfile)
+        os.rename(f'{starting_dir}/Update/{infile}', outfile)
 
 
     def startup_setting():
