@@ -556,7 +556,10 @@ try:
         # SETTINGS WINDOW
         if settings_active:
             settings_event, settings_values = settings_window.Read(timeout=10)
-            if settings_event is None: settings_active = False; continue
+            if settings_event is None:
+                settings_active = False
+                settings_window.CloseNonBlocking()
+                continue
             settings_value = settings_values.get(settings_event)
             if settings_event in {'Esc', 'q'}:
                 settings_active = False
@@ -603,7 +606,10 @@ try:
             elif settings_event == 'Open Settings': os.startfile(settings_file)
         if timer_window_active:
             timer_event, timer_values = timer_window.Read(timeout=10)
-            if timer_event is None: timer_window_active = False
+            if timer_event is None:
+                timer_window_active = False
+                timer_window.CloseNonBlocking()
+                continue
             elif timer_event in {'Esc', 'q'}:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
