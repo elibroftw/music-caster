@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.3'
+VERSION = '4.13.4'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -213,10 +213,10 @@ try:
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Play &File', 'Play All', 'E&xit']]
 
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
-                    'Play File Next', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
+                    'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
 
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
-                    'Play File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
+                    'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     notifications_enabled = settings['notifications']
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
@@ -514,7 +514,7 @@ try:
                 done_queue.clear()
                 play_file(music_queue[0])
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
-        elif menu_item == 'Play File Next':
+        elif menu_item == 'Play a File Next':
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
