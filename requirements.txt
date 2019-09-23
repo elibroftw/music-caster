@@ -13,3 +13,4 @@ PySimpleGUIWx
 pypiwin32
 wxpython
 requests
+sphinx
