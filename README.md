@@ -34,9 +34,10 @@ This app supports media keys.
 1. Make sure all the required modules are installed
 2. Download [PySimpleGUIWx.py](https://github.com/PySimpleGUI/PySimpleGUI/blob/master/PySimpleGUIWx/PySimpleGUIWx.py) (Place in root)
 3. Make sure you do not have the pypi version of PySimpleGuiwx installed.
-4. Make sure Python scripts folder is on path
-5. OPTIONAL: Having Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on path
-6. Run build.bat
+4. Remove the sphinx import from PySimpleGuiwx.py
+5. Make sure Python scripts folder is on path
+6. OPTIONAL: Having Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on path
+7. Run build.bat
 
 
 # Credits
