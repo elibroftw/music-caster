@@ -554,7 +554,7 @@ try:
                 settings_window.CloseNonBlocking()
                 continue
             settings_value = settings_values.get(settings_event)
-            if settings_event in {'Esc', 'q'}:
+            if settings_event in {'Esc', 'q', 'Q'}:
                 settings_active = False
                 settings_window.CloseNonBlocking()
             elif settings_event == 'email':
@@ -603,7 +603,7 @@ try:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
                 continue
-            elif timer_event in {'Esc', 'q'}:
+            elif timer_event in {'Esc', 'q', 'Q'}:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
             elif timer_event == 'Submit':
