@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.5'
+VERSION = '4.13.6'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -50,7 +50,7 @@ settings = {  # default settings
         'local volume': 100,
         'music directories': [home_music_dir],
         'sample music directories': [
-            'C:/Users/maste/Documents/MEGAsync/Music',
+            'C:/Users/maste/MEGAsync/Music',
             'Put in a valid path',
             'First path is the default directory when selecting a file to play. FOR NOW'
         ],
@@ -392,7 +392,7 @@ try:
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
     while True:
-        menu_item = tray.Read(timeout=30)
+        menu_item = tray.Read(timeout=10)
         if discovery_started and time() - discovery_started > 5:
             discovery_started = 0
             stop_discovery()
@@ -475,14 +475,14 @@ try:
             # settings_window.GrabAnyWhereOn()
         elif menu_item == 'Set timer' and not timer_window_active:
             timer_window_active = True
-            settings_layout = [
+            timer_layout = [
                 [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'], key='shut_off',
                              text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
-                [Sg.Input(key='minutes', focus=True), Sg.Submit(button_color=button_color, font=font_normal)]
+                [Sg.Input(key='minutes'), Sg.Submit(button_color=button_color, font=font_normal)]
             ]
-            timer_window = Sg.Window('Music Caster Set Timer', settings_layout, background_color=bg, icon=WINDOW_ICON,
-                                     return_keyboard_events=True, use_default_focus=False)
+            timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
+                                     return_keyboard_events=True)
             timer_window.Finalize()
             timer_window.TKroot.focus_force()
         elif menu_item == 'Play File':
@@ -548,7 +548,7 @@ try:
             break
         # SETTINGS WINDOW
         if settings_active:
-            settings_event, settings_values = settings_window.Read(timeout=10)
+            settings_event, settings_values = settings_window.Read(timeout=5)
             if settings_event is None:
                 settings_active = False
                 settings_window.CloseNonBlocking()
@@ -598,7 +598,7 @@ try:
                     settings_window.Element('music_dirs').Update(music_directories)
             elif settings_event == 'Open Settings': os.startfile(settings_file)
         if timer_window_active:
-            timer_event, timer_values = timer_window.Read(timeout=10)
+            timer_event, timer_values = timer_window.Read(timeout=5)
             if timer_event is None:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
@@ -606,7 +606,7 @@ try:
             elif timer_event in {'Esc', 'q', 'Q'}:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
-            elif timer_event == 'Submit':
+            elif timer_event in ('\r', 'Submit'):
                 try:
                     minutes = abs(float(timer_values['minutes']))
                     timer = time() + 60 * minutes
