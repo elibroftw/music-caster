@@ -9,8 +9,6 @@ pyperclip
 PySide2
 PySimpleGUI
 PySimpleGUIQt
-PySimpleGUIWx
 pypiwin32
 wxpython
 requests
-sphinx
