@@ -32,4 +32,4 @@ exe = EXE(pyz,
           runtime_tmpdir=None,
           console=False,
           icon='resources/updater.ico',
-          version='file_version_info.txt')
+          version='version_info.txt')

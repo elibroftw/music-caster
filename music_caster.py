@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.6'
+VERSION = '4.13.7'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -606,7 +606,7 @@ try:
             elif timer_event in {'Esc', 'q', 'Q'}:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
-            elif timer_event in ('\r', 'Submit'):
+            elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
                 try:
                     minutes = abs(float(timer_values['minutes']))
                     timer = time() + 60 * minutes

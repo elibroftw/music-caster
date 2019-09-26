@@ -33,7 +33,7 @@ exe = EXE(pyz,
           runtime_tmpdir=None,
           console=False,
           icon='resources/music caster.ico',
-          version='file_version_info.txt')
+          version='version_info.txt')
 #  coll = COLLECT(
 #    exe,
 #    a.binaries,
