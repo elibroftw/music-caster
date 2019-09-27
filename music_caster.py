@@ -85,6 +85,10 @@ try:
         os.rename(f'{starting_dir}/Update/{infile}', outfile)
 
 
+    shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+    # Mine: C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+
+
     def startup_setting():
         run_on_startup = settings['run on startup']
         shortcut_exists = os.path.exists(shortcut_path)
@@ -92,7 +96,6 @@ try:
             shell = win32com.client.Dispatch('WScript.Shell')
             shortcut = shell.CreateShortCut(shortcut_path)
             if getattr(sys, 'frozen', False):  # Running in a bundle
-                # C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
                 target = f'{starting_dir}\\Music Caster.exe'
             else:  # set shortcut to python script; __file__
                 bat_file = f'{starting_dir}\\music_caster.bat'
@@ -172,7 +175,6 @@ try:
             threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
             break
         except OSError: PORT += 1
-
     if settings['auto update']:
         with suppress(requests.ConnectionError):
             github_url = 'https://github.com/elibroftw/music-caster/releases'
@@ -207,9 +209,6 @@ try:
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                     Popen('pythonw updater.pyw')
                 sys.exit()
-
-    shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-
     startup_setting()
     update_devices = False
     chromecasts = []
