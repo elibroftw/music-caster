@@ -38,7 +38,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.14.0'
+VERSION = '4.15.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -218,12 +218,12 @@ try:
     local_music_player.init(44100, -16, 2, 2048)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time()
-    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Play &File', 'Play All', 'E&xit']]
+    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
 
-    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
+    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
                     'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
 
-    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
+    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
                     'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     notifications_enabled = settings['notifications']
@@ -482,7 +482,10 @@ try:
                                         return_keyboard_events=True, use_default_focus=False)
             settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
-        elif menu_item == 'Set timer' and not timer_window_active:
+        elif menu_item == 'Set Timer':
+            if timer_window_active:
+                timer_window.TKroot.focus_force()
+                continue
             timer_window_active = True
             timer_layout = [
                 [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'],
@@ -498,6 +501,9 @@ try:
                                      return_keyboard_events=True)
             timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
+        elif menu_item == 'Stop Timing':
+            timer = 0
+            if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
         elif menu_item == 'Play File':
             # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
             # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
@@ -538,7 +544,7 @@ try:
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time() > timer:
             stop()
-            timer = None
+            timer = 0
             if settings['timer_shut_off_computer']:
                 if sys.platform == 'win32': os.system('shutdown /p /f')
                 else: os.system('sudo shutdown now')
