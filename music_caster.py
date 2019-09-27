@@ -684,4 +684,5 @@ except Exception as e:
         f.write(traceback.format_exc())
         f.write('\n')
     tray.ShowMessage('Music Caster', 'An error has occured. Email author.')
+    # noinspection PyUnboundLocalVariable
     stop()
