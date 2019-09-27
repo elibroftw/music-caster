@@ -482,7 +482,6 @@ try:
                                         return_keyboard_events=True, use_default_focus=False)
             settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
-            # settings_window.GrabAnyWhereOn()
         elif menu_item == 'Set timer' and not timer_window_active:
             timer_window_active = True
             timer_layout = [
@@ -499,7 +498,6 @@ try:
                                      return_keyboard_events=True)
             timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
-            timer_window.GrabAnyWhereOn()
         elif menu_item == 'Play File':
             # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
             # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
