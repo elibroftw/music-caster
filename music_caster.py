@@ -88,7 +88,7 @@ try:
     def startup_setting():
         run_on_startup = settings['run on startup']
         shortcut_exists = os.path.exists(shortcut_path)
-        if run_on_startup and not shortcut_exists and not settings.get('DEBUG'):
+        if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
             shell = win32com.client.Dispatch('WScript.Shell')
             shortcut = shell.CreateShortCut(shortcut_path)
             if getattr(sys, 'frozen', False):  # Running in a bundle
