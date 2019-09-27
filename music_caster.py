@@ -37,7 +37,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.7'
+VERSION = '4.13.8'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -470,7 +470,7 @@ try:
             ]
             settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
-            settings_window.Finalize()
+            settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
             # settings_window.GrabAnyWhereOn()
         elif menu_item == 'Set timer' and not timer_window_active:
@@ -483,8 +483,9 @@ try:
             ]
             timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
                                      return_keyboard_events=True)
-            timer_window.Finalize()
+            timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
+            timer_window.GrabAnyWhereOn()
         elif menu_item == 'Play File':
             # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
             # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
@@ -554,7 +555,7 @@ try:
                 settings_window.CloseNonBlocking()
                 continue
             settings_value = settings_values.get(settings_event)
-            if settings_event in {'Esc', 'q', 'Q'}:
+            if settings_event in {'Escape:27', 'q', 'Q'}:
                 settings_active = False
                 settings_window.CloseNonBlocking()
             elif settings_event == 'email':
@@ -598,12 +599,12 @@ try:
                     settings_window.Element('music_dirs').Update(music_directories)
             elif settings_event == 'Open Settings': os.startfile(settings_file)
         if timer_window_active:
-            timer_event, timer_values = timer_window.Read(timeout=5)
+            timer_event, timer_values = timer_window.Read(timeout=1)
             if timer_event is None:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
                 continue
-            elif timer_event in {'Esc', 'q', 'Q'}:
+            elif timer_event in {'Escape:27', 'q', 'Q'}:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
             elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
