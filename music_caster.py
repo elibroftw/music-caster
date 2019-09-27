@@ -6,6 +6,7 @@ from getpass import getuser
 from glob import glob
 import io
 import json
+import logging
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
 import mutagen
@@ -37,7 +38,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.13.8'
+VERSION = '4.14.0'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -56,6 +57,8 @@ settings = {  # default settings
         ],
         'repeat': False,
         'timer_shut_off_computer': False,
+        'timer_hibernate_computer': False,
+        'timer_sleep_computer': False,
         'playlists': {},
         'playlists_example': {'NAME': ['PATHS']},
         'DEBUG': False
@@ -131,6 +134,11 @@ try:
             settings = loaded_settings
         if save_settings: save_json()
     else: save_json()
+    # Only one of the below can be True
+    temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
+    if temp.count(True) > 1:
+        if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
+        change_settings('timer_sleep_computer', False)
     # Check if app is running already
     mutex = win32event.CreateMutex(None, False, 'name')
     last_error = win32api.GetLastError()
@@ -157,6 +165,8 @@ try:
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
     PORT = 2001
     app = Flask(__name__, static_folder='/', static_url_path='/')
+    logging.getLogger('werkzeug').disabled = True
+    os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     while True:
         try:
             threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
@@ -476,8 +486,12 @@ try:
         elif menu_item == 'Set timer' and not timer_window_active:
             timer_window_active = True
             timer_layout = [
-                [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'], key='shut_off',
-                             text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
+                [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'],
+                             key='shut_off', text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
+                [Sg.Checkbox('Hibernate computer when timer runs out', default=settings['timer_hibernate_computer'],
+                             key='hibernate', text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
+                [Sg.Checkbox('Sleep computer when timer runs out', default=settings['timer_sleep_computer'],
+                             key='sleep', text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
                 [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
                 [Sg.Input(key='minutes'), Sg.Submit(button_color=button_color, font=font_normal)]
             ]
@@ -528,9 +542,14 @@ try:
             stop()
             timer = None
             if settings['timer_shut_off_computer']:
-                if sys.platform == 'win32':
-                    os.system('shutdown /p /f')
+                if sys.platform == 'win32': os.system('shutdown /p /f')
                 else: os.system('sudo shutdown now')
+            elif settings['timer_hibernate_computer']:
+                if sys.platform == 'win32': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
+                else: pass  # NOTE: Music Caster is developed on Windows, mainly for Windows
+            elif settings['timer_sleep_computer']:
+                if sys.platform == 'win32': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+                else: pass  # NOTE: Music Caster is developed on Windows, mainly for Windows
         elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
             next_song(from_timeout=time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command}: previous()
@@ -604,7 +623,8 @@ try:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
                 continue
-            elif timer_event in {'Escape:27', 'q', 'Q'}:
+            timer_value = timer_values.get(timer_event, None)
+            if timer_event in {'Escape:27', 'q', 'Q'}:
                 timer_window_active = False
                 timer_window.CloseNonBlocking()
             elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
@@ -621,7 +641,27 @@ try:
                 except ValueError:
                     Sg.PopupOK('Input a number!')
             elif timer_event == 'shut_off':
-                change_settings('timer_shut_off_computer', timer_values['shut_off'])
+                if timer_value:
+                    # Maybe use if statements? e.g. if timer_values['hibernate']:
+                    timer_window.Element('hibernate').Update(False)
+                    timer_window.Element('sleep').Update(False)
+                    change_settings('timer_hibernate_computer', False)
+                    change_settings('timer_sleep_computer', False)
+                change_settings('timer_shut_off_computer', timer_value)
+            elif timer_event == 'hibernate':
+                if timer_value:
+                    timer_window.Element('shut_off').Update(False)
+                    timer_window.Element('sleep').Update(False)
+                    change_settings('timer_shut_off_computer', False)
+                    change_settings('timer_sleep_computer', False)
+                change_settings('timer_hibernate_computer', timer_value)
+            elif timer_event == 'sleep':
+                if timer_value:
+                    timer_window.Element('shut_off').Update(False)
+                    timer_window.Element('hibernate').Update(False)
+                    change_settings('timer_shut_off_computer', False)
+                    change_settings('timer_hibernate_computer', False)
+                change_settings('timer_sleep_computer', timer_value)
         keyboard_command = None
         if mc is not None and time() - cast_last_checked > 2:
             with suppress(UnsupportedNamespace):
