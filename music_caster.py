@@ -38,7 +38,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.15.0'
+VERSION = '4.15.1'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -246,7 +246,7 @@ try:
     button_color = ('black', '#4285f4')
 
 
-    def play_file(file_path, position=0, autoplay=True):
+    def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked, music_queue
         while not os.path.exists(file_path): 
             music_queue.remove(file_path)
@@ -310,7 +310,7 @@ try:
             while not mc.is_playing: pass
             song_start = time()
             song_end = song_start + song_length - position
-        if notifications_enabled and not settings['repeat']:
+        if notifications_enabled and not settings['repeat'] and not switching_device:
             tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
         if autoplay:
             playing_status = 'PLAYING'
@@ -447,7 +447,8 @@ try:
                         mc.stop()
                 mc = None if cast is None else cast.media_controller
                 if playing_status in {'PAUSED', 'PLAYING'}:
-                    play_file(music_queue[0], position=current_pos, autoplay=False if playing_status == 'PAUSED' else True)
+                    autoplay = False if playing_status == 'PAUSED' else True
+                    play_file(music_queue[0], position=current_pos, autoplay=autoplay, switching_device=True)
         elif menu_item == 'Settings' and not settings_active:
             settings_active = True
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
