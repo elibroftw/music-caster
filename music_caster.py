@@ -567,8 +567,9 @@ try:
         elif menu_item == 'Exit':
             tray.Hide()
             with suppress(UnsupportedNamespace):
-                if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
-                elif local_music_player.music.get_busy(): local_music_player.music.stop()
+                stop()
+                # if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
+                # Commented because I am unsure if it is effective
             break
         # SETTINGS WINDOW
         if settings_active:
