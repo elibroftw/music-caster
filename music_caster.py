@@ -299,17 +299,22 @@ try:
             thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
             # cast: pychromecast.Chromecast
             cast.wait(timeout=10)
-            cast.set_volume(volume)
-            mc = cast.media_controller
-            if mc.is_playing or mc.is_paused:
-                mc.stop()
-                mc.block_until_active(5)
-            music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-            mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
-            mc.block_until_active()
-            while not mc.is_playing: pass
-            song_start = time()
-            song_end = song_start + song_length - position
+            try:
+                cast.set_volume(volume)
+                mc = cast.media_controller
+                if mc.is_playing or mc.is_paused:
+                    mc.stop()
+                    mc.block_until_active(5)
+                music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+                mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
+                mc.block_until_active()
+                while not mc.is_playing: pass
+                song_start = time()
+                song_end = song_start + song_length - position
+            except pychromecast.error.NotConnected:
+                tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
+                stop()
+                return
         if notifications_enabled and not settings['repeat'] and not switching_device:
             tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
         if autoplay:
@@ -690,6 +695,6 @@ except Exception as e:
         f.write('\n')
         f.write(traceback.format_exc())
         f.write('\n')
-    tray.ShowMessage('Music Caster', 'An error has occured. Email author.')
+    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author .')
     # noinspection PyUnboundLocalVariable
     stop()
