@@ -38,7 +38,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.15.1'
+VERSION = '4.15.2'
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
