@@ -39,6 +39,11 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
 VERSION = '4.15.2'
+update_devices = False
+chromecasts = []
+device_names = ['1. Local Device']
+cast = None
+local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -210,11 +215,6 @@ try:
                     Popen('pythonw updater.pyw')
                 sys.exit()
     startup_setting()
-    update_devices = False
-    chromecasts = []
-    device_names = ['1. Local Device']
-    cast = None
-    local_music_player.init(44100, -16, 2, 2048)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time()
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
