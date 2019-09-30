@@ -454,7 +454,10 @@ try:
                 if playing_status in {'PAUSED', 'PLAYING'}:
                     autoplay = False if playing_status == 'PAUSED' else True
                     play_file(music_queue[0], position=current_pos, autoplay=autoplay, switching_device=True)
-        elif menu_item == 'Settings' and not settings_active:
+        elif menu_item == 'Settings':
+            if settings_active:
+                settings_window.TKroot.focus_force()
+                continue
             settings_active = True
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
             settings_layout = [
@@ -480,7 +483,7 @@ try:
                     [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder',
                                enable_events=True, font=font_normal)],
                     [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_normal, enable_events=True)],
-                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_normal,
+                    [Sg.Button('Open settings.json', key='Open Settings', button_color=button_color, font=font_normal,
                                enable_events=True)]], background_color=bg, border_width=0)]
             ]
             settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
