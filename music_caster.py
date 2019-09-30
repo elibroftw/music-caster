@@ -657,7 +657,7 @@ try:
                         # We want this to be 3600 seconds
                         # 43,200 - 39,600 = 3600
                         if delta < 0: delta += 43200
-                        minutes = delta / 60
+                        minutes = delta // 60
                     else: continue
                     timer = time.time() + 60 * minutes
                     if notifications_enabled:
