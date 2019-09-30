@@ -627,7 +627,14 @@ try:
                 timer_window.CloseNonBlocking()
             elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
                 try:
-                    minutes = abs(float(timer_values['minutes']))
+                    if timer_values['minutes'].isdigit():
+                        minutes = abs(float(timer_values['minutes']))
+                    else:
+                        continue
+                        now = datetime.now()
+                        if timer_values['minutes'].count(':') == 1:
+                            then = datetime.strptime(timer_values['minutes'] + time.strftime(',%Y,%m%d%p'), '%I:%M,%Y,%m,%d,%p')
+                            minutes = 0  # TODO: for later
                     timer = time() + 60 * minutes
                     if notifications_enabled:
                         timer_set_to = datetime.now() + timedelta(minutes=minutes)
