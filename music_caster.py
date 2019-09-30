@@ -28,7 +28,7 @@ import requests
 from shutil import copyfile, copyfileobj
 from subprocess import Popen
 import sys
-from time import time
+import time
 import threading
 import traceback
 import webbrowser
@@ -38,7 +38,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.15.2'
+VERSION = '4.16.0'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -216,7 +216,7 @@ try:
                 sys.exit()
     startup_setting()
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-    discovery_started = time()
+    discovery_started = time.time()
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
 
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
@@ -237,7 +237,7 @@ try:
     mc = None
     song_end = song_length = song_position = song_start = 0
     playing_status = 'NOT PLAYING'
-    cast_last_checked = time()
+    cast_last_checked = time.time()
     # Styling
     fg = '#aaaaaa'
     bg = '#121212'
@@ -274,7 +274,7 @@ try:
             local_music_player.music.set_volume(volume)
             local_music_player.music.play(start=position)
             if not autoplay: local_music_player.music.pause()
-            song_start = time()
+            song_start = time.time()
             song_end = song_start + song_length - position
         else:
             drive = file_path[:3]
@@ -309,7 +309,7 @@ try:
                 mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
                 while not mc.is_playing: pass
-                song_start = time()
+                song_start = time.time()
                 song_end = song_start + song_length - position
             except pychromecast.error.NotConnected:
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
@@ -320,7 +320,7 @@ try:
         if autoplay:
             playing_status = 'PLAYING'
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
-        cast_last_checked = time()
+        cast_last_checked = time.time()
 
 
     def pause():
@@ -352,7 +352,7 @@ try:
                 song_position = mc.status.adjusted_current_time
             else:
                 local_music_player.music.unpause()
-            song_end = time() + song_length - song_position
+            song_end = time.time() + song_length - song_position
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
@@ -407,7 +407,7 @@ try:
     listener_thread.start()
     while True:
         menu_item = tray.Read(timeout=10)
-        if discovery_started and time() - discovery_started > 5:
+        if discovery_started and time.time() - discovery_started > 5:
             discovery_started = 0
             stop_discovery()
         if menu_item == 'Refresh Devices':
@@ -417,7 +417,7 @@ try:
             device_names.clear()
             device_names.append('1. Local Device')
             stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-            discovery_started = time()
+            discovery_started = time.time()
         if update_devices:
             update_devices = False
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
@@ -550,7 +550,7 @@ try:
                     if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
                     next_song()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
-        elif timer and time() > timer:
+        elif timer and time.time() > timer:
             stop()
             timer = 0
             if settings['timer_shut_off_computer']:
@@ -562,8 +562,8 @@ try:
             elif settings['timer_sleep_computer']:
                 if sys.platform == 'win32': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
                 else: pass  # NOTE: Music Caster is developed on Windows, mainly for Windows
-        elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time() > song_end:
-            next_song(from_timeout=time() > song_end)
+        elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time.time() > song_end:
+            next_song(from_timeout=time.time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command}: previous()
         elif menu_item == 'Repeat':
             repeat_setting = change_settings('repeat', not settings['repeat'])
@@ -642,14 +642,15 @@ try:
                 timer_window.CloseNonBlocking()
             elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
                 try:
-                    if timer_values['minutes'].isdigit():
+                    timer_value = timer_values['minutes']
+                    if timer_value.isdigit():
                         minutes = abs(float(timer_values['minutes']))
-                    elif timer_values['minutes'].count(':') == 1:
+                    elif timer_value.count(':') == 1:
                         now = datetime.now()
                         # meridiem = time.strftime('%p')
-                        if temp[-3:].strip().upper() in ('PM', 'AM'): temp = temp[temp:-3]
-                        elif temp[-2:].upper() in ('PM', 'AM'): temp = temp[temp:-2]
-                        to_stop = datetime.strptime(temp + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
+                        if timer_value[-3:].strip().upper() in ('PM', 'AM'): timer_value = timer_value[timer_value:-3]
+                        elif timer_value[-2:].upper() in ('PM', 'AM'): timer_value = timer_value[timer_value:-2]
+                        to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
                         delta = (to_stop - datetime.now()).total_seconds()
                         # Suppose you want to stop music at at 12:00 AM, but it's 11:00 PM.
                         # 12:00 AM -> would make delta = -39,600 seconds (-11 Hours)
@@ -658,7 +659,7 @@ try:
                         if delta < 0: delta += 43200
                         minutes = delta / 60
                     else: continue
-                    timer = time() + 60 * minutes
+                    timer = time.time() + 60 * minutes
                     if notifications_enabled:
                         timer_set_to = datetime.now() + timedelta(minutes=minutes)
                         timer_set_to = timer_set_to.strftime('%#I:%M %p')
@@ -691,7 +692,7 @@ try:
                     change_settings('timer_hibernate_computer', False)
                 change_settings('timer_sleep_computer', timer_value)
         keyboard_command = None
-        if mc is not None and time() - cast_last_checked > 5:
+        if mc is not None and time.time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast is not None:
                     if cast.app_id == 'CC1AD845':
@@ -705,7 +706,7 @@ try:
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
-            cast_last_checked = time()
+            cast_last_checked = time.time()
 except Exception as e:
     if settings.get('DEBUG', False): raise e
     with open(f'{starting_dir}/error.log', 'a+') as f:
