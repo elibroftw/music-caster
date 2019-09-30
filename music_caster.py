@@ -629,12 +629,20 @@ try:
                 try:
                     if timer_values['minutes'].isdigit():
                         minutes = abs(float(timer_values['minutes']))
-                    else:
-                        continue
+                    elif timer_values['minutes'].count(':') == 1:
                         now = datetime.now()
-                        if timer_values['minutes'].count(':') == 1:
-                            then = datetime.strptime(timer_values['minutes'] + time.strftime(',%Y,%m%d%p'), '%I:%M,%Y,%m,%d,%p')
-                            minutes = 0  # TODO: for later
+                        # meridiem = time.strftime('%p')
+                        if temp[-3:].strip().upper() in ('PM', 'AM'): temp = temp[temp:-3]
+                        elif temp[-2:].upper() in ('PM', 'AM'): temp = temp[temp:-2]
+                        to_stop = datetime.strptime(temp + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
+                        delta = (to_stop - datetime.now()).total_seconds()
+                        # Suppose you want to stop music at at 12:00 AM, but it's 11:00 PM.
+                        # 12:00 AM -> would make delta = -39,600 seconds (-11 Hours)
+                        # We want this to be 3600 seconds
+                        # 43,200 - 39,600 = 3600
+                        if delta < 0: delta += 43200
+                        minutes = delta / 60
+                    else: continue
                     timer = time() + 60 * minutes
                     if notifications_enabled:
                         timer_set_to = datetime.now() + timedelta(minutes=minutes)
