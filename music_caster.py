@@ -676,7 +676,7 @@ try:
                     change_settings('timer_hibernate_computer', False)
                 change_settings('timer_sleep_computer', timer_value)
         keyboard_command = None
-        if mc is not None and time() - cast_last_checked > 2:
+        if mc is not None and time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast is not None:
                     if cast.app_id == 'CC1AD845':
