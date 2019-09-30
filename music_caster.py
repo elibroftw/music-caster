@@ -38,7 +38,12 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 
-VERSION = '4.14.0'
+VERSION = '4.15.2'
+update_devices = False
+chromecasts = []
+device_names = ['1. Local Device']
+cast = None
+local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
@@ -85,14 +90,17 @@ try:
         os.rename(f'{starting_dir}/Update/{infile}', outfile)
 
 
+    shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+    # Mine: C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+
+
     def startup_setting():
         run_on_startup = settings['run on startup']
         shortcut_exists = os.path.exists(shortcut_path)
-        if run_on_startup and not shortcut_exists and not settings.get('DEBUG'):
+        if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
             shell = win32com.client.Dispatch('WScript.Shell')
             shortcut = shell.CreateShortCut(shortcut_path)
             if getattr(sys, 'frozen', False):  # Running in a bundle
-                # C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
                 target = f'{starting_dir}\\Music Caster.exe'
             else:  # set shortcut to python script; __file__
                 bat_file = f'{starting_dir}\\music_caster.bat'
@@ -172,7 +180,6 @@ try:
             threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
             break
         except OSError: PORT += 1
-
     if settings['auto update']:
         with suppress(requests.ConnectionError):
             github_url = 'https://github.com/elibroftw/music-caster/releases'
@@ -207,23 +214,15 @@ try:
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                     Popen('pythonw updater.pyw')
                 sys.exit()
-
-    shortcut_path = f'C:/Users/{getuser()}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-
     startup_setting()
-    update_devices = False
-    chromecasts = []
-    device_names = ['1. Local Device']
-    cast = None
-    local_music_player.init(44100, -16, 2, 2048)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time()
-    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Play &File', 'Play All', 'E&xit']]
+    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
 
-    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
+    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
                     'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
 
-    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Set timer', 'Play &File',
+    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
                     'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     notifications_enabled = settings['notifications']
@@ -247,7 +246,7 @@ try:
     button_color = ('black', '#4285f4')
 
 
-    def play_file(file_path, position=0, autoplay=True):
+    def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked, music_queue
         while not os.path.exists(file_path): 
             music_queue.remove(file_path)
@@ -300,18 +299,23 @@ try:
             thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
             # cast: pychromecast.Chromecast
             cast.wait(timeout=10)
-            cast.set_volume(volume)
-            mc = cast.media_controller
-            if mc.is_playing or mc.is_paused:
-                mc.stop()
-                mc.block_until_active(5)
-            music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-            mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
-            mc.block_until_active()
-            while not mc.is_playing: pass
-            song_start = time()
-            song_end = song_start + song_length - position
-        if notifications_enabled and not settings['repeat']:
+            try:
+                cast.set_volume(volume)
+                mc = cast.media_controller
+                if mc.is_playing or mc.is_paused:
+                    mc.stop()
+                    mc.block_until_active(5)
+                music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+                mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
+                mc.block_until_active()
+                while not mc.is_playing: pass
+                song_start = time()
+                song_end = song_start + song_length - position
+            except pychromecast.error.NotConnected:
+                tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
+                stop()
+                return
+        if notifications_enabled and not settings['repeat'] and not switching_device:
             tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
         if autoplay:
             playing_status = 'PLAYING'
@@ -448,8 +452,12 @@ try:
                         mc.stop()
                 mc = None if cast is None else cast.media_controller
                 if playing_status in {'PAUSED', 'PLAYING'}:
-                    play_file(music_queue[0], position=current_pos, autoplay=False if playing_status == 'PAUSED' else True)
-        elif menu_item == 'Settings' and not settings_active:
+                    autoplay = False if playing_status == 'PAUSED' else True
+                    play_file(music_queue[0], position=current_pos, autoplay=autoplay, switching_device=True)
+        elif menu_item == 'Settings':
+            if settings_active:
+                settings_window.TKroot.focus_force()
+                continue
             settings_active = True
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
             settings_layout = [
@@ -475,14 +483,17 @@ try:
                     [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder',
                                enable_events=True, font=font_normal)],
                     [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_normal, enable_events=True)],
-                    [Sg.Button('Open Settings File', key='Open Settings', button_color=button_color, font=font_normal,
+                    [Sg.Button('Open settings.json', key='Open Settings', button_color=button_color, font=font_normal,
                                enable_events=True)]], background_color=bg, border_width=0)]
             ]
             settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
             settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
-        elif menu_item == 'Set timer' and not timer_window_active:
+        elif menu_item == 'Set Timer':
+            if timer_window_active:
+                timer_window.TKroot.focus_force()
+                continue
             timer_window_active = True
             timer_layout = [
                 [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'],
@@ -498,6 +509,9 @@ try:
                                      return_keyboard_events=True)
             timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
+        elif menu_item == 'Stop Timing':
+            timer = 0
+            if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
         elif menu_item == 'Play File':
             # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
             # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
@@ -538,7 +552,7 @@ try:
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time() > timer:
             stop()
-            timer = None
+            timer = 0
             if settings['timer_shut_off_computer']:
                 if sys.platform == 'win32': os.system('shutdown /p /f')
                 else: os.system('sudo shutdown now')
@@ -561,8 +575,9 @@ try:
         elif menu_item == 'Exit':
             tray.Hide()
             with suppress(UnsupportedNamespace):
-                if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
-                elif local_music_player.music.get_busy(): local_music_player.music.stop()
+                stop()
+                # if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
+                # Commented because I am unsure if it is effective
             break
         # SETTINGS WINDOW
         if settings_active:
@@ -676,7 +691,7 @@ try:
                     change_settings('timer_hibernate_computer', False)
                 change_settings('timer_sleep_computer', timer_value)
         keyboard_command = None
-        if mc is not None and time() - cast_last_checked > 2:
+        if mc is not None and time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast is not None:
                     if cast.app_id == 'CC1AD845':
@@ -698,6 +713,6 @@ except Exception as e:
         f.write('\n')
         f.write(traceback.format_exc())
         f.write('\n')
-    tray.ShowMessage('Music Caster', 'An error has occured. Email author.')
+    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author .')
     # noinspection PyUnboundLocalVariable
     stop()
