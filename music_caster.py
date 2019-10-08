@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from layout_creator import *
 
-VERSION = '4.17.2'
+VERSION = '4.17.3'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
