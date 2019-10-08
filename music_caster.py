@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from layout_creator import *
 
-VERSION = '4.17.3'
+VERSION = '4.17.4'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -203,7 +203,7 @@ try:
                 source_download_link = f'https://github.com{download_links[-2]}'
                 os.chdir(starting_dir)
                 tray = sg.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
-                tray.ShowMessage('Music Caster', 'Downloading Update...')
+                tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
                 tray.Hide()
                 if settings.get('DEBUG'): Popen('python updater.py')
                 elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
@@ -590,7 +590,7 @@ try:
             elif settings_event == 'copy email':
                 pyperclip.copy('elijahllopezz@gmail.com')
                 if settings['notifications']: tray.ShowMessage('Music Caster', f'Email address copied', time=500)
-            elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle playlists'}:
+            elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle_playlists'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run on startup': startup_setting()
                 elif settings_event == 'notifications': notifications_enabled = settings_value
