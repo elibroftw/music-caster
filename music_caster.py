@@ -222,7 +222,6 @@ try:
     
     playlists = settings['playlists']
 
-    # menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
     tray_playlists = ['Create/Edit a Playlist'] + [f'PL: {pl}' for pl in playlists.keys()]
 
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
