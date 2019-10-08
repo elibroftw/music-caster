@@ -22,9 +22,9 @@ def create_settings(version, music_directories, settings):
          Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications',
+                     text_color=fg, background_color=bg, font=font_normal, enable_events=True),
+        Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
-        # Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
-        #              text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
         [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
                    tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
                    size=(50, 15))],
@@ -58,9 +58,11 @@ def create_timer(settings):
 def playlist_selector(playlists):
     layout = [
         [Sg.Combo(values=list(playlists.keys()), size=(41, 5), text_color=fg, key='pl_selector', background_color=bg,
-                  font=font_normal, enable_events=True),
+                  font=font_normal, enable_events=True, readonly=False),
          Sg.Button(button_text='Edit', button_color=button_color, key='edit_pl', enable_events=True,
                    font=font_normal),
+         Sg.Button(button_text='Delete', button_color=button_color, key='del_pl', enable_events=True,
+                font=font_normal),
          Sg.Button(button_text='Create New Playlist', button_color=button_color, key='create_pl', enable_events=True,
                    font=font_normal)]]
     return layout
@@ -73,13 +75,13 @@ def playlist_editor(playlists, playlist_name=''):
         Sg.Text('Playlist name', text_color=fg, background_color=bg, font=font_normal),
         Sg.Input(playlist_name, key='playlist_name')],
         [Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                    key='music_dirs', background_color=bg, font=font_normal, enable_events=True),
+                    key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
              [Sg.Button('Move up', key='move_up', button_color=button_color,
                         font=font_normal, enable_events=True)],
              [Sg.Button('Move down', key='move_down', button_color=button_color,
                         font=font_normal, enable_events=True)],
              [Sg.FilesBrowse('Add Files', button_color=button_color, font=font_normal, enable_events=True)]
-         ])],
+         ], background_color=bg, border_width=0)],
         [Sg.Submit('Save', button_color=button_color, font=font_normal)]]
     return layout
