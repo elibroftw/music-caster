@@ -37,8 +37,9 @@ import win32com.client
 import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
+from layout_creator import *
 
-VERSION = '4.16.0'
+VERSION = '4.17.0'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -52,6 +53,7 @@ settings = {  # default settings
         'auto update': False,
         'run on startup': True,
         'notifications': True,
+        'shuffle_playlists': False,
         'volume': 100,
         'local volume': 100,
         'music directories': [home_music_dir],
@@ -217,20 +219,26 @@ try:
     startup_setting()
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time.time()
-    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
+    
+    playlists = settings['playlists']
 
-    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
-                    'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
+    # menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
+    tray_playlists = ['Create/Edit a Playlist'] + [f'PL: {pl}' for pl in playlists.keys()]
 
-    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Timer', ['Set Timer', 'Stop Timing'], 'Play &File',
-                    'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
+    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
+
+    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
+
+    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     notifications_enabled = settings['notifications']
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     music_directories = settings['music directories']
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
     DEFAULT_DIR = music_directories[0]
-
     music_queue = []
     done_queue = []
     next_queue = []
@@ -400,9 +408,13 @@ try:
         elif str(key) == '<178>': keyboard_command = 'Stop'
 
 
-    keyboard_command = settings_window = timer_window = None
+    keyboard_command = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+    settings_last_event = None
+    open_pl_selector = False
     timer = 0
-    settings_active = timer_window_active = False
+    settings_active = timer_window_active = playlist_selector_active = playlist_editor_active = False
+    pl_name = ''
+    pl_files = []
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
     while True:
@@ -460,51 +472,35 @@ try:
                 continue
             settings_active = True
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
-            settings_layout = [
-                [Sg.Text(f'Music Caster Version {VERSION} by Elijah Lopez', text_color=fg, background_color=bg,
-                         font=font_normal)],
-                [Sg.Text(f'Email:', text_color=fg, background_color=bg, font=font_normal),
-                 Sg.Text(f'elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link,
-                         click_submits=True, key='email'),
-                 Sg.Button(button_text='Copy address', button_color=button_color, key='copy email', enable_events=True,
-                           font=font_normal)],
-                [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
-                             background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
-                             background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications',
-                             text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
-                           tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
-                           size=(50, 15))],
-                [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                            key='music_dirs', background_color=bg, font=font_normal, enable_events=True),
-                Sg.Frame('', [
-                    [Sg.Button(button_text='Remove Selected Folder', button_color=button_color, key='Remove Folder',
-                               enable_events=True, font=font_normal)],
-                    [Sg.FolderBrowse('Add Folder', button_color=button_color, font=font_normal, enable_events=True)],
-                    [Sg.Button('Open settings.json', key='Open Settings', button_color=button_color, font=font_normal,
-                               enable_events=True)]], background_color=bg, border_width=0)]
-            ]
+            settings_layout = create_settings(VERSION, music_directories, settings)
             settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
             settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
+        elif menu_item == 'Create/Edit a Playlist':
+            if playlist_selector_active:
+                pl_selector_window.TKroot.focus_force()
+                continue
+            playlist_selector_active = True
+            pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
+                                           icon=WINDOW_ICON, return_keyboard_events=True)
+            pl_selector_window.Read(timeout=1)
+            pl_selector_window.TKroot.focus_force()
+        elif menu_item.startswith('PL: '):
+            playlist = menu_item[4:]
+            music_queue.clear()
+            music_queue.extend(playlists[playlist])
+            if music_queue:
+                done_queue.clear()
+                if settings['shuffle_playlists']: shuffle(music_queue)
+                play_file(music_queue[0])
+                tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Set Timer':
             if timer_window_active:
                 timer_window.TKroot.focus_force()
                 continue
             timer_window_active = True
-            timer_layout = [
-                [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'],
-                             key='shut_off', text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Checkbox('Hibernate computer when timer runs out', default=settings['timer_hibernate_computer'],
-                             key='hibernate', text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Checkbox('Sleep computer when timer runs out', default=settings['timer_sleep_computer'],
-                             key='sleep', text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
-                [Sg.Text(f'Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
-                [Sg.Input(key='minutes'), Sg.Submit(button_color=button_color, font=font_normal)]
-            ]
+            timer_layout = create_timer(settings)
             timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
                                      return_keyboard_events=True)
             timer_window.Read(timeout=1)
@@ -587,7 +583,7 @@ try:
                 settings_window.CloseNonBlocking()
                 continue
             settings_value = settings_values.get(settings_event)
-            if settings_event in {'Escape:27', 'q', 'Q'}:
+            if settings_event in {'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
                 settings_active = False
                 settings_window.CloseNonBlocking()
             elif settings_event == 'email':
@@ -630,6 +626,87 @@ try:
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
             elif settings_event == 'Open Settings': os.startfile(settings_file)
+            settings_last_event = settings_event
+        if playlist_selector_active:
+            pl_selector_event, pl_selector_values = pl_selector_window.Read()
+            if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
+                playlist_selector_active = False
+                pl_selector_window.CloseNonBlocking()
+                continue
+            if pl_selector_event == 'del_pl':
+                pl_name = pl_selector_values.get('pl_selector', '')
+                if pl_name in playlists: del playlists[pl_name]
+                new_values = list(playlists.keys())
+                value = new_values[0] if new_values else ''
+                # pl_selector_window.Element('pl_selector').Update(value=value, values=new_values)
+                pl_selector_window.CloseNonBlocking()
+                pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
+                                           icon=WINDOW_ICON, return_keyboard_events=True)
+                pl_selector_window.Read(timeout=1)
+                pl_selector_window.TKroot.focus_force()
+                save_json()
+                tray_playlists.clear()
+                tray_playlists.append('Create/Edit a Playlist')
+                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+                if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+                elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+                else: tray.Update(menu=menu_def_1)
+            elif pl_selector_event in {'edit_pl', 'create_pl'}:
+                pl_name = pl_selector_values.get('pl_selector', '') if pl_selector_event == 'edit_pl' else ''
+                # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
+                pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(playlists, pl_name),
+                                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True)
+                pl_files = playlists.get(pl_name, [])
+                pl_selector_window.CloseNonBlocking()
+                pl_editor_window.Read(timeout=1)
+                pl_editor_window.TKroot.focus_force()
+                playlist_selector_active = False
+                playlist_editor_active = True
+            elif pl_selector_event != '__TIMEOUT__':
+                print(pl_selector_event)
+        if playlist_editor_active:
+            pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
+            if pl_editor_event in {None, 'Escape:27', 'q', 'Q'}:
+                playlist_editor_active = False
+                pl_editor_window.CloseNonBlocking()
+                open_pl_selector = True
+            elif pl_editor_event == 'Move up': pass
+            elif pl_editor_event == 'Move down': pass
+            elif pl_editor_event == 'Add Files':
+                new_files = [file.replace('\\', '/') for file in pl_editor_values['Add Files'].split(';') if file.endswith('.mp3')]
+                # playlists[pl_name]
+                pl_files += new_files
+                pl_editor_window.TKroot.focus_force()
+                current_songs = pl_editor_window.Element('songs').GetListValues()
+                formatted_songs = [os.path.basename(path) for path in pl_files]
+                pl_editor_window.Element('songs').Update(formatted_songs)
+            elif pl_editor_event == 'Save':
+                # pl_files = playlists.get(pl_name, [])
+                # pl_songs = pl_editor_window.Element('songs').GetListValues()
+                new_name = pl_editor_values['playlist_name']
+                pl_files = pl_files.copy()
+                if pl_name != new_name:
+                    if pl_name in playlists: del playlists[pl_name]
+                    pl_name = new_name
+                playlists[pl_name] = pl_files
+                save_json()
+                playlist_editor_active = False
+                pl_editor_window.CloseNonBlocking()
+                open_pl_selector = True
+                tray_playlists.clear()
+                tray_playlists.append('Create/Edit a Playlist')
+                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+                if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+                elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+                else: tray.Update(menu=menu_def_1)
+            if open_pl_selector:
+                open_pl_selector = False
+                playlist_selector_active = True
+                pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
+                                           icon=WINDOW_ICON, return_keyboard_events=True)
+                pl_selector_window.Read(timeout=1)
+                pl_selector_window.TKroot.focus_force()
+                # bring back the playlist selector
         if timer_window_active:
             timer_event, timer_values = timer_window.Read(timeout=1)
             if timer_event is None:
