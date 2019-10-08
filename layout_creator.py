@@ -24,7 +24,7 @@ def create_settings(version, music_directories, settings):
          Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True),
         Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
-                     text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
+                    text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
         [Sg.Slider((0, 100), default_value=settings['volume'], orientation='horizontal', key='volume',
                    tick_interval=5, enable_events=True, background_color='#4285f4', text_color='black',
                    size=(50, 15))],

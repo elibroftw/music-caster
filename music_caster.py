@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from layout_creator import *
 
-VERSION = '4.17.1'
+VERSION = '4.17.2'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -49,26 +49,26 @@ starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
         'previous device': None,
-        'comments': ['Edit only the variables below', 'Restart Music Caster after editing this file!'],
+        'comments': ['Edit only the variables below comments', 'Restart Music Caster after editing this file!'],
         'auto update': False,
         'run on startup': True,
         'notifications': True,
         'shuffle_playlists': False,
         'volume': 100,
         'local volume': 100,
+        'repeat': False,
+        'timer_shut_off_computer': False,
+        'timer_hibernate_computer': False,
+        'timer_sleep_computer': False,
         'music directories': [home_music_dir],
         'sample music directories': [
             'C:/Users/maste/MEGAsync/Music',
             'Put in a valid path',
             'First path is the default directory when selecting a file to play. FOR NOW'
         ],
-        'repeat': False,
-        'timer_shut_off_computer': False,
-        'timer_hibernate_computer': False,
-        'timer_sleep_computer': False,
         'playlists': {},
-        'playlists_example': {'NAME': ['PATHS']},
-        'DEBUG': False
+        'playlists_example': {'NAME': ['PATHS']}
+        # 'DEBUG': False
     }
 settings_file = f'{starting_dir}/settings.json'
 try:    
@@ -590,7 +590,7 @@ try:
             elif settings_event == 'copy email':
                 pyperclip.copy('elijahllopezz@gmail.com')
                 if settings['notifications']: tray.ShowMessage('Music Caster', f'Email address copied', time=500)
-            elif settings_event in {'auto update', 'run on startup', 'notifications'}:
+            elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle playlists'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run on startup': startup_setting()
                 elif settings_event == 'notifications': notifications_enabled = settings_value
