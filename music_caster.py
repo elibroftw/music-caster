@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from layout_creator import *
 
-VERSION = '4.17.0'
+VERSION = '4.17.1'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -321,7 +321,7 @@ try:
                 song_end = song_start + song_length - position
             except pychromecast.error.NotConnected:
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
-                stop()
+                with suppress(pychromecast.error.UnsupportedNamespace): stop()
                 return
         if notifications_enabled and not settings['repeat'] and not switching_device:
             tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
