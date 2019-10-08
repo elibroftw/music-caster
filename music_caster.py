@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.5'
+VERSION = '4.17.6'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -50,7 +50,7 @@ home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
         'DEBUG': False,
         'previous device': None,
-        'comments': ['Edit only the variables below comments', 'Restart Music Caster after editing this file!'],
+        'comments': ['Edit only the variables below comments', 'Settings will take effect after 10 seconds'],
         'auto update': False,
         'run on startup': True,
         'notifications': True,
@@ -71,6 +71,10 @@ settings = {  # default settings
         'playlists_example': {'NAME': ['PATHS']},
     }
 settings_file = f'{starting_dir}/settings.json'
+playlists = {}
+tray_playlists = ['Create/Edit a Playlist']
+music_directories = []
+notifications_enabled = True
 
 
 def save_json():
@@ -91,6 +95,46 @@ def download_and_extract(link, infile, outfile=None):
     if outfile is None: outfile = infile
     with suppress(FileNotFoundError): os.remove(outfile)
     os.rename(f'{starting_dir}/Update/{infile}', outfile)
+
+
+def load_settings():
+    """load (and fix if needed) the settings file"""
+    global settings, playlists, notifications_enabled, music_directories, tray_playlists
+    if os.path.exists(settings_file):
+        with open(settings_file) as json_file:
+            loaded_settings: dict = json.load(json_file)
+            if settings != loaded_settings:
+                settings = loaded_settings
+                playlists = settings['playlists']
+                tray_playlists.clear()
+                tray_playlists.append('Create/Edit a Playlist')
+                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+                notifications_enabled = settings['notifications']
+                music_directories = settings['music directories']
+                return False
+            save_settings = False
+            for setting_name, setting_value in settings.items():
+                if setting_name not in loaded_settings:
+                    loaded_settings[setting_name] = setting_value
+                    save_settings = True
+            for setting_name in list(loaded_settings.keys()):
+                if setting_name not in settings: loaded_settings.pop(setting_name)
+        if save_settings: save_json()
+        return True
+    else: save_json()
+    return False
+
+
+def chromecast_callback(chromecast):
+    global update_devices, cast
+    previous_device = settings['previous device']
+    if str(chromecast.device.uuid) == previous_device and cast != chromecast:
+        cast = chromecast
+        cast.wait(timeout=5)
+    chromecasts.append(chromecast)
+    devices = len(device_names)
+    device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
+    update_devices = True
 
 
 try:
@@ -121,32 +165,7 @@ try:
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
 
 
-    def chromecast_callback(chromecast):
-        global update_devices, cast
-        previous_device = settings['previous device']
-        if str(chromecast.device.uuid) == previous_device and cast != chromecast:
-            cast = chromecast
-            cast.wait(timeout=5)
-        chromecasts.append(chromecast)
-        devices = len(device_names)
-        device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
-        update_devices = True
-
-
-    # check if settings file is valid
-    if os.path.exists(settings_file):
-        with open(settings_file) as json_file:
-            loaded_settings: dict = json.load(json_file)
-            save_settings = False
-            for setting_name, setting_value in settings.items():
-                if setting_name not in loaded_settings:
-                    loaded_settings[setting_name] = setting_value
-                    save_settings = True
-            for setting_name in list(loaded_settings.keys()):
-                if setting_name not in settings: loaded_settings.pop(setting_name)
-            settings = loaded_settings
-        if save_settings: save_json()
-    else: save_json()
+    load_settings()
     # Only one of the below can be True
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:
@@ -221,10 +240,6 @@ try:
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time.time()
     
-    playlists = settings['playlists']
-
-    tray_playlists = ['Create/Edit a Playlist'] + [f'PL: {pl}' for pl in playlists.keys()]
-
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play All', 'E&xit']]
 
@@ -234,9 +249,7 @@ try:
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Stop Timing'], 'Play &File', 'Play a File Next', 'Play All', 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
-    notifications_enabled = settings['notifications']
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
-    music_directories = settings['music directories']
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
     DEFAULT_DIR = music_directories[0]
     music_queue = []
@@ -246,6 +259,7 @@ try:
     song_end = song_length = song_position = song_start = 0
     playing_status = 'NOT PLAYING'
     cast_last_checked = time.time()
+    settings_last_loaded = time.time()
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
@@ -417,6 +431,7 @@ try:
             discovery_started = 0
             stop_discovery()
         if menu_item == 'Refresh Devices':
+            load_settings()
             update_devices = True
             stop_discovery()
             chromecasts.clear()
@@ -464,6 +479,7 @@ try:
             if settings_active:
                 settings_window.TKroot.focus_force()
                 continue
+            load_settings()
             settings_active = True
             # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
             settings_layout = create_settings(VERSION, music_directories, settings)
@@ -475,6 +491,7 @@ try:
             if playlist_selector_active:
                 pl_selector_window.TKroot.focus_force()
                 continue
+            load_settings()
             playlist_selector_active = True
             pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                            icon=WINDOW_ICON, return_keyboard_events=True)
@@ -656,8 +673,6 @@ try:
                 pl_editor_window.TKroot.focus_force()
                 playlist_selector_active = False
                 playlist_editor_active = True
-            elif pl_selector_event != '__TIMEOUT__':
-                print(pl_selector_event)
         if playlist_editor_active:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
             if pl_editor_event in {None, 'Escape:27', 'q', 'Q'}:
@@ -778,6 +793,11 @@ try:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
+        if time.time() - settings_last_loaded > 10:
+            load_settings()
+            if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+            elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+            else: tray.Update(menu=menu_def_1)
 except Exception as e:
     if settings.get('DEBUG', False): raise e
     with open(f'{starting_dir}/error.log', 'a+') as f:
