@@ -75,7 +75,7 @@ def playlist_selector(playlists):
 
 def playlist_editor(playlists, playlist_name=''):
     paths = playlists.get(playlist_name, [])
-    songs = [os.path.basename(path) for path in paths]
+    songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
     layout = [[
         Sg.Text('Playlist name', text_color=fg, background_color=bg, font=font_normal),
         Sg.Input(playlist_name, key='playlist_name'),
@@ -84,10 +84,13 @@ def playlist_editor(playlists, playlist_name=''):
         [Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
-             [Sg.Button('Move Up', key='move_up', button_color=button_color, font=font_normal, enable_events=True),
-              Sg.FilesBrowse('Add Files', button_color=button_color, font=font_normal, enable_events=True, pad=(('22px', 0), (5, 5)))],
-             [Sg.Button('Move Down ', key='move_down', button_color=button_color, font=font_normal, enable_events=True),
-             Sg.Button('Remove File', key='remove_file', button_color=button_color,
+             [Sg.Button('Move up', key='Move up', button_color=button_color, font=font_normal, enable_events=True),
+              Sg.FilesBrowse('Add files', button_color=button_color, font=font_normal, enable_events=True, pad=(('22px', 0), (5, 5)))],
+             [Sg.Button('Move down ', key='Move down', button_color=button_color, font=font_normal, enable_events=True),
+             Sg.Button('Remove file', key='Remove file', button_color=button_color,
                        font=font_normal, enable_events=True)]
          ], background_color=bg, border_width=0)]]
     return layout
+
+
+if __name__ == "__main__": import music_caster
