@@ -710,7 +710,6 @@ try:
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
             elif pl_editor_event == 'Move up':
-                # TODO: catch for errors
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move > 0:
@@ -719,7 +718,6 @@ try:
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Move down':
-                # TODO: catch for errors
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move < len(pl_files) - 1:
@@ -738,7 +736,6 @@ try:
                 formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window.Element('songs').Update(formatted_songs)
             elif pl_editor_event == 'Remove file':
-                # TODO: catch index error
                 if pl_editor_values['songs']:
                     index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     with suppress(ValueError): pl_files.pop(index_to_rm)
@@ -830,7 +827,7 @@ try:
                         elif not (mc.is_paused or mc.is_playing) and playing_status != 'NOT PLAYING': stop()
                         # TODO: check if playback was scrubbed
                         volume = settings['volume']
-                        cast_volume = int(cast.status.volume_level * 100)  # TODO: remove int
+                        cast_volume = cast.status.volume_level * 100  # TODO: remove int
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
