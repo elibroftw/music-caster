@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.6'
+VERSION = '4.17.7'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -517,8 +517,10 @@ try:
             timer_layout = create_timer(settings)
             timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
                                      return_keyboard_events=True)
+                                    
             timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
+            timer_window.Element('minutes').SetFocus()
         elif menu_item == 'Stop Timing':
             timer = 0
             if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
@@ -642,6 +644,7 @@ try:
             elif settings_event == 'Open Settings': os.startfile(settings_file)
             settings_last_event = settings_event
         if playlist_selector_active:
+            # TODO: delete key
             pl_selector_event, pl_selector_values = pl_selector_window.Read()
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
                 playlist_selector_active = False
@@ -674,53 +677,22 @@ try:
                 pl_selector_window.CloseNonBlocking()
                 pl_editor_window.Read(timeout=1)
                 pl_editor_window.TKroot.focus_force()
+                if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
+                else:
+                    pl_editor_window.Element('songs').SetFocus()
+                    pl_editor_window.Element('songs').Update(set_to_index=0)
                 playlist_selector_active = False
                 playlist_editor_active = True
         if playlist_editor_active:
+            # TODO: delete key
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
-            if pl_editor_event in {None, 'Escape:27', 'q', 'Q'}:
+            # if pl_editor_event != '__TIMEOUT__':
+            #     print(pl_editor_event)
+            if pl_editor_event in {None, 'Escape:27', 'q', 'Q', 'Cancel'}:
                 playlist_editor_active = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
-            elif pl_editor_event == 'Move up':  # TODO
-                # catch for errors
-                try:
-                    index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
-                    pl_files.insert(index_to_move - 1, pl_files.pop(index_to_move))
-                    formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                    new_i = max(index_to_move - 1, 0)
-                    pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-                except Exception as e: print(e)
-            elif pl_editor_event == 'Move down':  # TODO
-                # catch for errors
-                try:
-                    index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
-                    song_to_move = pl_files.pop(index_to_move)
-                    pl_files.insert(index_to_move + 1, song_to_move)
-                    formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                    new_i = min(index_to_move + 1, len(pl_files) - 1)
-                    pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-                except Exception as e:
-                    print(e)
-            elif pl_editor_event == 'Add files':
-                new_files = [file.replace('\\', '/') for file in pl_editor_values['Add Files'].split(';') if file.endswith('.mp3')]
-                # playlists[pl_name]
-                pl_files += new_files
-                pl_editor_window.TKroot.focus_force()
-                # current_songs = pl_editor_window.Element('songs').GetListValues()
-                formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                pl_editor_window.Element('songs').Update(formatted_songs)
-            elif pl_editor_event == 'Remove file':
-                # TODO: catch index error
-                index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
-                with suppress(ValueError): pl_files.pop(index_to_rm)
-                formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                print(index_to_rm)
-                new_i = max(index_to_rm - 1, 0)
-                pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Save':
-                # pl_files = playlists.get(pl_name, [])
-                # pl_songs = pl_editor_window.Element('songs').GetListValues()
                 new_name = pl_editor_values['playlist_name']
                 pl_files = pl_files.copy()
                 if pl_name != new_name:
@@ -737,25 +709,47 @@ try:
                 if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
-            elif pl_editor_event == 'Up:38':
-                new_i = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0]) - 1
-                new_i = max(new_i, 0)
+            elif pl_editor_event == 'Move up':
+                # TODO: catch for errors
+                if pl_editor_values['songs']:
+                    index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                    if index_to_move > 0:
+                        new_i = index_to_move - 1
+                        pl_files.insert(new_i, pl_files.pop(index_to_move))
+                        formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                        pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+            elif pl_editor_event == 'Move down':
+                # TODO: catch for errors
+                if pl_editor_values['songs']:
+                    index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                    if index_to_move < len(pl_files) - 1:
+                        new_i = index_to_move + 1
+                        pl_files.insert(new_i, pl_files.pop(index_to_move))
+                        formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                        pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+            elif pl_editor_event == 'Add files':
+                new_files = [file.replace('\\', '/') for file in pl_editor_values['Add files'].split(';') if file.endswith('.mp3')]
+                # playlists[pl_name]
+                print(new_files)
+                print(pl_editor_values['Add files'])
+                pl_files += new_files
+                pl_editor_window.TKroot.focus_force()
+                # current_songs = pl_editor_window.Element('songs').GetListValues()
+                formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                pl_editor_window.Element('songs').Update(formatted_songs)
+            elif pl_editor_event == 'Remove file':
+                # TODO: catch index error
+                if pl_editor_values['songs']:
+                    index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                    with suppress(ValueError): pl_files.pop(index_to_rm)
+                    formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                    new_i = max(index_to_rm - 1, 0)
+                    pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+            elif pl_editor_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
+                move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
+                new_i = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0]) + move
+                new_i = min(max(new_i, 0), len(pl_files) - 1)
                 pl_editor_window.Element('songs').Update(set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event == 'Down:40':
-                new_i = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0]) + 1
-                new_i = min(new_i, len(pl_files) - 1)
-                pl_editor_window.Element('songs').Update(set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event == 'Prior:33':
-                new_i = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0]) - 3
-                new_i = max(new_i, 0)
-                pl_editor_window.Element('songs').Update(set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event == 'Next:34':
-                new_i = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0]) + 3
-                new_i = min(new_i, len(pl_files) - 1)
-                pl_editor_window.Element('songs').Update(set_to_index=new_i, scroll_to_index=new_i)
-            # Prior:33
-            # Next:34
-            elif pl_editor_event != '__TIMEOUT__': print(pl_editor_event)
             if open_pl_selector:
                 open_pl_selector = False
                 playlist_selector_active = True
