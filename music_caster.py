@@ -491,6 +491,9 @@ try:
             if playlist_selector_active:
                 pl_selector_window.TKroot.focus_force()
                 continue
+            elif playlist_editor_active:
+                pl_editor_window.TKroot.focus_force()
+                continue
             load_settings()
             playlist_selector_active = True
             pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
@@ -679,15 +682,15 @@ try:
                 playlist_editor_active = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
-            elif pl_editor_event == 'Move up': pass
-            elif pl_editor_event == 'Move down': pass
+            elif pl_editor_event == 'Move up': pass  # TODO
+            elif pl_editor_event == 'Move down': pass  # TODO
             elif pl_editor_event == 'Add Files':
                 new_files = [file.replace('\\', '/') for file in pl_editor_values['Add Files'].split(';') if file.endswith('.mp3')]
                 # playlists[pl_name]
                 pl_files += new_files
                 pl_editor_window.TKroot.focus_force()
-                current_songs = pl_editor_window.Element('songs').GetListValues()
-                formatted_songs = [os.path.basename(path) for path in pl_files]
+                # current_songs = pl_editor_window.Element('songs').GetListValues()
+                formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window.Element('songs').Update(formatted_songs)
             elif pl_editor_event == 'Save':
                 # pl_files = playlists.get(pl_name, [])
@@ -708,6 +711,12 @@ try:
                 if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
+            elif pl_editor_event == 'remove_file':
+                to_remove = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                with suppress(ValueError): pl_files.pop(to_remove)
+                current_songs = pl_editor_window.Element('songs').GetListValues()
+                formatted_songs = [os.path.basename(path) for path in pl_files]
+                pl_editor_window.Element('songs').Update(formatted_songs)
             if open_pl_selector:
                 open_pl_selector = False
                 playlist_selector_active = True

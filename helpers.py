@@ -78,15 +78,16 @@ def playlist_editor(playlists, playlist_name=''):
     songs = [os.path.basename(path) for path in paths]
     layout = [[
         Sg.Text('Playlist name', text_color=fg, background_color=bg, font=font_normal),
-        Sg.Input(playlist_name, key='playlist_name')],
+        Sg.Input(playlist_name, key='playlist_name'),
+        Sg.Submit('Save', button_color=button_color, font=font_normal, pad=(('38px', '0px'), (0, 0)))
+        ],
         [Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
-             [Sg.Button('Move up', key='move_up', button_color=button_color,
-                        font=font_normal, enable_events=True)],
-             [Sg.Button('Move down', key='move_down', button_color=button_color,
-                        font=font_normal, enable_events=True)],
-             [Sg.FilesBrowse('Add Files', button_color=button_color, font=font_normal, enable_events=True)]
-         ], background_color=bg, border_width=0)],
-        [Sg.Submit('Save', button_color=button_color, font=font_normal)]]
+             [Sg.Button('Move Up', key='move_up', button_color=button_color, font=font_normal, enable_events=True),
+              Sg.FilesBrowse('Add Files', button_color=button_color, font=font_normal, enable_events=True, pad=(('22px', 0), (5, 5)))],
+             [Sg.Button('Move Down ', key='move_down', button_color=button_color, font=font_normal, enable_events=True),
+             Sg.Button('Remove File', key='remove_file', button_color=button_color,
+                       font=font_normal, enable_events=True)]
+         ], background_color=bg, border_width=0)]]
     return layout
