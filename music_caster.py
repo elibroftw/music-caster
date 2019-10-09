@@ -102,27 +102,24 @@ def load_settings():
     global settings, playlists, notifications_enabled, music_directories, tray_playlists
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
-            loaded_settings: dict = json.load(json_file)
-            if settings != loaded_settings:
-                settings = loaded_settings
-                playlists = settings['playlists']
-                tray_playlists.clear()
-                tray_playlists.append('Create/Edit a Playlist')
-                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-                notifications_enabled = settings['notifications']
-                music_directories = settings['music directories']
-                return False
+            try: loaded_settings = json.load(json_file)
+            except json.decoder.JSONDecodeError as e: loaded_settings = {}
             save_settings = False
             for setting_name, setting_value in settings.items():
                 if setting_name not in loaded_settings:
                     loaded_settings[setting_name] = setting_value
                     save_settings = True
-            for setting_name in list(loaded_settings.keys()):
-                if setting_name not in settings: loaded_settings.pop(setting_name)
+            # for setting_name in list(loaded_settings.keys()):
+            #     if setting_name not in settings: loaded_settings.pop(setting_name)
+            settings = loaded_settings
+            playlists = settings['playlists']
+            tray_playlists.clear()
+            tray_playlists.append('Create/Edit a Playlist')
+            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+            notifications_enabled = settings['notifications']
+            music_directories = settings['music directories']
         if save_settings: save_json()
-        return True
     else: save_json()
-    return False
 
 
 def chromecast_callback(chromecast):
@@ -847,6 +844,6 @@ except Exception as e:
         f.write('\n')
         f.write(traceback.format_exc())
         f.write('\n')
-    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author .')
+    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author.')
     # noinspection PyUnboundLocalVariable
     stop()
