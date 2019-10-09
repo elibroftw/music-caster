@@ -16,8 +16,8 @@ WINDOW_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xh
 def create_settings(version, music_directories, settings):
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal)],
-        [Sg.Text(f'Email:', text_color=fg, background_color=bg, font=font_normal),
-         Sg.Text(f'elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
+        [Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
+         Sg.Text('elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
          Sg.Button(button_text='Copy address', button_color=button_color, key='copy email', enable_events=True, font=font_normal)],
         [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
