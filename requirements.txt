@@ -1,6 +1,7 @@
 bs4
 flask
 mutagen
+Pillow
 pychromecast
 pygame
 PyInstaller
@@ -8,6 +9,7 @@ pynput
 pyperclip
 PySide2
 PySimpleGUI
+PySimpleGUIWx==0.13.1
 PySimpleGUIQt
 pypiwin32
 wxpython

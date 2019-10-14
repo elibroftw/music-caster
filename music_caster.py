@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
 from flask import Flask
@@ -12,6 +13,7 @@ from mutagen.id3 import ID3
 import mutagen
 import os
 from pathlib import Path
+# from PIL import Image
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
@@ -39,7 +41,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.7'
+VERSION = '4.18.0'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -48,7 +50,6 @@ local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
-        'DEBUG': False,
         'previous device': None,
         'comments': ['Edit only the variables below comments', 'Settings will take effect after 10 seconds'],
         'auto update': False,
@@ -109,8 +110,6 @@ def load_settings():
                 if setting_name not in loaded_settings:
                     loaded_settings[setting_name] = setting_value
                     save_settings = True
-            # for setting_name in list(loaded_settings.keys()):
-            #     if setting_name not in settings: loaded_settings.pop(setting_name)
             settings = loaded_settings
             playlists = settings['playlists']
             tray_playlists.clear()
@@ -252,8 +251,10 @@ try:
     music_queue = []
     done_queue = []
     next_queue = []
+    music_meta_data = {}  # file: {artist: str, title: str}
     mc = None
-    song_end = song_length = song_position = song_start = 0
+    song_end = song_length = song_start = 0  # seconds but using time()
+    song_position = 0  # also seconds but relative to length of song
     playing_status = 'NOT PLAYING'
     cast_last_checked = time.time()
     settings_last_loaded = time.time()
@@ -264,7 +265,7 @@ try:
         while not os.path.exists(file_path): 
             music_queue.remove(file_path)
             file_path = music_queue[0]
-            position=0
+            position = 0
         hostname = socket.gethostname()
         ipv4_address = socket.gethostbyname(hostname)
         song_position = position
@@ -278,6 +279,11 @@ try:
             album = EasyID3(file_path).get('album', 'Unknown')
         except Exception as e:
             title = artist = album = 'Unknown'
+        # thumb, album_cover_data = get_album_cover(file_path)
+        # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
+        #                               'album_cover_data': album_cover_data}
+        music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
+        # TODO: add album_art to it as well
         if cast is None:
             mc = None
             sampling_rate = audio_info.sample_rate
@@ -336,6 +342,40 @@ try:
         cast_last_checked = time.time()
 
 
+    # def get_album_cover(file_path):
+    #     file_path_obj = Path(file_path)
+    #     thumb = images_dir + f'/{file_path_obj.stem}.png'
+    #     tags = ID3(file_path)
+    #     pict = None
+    #     for tag in tags.keys():
+    #         if 'APIC' in tag:
+    #             pict = tags[tag]
+    #             break
+    #     if pict is not None:
+    #         raw = pict = pict.data
+    #         with open(thumb, 'wb') as f: f.write(pict)
+    #     else:
+    #         thumb = images_dir + f'/default.png'
+    #         with open(thumb, 'rb') as f: raw = f.read()
+    #     data = io.BytesIO(raw)
+    #     im = Image.open(data)
+    #     raw = io.BytesIO()
+    #     new_h = 150
+    #     h_percent = (new_h / float(im.size[1]))
+    #     new_w = int((float(im.size[0]) * float(h_percent)))
+    #     im = im.resize((new_w, new_h), Image.ANTIALIAS)
+    #     im.save(raw, optimize=True, format='PNG')
+    #     return thumb, raw.getvalue()
+
+    def update_song_position():
+        global tray, song_position
+        if mc is not None:
+            mc.update_status()
+            song_position = mc.status.adjusted_current_time
+        else: song_position = local_music_player.music.get_pos() / 1000
+        return song_position
+
+
     def pause():
         global tray, playing_status, song_position
         tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
@@ -363,8 +403,7 @@ try:
                 mc.block_until_active()
                 while not mc.is_playing: pass
                 song_position = mc.status.adjusted_current_time
-            else:
-                local_music_player.music.unpause()
+            else: local_music_player.music.unpause()
             song_end = time.time() + song_length - song_position
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
@@ -413,11 +452,11 @@ try:
         elif str(key) == '<178>': keyboard_command = 'Stop'
 
 
-    keyboard_command = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-    settings_last_event = None
+    keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+    main_last_event = settings_last_event = None
     open_pl_selector = False
     timer = 0
-    settings_active = timer_window_active = playlist_selector_active = playlist_editor_active = False
+    main_active = settings_active = timer_window_active = playlist_selector_active = playlist_editor_active = False
     pl_name = ''
     pl_files = []
     listener_thread = Listener(on_press=on_press)
@@ -441,6 +480,24 @@ try:
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
+        if menu_item == '__ACTIVATED__' and settings.get('DEBUG', False):
+            if main_active:
+                main_window.TKroot.focus_force()
+                continue
+            main_active = True
+            if playing_status in {'PAUSED', 'PLAYING'}:
+                current_song = music_queue[0]
+                metadata = music_meta_data[current_song]
+                # album_cover_data = metadata['album_cover_data']
+                artist, title = metadata['artist'].split(', ')[0], metadata['title']
+                new_playing_text = f'{artist} - {title}'
+                # main_gui_layout = create_main_gui(music_queue, done_queue, playing_status, new_playing_text, album_cover_data=album_cover_data)
+                main_gui_layout = create_main_gui(music_queue, done_queue, playing_status, new_playing_text)
+            else: main_gui_layout = create_main_gui(music_queue, done_queue, playing_status)
+            main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
+                                    return_keyboard_events=True, use_default_focus=False)
+            main_window.Read(timeout=1)
+            main_window.TKroot.focus_force()                                
         elif menu_item.split('.')[0].isdigit():  # if user selected a device
             temp = menu_item.split('. ')
             number = temp[0]
@@ -470,8 +527,8 @@ try:
                         mc.stop()
                 mc = None if cast is None else cast.media_controller
                 if playing_status in {'PAUSED', 'PLAYING'}:
-                    autoplay = False if playing_status == 'PAUSED' else True
-                    play_file(music_queue[0], position=current_pos, autoplay=autoplay, switching_device=True)
+                    do_autoplay = False if playing_status == 'PAUSED' else True
+                    play_file(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
         elif menu_item == 'Settings':
             if settings_active:
                 settings_window.TKroot.focus_force()
@@ -588,6 +645,58 @@ try:
                 # if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
                 # Commented because I am unsure if it is effective
             break
+        
+        # MAIN WINDOW
+        if main_active:
+            main_event, main_values = main_window.Read(timeout=5)
+            if main_event is None:
+                main_active = False
+                main_window.CloseNonBlocking()
+                continue
+            if main_event in {'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'Add Folder':
+                main_active = False
+                main_window.CloseNonBlocking()
+            main_last_event = main_event
+            if main_event == 'Pause/Resume':
+                # TODO: use images
+                if playing_status == 'PAUSED': resume()
+                elif playing_status == 'PLAYING': pause()
+            elif main_event == 'Next': next_song()
+            elif main_event == 'Prev': previous()
+            elif main_event == 'Shuffle':
+                shuffle_setting = change_settings('shuffle_playlists', not settings['shuffle_playlists'])
+                if notifications_enabled:
+                    if shuffle_setting: tray.ShowMessage('Music Caster', 'Playlist shuffling on')
+                    else: tray.ShowMessage('Music Caster', 'Playlist shuffling off')
+            elif main_event == 'Repeat':
+                repeat_setting = change_settings('repeat', not settings['repeat'])
+                if notifications_enabled:
+                    if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
+                    else: tray.ShowMessage('Music Caster', 'Repeating off')
+
+            p_r_button = main_window.FindElement('Pause/Resume')
+            now_playing_text: Sg.Text = main_window.FindElement('now_playing')
+            if playing_status == 'PLAYING' and p_r_button.GetText() == 'Resume': p_r_button.Update(text='Pause')
+            if playing_status == 'PAUSED' and p_r_button.GetText() == 'Pause': p_r_button.Update(text='Resume')
+
+            if playing_status == 'PLAYING':
+                metadata = music_meta_data[music_queue[0]]
+                artist, title = metadata['artist'].split(', ')[0], metadata['title']
+                new_playing_text = f'{artist} - {title}'
+                if now_playing_text.DisplayText != new_playing_text:
+                    now_playing_text.Update(value=new_playing_text)
+                    # main_window.FindElement('album_cover').Update(data=metadata['album_cover_data'])
+                progress_bar = main_window.FindElement('progressbar')
+                update_song_position()
+                progress_bar.UpdateBar(song_position / song_length * 100)
+                time_left = song_length - song_position
+                mins_elasped, mins_left = round(song_position / 60), round(time_left / 60)
+                secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
+                if secs_left < 10: secs_left = f'0{secs_left}'
+                if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
+                main_window.FindElement('time_elapsed').Update(value=f'{mins_elasped}:{secs_elapsed}')
+                main_window.FindElement('time_left').Update(value=f'{mins_left}:{secs_left}')
+
         # SETTINGS WINDOW
         if settings_active:
             settings_event, settings_values = settings_window.Read(timeout=5)
