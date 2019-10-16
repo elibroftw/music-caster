@@ -40,7 +40,7 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
-
+# TODO: # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
 VERSION = '4.18.0'
 update_devices = False
 chromecasts = []
@@ -100,7 +100,7 @@ def download_and_extract(link, infile, outfile=None):
 
 def load_settings():
     """load (and fix if needed) the settings file"""
-    global settings, playlists, notifications_enabled, music_directories, tray_playlists
+    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
@@ -117,6 +117,8 @@ def load_settings():
             tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
             notifications_enabled = settings['notifications']
             music_directories = settings['music directories']
+            if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
+            DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
 
@@ -579,15 +581,12 @@ try:
             timer = 0
             if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
         elif menu_item == 'Play File':
-            # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
-            # path_to_file = sg.PopupGetFile('', title='Select Music File', file_types=(('Audio', '*mp3'),),
-            #                                initial_folder=DEFAULT_DIR, no_window=True)
+            
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
                 path_to_file = fd.GetPath()
-                # if os.path.exists(path_to_file):
                 play_file(path_to_file)
                 music_queue.clear()
                 done_queue.clear()
@@ -777,7 +776,7 @@ try:
             elif pl_selector_event in {'edit_pl', 'create_pl'}:
                 pl_name = pl_selector_values.get('pl_selector', '') if pl_selector_event == 'edit_pl' else ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
-                pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(playlists, pl_name),
+                pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(DEFAULT_DIR, playlists, pl_name),
                                              background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_files = playlists.get(pl_name, [])
                 pl_selector_window.CloseNonBlocking()
@@ -816,7 +815,6 @@ try:
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
             elif pl_editor_event == 'Move up':
-                # TODO: catch for errors
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move > 0:
@@ -825,7 +823,6 @@ try:
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Move down':
-                # TODO: catch for errors
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move < len(pl_files) - 1:
@@ -844,7 +841,6 @@ try:
                 formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window.Element('songs').Update(formatted_songs)
             elif pl_editor_event == 'Remove file':
-                # TODO: catch index error
                 if pl_editor_values['songs']:
                     index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     with suppress(ValueError): pl_files.pop(index_to_rm)
@@ -934,7 +930,7 @@ try:
                         if mc.is_paused and playing_status != 'PAUSED': pause()
                         elif mc.is_playing and playing_status != 'PLAYING': resume()
                         elif not (mc.is_paused or mc.is_playing) and playing_status != 'NOT PLAYING': stop()
-                        # TODO: check if playback was scrubbed
+                        # TODO: check if playback was scrubbed +- 0.2 secs
                         volume = settings['volume']
                         cast_volume = int(cast.status.volume_level * 100)  # TODO: remove int
                         if volume != cast_volume:

@@ -1,9 +1,7 @@
 import PySimpleGUI as Sg
 import os
 
-
-# FOR LATER USE...?
-# C++ JPG TO PNG
+# TODO: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
 
 # Styling
@@ -100,7 +98,7 @@ def playlist_selector(playlists):
     return layout
 
 
-def playlist_editor(playlists, playlist_name=''):
+def playlist_editor(initial_folder, playlists, playlist_name=''):
     paths = playlists.get(playlist_name, [])
     songs = [
         f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
@@ -110,7 +108,7 @@ def playlist_editor(playlists, playlist_name=''):
         Sg.Input(playlist_name, key='playlist_name'),
         Sg.Submit('Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
         Sg.Button('Cancel', key='Cancel', font=font_normal, enable_events=True)],
-        [Sg.Frame('', [[Sg.FilesBrowse('Add files', key='Add files', font=font_normal, enable_events=True, pad=(('21px', 0), (5, 5)))],
+        [Sg.Frame('', [[Sg.FilesBrowse('Add files', file_types=(('Audio Files', '*.mp3'),), pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, key='Add files', font=font_normal, enable_events=True)],
                        [Sg.Button('Remove file', key='Remove file',
                                   font=font_normal, enable_events=True)]], background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
