@@ -42,7 +42,7 @@ import zipfile
 from helpers import *
 
 
-# TODO: # maybe add *.flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
+# TODO: maybe add *.flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
 VERSION = '4.18.0'
 update_devices = False
 chromecasts = []
@@ -934,7 +934,7 @@ try:
                         elif not (mc.is_paused or mc.is_playing) and playing_status != 'NOT PLAYING': stop()
                         # TODO: check if playback was scrubbed +- 0.2 secs
                         volume = settings['volume']
-                        cast_volume = int(cast.status.volume_level * 100)  # TODO: remove int
+                        cast_volume = cast.status.volume_level * 100
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
