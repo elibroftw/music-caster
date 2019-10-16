@@ -40,7 +40,9 @@ import win32event
 from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
-# TODO: # maybe add *flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
+
+
+# TODO: # maybe add *.flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
 VERSION = '4.18.0'
 update_devices = False
 chromecasts = []
