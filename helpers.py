@@ -120,7 +120,7 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
     return layout
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # TESTS
     import time
     metadata = 'Gabriel & Dresden - This Love Kills Me (Gabriel & Dresden Club Mix - Above & Beyond Respray)'
