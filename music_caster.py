@@ -48,7 +48,6 @@ local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
-        'DEBUG': False,
         'previous device': None,
         'comments': ['Edit only the variables below comments', 'Settings will take effect after 10 seconds'],
         'auto update': False,
@@ -109,8 +108,6 @@ def load_settings():
                 if setting_name not in loaded_settings:
                     loaded_settings[setting_name] = setting_value
                     save_settings = True
-            # for setting_name in list(loaded_settings.keys()):
-            #     if setting_name not in settings: loaded_settings.pop(setting_name)
             settings = loaded_settings
             playlists = settings['playlists']
             tray_playlists.clear()
@@ -264,7 +261,7 @@ try:
         while not os.path.exists(file_path): 
             music_queue.remove(file_path)
             file_path = music_queue[0]
-            position=0
+            position = 0
         hostname = socket.gethostname()
         ipv4_address = socket.gethostbyname(hostname)
         song_position = position
@@ -363,8 +360,7 @@ try:
                 mc.block_until_active()
                 while not mc.is_playing: pass
                 song_position = mc.status.adjusted_current_time
-            else:
-                local_music_player.music.unpause()
+            else: local_music_player.music.unpause()
             song_end = time.time() + song_length - song_position
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
@@ -470,8 +466,8 @@ try:
                         mc.stop()
                 mc = None if cast is None else cast.media_controller
                 if playing_status in {'PAUSED', 'PLAYING'}:
-                    autoplay = False if playing_status == 'PAUSED' else True
-                    play_file(music_queue[0], position=current_pos, autoplay=autoplay, switching_device=True)
+                    do_autoplay = False if playing_status == 'PAUSED' else True
+                    play_file(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
         elif menu_item == 'Settings':
             if settings_active:
                 settings_window.TKroot.focus_force()
@@ -824,7 +820,7 @@ try:
                         elif not (mc.is_paused or mc.is_playing) and playing_status != 'NOT PLAYING': stop()
                         # TODO: check if playback was scrubbed
                         volume = settings['volume']
-                        cast_volume = cast.status.volume_level * 100  # TODO: remove int
+                        cast_volume = cast.status.volume_level * 100
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
