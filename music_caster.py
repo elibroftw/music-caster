@@ -724,7 +724,7 @@ try:
                 pl_editor_window.TKroot.focus_force()
                 # current_songs = pl_editor_window.Element('songs').GetListValues()
                 formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                new_i = len(formatted_songs) - 1
+                new_i = len(formatted_songs) - 1  # - len(new_files)
                 pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Remove file':
                 if pl_editor_values['songs']:
