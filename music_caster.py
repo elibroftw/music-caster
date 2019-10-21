@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.9'
+VERSION = '4.17.10'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -664,7 +664,7 @@ try:
             elif pl_selector_event in {'edit_pl', 'create_pl'}:
                 pl_name = pl_selector_values.get('pl_selector', '') if pl_selector_event == 'edit_pl' else ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
-                pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(playlists, pl_name),
+                pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(DEFAULT_DIR, playlists, pl_name),
                                              background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_files = playlists.get(pl_name, [])
                 pl_selector_window.CloseNonBlocking()
@@ -720,9 +720,6 @@ try:
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Add files':
                 new_files = [file.replace('\\', '/') for file in pl_editor_values['Add files'].split(';') if file.endswith('.mp3')]
-                # playlists[pl_name]
-                print(new_files)
-                print(pl_editor_values['Add files'])
                 pl_files += new_files
                 pl_editor_window.TKroot.focus_force()
                 # current_songs = pl_editor_window.Element('songs').GetListValues()
@@ -840,3 +837,4 @@ except Exception as e:
     tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author.')
     # noinspection PyUnboundLocalVariable
     stop()
+    # TODO: restart program
