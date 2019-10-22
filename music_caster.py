@@ -834,14 +834,12 @@ try:
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Add files':
                 new_files = [file.replace('\\', '/') for file in pl_editor_values['Add files'].split(';') if file.endswith('.mp3')]
-                # playlists[pl_name]
-                print(new_files)
-                print(pl_editor_values['Add files'])
                 pl_files += new_files
                 pl_editor_window.TKroot.focus_force()
                 # current_songs = pl_editor_window.Element('songs').GetListValues()
                 formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                pl_editor_window.Element('songs').Update(formatted_songs)
+                new_i = len(formatted_songs) - 1  # - len(new_files)
+                pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Remove file':
                 if pl_editor_values['songs']:
                     index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
