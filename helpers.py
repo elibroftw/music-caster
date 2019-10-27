@@ -64,11 +64,9 @@ def create_settings(version, music_directories, settings):
         [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
-             [Sg.Button('Remove Selected Folder', key='Remove Folder',
-                        enable_events=True, font=font_normal)],
+             [Sg.Button('Remove Selected Folder', key='Remove Folder', enable_events=True, font=font_normal)],
              [Sg.FolderBrowse('Add Folder', font=font_normal, enable_events=True)],
-             [Sg.Button('Open settings.json', key='Open Settings', font=font_normal,
-                        enable_events=True)]], background_color=bg, border_width=0)]]
+             [Sg.Button('Open settings.json', key='Open Settings', font=font_normal, enable_events=True)]], background_color=bg, border_width=0)]]
     return layout
 
 
@@ -109,8 +107,7 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
         Sg.Submit('Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
         Sg.Button('Cancel', key='Cancel', font=font_normal, enable_events=True)],
         [Sg.Frame('', [[Sg.FilesBrowse('Add files', file_types=(('Audio Files', '*.mp3'),), pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, key='Add files', font=font_normal, enable_events=True)],
-                       [Sg.Button('Remove file', key='Remove file',
-                                  font=font_normal, enable_events=True)]], background_color=bg, border_width=0),
+                       [Sg.Button('Remove file', key='Remove file', font=font_normal, enable_events=True)]], background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [

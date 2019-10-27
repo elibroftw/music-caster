@@ -31,5 +31,5 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='resources/updater.ico',
+          icon='resources/Updater.ico',
           version='version_info.txt')

@@ -946,3 +946,4 @@ except Exception as e:
     tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author.')
     # noinspection PyUnboundLocalVariable
     stop()
+    # TODO: restart program

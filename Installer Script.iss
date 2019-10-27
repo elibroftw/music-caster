@@ -28,7 +28,7 @@ OutputBaseFilename=Music Caster v{#MyAppVersion} Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile="resources\music caster.ico"
+SetupIconFile="resources\Music Caster.ico"
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
