@@ -26,19 +26,25 @@ TLDR: If you have music files in different folders, right click icon in tray and
 This app supports media keys.
 
 # Limitations and known issues
-- The GUI library I use does have a memory leak issue, I'm planning on porting to wxPython
-- So restart if you feel the app is laggy
-- If you find a bug, please create an issue or email me, I am very fast at pushing fixes if the issues are huge
+A major bug will result in a toast message + a error message output in an error.log.
+I have not implemented an auto-email feature, so you will have to email this to me yourself.
+If I do plan on implementing an auto-email feature, I will probably have an option to disable it.
+The error.log file can be found in the installation folder of music caster.
+An easy way to find it is to right click Music Caster Shortcut's and then click Open file location.
+After a couple times, you will end up at the installation directory.
 
 # Build Instructions
 1. Make sure all the required modules are installed
-2. Download [PySimpleGUIWx.py](https://github.com/PySimpleGUI/PySimpleGUI/blob/master/PySimpleGUIWx/PySimpleGUIWx.py) (Place in root)
-3. Make sure you do not have the PyPi version of PySimpleGuiwx installed.
-4. Remove the sphinx import from PySimpleGuiwx.py
-5. Make sure Python scripts folder is on PATH
-6. OPTIONAL: Having Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH
-7. Run build.bat
+2. Make sure Python scripts folder is on PATH
+4. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a setup.exe, run build.bat
+5. Otherwise, use `pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py`
 
+# Settings.json Guide
+- Music Caster will detect changes within 10 seconds of editing the settings.json file
+- The music directories is a list of directory paths ['C:/Users/maste/MEGAsync/Music', 'Put in a valid path']
+- The first path in music directories is the default directory you want to play a file
+- The playlist variable follows the convention {'PLAYLIST NAME': ['paths to files']}
+- Do not remove a setting variable as something might break.
 
 # Credits
 default.png made by <a href="https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">ivke32</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583">Pixabay</a>

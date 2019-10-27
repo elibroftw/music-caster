@@ -53,7 +53,6 @@ starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 settings = {  # default settings
         'previous device': None,
-        'comments': ['Edit only the variables below comments', 'Settings will take effect after 10 seconds'],
         'auto update': False,
         'run on startup': True,
         'notifications': True,
@@ -65,11 +64,6 @@ settings = {  # default settings
         'timer_hibernate_computer': False,
         'timer_sleep_computer': False,
         'music directories': [home_music_dir],
-        'sample music directories': [
-            'C:/Users/maste/MEGAsync/Music',
-            'Put in a valid path',
-            'First path is the default directory when selecting a file to play. FOR NOW'
-        ],
         'playlists': {},
         'playlists_example': {'NAME': ['PATHS']},
     }
