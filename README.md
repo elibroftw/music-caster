@@ -1,7 +1,7 @@
 # Music Caster
 [![Download Count](https://img.shields.io/github/downloads/elibroftw/music-caster/total?color=blue&label=Downloads&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases)
 
-Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc...)
+Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, Home Mini, etc.)
 [Download Page](https://github.com/elibroftw/music-caster/releases)
 
 # Screenshots
