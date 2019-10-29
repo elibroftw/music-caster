@@ -260,9 +260,10 @@ try:
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked, music_queue
-        while not os.path.exists(file_path): 
+        while not os.path.exists(file_path):
             music_queue.remove(file_path)
-            file_path = music_queue[0]
+            if music_queue: file_path = music_queue[0]
+            else: return
             position = 0
         hostname = socket.gethostname()
         ipv4_address = socket.gethostbyname(hostname)
@@ -370,7 +371,9 @@ try:
         if mc is not None:
             mc.update_status()
             song_position = mc.status.adjusted_current_time
-        else: song_position = local_music_player.music.get_pos() / 1000
+        elif playing_status == 'PLAYING':
+            song_position = time.time() - song_start
+            # song_position = local_music_player.music.get_pos() / 1000
         return song_position
 
 
@@ -384,7 +387,7 @@ try:
                 while not mc.is_paused: pass
                 song_position = mc.status.adjusted_current_time
             else:
-                song_position += local_music_player.music.get_pos() / 1000
+                song_position = time.time() - song_start
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
         except UnsupportedNamespace:
@@ -392,7 +395,7 @@ try:
 
 
     def resume():
-        global tray, playing_status, song_end, song_position
+        global tray, playing_status, song_end, song_position, song_start
         tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         try:
             if mc is not None:
@@ -402,14 +405,15 @@ try:
                 while not mc.is_playing: pass
                 song_position = mc.status.adjusted_current_time
             else: local_music_player.music.unpause()
-            song_end = time.time() + song_length - song_position
+            song_start = time.time() - song_position
+            song_end = song_start + song_length
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
 
 
     def stop():
-        global playing_status, song_position, cast
+        global playing_status, cast
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
         elif local_music_player.music.get_busy(): local_music_player.music.stop()
@@ -516,7 +520,9 @@ try:
                     cast.set_volume(volume)
                 current_pos = 0
                 if local_music_player.music.get_busy():
-                    current_pos = song_position + local_music_player.music.get_pos() / 1000
+                    if playing_status == 'PLAYING': current_pos = song_start - song_end
+                    else: current_pos = song_position
+                    # current_pos = song_position + local_music_player.music.get_pos() / 1000
                     local_music_player.music.stop()
                 elif mc is not None:
                     with suppress(UnsupportedNamespace):
