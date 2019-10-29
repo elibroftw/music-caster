@@ -265,8 +265,12 @@ try:
             if music_queue: file_path = music_queue[0]
             else: return
             position = 0
-        hostname = socket.gethostname()
-        ipv4_address = socket.gethostbyname(hostname)
+        # hostname = socket.gethostname()
+        # ipv4_address = socket.gethostbyname(hostname)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ipv4_address = s.getsockname()[0]
+        s.close()
         song_position = position
         audio_info = mutagen.File(file_path).info
         song_length = audio_info.length
