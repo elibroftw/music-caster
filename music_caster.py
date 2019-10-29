@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.13'
+VERSION = '4.17.14'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -495,7 +495,7 @@ try:
                     local_music_player.music.set_volume(volume)
                 else:
                     change_settings('previous device', str(cast.uuid))
-                    cast.wait()
+                    cast.wait(timeout=5)
                     cast.set_volume(volume)
                 current_pos = 0
                 if local_music_player.music.get_busy():
@@ -596,7 +596,7 @@ try:
                 path_to_file = fd.GetPath()
                 next_queue.append(path_to_file)
                 if playing_status == 'NOT PLAYING':
-                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
+                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=5)
                     next_song()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time.time() > timer:
