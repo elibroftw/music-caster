@@ -499,7 +499,7 @@ try:
                     cast.set_volume(volume)
                 current_pos = 0
                 if local_music_player.music.get_busy():
-                    if playing_status == 'PLAYING': current_pos = song_start - song_end
+                    if playing_status == 'PLAYING': current_pos = time.time() - song_start
                     else: current_pos = song_position
                     # current_pos = song_position + local_music_player.music.get_pos() / 1000
                     local_music_player.music.stop()
