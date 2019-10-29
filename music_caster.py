@@ -679,8 +679,8 @@ try:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
 
-            p_r_button = main_window.FindElement('Pause/Resume')
-            now_playing_text: Sg.Text = main_window.FindElement('now_playing')
+            p_r_button = main_window['Pause/Resume']
+            now_playing_text: Sg.Text = main_window['now_playing']
             if playing_status == 'PLAYING' and p_r_button.GetText() == 'Resume': p_r_button.Update(text='Pause')
             if playing_status == 'PAUSED' and p_r_button.GetText() == 'Pause': p_r_button.Update(text='Resume')
 
@@ -690,8 +690,8 @@ try:
                 new_playing_text = f'{artist} - {title}'
                 if now_playing_text.DisplayText != new_playing_text:
                     now_playing_text.Update(value=new_playing_text)
-                    # main_window.FindElement('album_cover').Update(data=metadata['album_cover_data'])
-                progress_bar = main_window.FindElement('progressbar')
+                    # main_window['album_cover'].Update(data=metadata['album_cover_data'])
+                progress_bar = main_window['progressbar']
                 update_song_position()
                 progress_bar.UpdateBar(song_position / song_length * 100)
                 time_left = song_length - song_position
@@ -699,8 +699,8 @@ try:
                 secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
                 if secs_left < 10: secs_left = f'0{secs_left}'
                 if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
-                main_window.FindElement('time_elapsed').Update(value=f'{mins_elasped}:{secs_elapsed}')
-                main_window.FindElement('time_left').Update(value=f'{mins_left}:{secs_left}')
+                main_window['time_elapsed'].Update(value=f'{mins_elasped}:{secs_elapsed}')
+                main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
 
         # SETTINGS WINDOW
         if settings_active:
