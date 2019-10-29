@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.11'
+VERSION = '4.17.12'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -258,9 +258,10 @@ try:
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked, music_queue
-        while not os.path.exists(file_path): 
+        while not os.path.exists(file_path):
             music_queue.remove(file_path)
-            file_path = music_queue[0]
+            if music_queue: file_path = music_queue[0]
+            else: return
             position = 0
         hostname = socket.gethostname()
         ipv4_address = socket.gethostbyname(hostname)
@@ -333,6 +334,42 @@ try:
         cast_last_checked = time.time()
 
 
+    # def get_album_cover(file_path):
+    #     file_path_obj = Path(file_path)
+    #     thumb = images_dir + f'/{file_path_obj.stem}.png'
+    #     tags = ID3(file_path)
+    #     pict = None
+    #     for tag in tags.keys():
+    #         if 'APIC' in tag:
+    #             pict = tags[tag]
+    #             break
+    #     if pict is not None:
+    #         raw = pict = pict.data
+    #         with open(thumb, 'wb') as f: f.write(pict)
+    #     else:
+    #         thumb = images_dir + f'/default.png'
+    #         with open(thumb, 'rb') as f: raw = f.read()
+    #     data = io.BytesIO(raw)
+    #     im = Image.open(data)
+    #     raw = io.BytesIO()
+    #     new_h = 150
+    #     h_percent = (new_h / float(im.size[1]))
+    #     new_w = int((float(im.size[0]) * float(h_percent)))
+    #     im = im.resize((new_w, new_h), Image.ANTIALIAS)
+    #     im.save(raw, optimize=True, format='PNG')
+    #     return thumb, raw.getvalue()
+
+    def update_song_position():
+        global tray, song_position
+        if mc is not None:
+            mc.update_status()
+            song_position = mc.status.adjusted_current_time
+        elif playing_status == 'PLAYING':
+            song_position = time.time() - song_start
+            # song_position = local_music_player.music.get_pos() / 1000
+        return song_position
+
+
     def pause():
         global tray, playing_status, song_position
         tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
@@ -343,7 +380,7 @@ try:
                 while not mc.is_paused: pass
                 song_position = mc.status.adjusted_current_time
             else:
-                song_position += local_music_player.music.get_pos() / 1000
+                song_position = time.time() - song_start
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
         except UnsupportedNamespace:
@@ -351,7 +388,7 @@ try:
 
 
     def resume():
-        global tray, playing_status, song_end, song_position
+        global tray, playing_status, song_end, song_position, song_start
         tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         try:
             if mc is not None:
@@ -361,14 +398,15 @@ try:
                 while not mc.is_playing: pass
                 song_position = mc.status.adjusted_current_time
             else: local_music_player.music.unpause()
-            song_end = time.time() + song_length - song_position
+            song_start = time.time() - song_position
+            song_end = song_start + song_length
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
 
 
     def stop():
-        global playing_status, song_position, cast
+        global playing_status, cast
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
         elif local_music_player.music.get_busy(): local_music_player.music.stop()
@@ -457,7 +495,9 @@ try:
                     cast.set_volume(volume)
                 current_pos = 0
                 if local_music_player.music.get_busy():
-                    current_pos = song_position + local_music_player.music.get_pos() / 1000
+                    if playing_status == 'PLAYING': current_pos = song_start - song_end
+                    else: current_pos = song_position
+                    # current_pos = song_position + local_music_player.music.get_pos() / 1000
                     local_music_player.music.stop()
                 elif mc is not None:
                     with suppress(UnsupportedNamespace):
