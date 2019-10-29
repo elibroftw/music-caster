@@ -38,7 +38,7 @@ def find_chromecasts():
     return chromecasts
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import time
     start = time.time()
     print(find_chromecasts())
