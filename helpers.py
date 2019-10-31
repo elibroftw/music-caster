@@ -34,7 +34,8 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
     tab1_layout = [[Sg.Text(metadata, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
                             size=(55, 0))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover')] if album_cover_data else [],
-                   [Sg.Column(col, justification='center')],
+                #    [Sg.Column(col, justification='center')],  # wait foro PySimpleGUI 4.5+ to release
+                   [Sg.Column(col)],
                    # size = (4, 0)
                    [Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
                     Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
