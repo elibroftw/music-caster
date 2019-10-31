@@ -47,10 +47,10 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
 
 def create_settings(version, music_directories, settings):
     layout = [
-        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal)],
-        [Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
+        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal),
+        Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
          Sg.Text('elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
-         Sg.Button(button_text='Copy address', key='copy email', enable_events=True, font=font_normal)],
+         Sg.Button(button_text='Copy', key='copy email', enable_events=True, font=font_normal)],
         [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
