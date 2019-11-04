@@ -263,12 +263,6 @@ try:
             if music_queue: file_path = music_queue[0]
             else: return
             position = 0
-        # hostname = socket.gethostname()
-        # ipv4_address = socket.gethostbyname(hostname)
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ipv4_address = s.getsockname()[0]
-        s.close()
         song_position = position
         audio_info = mutagen.File(file_path).info
         song_length = audio_info.length
@@ -292,29 +286,35 @@ try:
             song_start = time.time()
             song_end = song_start + song_length - position
         else:
-            drive = file_path[:3]
-            file_path_obj = Path(file_path)
-            if drive != os.getcwd().replace('\\', '/'):
-                new_file_path = f'{cc_music_dir}/{file_path_obj.name}'
-                copyfile(file_path, new_file_path)
-            else: new_file_path = file_path
-            uri_safe = Path(new_file_path).as_uri()[11:]
-            url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
-            thumb = images_dir + f'/{file_path_obj.stem}.png'
-            tags = ID3(file_path)
-            pict = None
-            for tag in tags.keys():
-                if 'APIC' in tag:
-                    pict = tags[tag]
-                    break
-            if pict is not None:
-                pict = pict.data
-                with open(thumb, 'wb') as f: f.write(pict)
-            else: thumb = images_dir + f'/default.png'
-            thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-            # cast: pychromecast.Chromecast
-            cast.wait(timeout=10)
             try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(('8.8.8.8', 80))
+                ipv4_address = s.getsockname()[0]
+                s.close()
+                # hostname = socket.gethostname()
+                # ipv4_address = socket.gethostbyname(hostname)
+                drive = file_path[:3]
+                file_path_obj = Path(file_path)
+                if drive != os.getcwd().replace('\\', '/'):
+                    new_file_path = f'{cc_music_dir}/{file_path_obj.name}'
+                    copyfile(file_path, new_file_path)
+                else: new_file_path = file_path
+                uri_safe = Path(new_file_path).as_uri()[11:]
+                url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
+                thumb = images_dir + f'/{file_path_obj.stem}.png'
+                tags = ID3(file_path)
+                pict = None
+                for tag in tags.keys():
+                    if 'APIC' in tag:
+                        pict = tags[tag]
+                        break
+                if pict is not None:
+                    pict = pict.data
+                    with open(thumb, 'wb') as f: f.write(pict)
+                else: thumb = images_dir + f'/default.png'
+                thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
+                # cast: pychromecast.Chromecast
+                cast.wait(timeout=10)
                 cast.set_volume(volume)
                 mc = cast.media_controller
                 if mc.is_playing or mc.is_paused:
@@ -326,7 +326,7 @@ try:
                 while not mc.is_playing: pass
                 song_start = time.time()
                 song_end = song_start + song_length - position
-            except pychromecast.error.NotConnected:
+            except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
                 return
