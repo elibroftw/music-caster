@@ -28,7 +28,7 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
     elif playing_status == 'PAUSED': pause_play_text = 'Resume'
     else: pause_play_text = 'N/A'
     # Sg.Button('Shuffle', key='Shuffle'),
-    col = [[Sg.Button('Prev', key='Prev'), Sg.Button(pause_play_text, key='Pause/Resume'),
+    col = [[Sg.Button('Shuffle', key='Shuffle'), Sg.Button('Prev', key='Prev'), Sg.Button(pause_play_text, key='Pause/Resume'),
             Sg.Button('Next', key='Next'), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
     tab1_layout = [[Sg.Text(metadata, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
@@ -37,11 +37,15 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
                    [Sg.Column(col, justification='center')],
                    # size = (4, 0)
                    [Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
-                    Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
+                    # Sg.Slider(range=(0, 100), orientation='h', size=(30, 20), key='progressbar'),
+                    Sg.Slider(range=(0, 100), orientation='h', size=(30, 20), key='progressbar', relief=Sg.RELIEF_FLAT),
+                    # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
                     Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
     tab2_layout = [[]]  # should include listbox of songs
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg),
-                             Sg.Tab('Music Queue', tab2_layout, background_color=bg)]], background_color=bg)]]
+                             Sg.Tab('Music Queue', tab2_layout, background_color=bg)]])]]
+    
+    # layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg)]], background_color=bg)]]
     return layout
 
 
@@ -144,8 +148,10 @@ if __name__ == '__main__':
             main_active = False
             main_window.CloseNonBlocking()
             break
+        elif main_event != '__TIMEOUT__': print(main_event)
         if time.time() - progress_start > 1.5:
-            progress_bar.UpdateBar(10 * (min(10, update_times)))
+            progress_bar.Update(value=10 * (min(10, update_times)))
+            # progress_bar.UpdateBar(10 * (min(10, update_times)))
             update_times += 1
             progress_start = time.time()
         main_last_event = main_event
