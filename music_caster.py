@@ -369,6 +369,7 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
+
     def update_song_position():
         global tray, song_position
         if mc is not None:
@@ -501,8 +502,19 @@ try:
             else: main_gui_layout = create_main_gui(music_queue, done_queue, playing_status)
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False)
+            w_music_queue = main_window['music_queue']
+            w_music_queue_songs = []
+            dq_len = len(done_queue)
+            for i in range(dq_len):
+                formatted_item = f'-{dq_len - i} {os.path.basename(done_queue[i])}'
+                w_music_queue_songs.append(formatted_item)
+                # format: #1 Song name - Artist
+            for i, path in enumerate(music_queue):
+                formatted_item = f'{i} {os.path.basename(path)}'
+                w_music_queue_songs.append(formatted_item)
             main_window.Read(timeout=1)
-            main_window.TKroot.focus_force()                                
+            w_music_queue.Update(values=w_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
+            main_window.TKroot.focus_force()
         elif menu_item.split('.')[0].isdigit():  # if user selected a device
             temp = menu_item.split('. ')
             number = temp[0]
@@ -683,6 +695,7 @@ try:
             if playing_status == 'PAUSED' and p_r_button.GetText() == 'Pause': p_r_button.Update(text='Resume')
 
             if playing_status == 'PLAYING':
+                # only update after 1 second
                 metadata = music_meta_data[music_queue[0]]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 new_playing_text = f'{artist} - {title}'
@@ -691,7 +704,8 @@ try:
                     # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 progress_bar = main_window['progressbar']
                 update_song_position()
-                progress_bar.UpdateBar(song_position / song_length * 100)
+                progress_bar.Update(song_position / song_length * 100)
+                # progress_bar.UpdateBar(song_position / song_length * 100)
                 time_left = song_length - song_position
                 mins_elasped, mins_left = round(song_position / 60), round(time_left / 60)
                 secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
@@ -860,6 +874,7 @@ try:
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                            icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
+                pl_selector_window['']
                 pl_selector_window.TKroot.focus_force()
                 # bring back the playlist selector
         if timer_window_active:

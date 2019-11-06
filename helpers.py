@@ -27,25 +27,39 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
     if playing_status == 'PLAYING': pause_play_text = 'Pause'
     elif playing_status == 'PAUSED': pause_play_text = 'Resume'
     else: pause_play_text = 'N/A'
-    # Sg.Button('Shuffle', key='Shuffle'),
-    col = [[Sg.Button('Shuffle', key='Shuffle'), Sg.Button('Prev', key='Prev'), Sg.Button(pause_play_text, key='Pause/Resume'),
-            Sg.Button('Next', key='Next'), Sg.Button('Repeat', key='Repeat')]]
+    music_controls = [[Sg.Button('Shuffle', key='Shuffle'), Sg.Button('Prev', key='Prev'),
+                       Sg.Button(pause_play_text, key='Pause/Resume'),
+                       Sg.Button('Next', key='Next'), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
+    progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
+                            Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
+                                      relief=Sg.RELIEF_FLAT, background_color='#4285f4', disable_number_display=True),
+                            # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
+                            Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
+    
+    # Now Playing layout
     tab1_layout = [[Sg.Text(metadata, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
                             size=(55, 0))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover')] if album_cover_data else [],
-                   [Sg.Column(col, justification='center')],
-                   # size = (4, 0)
-                   [Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
-                    # Sg.Slider(range=(0, 100), orientation='h', size=(30, 20), key='progressbar'),
-                    Sg.Slider(range=(0, 100), orientation='h', size=(30, 20), key='progressbar', relief=Sg.RELIEF_FLAT),
-                    # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
-                    Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
-    tab2_layout = [[]]  # should include listbox of songs
+                   [Sg.Column(music_controls, justification='center')],
+                   [Sg.Column(progress_bar_layout, justification='center')]]
+    # Music Queue layout
+    # music_queue
+    # done_queue
+    songs = []
+    tab2_layout = [[
+        Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
+    ]]
+    col_3 = [
+        [Sg.Button()],
+        [Sg.Button()],
+        [Sg.Button()],
+        [Sg.Button()]
+    ]
+      # TODO: move up, move down, clear, add file, add to up next, remove in a Column
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg)]])]]
-    
-    # layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg)]], background_color=bg)]]
     return layout
 
 
@@ -120,6 +134,7 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
              [Sg.Button('Move down ', key='Move down', font=font_normal, enable_events=True)]
          ], background_color=bg, border_width=0)]]
     return layout
+
 
 
 if __name__ == '__main__':
