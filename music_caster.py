@@ -280,7 +280,6 @@ try:
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
         music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
-        # TODO: add album_art to it as well
         if cast is None:
             mc = None
             sampling_rate = audio_info.sample_rate
@@ -663,7 +662,6 @@ try:
                 main_window.CloseNonBlocking()
             main_last_event = main_event
             if main_event == 'Pause/Resume':
-                # TODO: use images
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
             elif main_event == 'Next': next_song()
