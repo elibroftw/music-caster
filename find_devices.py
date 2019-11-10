@@ -7,8 +7,8 @@ thread_results = []
 threads = []
 
 
-def connect_threaded(hostname, port, thread_index):
-    result = connect(hostname, port)
+def connect_threaded(hostname, port, timeout, thread_index):
+    result = connect(hostname, port, timeout)
     if result: thread_results[thread_index] = hostname
 
 
@@ -20,14 +20,14 @@ def connect(hostname, port, timeout=0.1):
     return result == 0
 
 
-def find_chromecasts():
+def find_chromecasts(timeout=0.1):
     hostname = socket.gethostname()
     ipv4_address = socket.gethostbyname(hostname)
     base = '.'.join(ipv4_address.split('.')[:-1])
     for i in range(256):
         thread_results.append(False)
         res_ip = f'{base}.{i}'
-        t = threading.Thread(target=connect_threaded, args=[res_ip, 8008, i])
+        t = threading.Thread(target=connect_threaded, args=[res_ip, 8008, timeout, i])
         t.start()
         threads.append(t)
     chromecasts = []
