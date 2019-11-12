@@ -127,8 +127,8 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
         Sg.Input(playlist_name, key='playlist_name'),
         Sg.Submit('Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
         Sg.Button('Cancel', key='Cancel', font=font_normal, enable_events=True)],
-        [Sg.Frame('', [[Sg.FilesBrowse('Add files', file_types=(('Audio Files', '*.mp3'),), pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, key='Add files', font=font_normal, enable_events=True)],
-                       [Sg.Button('Remove file', key='Remove file', font=font_normal, enable_events=True)]], background_color=bg, border_width=0),
+        [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),), pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal, enable_events=True)],
+                       [Sg.Button('Remove song', key='Remove song', font=font_normal, enable_events=True)]], background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
