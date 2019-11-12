@@ -94,7 +94,7 @@ def playlist_selector(playlists):
                   font=font_normal, enable_events=True, readonly=True),
          Sg.Button(button_text='Edit', key='edit_pl', enable_events=True, font=font_normal),
          Sg.Button(button_text='Delete', key='del_pl', enable_events=True, font=font_normal),
-         Sg.Button(button_text='Create New Playlist', key='create_pl', enable_events=True, font=font_normal)]]
+         Sg.Button(button_text='New', key='create_pl', enable_events=True, font=font_normal)]]
     return layout
 
 
