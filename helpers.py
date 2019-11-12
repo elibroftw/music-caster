@@ -23,6 +23,7 @@ PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw
 
 def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing Playing', album_cover_data=None, current_progress=0):
     # PLANNING:
+    # TODO: what about the play_next queue?
     # Title: Music Caster
     # Volume control
     # Show playing queue with controls for moving songs around
