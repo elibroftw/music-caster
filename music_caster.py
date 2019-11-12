@@ -754,7 +754,9 @@ try:
                 new_playing_text = 'Nothing Playing'
                 main_window['time_elapsed'].Update(value='00:00')
                 main_window['time_left'].Update(value='00:00')
-            if now_playing_text.DisplayText != new_playing_text: now_playing_text.Update(value=new_playing_text)
+            if now_playing_text.DisplayText != new_playing_text:
+                now_playing_text.Update(value=new_playing_text)
+                # TODO: update music queue listbox
 
 
         # SETTINGS WINDOW
