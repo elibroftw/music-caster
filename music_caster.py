@@ -456,7 +456,7 @@ try:
 
 
     keyboard_command = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-    settings_last_event = None
+    settings_last_event = pl_editor_last_event = None
     open_pl_selector = False
     timer = 0
     settings_active = timer_window_active = playlist_selector_active = playlist_editor_active = False
@@ -729,7 +729,7 @@ try:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
             # if pl_editor_event != '__TIMEOUT__':
             #     print(pl_editor_event)
-            if pl_editor_event in {None, 'Escape:27', 'q', 'Q', 'Cancel'}:
+            if pl_editor_event in {None, 'Escape:27', 'q', 'Q', 'Cancel'} and  pl_editor_last_event != 'Add songs':
                 playlist_editor_active = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
@@ -766,15 +766,17 @@ try:
                         pl_files.insert(new_i, pl_files.pop(index_to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event == 'Add files':
-                new_files = [file.replace('\\', '/') for file in pl_editor_values['Add files'].split(';') if file.endswith('.mp3')]
-                pl_files += new_files
-                pl_editor_window.TKroot.focus_force()
-                # current_songs = pl_editor_window.Element('songs').GetListValues()
-                formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                new_i = len(formatted_songs) - 1  # - len(new_files)
-                pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event == 'Remove file':
+            elif pl_editor_event == 'Add songs':
+                selected_songs =  pl_editor_values['Add songs']
+                if selected_songs:
+                    new_files = [file.replace('\\', '/') for file in selected_songs.split(';') if file.endswith('.mp3')]
+                    pl_files += new_files
+                    pl_editor_window.TKroot.focus_force()
+                    # current_songs = pl_editor_window.Element('songs').GetListValues()
+                    formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                    new_i = len(formatted_songs) - 1  # - len(new_files)
+                    pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+            elif pl_editor_event == 'Remove song':
                 if pl_editor_values['songs']:
                     index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     with suppress(ValueError): pl_files.pop(index_to_rm)
@@ -793,7 +795,7 @@ try:
                                            icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
                 pl_selector_window.TKroot.focus_force()
-                # bring back the playlist selector
+            pl_editor_last_event = pl_editor_event
         if timer_window_active:
             timer_event, timer_values = timer_window.Read(timeout=1)
             if timer_event is None:
