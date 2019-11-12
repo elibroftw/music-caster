@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.16'
+VERSION = '4.17.17'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -686,7 +686,7 @@ try:
             settings_last_event = settings_event
         if playlist_selector_active:
             # TODO: delete key
-            pl_selector_event, pl_selector_values = pl_selector_window.Read()
+            pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
                 playlist_selector_active = False
                 pl_selector_window.CloseNonBlocking()
@@ -725,7 +725,7 @@ try:
                 playlist_selector_active = False
                 playlist_editor_active = True
         if playlist_editor_active:
-            # TODO: delete key
+            # TODO: handle delete key
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
             # if pl_editor_event != '__TIMEOUT__':
             #     print(pl_editor_event)
