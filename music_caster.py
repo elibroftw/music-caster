@@ -252,10 +252,9 @@ try:
     music_meta_data = {}  # file: {artist: str, title: str}
     mc = None
     song_end = song_length = song_start = 0  # seconds but using time()
-    song_position = 0  # also seconds but relative to length of song
+    progress_bar_last_update = song_position = 0  # also seconds but relative to length of song
     playing_status = 'NOT PLAYING'
-    cast_last_checked = time.time()
-    settings_last_loaded = time.time()
+    settings_last_loaded = cast_last_checked = time.time()
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
@@ -319,7 +318,7 @@ try:
                     with open(thumb, 'wb') as f: f.write(pict)
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-                # cast: pychromecast.Chromecast
+                
                 cast.wait(timeout=10)
                 cast.set_volume(volume)
                 mc = cast.media_controller
@@ -344,6 +343,15 @@ try:
         cast_last_checked = time.time()
 
 
+    def play_all():
+        music_queue.clear()
+        for directory in music_directories:
+            music_queue.extend(file for file in glob(f'{directory}/*.mp3'))
+        if music_queue:
+            shuffle(music_queue)
+            done_queue.clear()
+            play_file(music_queue[0])
+            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     # def get_album_cover(file_path):
     #     file_path_obj = Path(file_path)
     #     thumb = images_dir + f'/{file_path_obj.stem}.png'
@@ -417,7 +425,8 @@ try:
 
 
     def stop():
-        global playing_status, cast
+        global playing_status, cast, song_position, time_left
+        print('test 1')
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
         playing_status = 'NOT PLAYING'
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
@@ -457,10 +466,11 @@ try:
         elif str(key) == '<177>': keyboard_command = 'Previous Song'
         elif str(key) == '<178>': keyboard_command = 'Stop'
 
-
+    # INITIALIZE VARIABLES
     keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
     main_last_event = settings_last_event = None
-    open_pl_selector = False
+    open_pl_selector = update_progess_text = False
+    new_playing_text = 'Nothing Playing'
     timer = 0
     main_active = settings_active = timer_window_active = playlist_selector_active = playlist_editor_active = False
     pl_name = ''
@@ -514,6 +524,8 @@ try:
                 w_music_queue_songs.append(formatted_item)
             main_window.Read(timeout=1)
             w_music_queue.Update(values=w_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
+            p_r_button: Sg.Button = main_window['Pause/Resume']
+            p_r_button.playing_status = playing_status
             main_window.TKroot.focus_force()
         elif menu_item.split('.')[0].isdigit():  # if user selected a device
             temp = menu_item.split('. ')
@@ -612,15 +624,15 @@ try:
                 shuffle(music_queue)
                 music_queue.insert(0, path_to_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
-        elif menu_item == 'Play All':
-            music_queue.clear()
-            for directory in music_directories:
-                music_queue.extend(file for file in glob(f'{directory}/*.mp3'))
-            if music_queue:
-                shuffle(music_queue)
-                done_queue.clear()
-                play_file(music_queue[0])
-                tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+        elif menu_item == 'Play All': play_all()
+            # music_queue.clear()
+            # for directory in music_directories:
+            #     music_queue.extend(file for file in glob(f'{directory}/*.mp3'))
+            # if music_queue:
+            #     shuffle(music_queue)
+            #     done_queue.clear()
+            #     play_file(music_queue[0])
+            #     tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play a File Next':
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
@@ -664,7 +676,7 @@ try:
         
         # MAIN WINDOW
         if main_active:
-            main_event, main_values = main_window.Read(timeout=5)
+            main_event, main_values = main_window.Read(timeout=1)
             if main_event is None:
                 main_active = False
                 main_window.CloseNonBlocking()
@@ -676,6 +688,8 @@ try:
             if main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
+                elif playing_status == 'NOT PLAYING' and music_queue: play_file(music_queue[0])
+                else: play_all()
             elif main_event == 'Next': next_song()
             elif main_event == 'Prev': previous()
             elif main_event == 'Shuffle':
@@ -688,35 +702,64 @@ try:
                 if notifications_enabled:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
-
-            p_r_button = main_window['Pause/Resume']
-            now_playing_text: Sg.Text = main_window['now_playing']
-            if playing_status == 'PLAYING' and p_r_button.GetText() == 'Resume': p_r_button.Update(text='Pause')
-            if playing_status == 'PAUSED' and p_r_button.GetText() == 'Pause': p_r_button.Update(text='Resume')
-
-            if playing_status == 'PLAYING':
+            elif main_event == 'progressbar':
+                if playing_status == 'Stop':
+                    # TODO: disable progressbar when nothing is playing
+                    continue
+                new_position = main_values['progressbar'] / 100 * song_length
+                song_position = new_position
+                if cast is not None:
+                    cast.media_controller.seek(new_position)
+                else:
+                    local_music_player.music.rewind()
+                    local_music_player.music.set_pos(new_position)
+                    # local_music_player.music.set_pos(new_position - song_position)
+                    # song_position = new_position
+                time_left = song_length - song_position
+                song_end = time.time() + song_length - song_position
+                song_start = song_end - song_length
+                update_progess_text = True
+            elif playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
                 # only update after 1 second
+                progress_bar_last_update = time.time()
                 metadata = music_meta_data[music_queue[0]]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 new_playing_text = f'{artist} - {title}'
-                if now_playing_text.DisplayText != new_playing_text:
-                    now_playing_text.Update(value=new_playing_text)
-                    # main_window['album_cover'].Update(data=metadata['album_cover_data'])
+                # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 progress_bar = main_window['progressbar']
                 update_song_position()
                 progress_bar.Update(song_position / song_length * 100)
                 # progress_bar.UpdateBar(song_position / song_length * 100)
                 time_left = song_length - song_position
+                update_progess_text = True
+            if update_progess_text:
                 mins_elasped, mins_left = round(song_position / 60), round(time_left / 60)
                 secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
                 if secs_left < 10: secs_left = f'0{secs_left}'
                 if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
                 main_window['time_elapsed'].Update(value=f'{mins_elasped}:{secs_elapsed}')
                 main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
+                update_progess_text = False
+            p_r_button = main_window['Pause/Resume']
+            now_playing_text = main_window['now_playing']
+            if playing_status == 'PLAYING' and p_r_button.playing_status != 'PLAYING':
+                p_r_button.playing_status = 'PLAYING'
+                p_r_button.Update(image_data=PAUSE_BUTTON_IMG)
+            elif playing_status == 'PAUSED' and p_r_button.playing_status != 'PAUSED':
+                p_r_button.playing_status = 'PAUSED'
+                p_r_button.Update(image_data=PLAY_BUTTON_IMG)
+            elif playing_status == 'NOT PLAYING' and p_r_button.playing_status != 'NOT PLAYING':
+                if p_r_button.playing_status == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
+                p_r_button.playing_status = 'NOT PLAYING'
+                new_playing_text = 'Nothing Playing'
+                main_window['time_elapsed'].Update(value='00:00')
+                main_window['time_left'].Update(value='00:00')
+            if now_playing_text.DisplayText != new_playing_text: now_playing_text.Update(value=new_playing_text)
+
 
         # SETTINGS WINDOW
         if settings_active:
-            settings_event, settings_values = settings_window.Read(timeout=5)
+            settings_event, settings_values = settings_window.Read(timeout=1)
             if settings_event is None:
                 settings_active = False
                 settings_window.CloseNonBlocking()
@@ -768,7 +811,7 @@ try:
             settings_last_event = settings_event
         if playlist_selector_active:
             # TODO: delete key
-            pl_selector_event, pl_selector_values = pl_selector_window.Read()
+            pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
                 playlist_selector_active = False
                 pl_selector_window.CloseNonBlocking()

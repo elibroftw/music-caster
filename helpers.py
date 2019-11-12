@@ -19,6 +19,7 @@ NEXT_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6
 PREVIOUS_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAdhJREFUSIm1lj2vKVEUhp8z0VLIiMRXQSPxUY2oRCGiJUq1QiIRiZbaUWgEvYbePyAamaBAh2bOVUg0EhqJ21xzMzfHdUbMm0wys9Ze69lv9sze82G1Wr8AM8bpZAIcBgIAzCbgBJjtdjsWi0XNXC4XFEV5qavb7cbj8TCZTOCPEwBKpRLZbFYdKMsyuVxON8Dj8dDv91EU5Q5BuCftdjuiKKqXy+XSDSgUCsznc/x+P8fjUY2rTs7ns6bgdDr9uLnP56PVahGNRtXY9XpV74XvivSoUqkwnU41gH9leph5okAgQKfTIRgMPh37kpNarcZoNPoRAHQ6kSSJbreL1+vVNamHEEHQmqzX6+TzeV3Nn0Ku1yuCIJBIJGg2mzgcr28MDyGKohAOhxkMBi83v+vhwrvdbhaLBZlMhu12awzkviaj0YhIJEK73X4/5Ha7aZ5rtRrJZJLlcvk+yHeazWbE43EajYZxkLs+Pz+JxWLIsmwcBGC9XpNKpahWq8ZB7up0OkiSxHg8Ng4CsNvtSKfTlMtl9YUxmf5+girEZrNpCp1Op25Yr9cjFAqxWq0QRVGNq7jhcMjhcFATm81GNwRgv99TLBY1J+uH1Wq9/afmLTIBvzD4v+s3geuMP4PEmxwAAAAASUVORK5CYII='
 PLAY_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAPFJREFUSIm1lrFthTAYBu890b7GuMooMAMWzALjgGABU8EIsEnSuKREIqksISUQg5+vNfrvu46HEOITeBGOJQI+AgoAXk9gCSxZnkcvbdsipXyL5VCilGKaJvI8DycBkFLSNI131anE4lvlJAG/KmeJRSnFPM8URRFOAhDHMXVd03WdU9UtiSXLMqcqLwm4VXlLLGdVb5MAbNvGuq7hJH3fk6YpwzD8eot8jxtjqKrqz+MWrxKt9eH6PbdKjDGUZck4jk7fXy7RWpMkibMALpRcXb/HqeTO+j2nJT7r9xyW+K7f8xBCfHtf+YcI+CLwf9cPX0FmElVF/McAAAAASUVORK5CYII='
 PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAGdJREFUSInt1jEKgDAMheG/oWs7pJv3v1cn3bKYCziLgihkEPK2hAdfxhRVXYFGXLwCSyAA0ATwYMTr3dbMTvMY49LpvTPnfOwByNfz3iSRRBJJJJFEfoMUVd0J/lYkGABoFdiCIT8AdVMOh/30v2kAAAAASUVORK5CYII='
+# TODO: STOP BUTTOn
 
 def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing Playing', album_cover_data=None, current_progress=0):
     # PLANNING:
@@ -27,16 +28,13 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
     # Show playing queue with controls for moving songs around
     # Show Current playing with it's album art, use default album art if one does not exist
     # Have a scrubber (if the scrubber is 1 sec off from variable, then call play_file() with new value)
-    if playing_status == 'PLAYING': pause_play_text = 'Pause'
-    elif playing_status == 'PAUSED': pause_play_text = 'Resume'
-    else: pause_play_text = 'N/A'
     PAUSE_RESUME_BUTTON_IMG = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     music_controls = [[Sg.Button('Shuffle', key='Shuffle'), Sg.Button(key='Prev', image_data=PREVIOUS_BUTTON_IMG),
                        Sg.Button(key='Pause/Resume', image_data=PAUSE_RESUME_BUTTON_IMG, size=(10, 10)),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
-                            Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
+                            Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar', enable_events=True,
                                       relief=Sg.RELIEF_FLAT, background_color='#4285f4', disable_number_display=True),
                             # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
                             Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
