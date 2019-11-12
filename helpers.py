@@ -101,8 +101,8 @@ def playlist_selector(playlists):
 
 def playlist_editor(initial_folder, playlists, playlist_name=''):
     paths = playlists.get(playlist_name, [])
-    songs = [
-        f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
+    songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
+    # TODO: remove .mp3
     layout = [[
         Sg.Text('Playlist name', text_color=fg,
                 background_color=bg, font=font_normal),
