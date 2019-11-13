@@ -274,6 +274,7 @@ try:
             artist = ', '.join(artist)
             album = EasyID3(file_path).get('album', 'Unknown')
         except Exception as e:
+            print(e)
             title = artist = album = 'Unknown'
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
@@ -282,8 +283,9 @@ try:
         if cast is None:
             mc = None
             sampling_rate = audio_info.sample_rate
-            local_music_player.quit()
-            local_music_player.init(sampling_rate, -16, 2, 2048)
+            if local_music_player.get_init()[0] != sampling_rate:
+                local_music_player.quit()
+                local_music_player.init(sampling_rate, -16, 2, 2048)
             local_music_player.music.load(file_path)
             local_music_player.music.set_volume(volume)
             local_music_player.music.play(start=position)
