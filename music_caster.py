@@ -739,7 +739,6 @@ try:
                 # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 update_progress_text = False
 
-
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
             update_text = now_playing_text.DisplayText != new_playing_text
@@ -825,12 +824,12 @@ try:
             if pl_selector_event == 'del_pl':
                 pl_name = pl_selector_values.get('pl_selector', '')
                 if pl_name in playlists: del playlists[pl_name]
-                new_values = list(playlists.keys())
-                value = new_values[0] if new_values else ''
+                # new_values = list(playlists.keys())
+                # value = new_values[0] if new_values else ''
                 # pl_selector_window.Element('pl_selector').Update(value=value, values=new_values)
                 pl_selector_window.CloseNonBlocking()
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
-                                           icon=WINDOW_ICON, return_keyboard_events=True)
+                                               icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
                 pl_selector_window.TKroot.focus_force()
                 save_json()
@@ -898,7 +897,7 @@ try:
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event == 'Add songs':
-                selected_songs =  pl_editor_values['Add songs']
+                selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
                     new_files = [file.replace('\\', '/') for file in selected_songs.split(';') if file.endswith('.mp3')]
                     pl_files += new_files
@@ -923,9 +922,8 @@ try:
                 open_pl_selector = False
                 playlist_selector_active = True
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
-                                           icon=WINDOW_ICON, return_keyboard_events=True)
+                                               icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
-                pl_selector_window['']
                 pl_selector_window.TKroot.focus_force()
             pl_editor_last_event = pl_editor_event
         if timer_window_active:
