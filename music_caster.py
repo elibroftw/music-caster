@@ -426,7 +426,6 @@ try:
 
     def stop():
         global playing_status, cast, song_position, time_left
-        print('test 1')
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
         playing_status = 'NOT PLAYING'
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
@@ -685,8 +684,8 @@ try:
                 elif playing_status == 'PLAYING': pause()
                 elif playing_status == 'NOT PLAYING' and music_queue: play_file(music_queue[0])
                 else: play_all()
-            elif main_event == 'Next' and playing_status != 'NOT PLAYING': next_song()
-            elif main_event == 'Prev' and playing_status != 'NOT PLAYING': previous()
+            elif main_event == 'Next' and playing_status != 'NOT PLAYING': next_song(); progress_bar_last_update = 0
+            elif main_event == 'Prev' and playing_status != 'NOT PLAYING': previous(); progress_bar_last_update = 0
             elif main_event == 'Shuffle':
                 # TODO: just shuffle music queue
                 pass
@@ -695,7 +694,7 @@ try:
                 if notifications_enabled:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
-            elif main_event == 'progressbar':
+            if main_event == 'progressbar':
                 if playing_status == 'Stop':
                     # TODO: disable progressbar when nothing is playing
                     continue
@@ -713,18 +712,15 @@ try:
                 song_start = song_end - song_length
                 update_progress_text = True
             elif playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
-                # only update after 1 second
-                progress_bar_last_update = time.time()
                 metadata = music_meta_data[music_queue[0]]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 new_playing_text = f'{artist} - {title}'
-                # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 progress_bar = main_window['progressbar']
                 update_song_position()
                 progress_bar.Update(song_position / song_length * 100)
-                # progress_bar.UpdateBar(song_position / song_length * 100)
                 time_left = song_length - song_position
                 update_progress_text = True
+                progress_bar_last_update = time.time()
             if update_progress_text:
                 mins_elapsed, mins_left = round(song_position / 60), round(time_left / 60)
                 secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
@@ -732,7 +728,11 @@ try:
                 if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
                 main_window['time_elapsed'].Update(value=f'{mins_elapsed}:{secs_elapsed}')
                 main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
+                metadata = music_meta_data[music_queue[0]]
+                main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 update_progress_text = False
+
+
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
             update_text = now_playing_text.DisplayText != new_playing_text
