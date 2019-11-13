@@ -469,7 +469,7 @@ try:
     # INITIALIZE VARIABLES
     keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
     main_last_event = settings_last_event = pl_editor_last_event = None
-    open_pl_selector = update_progess_text = False
+    open_pl_selector = update_progress_text = False
     new_playing_text = 'Nothing Playing'
     timer = 0
     main_active = settings_active = timer_window_active = playlist_selector_active = playlist_editor_active = False
@@ -722,7 +722,7 @@ try:
                 time_left = song_length - song_position
                 song_end = time.time() + song_length - song_position
                 song_start = song_end - song_length
-                update_progess_text = True
+                update_progress_text = True
             elif playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
                 # only update after 1 second
                 progress_bar_last_update = time.time()
@@ -735,15 +735,15 @@ try:
                 progress_bar.Update(song_position / song_length * 100)
                 # progress_bar.UpdateBar(song_position / song_length * 100)
                 time_left = song_length - song_position
-                update_progess_text = True
-            if update_progess_text:
-                mins_elasped, mins_left = round(song_position / 60), round(time_left / 60)
+                update_progress_text = True
+            if update_progress_text:
+                mins_elapsed, mins_left = round(song_position / 60), round(time_left / 60)
                 secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
                 if secs_left < 10: secs_left = f'0{secs_left}'
                 if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
-                main_window['time_elapsed'].Update(value=f'{mins_elasped}:{secs_elapsed}')
+                main_window['time_elapsed'].Update(value=f'{mins_elapsed}:{secs_elapsed}')
                 main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
-                update_progess_text = False
+                update_progress_text = False
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
             if playing_status == 'PLAYING' and p_r_button.playing_status != 'PLAYING':
@@ -762,9 +762,9 @@ try:
                 now_playing_text.Update(value=new_playing_text)
                 # TODO: update music queue listbox
 
-
         # SETTINGS WINDOW
         if settings_active:
+            # TODO: handle delete key
             settings_event, settings_values = settings_window.Read(timeout=1)
             if settings_event is None:
                 settings_active = False
