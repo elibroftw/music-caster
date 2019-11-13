@@ -734,7 +734,7 @@ try:
                 main_window['time_elapsed'].Update(value=f'{mins_elapsed}:{secs_elapsed}')
                 main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
                 metadata = music_meta_data[music_queue[0]]
-                main_window['album_cover'].Update(data=metadata['album_cover_data'])
+                # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 update_progress_text = False
 
 
