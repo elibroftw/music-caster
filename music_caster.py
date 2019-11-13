@@ -363,6 +363,7 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
+
     def update_song_position():
         global tray, song_position
         if mc is not None:
@@ -418,7 +419,7 @@ try:
 
 
     def next_song(from_timeout=False):
-        global playing_status, music_queue
+        global playing_status
         if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
             if not settings['repeat'] or not from_timeout or not music_queue:
@@ -428,7 +429,7 @@ try:
                 if next_queue: music_queue.insert(0, next_queue.pop(0))
             if music_queue: play_file(music_queue[0])
             elif done_queue:
-                music_queue = done_queue.copy()
+                music_queue.extend(done_queue)
                 done_queue.clear()
                 play_file(music_queue[0])
             else: stop()
