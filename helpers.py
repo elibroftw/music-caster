@@ -19,19 +19,20 @@ NEXT_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6
 PREVIOUS_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAdhJREFUSIm1lj2vKVEUhp8z0VLIiMRXQSPxUY2oRCGiJUq1QiIRiZbaUWgEvYbePyAamaBAh2bOVUg0EhqJ21xzMzfHdUbMm0wys9Ze69lv9sze82G1Wr8AM8bpZAIcBgIAzCbgBJjtdjsWi0XNXC4XFEV5qavb7cbj8TCZTOCPEwBKpRLZbFYdKMsyuVxON8Dj8dDv91EU5Q5BuCftdjuiKKqXy+XSDSgUCsznc/x+P8fjUY2rTs7ns6bgdDr9uLnP56PVahGNRtXY9XpV74XvivSoUqkwnU41gH9leph5okAgQKfTIRgMPh37kpNarcZoNPoRAHQ6kSSJbreL1+vVNamHEEHQmqzX6+TzeV3Nn0Ku1yuCIJBIJGg2mzgcr28MDyGKohAOhxkMBi83v+vhwrvdbhaLBZlMhu12awzkviaj0YhIJEK73X4/5Ha7aZ5rtRrJZJLlcvk+yHeazWbE43EajYZxkLs+Pz+JxWLIsmwcBGC9XpNKpahWq8ZB7up0OkiSxHg8Ng4CsNvtSKfTlMtl9YUxmf5+girEZrNpCp1Op25Yr9cjFAqxWq0QRVGNq7jhcMjhcFATm81GNwRgv99TLBY1J+uH1Wq9/afmLTIBvzD4v+s3geuMP4PEmxwAAAAASUVORK5CYII='
 PLAY_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAPFJREFUSIm1lrFthTAYBu890b7GuMooMAMWzALjgGABU8EIsEnSuKREIqksISUQg5+vNfrvu46HEOITeBGOJQI+AgoAXk9gCSxZnkcvbdsipXyL5VCilGKaJvI8DycBkFLSNI131anE4lvlJAG/KmeJRSnFPM8URRFOAhDHMXVd03WdU9UtiSXLMqcqLwm4VXlLLGdVb5MAbNvGuq7hJH3fk6YpwzD8eot8jxtjqKrqz+MWrxKt9eH6PbdKjDGUZck4jk7fXy7RWpMkibMALpRcXb/HqeTO+j2nJT7r9xyW+K7f8xBCfHtf+YcI+CLwf9cPX0FmElVF/McAAAAASUVORK5CYII='
 PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAGdJREFUSInt1jEKgDAMheG/oWs7pJv3v1cn3bKYCziLgihkEPK2hAdfxhRVXYFGXLwCSyAA0ATwYMTr3dbMTvMY49LpvTPnfOwByNfz3iSRRBJJJJFEfoMUVd0J/lYkGABoFdiCIT8AdVMOh/30v2kAAAAASUVORK5CYII='
-# TODO: STOP BUTTOn
+# TODO: right click menus for list boxes
 
-def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing Playing', album_cover_data=None, current_progress=0):
+
+def create_main_gui(music_queue, done_queue, next_queue, playing_status,
+                    now_playing_text='Nothing Playing', album_cover_data=None):
     # PLANNING:
-    # TODO: what about the play_next queue?
     # Title: Music Caster
     # Volume control
     # Show playing queue with controls for moving songs around
     # Show Current playing with it's album art, use default album art if one does not exist
     # Have a scrubber (if the scrubber is 1 sec off from variable, then call play_file() with new value)
-    PAUSE_RESUME_BUTTON_IMG = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
+    pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     music_controls = [[Sg.Button('Shuffle', key='Shuffle'), Sg.Button(key='Prev', image_data=PREVIOUS_BUTTON_IMG),
-                       Sg.Button(key='Pause/Resume', image_data=PAUSE_RESUME_BUTTON_IMG, size=(10, 10)),
+                       Sg.Button(key='Pause/Resume', image_data=pause_resume_img, size=(10, 10)),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
@@ -41,18 +42,41 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
                             Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
     
     # Now Playing layout
-    tab1_layout = [[Sg.Text(metadata, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
+    tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
                             size=(55, 0))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover')] if album_cover_data else [],
                    [Sg.Column(music_controls, justification='center')],
                    [Sg.Column(progress_bar_layout, justification='center')]]
     # Music Queue layout
-    # music_queue
-    # done_queue
     songs = []
+    dq_len = len(done_queue)
+    mq_start = len(next_queue) + 1
+    selected_value = None
+    # format: Index. Song Name.mp3 (TODO: remove extension)
+    for i, path in enumerate(done_queue):
+        base = os.path.basename(path)
+        base = os.path.splitext(base)[0]
+        formatted_item = f'-{dq_len - i}. {base}'
+        songs.append(formatted_item)
+    if music_queue:
+        base = os.path.basename(music_queue[0])
+        base = os.path.splitext(base)[0]
+        formatted_item = f' {0}. {os.path.basename(base)}'
+        songs.append(formatted_item)
+        selected_value = formatted_item
+    for i, path in enumerate(next_queue):
+        base = os.path.basename(path)
+        base = os.path.splitext(base)[0]
+        formatted_item = f' {i + 1}. {os.path.basename(base)}'
+        songs.append(formatted_item)
+    for i, path in enumerate(music_queue[1:]):
+        base = os.path.basename(path)
+        base = os.path.splitext(base)[0]
+        formatted_item = f' {i + mq_start}. {base}'
+        songs.append(formatted_item)
     tab2_layout = [[
-        Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
+        Sg.Listbox(songs, default_values=selected_value, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+                   key='music_queue', background_color=bg, font=font_normal, enable_events=True),
     ]]
     col_3 = [
         [Sg.Button()],
@@ -60,7 +84,7 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
         [Sg.Button()],
         [Sg.Button()]
     ]
-      # TODO: move up, move down, clear, add file, add to up next, remove in a Column
+    # TODO: move up, move down, clear, add file, add to up next, remove in a Column
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg)]])]]
     return layout
@@ -139,17 +163,16 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
     return layout
 
 
-
 if __name__ == '__main__':
     # TESTS
     import time
     metadata = 'Gabriel & Dresden - This Love Kills Me (Gabriel & Dresden Club Mix - Above & Beyond Respray)'
-    music_queue = [r"C:\Users\maste\Music\Adam K & Soha - Twilight.mp3",
+    mq = [r"C:\Users\maste\Music\Adam K & Soha - Twilight.mp3",
                    r"C:\Users\maste\Music\Arkham Knights - Knightvision.mp3"]
-    done_queue = [r"C:\Users\maste\Music\Afrojack, Eva Simons - Take Over Control.mp3",
+    dq = [r"C:\Users\maste\Music\Afrojack, Eva Simons - Take Over Control.mp3",
                   r"C:\Users\maste\Music\Alex H - And There I Was.mp3"]
     p_status = 'NOT_PLAYING'  # PLAYING, PAUSED
-    main_window = Sg.Window('Music Caster', create_main_gui(music_queue, done_queue, 'NOT_PLAYING', metadata),
+    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, 'NOT_PLAYING', metadata),
                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
     main_last_event = ''
     update_times = 0

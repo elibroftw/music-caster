@@ -507,23 +507,25 @@ try:
                 # album_cover_data = metadata['album_cover_data']
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 new_playing_text = f'{artist} - {title}'
-                # main_gui_layout = create_main_gui(music_queue, done_queue, playing_status, new_playing_text, album_cover_data=album_cover_data)
-                main_gui_layout = create_main_gui(music_queue, done_queue, playing_status, new_playing_text)
-            else: main_gui_layout = create_main_gui(music_queue, done_queue, playing_status)
+                # main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
+                #                                   new_playing_text, album_cover_data=album_cover_data)
+                main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status, new_playing_text)
+            else: main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status)
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False)
             w_music_queue = main_window['music_queue']
-            w_music_queue_songs = []
+            # w_music_queue_songs = []
             dq_len = len(done_queue)
-            for i in range(dq_len):
-                formatted_item = f'-{dq_len - i} {os.path.basename(done_queue[i])}'
-                w_music_queue_songs.append(formatted_item)
-                # format: #1 Song name - Artist
-            for i, path in enumerate(music_queue):
-                formatted_item = f'{i} {os.path.basename(path)}'
-                w_music_queue_songs.append(formatted_item)
+            nq_len = len(next_queue)
+            # for i in range(dq_len):
+            #     formatted_item = f'-{dq_len - i} {os.path.basename(done_queue[i])}'
+            #     w_music_queue_songs.append(formatted_item)
+            #     # format: #1 Song name - Artist
+            # for i, path in enumerate(music_queue):
+            #     formatted_item = f'{i} {os.path.basename(path)}'
+            #     w_music_queue_songs.append(formatted_item)
             main_window.Read(timeout=1)
-            w_music_queue.Update(values=w_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
+            w_music_queue.Update(set_to_index=dq_len, scroll_to_index=dq_len)
             p_r_button: Sg.Button = main_window['Pause/Resume']
             p_r_button.playing_status = playing_status
             main_window.TKroot.focus_force()
@@ -636,7 +638,7 @@ try:
         elif menu_item == 'Play a File Next':
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
-                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
                 path_to_file = fd.GetPath()
                 next_queue.append(path_to_file)
@@ -690,8 +692,8 @@ try:
                 elif playing_status == 'PLAYING': pause()
                 elif playing_status == 'NOT PLAYING' and music_queue: play_file(music_queue[0])
                 else: play_all()
-            elif main_event == 'Next': next_song()
-            elif main_event == 'Prev': previous()
+            elif main_event == 'Next' and playing_status != 'NOT PLAYING': next_song()
+            elif main_event == 'Prev' and playing_status != 'NOT PLAYING': previous()
             elif main_event == 'Shuffle':
                 shuffle_setting = change_settings('shuffle_playlists', not settings['shuffle_playlists'])
                 if notifications_enabled:
