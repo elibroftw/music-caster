@@ -514,16 +514,7 @@ try:
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False)
             w_music_queue = main_window['music_queue']
-            # w_music_queue_songs = []
             dq_len = len(done_queue)
-            nq_len = len(next_queue)
-            # for i in range(dq_len):
-            #     formatted_item = f'-{dq_len - i} {os.path.basename(done_queue[i])}'
-            #     w_music_queue_songs.append(formatted_item)
-            #     # format: #1 Song name - Artist
-            # for i, path in enumerate(music_queue):
-            #     formatted_item = f'{i} {os.path.basename(path)}'
-            #     w_music_queue_songs.append(formatted_item)
             main_window.Read(timeout=1)
             w_music_queue.Update(set_to_index=dq_len, scroll_to_index=dq_len)
             p_r_button: Sg.Button = main_window['Pause/Resume']
@@ -697,10 +688,8 @@ try:
             elif main_event == 'Next' and playing_status != 'NOT PLAYING': next_song()
             elif main_event == 'Prev' and playing_status != 'NOT PLAYING': previous()
             elif main_event == 'Shuffle':
-                shuffle_setting = change_settings('shuffle_playlists', not settings['shuffle_playlists'])
-                if notifications_enabled:
-                    if shuffle_setting: tray.ShowMessage('Music Caster', 'Playlist shuffling on')
-                    else: tray.ShowMessage('Music Caster', 'Playlist shuffling off')
+                # TODO: just shuffle music queue
+                pass
             elif main_event == 'Repeat':
                 repeat_setting = change_settings('repeat', not settings['repeat'])
                 if notifications_enabled:
@@ -746,6 +735,10 @@ try:
                 update_progress_text = False
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
+            update_text = now_playing_text.DisplayText != new_playing_text
+            lb_music_queue: Sg.Listbox = main_window['music_queue']
+            dq_len = len(done_queue)
+            update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
             if playing_status == 'PLAYING' and p_r_button.playing_status != 'PLAYING':
                 p_r_button.playing_status = 'PLAYING'
                 p_r_button.Update(image_data=PAUSE_BUTTON_IMG)
@@ -754,13 +747,13 @@ try:
                 p_r_button.Update(image_data=PLAY_BUTTON_IMG)
             elif playing_status == 'NOT PLAYING' and p_r_button.playing_status != 'NOT PLAYING':
                 if p_r_button.playing_status == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
-                p_r_button.playing_status = 'NOT PLAYING'
-                new_playing_text = 'Nothing Playing'
+                p_r_button.playing_status, new_playing_text, update_text = 'NOT PLAYING', 'Nothing Playing', True
                 main_window['time_elapsed'].Update(value='00:00')
                 main_window['time_left'].Update(value='00:00')
-            if now_playing_text.DisplayText != new_playing_text:
-                now_playing_text.Update(value=new_playing_text)
-                # TODO: update music queue listbox
+            if update_text: now_playing_text.Update(value=new_playing_text)
+            if update_text or update_lb_mq:
+                lb_music_queue_songs, _ = create_songs_list(music_queue, done_queue, next_queue)
+                lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
 
         # SETTINGS WINDOW
         if settings_active:

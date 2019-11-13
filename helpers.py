@@ -22,6 +22,38 @@ PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw
 # TODO: right click menus for list boxes
 
 
+def create_songs_list(music_queue, done_queue, next_queue):
+    # TODO: use metadata and song names or just one artist name
+    """:returns the formatted song queue, and the selected value (currently playing)"""
+    songs = []
+    dq_len = len(done_queue)
+    mq_start = len(next_queue) + 1
+    selected_value = None
+    # format: Index. Artists - Song Name
+    for i, path in enumerate(done_queue):
+        base = os.path.basename(path)
+        base = os.path.splitext(base)[0]
+        formatted_item = f'-{dq_len - i}. {base}'
+        songs.append(formatted_item)
+    if music_queue:
+        base = os.path.basename(music_queue[0])
+        base = os.path.splitext(base)[0]
+        formatted_item = f' {0}. {base}'
+        songs.append(formatted_item)
+        selected_value = formatted_item
+    for i, path in enumerate(next_queue):
+        base = os.path.basename(path)
+        base = os.path.splitext(base)[0]
+        formatted_item = f' {i + 1}. {base}'
+        songs.append(formatted_item)
+    for i, path in enumerate(music_queue[1:]):
+        base = os.path.basename(path)
+        base = os.path.splitext(base)[0]
+        formatted_item = f' {i + mq_start}. {base}'
+        songs.append(formatted_item)
+    return songs, selected_value
+
+
 def create_main_gui(music_queue, done_queue, next_queue, playing_status,
                     now_playing_text='Nothing Playing', album_cover_data=None):
     # PLANNING:
@@ -31,7 +63,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
     # Show Current playing with it's album art, use default album art if one does not exist
     # Have a scrubber (if the scrubber is 1 sec off from variable, then call play_file() with new value)
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
-    music_controls = [[Sg.Button('Shuffle', key='Shuffle'), Sg.Button(key='Prev', image_data=PREVIOUS_BUTTON_IMG),
+    # Sg.Button('Shuffle', key='Shuffle'),
+    music_controls = [[Sg.Button(key='Prev', image_data=PREVIOUS_BUTTON_IMG),
                        Sg.Button(key='Pause/Resume', image_data=pause_resume_img, size=(10, 10)),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
@@ -48,34 +81,9 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
                    [Sg.Column(music_controls, justification='center')],
                    [Sg.Column(progress_bar_layout, justification='center')]]
     # Music Queue layout
-    songs = []
-    dq_len = len(done_queue)
-    mq_start = len(next_queue) + 1
-    selected_value = None
-    # format: Index. Song Name.mp3 (TODO: remove extension)
-    for i, path in enumerate(done_queue):
-        base = os.path.basename(path)
-        base = os.path.splitext(base)[0]
-        formatted_item = f'-{dq_len - i}. {base}'
-        songs.append(formatted_item)
-    if music_queue:
-        base = os.path.basename(music_queue[0])
-        base = os.path.splitext(base)[0]
-        formatted_item = f' {0}. {os.path.basename(base)}'
-        songs.append(formatted_item)
-        selected_value = formatted_item
-    for i, path in enumerate(next_queue):
-        base = os.path.basename(path)
-        base = os.path.splitext(base)[0]
-        formatted_item = f' {i + 1}. {os.path.basename(base)}'
-        songs.append(formatted_item)
-    for i, path in enumerate(music_queue[1:]):
-        base = os.path.basename(path)
-        base = os.path.splitext(base)[0]
-        formatted_item = f' {i + mq_start}. {base}'
-        songs.append(formatted_item)
+    songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     tab2_layout = [[
-        Sg.Listbox(songs, default_values=selected_value, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
     ]]
     col_3 = [
