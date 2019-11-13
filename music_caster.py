@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.18'
+VERSION = '4.17.19'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -615,9 +615,10 @@ try:
             elif settings['timer_sleep_computer']:
                 if sys.platform == 'win32': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
                 else: pass  # NOTE: Music Caster is developed on Windows, mainly for Windows
-        elif 'Next Song' in {menu_item, keyboard_command} or playing_status == 'PLAYING' and time.time() > song_end:
+        elif ('Next Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING'
+              or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
-        elif 'Previous Song' in {menu_item, keyboard_command}: previous()
+        elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': previous()
         elif menu_item == 'Repeat':
             repeat_setting = change_settings('repeat', not settings['repeat'])
             if notifications_enabled:
