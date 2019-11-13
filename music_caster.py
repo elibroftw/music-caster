@@ -434,7 +434,8 @@ try:
 
     def next_song(from_timeout=False):
         global playing_status
-        if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
+        if cast is not None and cast.app_id != 'CC1AD845':
+            playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
             if not settings['repeat'] or not from_timeout or not music_queue:
                 settings['repeat'] = False
@@ -442,6 +443,10 @@ try:
                 if music_queue: done_queue.append(music_queue.pop(0))
                 if next_queue: music_queue.insert(0, next_queue.pop(0))
             if music_queue: play_file(music_queue[0])
+            elif done_queue:
+                music_queue.extend(done_queue)
+                done_queue.clear()
+                play_file(music_queue[0])
             else: stop()
 
 
