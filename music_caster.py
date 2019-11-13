@@ -43,6 +43,8 @@ from helpers import *
 
 
 # TODO: maybe add *.flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
+# TODO: figure out how to remove tray notifications after some time
+
 VERSION = '4.18.0'
 update_devices = False
 chromecasts = []
