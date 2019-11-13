@@ -698,12 +698,12 @@ try:
             if pl_selector_event == 'del_pl':
                 pl_name = pl_selector_values.get('pl_selector', '')
                 if pl_name in playlists: del playlists[pl_name]
-                new_values = list(playlists.keys())
-                value = new_values[0] if new_values else ''
+                # new_values = list(playlists.keys())
+                # value = new_values[0] if new_values else ''
                 # pl_selector_window.Element('pl_selector').Update(value=value, values=new_values)
                 pl_selector_window.CloseNonBlocking()
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
-                                           icon=WINDOW_ICON, return_keyboard_events=True)
+                                               icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
                 pl_selector_window.TKroot.focus_force()
                 save_json()
