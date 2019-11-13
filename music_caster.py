@@ -273,12 +273,14 @@ try:
             artist = ', '.join(artist)
             album = EasyID3(file_path).get('album', 'Unknown')
         except Exception as e:
+            print(e)
             title = artist = album = 'Unknown'
         if cast is None:
             mc = None
             sampling_rate = audio_info.sample_rate
-            local_music_player.quit()
-            local_music_player.init(sampling_rate, -16, 2, 2048)
+            if local_music_player.get_init()[0] != sampling_rate:
+                local_music_player.quit()
+                local_music_player.init(sampling_rate, -16, 2, 2048)
             local_music_player.music.load(file_path)
             local_music_player.music.set_volume(volume)
             local_music_player.music.play(start=position)
