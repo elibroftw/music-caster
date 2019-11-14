@@ -285,7 +285,7 @@ try:
             local_music_player.music.set_volume(volume)
             local_music_player.music.play(start=position)
             if not autoplay: local_music_player.music.pause()
-            song_start = time.time()
+            song_start = time.time() - song_position
             song_end = song_start + song_length - position
         else:
             try:
