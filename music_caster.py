@@ -260,7 +260,8 @@ try:
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
-        global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir, cast_last_checked, music_queue
+        global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
+               cast_last_checked, music_queue
         while not os.path.exists(file_path):
             music_queue.remove(file_path)
             if music_queue: file_path = music_queue[0]
@@ -282,7 +283,7 @@ try:
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
         music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
-        if cast is None:
+        if cast is None:  # play locally
             mc = None
             sampling_rate = audio_info.sample_rate
             if local_music_player.get_init()[0] != sampling_rate:
@@ -290,10 +291,10 @@ try:
                 local_music_player.init(sampling_rate, -16, 2, 2048)
             local_music_player.music.load(file_path)
             local_music_player.music.set_volume(volume)
-            local_music_player.music.play(start=position)
+            local_music_player.music.play(start=song_position)
             if not autoplay: local_music_player.music.pause()
-            song_start = time.time()
-            song_end = song_start + song_length - position
+            song_start = time.time() - song_position
+            song_end = song_start + song_length - song_position
         else:
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -330,11 +331,11 @@ try:
                     mc.stop()
                     mc.block_until_active(5)
                 music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-                mc.play_media(url, 'audio/mp3', current_time=position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
+                mc.play_media(url, 'audio/mp3', current_time=song_position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
                 while not mc.is_playing: pass
                 song_start = time.time()
-                song_end = song_start + song_length - position
+                song_end = song_start + song_length - song_position
             except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
@@ -387,9 +388,7 @@ try:
         if mc is not None:
             mc.update_status()
             song_position = mc.status.adjusted_current_time
-        elif playing_status == 'PLAYING':
-            song_position = time.time() - song_start
-            # song_position = local_music_player.music.get_pos() / 1000
+        elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
 
 
@@ -717,7 +716,7 @@ try:
                     # local_music_player.music.set_pos(new_position - song_position)
                     # song_position = new_position
                 time_left = song_length - song_position
-                song_end = time.time() + song_length - song_position
+                song_end = time.time() + time_left
                 song_start = song_end - song_length
                 update_progress_text = True
             elif playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
@@ -859,8 +858,6 @@ try:
         if playlist_editor_active:
             # TODO: delete key
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
-            # if pl_editor_event != '__TIMEOUT__':
-            #     print(pl_editor_event)
             if pl_editor_event in {None, 'Escape:27', 'q', 'Q', 'Cancel'} and  pl_editor_last_event != 'Add songs':
                 playlist_editor_active = False
                 pl_editor_window.CloseNonBlocking()
