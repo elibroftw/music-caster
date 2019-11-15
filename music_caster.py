@@ -331,10 +331,11 @@ try:
                     mc.stop()
                     mc.block_until_active(5)
                 music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-                mc.play_media(url, 'audio/mp3', current_time=song_position, metadata=music_metadata, thumb=thumb, autoplay=autoplay)
+                mc.play_media(url, 'audio/mp3', current_time=song_position, metadata=music_metadata, thumb=thumb,
+                              autoplay=autoplay)
                 mc.block_until_active()
                 while not mc.is_playing: pass
-                song_start = time.time()
+                song_start = time.time() - song_position
                 song_end = song_start + song_length - song_position
             except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
