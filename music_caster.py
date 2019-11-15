@@ -8,6 +8,7 @@ from glob import glob
 import io
 import json
 import logging
+from math import floor
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
 import mutagen
@@ -731,8 +732,8 @@ try:
                 update_progress_text = True
                 progress_bar_last_update = time.time()
             if update_progress_text:
-                mins_elapsed, mins_left = round(song_position / 60), round(time_left / 60)
-                secs_elapsed, secs_left = round(song_position % 60), round(time_left % 60)
+                mins_elapsed, mins_left = floor(song_position / 60), floor(time_left / 60)
+                secs_elapsed, secs_left = floor(song_position % 60), floor(time_left % 60)
                 if secs_left < 10: secs_left = f'0{secs_left}'
                 if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
                 main_window['time_elapsed'].Update(value=f'{mins_elapsed}:{secs_elapsed}')
