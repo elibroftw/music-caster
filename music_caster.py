@@ -294,7 +294,7 @@ try:
             local_music_player.music.play(start=song_position)
             if not autoplay: local_music_player.music.pause()
             song_start = time.time() - song_position
-            song_end = song_start + song_length - song_position
+            song_end = song_start + song_length
         else:
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -336,7 +336,7 @@ try:
                 mc.block_until_active()
                 while not mc.is_playing: pass
                 song_start = time.time() - song_position
-                song_end = song_start + song_length - song_position
+                song_end = song_start + song_length
             except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
