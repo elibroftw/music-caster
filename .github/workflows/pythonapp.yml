@@ -19,4 +19,4 @@ jobs:
         pip install -r requirements.txt
     - name: Build executables
       run: |
-        build.bat
+        pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py
