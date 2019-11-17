@@ -113,9 +113,9 @@ def create_settings(version, music_directories, settings):
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
         [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
-                   enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+                   enable_events=True, background_color='#4285f4', text_color='black', size=(53, 15))],
         [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                    key='music_dirs', background_color=bg, font=font_normal, enable_events=True),
+                    key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
              [Sg.Button('Remove Selected Folder', key='Remove Folder', enable_events=True, font=font_normal)],
              [Sg.FolderBrowse('Add Folder', font=font_normal, enable_events=True)],
