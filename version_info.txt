@@ -5,8 +5,8 @@ VSVersionInfo(
   ffi=FixedFileInfo(
     # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
     # Set not needed items to zero 0.
-    prodvers=(4, 17, 22, 0),
-    filevers=(4, 17, 22, 0),
+    prodvers=(4, 17, 23, 0),
+    filevers=(4, 17, 23, 0),
     # Contains a bitmask that specifies the valid bits 'flags'r
     mask=0x17,
     # Contains a bitmask that specifies the Boolean attributes of the file.
@@ -30,12 +30,12 @@ VSVersionInfo(
         '000004b0',
         [StringStruct('CompanyName', 'Elijah Lopez'),
         StringStruct('FileDescription', 'Music Caster'),
-        StringStruct('FileVersion', '4.17.22.0'),
+        StringStruct('FileVersion', '4.17.23.0'),
         StringStruct('InternalName', 'Music Caster'),
         StringStruct('LegalCopyright', 'Copyright (c) 2019, Elijah Lopez'),
         StringStruct('OriginalFilename', 'Music Caster.exe'),
         StringStruct('ProductName', 'Music Caster'),
-        StringStruct('ProductVersion', '4.17.22.0')])
+        StringStruct('ProductVersion', '4.17.23.0')])
       ]), 
     VarFileInfo([VarStruct('Translation', [0, 1200])])
   ]
