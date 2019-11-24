@@ -20,7 +20,7 @@ def connect(hostname, port, timeout=0.1):
     return result == 0
 
 
-def find_chromecasts(timeout=0.1):
+def find_chromecasts(timeout=0.2):
     hostname = socket.gethostname()
     ipv4_address = socket.gethostbyname(hostname)
     base = '.'.join(ipv4_address.split('.')[:-1])
