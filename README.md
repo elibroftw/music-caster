@@ -32,30 +32,12 @@ If I do plan on implementing an auto-email feature, I will probably have an opti
 The error.log file can be found in the installation folder of music caster.
 An easy way to find it is to right click Music Caster Shortcut's and then click Open file location.
 After a couple times, you will end up at the installation directory.
-If the window icon does not show, you may need to change lines 5327 - 5341 in PySimpleGUI.py to this.
-```py
-self.WindowIcon = wicon
-        try:
-            # print(f'icon bitmap = {wicon}')
-            self.TKroot.iconbitmap(wicon)
-        except Exception:
-            # if can't set trying any other ways, just default to the built-in icon
-            try:
-                # wicon = tkinter.PhotoImage(data=DEFAULT_BASE64_ICON)
-                wicon = tkinter.PhotoImage(data=wicon)
-                try:
-                    self.TKroot.tk.call('wm', 'iconphoto', self.TKroot._w, wicon)
-                except:
-                    pass
-            except:
-                pass
-```
 
 # Build Instructions
 1. Make sure all the required modules are installed
 2. Make sure Python scripts folder is on PATH
-4. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a setup.exe, run build.bat
-5. Otherwise, use `pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py`
+3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a setup.exe, run build.bat
+4. Otherwise, use `pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py`
 
 # Settings.json Guide
 - Music Caster will detect changes within 10 seconds of editing the settings.json file
