@@ -2,7 +2,7 @@
 [![Download Count](https://img.shields.io/github/downloads/elibroftw/music-caster/total?color=blue&label=Downloads&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases)
 
 Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, Home Mini, etc.)
-[Download Page](https://github.com/elibroftw/music-caster/releases)
+[Download Page (Windows 64-bit + Python Files)](https://github.com/elibroftw/music-caster/releases)
 
 # Screenshots
 <p align="center">
@@ -27,14 +27,13 @@ This app supports media keys.
 
 # Limitations and known issues
 A major bug will result in a toast message + a error message output in an error.log.
-I have not implemented an auto-email feature, so you will have to email this to me yourself.
-If I do plan on implementing an auto-email feature, I will probably have an option to disable it.
+You will have to email this to me yourself.
 The error.log file can be found in the installation folder of music caster.
-An easy way to find it is to right click Music Caster Shortcut's and then click Open file location.
-After a couple times, you will end up at the installation directory.
+An easy way to find it is to right click Music Caster's Shortcut and then click Open file location.
+After doing this twice to the shortcut's, you will end up at the installation directory.
 
 # Build Instructions
-1. Make sure all the required modules are installed
+1. Make sure all the required modules are installed (`pip install -r requirements.txt`)
 2. Make sure Python scripts folder is on PATH
 3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a setup.exe, run build.bat
 4. Otherwise, use `pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py`
