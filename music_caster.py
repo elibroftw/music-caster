@@ -319,16 +319,16 @@ try:
                 cast.wait(timeout=10)
                 cast.set_volume(volume)
                 mc = cast.media_controller
-                if mc.is_playing or mc.is_paused:
+                if mc.status.player_is_playing or mc.status.player_is_paused:
                     mc.stop()
                     mc.block_until_active(5)
                 music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
                 mc.play_media(url, 'audio/mp3', current_time=song_position, metadata=music_metadata, thumb=thumb,
                               autoplay=autoplay)
                 mc.block_until_active()
-                while not mc.is_playing: pass
+                while not mc.status.player_is_playing: pass
                 song_start = time.time() - song_position
-                song_end = song_start + song_length
+                song_end = time.time() + song_length
             except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
@@ -385,7 +385,7 @@ try:
             if mc is not None:
                 mc.update_status()
                 mc.pause()
-                while not mc.is_paused: pass
+                while not mc.status.player_is_paused: pass
                 song_position = mc.status.adjusted_current_time
             else:
                 song_position = time.time() - song_start
@@ -403,11 +403,11 @@ try:
                 mc.update_status()
                 mc.play()
                 mc.block_until_active()
-                while not mc.is_playing: pass
+                while not mc.status.player_is_playing: pass
                 song_position = mc.status.adjusted_current_time
             else: local_music_player.music.unpause()
             song_start = time.time() - song_position
-            song_end = song_start + song_length
+            song_end = time.time() + song_length
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
@@ -868,10 +868,11 @@ try:
                 if cast is not None:
                     if cast.app_id == 'CC1AD845':
                         mc.update_status()
-                        if mc.is_paused and playing_status != 'PAUSED': pause()
-                        elif mc.is_playing and playing_status != 'PLAYING': resume()
-                        elif not (mc.is_paused or mc.is_playing) and playing_status != 'NOT PLAYING': stop()
-                        # TODO: check if playback was scrubbed
+                        is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                        if is_paused and playing_status != 'PAUSED': pause()
+                        elif is_playing and playing_status != 'PLAYING': resume()
+                        elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
+                        # TODO: check if playback was scrubbed (|current time - song position| > 1 second)
                         volume = settings['volume']
                         cast_volume = cast.status.volume_level * 100
                         if volume != cast_volume:
