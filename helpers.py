@@ -50,7 +50,7 @@ def create_main_gui(music_queue, done_queue, playing_status, metadata='Nothing P
 def create_settings(version, music_directories, settings):
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal),
-        Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
+         Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
          Sg.Text('elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
          Sg.Button(button_text='Copy', key='copy email', enable_events=True, font=font_normal)],
         [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
@@ -62,7 +62,7 @@ def create_settings(version, music_directories, settings):
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
         [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
-                   enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+                   enable_events=True, background_color='#4285f4', text_color='black', size=(53, 15))],
         [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
