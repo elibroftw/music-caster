@@ -326,9 +326,9 @@ try:
                 mc.play_media(url, 'audio/mp3', current_time=song_position, metadata=music_metadata, thumb=thumb,
                               autoplay=autoplay)
                 mc.block_until_active()
-                while not mc.status.player_is_playing: pass
+                while not mc.status.player_state == 'PLAYING': pass
                 song_start = time.time() - song_position
-                song_end = time.time() + song_length
+                song_end = song_start + song_length
             except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
@@ -403,11 +403,11 @@ try:
                 mc.update_status()
                 mc.play()
                 mc.block_until_active()
-                while not mc.status.player_is_playing: pass
+                while not mc.status.player_state == 'PLAYING': pass
                 song_position = mc.status.adjusted_current_time
             else: local_music_player.music.unpause()
             song_start = time.time() - song_position
-            song_end = time.time() + song_length
+            song_end = song_start + song_length
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
