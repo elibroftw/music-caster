@@ -102,10 +102,10 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
 
 def create_settings(version, music_directories, settings):
     layout = [
-        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal)],
-        [Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
+        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal),
+         Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
          Sg.Text('elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
-         Sg.Button(button_text='Copy address', key='copy email', enable_events=True, font=font_normal)],
+         Sg.Button(button_text='Copy', key='copy email', enable_events=True, font=font_normal)],
         [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
@@ -115,13 +115,14 @@ def create_settings(version, music_directories, settings):
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
         [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
-                   enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+                   enable_events=True, background_color='#4285f4', text_color='black', size=(53, 15))],
         [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
              [Sg.Button('Remove Selected Folder', key='Remove Folder', enable_events=True, font=font_normal)],
              [Sg.FolderBrowse('Add Folder', font=font_normal, enable_events=True)],
-             [Sg.Button('Open settings.json', key='Open Settings', font=font_normal, enable_events=True)]], background_color=bg, border_width=0)]]
+             [Sg.Button('Open settings.json', key='Open Settings', font=font_normal,
+                        enable_events=True)]], background_color=bg, border_width=0)]]
     return layout
 
 
