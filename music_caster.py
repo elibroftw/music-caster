@@ -316,7 +316,7 @@ try:
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
                 # cast: pychromecast.Chromecast
-                cast.wait(timeout=10)
+                cast.wait(timeout=5)
                 cast.set_volume(volume)
                 mc = cast.media_controller
                 if mc.status.player_is_playing or mc.status.player_is_paused:
