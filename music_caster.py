@@ -44,6 +44,7 @@ from helpers import *
 
 
 # TODO: maybe add *.flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
+# https://stackoverflow.com/a/36816953/7732434
 # TODO: figure out how to remove tray notifications after some time
 
 VERSION = '4.18.0'
@@ -86,6 +87,9 @@ def change_settings(name, value):
     settings[name] = value
     save_json()
     return value
+
+
+def valid_music_file(file_path):    return file_path.endswith('.mp3') #  or file_path.endswith('.flac')
 
 
 def download_and_extract(link, infile, outfile=None):
@@ -286,10 +290,10 @@ try:
         music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
             mc = None
-            sampling_rate = audio_info.sample_rate
-            if local_music_player.get_init()[0] != sampling_rate:
+            sample_rate = audio_info.sample_rate
+            if local_music_player.get_init()[0] != sample_rate:
                 local_music_player.quit()
-                local_music_player.init(sampling_rate, -16, 2, 2048)
+                local_music_player.init(sample_rate, -16, 2, 2048)
             local_music_player.music.load(file_path)
             local_music_player.music.set_volume(volume)
             local_music_player.music.play(start=song_position)
@@ -324,7 +328,6 @@ try:
                     with open(thumb, 'wb') as f: f.write(pict)
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-                
                 cast.wait(timeout=10)
                 cast.set_volume(volume)
                 mc = cast.media_controller
@@ -332,8 +335,8 @@ try:
                     mc.stop()
                     mc.block_until_active(5)
                 music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-                mc.play_media(url, 'audio/mp3', current_time=song_position, metadata=music_metadata, thumb=thumb,
-                              autoplay=autoplay)
+                mc.play_media(url, f'audio/{file_path.split('.')[-1]}', current_time=song_position,
+                              metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
                 while not mc.status.player_is_playing: pass
                 song_start = time.time() - song_position
@@ -353,7 +356,7 @@ try:
     def play_all():
         music_queue.clear()
         for directory in music_directories:
-            music_queue.extend(file for file in glob(f'{directory}/*.mp3'))
+            music_queue.extend([file for file in glob(f'{directory}/*') if valid_music_file(file)])
         if music_queue:
             shuffle(music_queue)
             done_queue.clear()
@@ -612,7 +615,6 @@ try:
             timer = 0
             if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
         elif menu_item == 'Play File':
-            
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
@@ -622,19 +624,11 @@ try:
                 music_queue.clear()
                 done_queue.clear()
                 for directory in music_directories:
-                    music_queue.extend([file for file in glob(f'{directory}/*.mp3') if file != path_to_file])
+                    music_queue.extend([file for file in glob(f'{directory}/*') if file != path_to_file and valid_music_file(file)])
                 shuffle(music_queue)
                 music_queue.insert(0, path_to_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play All': play_all()
-            # music_queue.clear()
-            # for directory in music_directories:
-            #     music_queue.extend(file for file in glob(f'{directory}/*.mp3'))
-            # if music_queue:
-            #     shuffle(music_queue)
-            #     done_queue.clear()
-            #     play_file(music_queue[0])
-            #     tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play a File Next':
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
@@ -901,7 +895,7 @@ try:
             elif pl_editor_event == 'Add songs':
                 selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
-                    new_files = [file.replace('\\', '/') for file in selected_songs.split(';') if file.endswith('.mp3')]
+                    new_files = [file.replace('\\', '/') for file in selected_songs.split(';') if valid_music_file(file)]
                     pl_files += new_files
                     pl_editor_window.TKroot.focus_force()
                     # current_songs = pl_editor_window.Element('songs').GetListValues()
