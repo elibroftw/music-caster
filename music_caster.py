@@ -335,7 +335,7 @@ try:
                     mc.stop()
                     mc.block_until_active(5)
                 music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-                mc.play_media(url, f'audio/{file_path.split('.')[-1]}', current_time=song_position,
+                mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                               metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
                 while not mc.status.player_is_playing: pass
