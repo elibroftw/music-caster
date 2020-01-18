@@ -490,7 +490,8 @@ try:
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
     while True:
-        menu_item = tray.Read(timeout=10)
+        if playing_status == 'NOT PLAYING': menu_item = tray.Read()
+        else: menu_item = tray.Read(timeout=10)
         if discovery_started and time.time() - discovery_started > 5:
             discovery_started = 0
             stop_discovery()
