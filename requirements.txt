@@ -1,6 +1,7 @@
 bs4
 flask
 mutagen
+Pillow
 pychromecast
 pygame
 PyInstaller
