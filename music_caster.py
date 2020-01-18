@@ -25,6 +25,7 @@ import PySimpleGUIWx as sg
 import wx
 from random import shuffle
 import requests
+import encodings.idna
 from shutil import copyfile
 from subprocess import Popen
 import sys
@@ -39,12 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-
-# TODO: maybe add *.flac compatibility https://mutagen.readthedocs.io/en/latest/api/flac.html
-# https://stackoverflow.com/a/36816953/7732434
-# TODO: figure out how to remove tray notifications after some time
-
-VERSION = '4.18.0'
+VERSION = '4.17.26'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -52,6 +48,7 @@ cast = None
 local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
+# TODO: replace ' ' with '_' in load_setings
 settings = {  # default settings
         'previous device': None,
         'auto update': False,
@@ -67,6 +64,7 @@ settings = {  # default settings
         'music directories': [home_music_dir],
         'playlists': {},
         'playlists_example': {'NAME': ['PATHS']},
+        'EXPERIMENTAL': False
     }
 settings_file = f'{starting_dir}/settings.json'
 playlists = {}
@@ -325,7 +323,8 @@ try:
                     with open(thumb, 'wb') as f: f.write(pict)
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-                cast.wait(timeout=10)
+                # cast: pychromecast.Chromecast
+                cast.wait(timeout=5)
                 cast.set_volume(volume)
                 mc = cast.media_controller
                 if mc.status.player_is_playing or mc.status.player_is_paused:
@@ -335,9 +334,9 @@ try:
                 mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                               metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
-                while not mc.status.player_is_playing: pass
+                while not mc.status.player_state == 'PLAYING': pass
                 song_start = time.time() - song_position
-                song_end = time.time() + song_length
+                song_end = song_start + song_length
             except (pychromecast.error.NotConnected, OSError):
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
@@ -421,11 +420,11 @@ try:
                 mc.update_status()
                 mc.play()
                 mc.block_until_active()
-                while not mc.status.player_is_playing: pass
+                while not mc.status.player_state == 'PLAYING': pass
                 song_position = mc.status.adjusted_current_time
             else: local_music_player.music.unpause()
             song_start = time.time() - song_position
-            song_end = time.time() + song_length
+            song_end = song_start + song_length
             playing_status = 'PLAYING'
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
@@ -546,7 +545,7 @@ try:
                     local_music_player.music.set_volume(volume)
                 else:
                     change_settings('previous device', str(cast.uuid))
-                    cast.wait()
+                    cast.wait(timeout=5)
                     cast.set_volume(volume)
                 current_pos = 0
                 if local_music_player.music.get_busy():
@@ -629,7 +628,7 @@ try:
                 path_to_file = fd.GetPath()
                 next_queue.append(path_to_file)
                 if playing_status == 'NOT PLAYING':
-                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait()
+                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=5)
                     next_song()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time.time() > timer:
@@ -647,8 +646,7 @@ try:
         elif ('Next Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING'
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
-        elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING':
-            previous()
+        elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': previous()
         elif menu_item == 'Repeat':
             repeat_setting = change_settings('repeat', not settings['repeat'])
             if notifications_enabled:
