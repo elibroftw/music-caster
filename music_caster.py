@@ -238,15 +238,14 @@ try:
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time.time()
     
+    # TODO: add play folder
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
-
-    # TODO: add play folder>
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'], 'Repeat', 'Stop', 'Pause', 'Previous Song', 'Next Song', 'E&xit']]
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'], 'Controls', ['Repeat', 'Stop', 'Previous Song', 'Next Song', 'Pause'], 'E&xit']]
 
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'], 'Repeat', 'Stop', 'Resume', 'Previous Song', 'Next Song', 'E&xit']]
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'], 'Controls', ['Repeat', 'Stop', 'Previous Song', 'Next Song', 'Resume'], 'E&xit']]
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
@@ -620,6 +619,8 @@ try:
                 music_queue.insert(0, path_to_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play All': play_all()
+        elif menu_item.startswith('PF: '):
+            menu_item = menu_item[4:]
         elif menu_item == 'Play File Next':
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
