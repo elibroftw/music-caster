@@ -7,8 +7,8 @@ PyInstaller
 pynput
 pyperclip
 PySide2
-PySimpleGUI
-PySimpleGUIWx
+PySimpleGUI==4.15.2
+PySimpleGUIWx==0.14.0
 PySimpleGUIQt
 pypiwin32
 wxpython

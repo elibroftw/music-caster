@@ -26,7 +26,10 @@ When you click Play File, you can select a file to play and all of the music in 
 Music Caster supports media keys.
 
 ## Limitations and known issues
-A major bug will result in a toast message + a error message output in an error.log.
+- Only supports MP3 files (for now)
+- A major bug will result in a toast message + a error message output in an error.log.
+
+## Dealing With an Error
 You will have to email this to me yourself.
 The error.log file can be found in the installation folder of music caster.
 An easy way to find it is to right click Music Caster's Shortcut and then click Open file location.
