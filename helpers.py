@@ -1,16 +1,15 @@
 import PySimpleGUI as Sg
 import os
 
-# TODO: C++ JPG TO PNG
+# FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
-
 # Styling
 text_color = fg = '#aaaaaa'
 bg = '#121212'
 font_normal = 'SourceSans', 11
 font_link = 'SourceSans', 11, 'underline'
 button_color = ('black', '#4285f4')
-Sg.change_look_and_feel('DefaultNoMoreNagging')
+Sg.change_look_and_feel('SystemDefault')
 Sg.SetOptions(button_color=button_color, scrollbar_color='#121212', background_color=bg, element_background_color=bg,
               progress_meter_color=('#4285f4', '#D3D3D3'))
 UNFILLED_ICON = b'iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAQAAAD/5HvMAAAABGdBTUEAALGPC/xhBQAAACBjSFJN\nAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElN\nRQfjBw4ALiA+kkFLAAACWElEQVRo3u2ZsUsbURzHo2Bc0kkMDoYirRkcpEu7NtAubo7ZPXDo6qaL\nkyUIQtshkE6CkA79C4SqWIiLi5N2iBQ7WgRvUNvGj0OG/n737kLt9d476PuOvx9JPnn3e9/v3b1C\nwcvLy8srSQwR0CHEpi7pEDAUhzPBNq60zYS5Ou5w+kh6lQhwrUADHTgH6mig0DlQqIGErO7spN/1\nQB7IA3kg10DObnk8kAf6b4C44ZxTDmmzSp3JXPkQAF9o8oLh/AD1dcYalTwBAdzQ4lGegAB+sk4p\nT0AA35i3CVRkjClqLPKGI24ToN4x6sSHGGeB3Visw3875PcyRqb5EAN1xoxDp+Ypnwyk7zxzGh3M\n0TWQZhwCFQqMsWtcuEq2uyzkhB22WGE29oMjNI3xHrXlQ1024rB4xS9tAjaNsccmD2OQtObtOvU1\nDYqRL2hG3LtkEwjgM+XILOnxXrefZV95EtlxXRW7j7MBKlGlxhL79Mx3WxGkOdV9n7EPUabBlbFK\n+sJJ9/6RxpH+NFwrfDRmqagCRWbcaytOzXIkWBuq21auPWwlOqgrpGvpS0yr3ktLWcayWqNN1ZPb\nv5lFlh3TMv+pmqWeDBQW5ENTdj60RzUy3nLHbai7SnnRJrMzxgueq05Dxq7qHIlOPUunvpCrRFlZ\npbxob0V99Z7PMDEnZ4OiY0/19kVnRdQXRb2dGqgzOMvEeLMk6luiXpO3a6mBgsFArYQf3hH1KVE/\nTQlkHOBFdSx6VVE/Ubn/W+epgGKOOAecXvEgoV6UryT+EihMPAT28vLy8urrDgm99Mb0O5qlAAAA\nJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA3LTE0VDAwOjQ2OjMyKzAwOjAwaWwEjwAAACV0RVh0ZGF0\nZTptb2RpZnkAMjAxOS0wNy0xNFQwMDo0NjozMiswMDowMBgxvDMAAAAASUVORK5CYII=\n'
@@ -92,9 +91,10 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
         [Sg.Button()],
         [Sg.Button()],
         [Sg.Button()],
+        [Sg.Button()],
         [Sg.Button()]
     ]
-    # TODO: move up, move down, clear, add file, add to up next, remove in a Column
+    # TODO: play song, move up, move down, clear, add to queue, add to up next, remove - in a Column
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg)]])]]
     return layout
@@ -102,10 +102,10 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
 
 def create_settings(version, music_directories, settings):
     layout = [
-        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, background_color=bg, font=font_normal),
-         Sg.Text('Email:', text_color=fg, background_color=bg, font=font_normal),
-         Sg.Text('elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link, click_submits=True, key='email'),
-         Sg.Button(button_text='Copy', key='copy email', enable_events=True, font=font_normal)],
+        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez   Email:', text_color=fg, background_color=bg,
+                 font=font_normal),
+         Sg.Text('elijahllopezz@gmail.com', text_color='#3ea6ff', background_color=bg, font=font_link,
+                 click_submits=True, key='email')],
         [Sg.Checkbox('Auto Update', default=settings['auto update'], key='auto update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
@@ -115,8 +115,8 @@ def create_settings(version, music_directories, settings):
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
         [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
-                   enable_events=True, background_color='#4285f4', text_color='black', size=(53, 15))],
-        [Sg.Listbox(music_directories, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+                   enable_events=True, background_color='#4285f4', text_color='black', size=(50, 15))],
+        [Sg.Listbox(music_directories, size=(44, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
              [Sg.Button('Remove Selected Folder', key='Remove Folder', enable_events=True, font=font_normal)],

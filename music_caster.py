@@ -20,15 +20,12 @@ from pychromecast.error import UnsupportedNamespace
 import pychromecast
 from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
-import pyperclip
 import socket
-import PySimpleGUI as Sg
-# noinspection PyPep8Naming
 import PySimpleGUIWx as sg
 import wx
 from random import shuffle
 import requests
-from shutil import copyfile, copyfileobj
+from shutil import copyfile
 from subprocess import Popen
 import sys
 import time
@@ -693,7 +690,7 @@ try:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
             if main_event == 'progressbar':
-                if playing_status == 'Stop':
+                if playing_status == 'NOT PLAYING':
                     # TODO: disable progressbar when nothing is playing
                     continue
                 new_position = main_values['progressbar'] / 100 * song_length
@@ -766,10 +763,7 @@ try:
                 active_windows['settings'] = False
                 settings_window.CloseNonBlocking()
             elif settings_event == 'email':
-                webbrowser.open('mailto:elijahllopezz@gmail.com?subject=REGARDING%20Music%20Caster')
-            elif settings_event == 'copy email':
-                pyperclip.copy('elijahllopezz@gmail.com')
-                if settings['notifications']: tray.ShowMessage('Music Caster', f'Email address copied', time=500)
+                webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
             elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle_playlists'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run on startup': startup_setting()
@@ -833,7 +827,8 @@ try:
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
             elif pl_selector_event in {'edit_pl', 'create_pl', 'e', 'n', 'e:69', 'n:78'}:
-                pl_name = pl_selector_values.get('pl_selector', '') if pl_selector_event == 'edit_pl' else ''
+                if pl_selector_event in {'edit_pl', 'e', 'e:69'}: pl_name = pl_selector_values.get('pl_selector', '')
+                else: pl_name = ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
                 pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(DEFAULT_DIR, playlists, pl_name),
                                              background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True)
@@ -845,11 +840,10 @@ try:
                 else:
                     pl_editor_window.Element('songs').SetFocus()
                     pl_editor_window.Element('songs').Update(set_to_index=0)
-                active_windows['playlist_selector'] = False
-                active_windows['playlist_editor'] = True
+                active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
         if active_windows['playlist_editor']:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
-            if pl_editor_event in {None, 'Escape:27', 'q', 'Q', 'Cancel'} and  pl_editor_last_event != 'Add songs':
+            if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
                 active_windows['playlist_editor'] = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
@@ -870,7 +864,7 @@ try:
                 if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
-            elif pl_editor_event == 'Move up':
+            elif pl_editor_event in {'Move up', 'u:85'}:
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move > 0:
@@ -878,7 +872,7 @@ try:
                         pl_files.insert(new_i, pl_files.pop(index_to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event == 'Move down':
+            elif pl_editor_event in {'Move down', 'd:68'}:
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move < len(pl_files) - 1:
