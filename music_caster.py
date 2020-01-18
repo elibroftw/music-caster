@@ -25,6 +25,7 @@ import PySimpleGUIWx as sg
 import wx
 from random import shuffle
 import requests
+import encodings.idna
 from shutil import copyfile
 from subprocess import Popen
 import sys
@@ -47,6 +48,7 @@ cast = None
 local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
+# TODO: replace ' ' with '_' in load_setings
 settings = {  # default settings
         'previous device': None,
         'auto update': False,
@@ -62,6 +64,7 @@ settings = {  # default settings
         'music directories': [home_music_dir],
         'playlists': {},
         'playlists_example': {'NAME': ['PATHS']},
+        'EXPERIMENTAL': False
     }
 settings_file = f'{starting_dir}/settings.json'
 playlists = {}
