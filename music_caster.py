@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.26'
+VERSION = '4.17.27'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -435,7 +435,9 @@ try:
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
         playing_status = 'NOT PLAYING'
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
-        elif local_music_player.music.get_busy(): local_music_player.music.stop()
+        elif local_music_player.music.get_busy():
+            local_music_player.music.stop()
+            local_music_player.music.unload()
 
 
     def next_song(from_timeout=False):

@@ -2,9 +2,9 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.17.26"
+#define MyAppVersion "4.17.27"
 #define MyAppPublisher "Elijah Lopez"
-#define MyAppURL "https://elijahlopez.herokuapp.com/#music-caster"
+#define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
 
 [Setup]
