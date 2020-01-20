@@ -510,7 +510,7 @@ try:
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
-        if menu_item == '__ACTIVATED__' and settings.get('DEBUG', False):
+        if menu_item == '__ACTIVATED__' and settings.get('EXPERIMENTAL', False):
             if not active_windows['main']:
                 active_windows['main'] = True
                 if playing_status in {'PAUSED', 'PLAYING'}:
