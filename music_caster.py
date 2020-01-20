@@ -432,12 +432,12 @@ try:
 
     def stop():
         global playing_status, cast, song_position, time_left
-        tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
         playing_status = 'NOT PLAYING'
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
         elif local_music_player.music.get_busy():
             local_music_player.music.stop()
             local_music_player.music.unload()
+        tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
 
 
     def next_song(from_timeout=False):
@@ -608,7 +608,7 @@ try:
         elif menu_item == 'Play File':
             if music_directories: DEFAULT_DIR = music_directories[0]
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
-                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
                 path_to_file = fd.GetPath()
                 play_file(path_to_file)
