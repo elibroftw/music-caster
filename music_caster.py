@@ -286,7 +286,7 @@ try:
         if cast is None:  # play locally
             mc = None
             sample_rate = audio_info.sample_rate
-            if local_music_player.get_init()[0] != sample_rate:
+            if local_music_player.get_init() is None or local_music_player.get_init()[0] != sample_rate:
                 local_music_player.quit()
                 local_music_player.init(sample_rate, -16, 2, 2048)
             local_music_player.music.load(file_path)
@@ -436,7 +436,7 @@ try:
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
         elif local_music_player.music.get_busy():
             local_music_player.music.stop()
-            local_music_player.music.unload()
+            # local_music_player.music.unload()  # only in 2.0
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
 
 
