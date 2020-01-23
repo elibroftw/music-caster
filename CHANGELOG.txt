@@ -1,0 +1,23 @@
+Music Caster by Elijah Lopez Changelog
+
+View all changes at https://github.com/elibroftw/music-caster/releases
+
+4.18.0
+- Added "Locate File" feature to Controls tray menu
+- Added changelog
+
+4.17.27
+- Streamlined controls
+- New EXPERIMENTAL keyword in settings.json (set to true for main window access)
+
+4.17.26
+- Fixed bug to do with wanting to create/edit a playlist name with 'q'
+- Streamlined Play options (Play File, Play a File Next -> Play File Next, Play All) to be in a cascaded menu
+- Improved performance (theoretically) by not reading the tray if the program is not in use
+- Edited settings window to not have a copy button anymore, makes life harder than just clicking the email hyperlink
+- Updated GUI library to the latest
+- Fixed bug with main GUI
+- Main GUI is almost done, test it out by putting `"EXPERIMENTAL": True` in `settings.json`
+
+4.17.25
+- Fixed chromecast buffering bug that would screw up when the next song would start playing
