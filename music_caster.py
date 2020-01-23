@@ -239,11 +239,19 @@ try:
     # TODO: add play folder
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
+
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'], 'Controls', ['Repeat', 'Stop', 'Previous Song', 'Next Song', 'Pause'], 'E&xit']]
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
+                       'Controls',
+                       ['Locate File', 'Repeat', 'Stop', 'Previous Song', 'Next Song', 'Pause'],
+                       'E&xit']]
 
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'], 'Controls', ['Repeat', 'Stop', 'Previous Song', 'Next Song', 'Resume'], 'E&xit']]
+                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
+                       'Controls',
+                       ['Locate File', 'Repeat', 'Stop', 'Previous Song', 'Next Song', 'Resume'],
+                       'E&xit']]
+
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
@@ -656,6 +664,10 @@ try:
                 else: tray.ShowMessage('Music Caster', 'Not repeating current song')
         elif 'Resume' in {menu_item, keyboard_command}: resume()
         elif 'Pause' in {menu_item, keyboard_command}: pause()
+        elif menu_item == 'Locate File':
+            if music_queue:
+                path_to_song = music_queue[0].replace('/', '\\')  # todo: fix file paths early on
+                Popen(f'explorer /select,"{path_to_song}"')
         elif menu_item == 'Exit':
             tray.Hide()
             with suppress(UnsupportedNamespace):
