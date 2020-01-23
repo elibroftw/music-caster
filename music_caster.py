@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.17.27'
+VERSION = '4.18.0'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
