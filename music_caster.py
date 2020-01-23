@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.0'
+VERSION = '4.18.1'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -238,16 +238,16 @@ try:
     
     # TODO: add play folder
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
 
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
                        'Controls',
                        ['Locate File', 'Repeat', 'Stop', 'Previous Song', 'Next Song', 'Pause'],
                        'E&xit']]
 
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Stop Timing'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
                        'Controls',
                        ['Locate File', 'Repeat', 'Stop', 'Previous Song', 'Next Song', 'Resume'],
                        'E&xit']]
@@ -499,7 +499,7 @@ try:
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
     while True:
-        if playing_status != 'NOT PLAYING' or any(active_windows.values()): menu_item = tray.Read(timeout=10)
+        if timer or playing_status != 'NOT PLAYING' or any(active_windows.values()): menu_item = tray.Read(timeout=10)
         else: menu_item = tray.Read()
         if discovery_started and time.time() - discovery_started > 5:
             discovery_started = 0
@@ -610,7 +610,7 @@ try:
                 timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
             timer_window.Element('minutes').SetFocus()
-        elif menu_item == 'Stop Timing':
+        elif menu_item == 'Cancel Timer':
             timer = 0
             if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
         elif menu_item == 'Play File':
