@@ -40,10 +40,10 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.2'
+VERSION = '4.18.3'
 update_devices = False
 chromecasts = []
-device_names = ['1. Local Device']
+device_names = ['1. Local device']
 cast = None
 local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
@@ -120,15 +120,16 @@ def load_settings():
 
 
 def chromecast_callback(chromecast):
-    global update_devices, cast
+    global update_devices, cast, chromecasts
     previous_device = settings['previous device']
     if str(chromecast.device.uuid) == previous_device and cast != chromecast:
         cast = chromecast
         cast.wait(timeout=5)
     if chromecast not in chromecasts:
         chromecasts.append(chromecast)
-        devices = len(device_names)
-        device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
+        chromecasts.sort(key=lambda cc: cc.device.friendly_name)
+        for i, cc in enumerate(chromecasts):
+            device_names.append(f'{i + 2}. {chromecast.device.friendly_name}')
         update_devices = True
 
 
