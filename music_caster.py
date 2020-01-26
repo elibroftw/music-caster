@@ -128,6 +128,8 @@ def chromecast_callback(chromecast):
     if chromecast not in chromecasts:
         chromecasts.append(chromecast)
         chromecasts.sort(key=lambda cc: cc.device.friendly_name)
+        device_names.clear()
+        device_names.append('1. Local Device')
         for i, cc in enumerate(chromecasts):
             device_names.append(f'{i + 2}. {chromecast.device.friendly_name}')
         update_devices = True
@@ -509,8 +511,6 @@ try:
             update_devices = True
             stop_discovery()
             chromecasts.clear()
-            device_names.clear()
-            device_names.append('1. Local Device')
             stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
             discovery_started = time.time()
         if update_devices:
