@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.1'
+VERSION = '4.18.2'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -48,22 +48,20 @@ cast = None
 local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-# TODO: replace ' ' with '_' in load_setings
+# TODO: replace '_' with ' ' in load_setings
 settings = {  # default settings
         'previous device': None,
         'auto update': False,
         'run on startup': True,
         'notifications': True,
-        'shuffle_playlists': False,
+        'shuffle_playlists': True,
         'volume': 100,
-        'local volume': 100,
         'repeat': False,
         'timer_shut_off_computer': False,
         'timer_hibernate_computer': False,
         'timer_sleep_computer': False,
         'music directories': [home_music_dir],
         'playlists': {},
-        'playlists_example': {'NAME': ['PATHS']},
         'EXPERIMENTAL': False
     }
 settings_file = f'{starting_dir}/settings.json'
@@ -127,10 +125,11 @@ def chromecast_callback(chromecast):
     if str(chromecast.device.uuid) == previous_device and cast != chromecast:
         cast = chromecast
         cast.wait(timeout=5)
-    chromecasts.append(chromecast)
-    devices = len(device_names)
-    device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
-    update_devices = True
+    if chromecast not in chromecasts:
+        chromecasts.append(chromecast)
+        devices = len(device_names)
+        device_names.append(f'{devices + 1}. {chromecast.device.friendly_name}')
+        update_devices = True
 
 
 try:
@@ -1013,7 +1012,7 @@ except Exception as e:
         f.write('\n')
         f.write(traceback.format_exc())
         f.write('\n')
-    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the author.')
+    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the developer.')
     # noinspection PyUnboundLocalVariable
     stop()
-    # TODO: restart program
+    os.startfile(os.path.realpath(__file__))  # TODO: restart program

@@ -20,7 +20,7 @@ def connect(hostname, port, timeout=0.1):
     return result == 0
 
 
-def find_chromecasts(timeout=0.2):
+def find_chromecasts(timeout=0.2, callback=None):
     hostname = socket.gethostname()
     ipv4_address = socket.gethostbyname(hostname)
     base = '.'.join(ipv4_address.split('.')[:-1])
@@ -34,7 +34,11 @@ def find_chromecasts(timeout=0.2):
     for i, t in enumerate(threads):
         t.join()
         ip = thread_results[i]
-        if ip: chromecasts.append(pychromecast.Chromecast(ip))        
+        if ip:
+            cc = pychromecast.Chromecast(ip)
+            if callback: callback(cc)
+            else: chromecasts.append(cc)
+            
     return chromecasts
 
 
