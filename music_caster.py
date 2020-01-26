@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.3'
+VERSION = '4.18.4'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local device']
@@ -122,16 +122,16 @@ def load_settings():
 def chromecast_callback(chromecast):
     global update_devices, cast, chromecasts
     previous_device = settings['previous device']
-    if str(chromecast.device.uuid) == previous_device and cast != chromecast:
+    if str(chromecast.uuid) == previous_device and cast != chromecast:
         cast = chromecast
         cast.wait(timeout=5)
     if chromecast not in chromecasts:
         chromecasts.append(chromecast)
-        chromecasts.sort(key=lambda cc: cc.device.friendly_name)
+        chromecasts.sort(key=lambda cc: cc.name)
         device_names.clear()
         device_names.append('1. Local Device')
         for i, cc in enumerate(chromecasts):
-            device_names.append(f'{i + 2}. {chromecast.device.friendly_name}')
+            device_names.append(f'{i + 2}. {chromecast.name}')
         update_devices = True
 
 
@@ -540,13 +540,17 @@ try:
                 main_window['Pause/Resume'].playing_status = playing_status
             main_window.TKroot.focus_force()
         elif menu_item.split('.')[0].isdigit():  # if user selected a device
-            temp = menu_item.split('. ')
-            number = temp[0]
-            device = ' '.join(temp[1:])
-            if number == '1': new_cast = None
+            # temp = menu_item.split('. ')
+            # number = temp[0]
+            # device = ' '.join(temp[1:])
+            i = device_names.index(menu_item)
+            if i == 0: new_cast = None
             else:
-                try: new_cast = next(cc for cc in chromecasts if cc.device.friendly_name == device)
-                except StopIteration: new_cast = None
+                try:
+                    new_cast = chromecasts[i - 1]
+                except IndexError: new_cast = None
+                # try: next(cc for cc in chromecasts if cc.name == device)
+                # except StopIteration: new_cast = None
             if cast != new_cast:
                 cast = new_cast
                 volume = settings['volume'] / 100
