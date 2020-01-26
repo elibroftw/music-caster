@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View all changes at https://github.com/elibroftw/music-caster/releases
 
+4.18.2
+- Fixed multiple Chromecasts bug
+
 4.18.1
 - Fixed timer to work with improved performance
 - Changed "Stop Timing" to "Cancel Timer"
