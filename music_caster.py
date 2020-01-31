@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.4'
+VERSION = '4.18.5'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local device']
@@ -129,9 +129,9 @@ def chromecast_callback(chromecast):
         chromecasts.append(chromecast)
         chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
         device_names.clear()
-        device_names.append('1. Local Device')
+        device_names.append('1. Local device')
         for i, cc in enumerate(chromecasts):
-            device_names.append(f'{i + 2}. {chromecast.name}')
+            device_names.append(f'{i + 2}. {cc.name}')
         update_devices = True
 
 
