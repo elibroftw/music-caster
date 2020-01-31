@@ -4,6 +4,7 @@ View all changes at https://github.com/elibroftw/music-caster/releases
 
 4.18.4
 - Minor refactoring + change in selecting device logic
+- Change in chromecast devices sorting criteria (alpha, then UUID)
 
 4.18.3
 - Sorted device list alphabetically with (local device) being the exception

@@ -127,7 +127,7 @@ def chromecast_callback(chromecast):
         cast.wait(timeout=5)
     if chromecast not in chromecasts:
         chromecasts.append(chromecast)
-        chromecasts.sort(key=lambda cc: cc.name)
+        chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
         device_names.clear()
         device_names.append('1. Local Device')
         for i, cc in enumerate(chromecasts):
