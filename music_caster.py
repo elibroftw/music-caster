@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.5'
+VERSION = '4.18.6'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local device']
@@ -362,7 +362,7 @@ try:
     def play_all():
         music_queue.clear()
         for directory in music_directories:
-            music_queue.extend([file for file in glob(f'{directory}/*') if valid_music_file(file)])
+            music_queue.extend([file for file in glob(f'{directory}/**/*.*', recursive=True) if valid_music_file(file)])
         if music_queue:
             shuffle(music_queue)
             done_queue.clear()
@@ -627,7 +627,7 @@ try:
                 music_queue.clear()
                 done_queue.clear()
                 for directory in music_directories:
-                    music_queue.extend([file for file in glob(f'{directory}/*') if file != path_to_file and valid_music_file(file)])
+                    music_queue.extend([file for file in glob(f'{directory}/**/*.*', recursive=True) if file != path_to_file and valid_music_file(file)])
                 shuffle(music_queue)
                 music_queue.insert(0, path_to_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
