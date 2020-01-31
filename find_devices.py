@@ -45,5 +45,8 @@ def find_chromecasts(timeout=0.2, callback=None):
 if __name__ == '__main__':
     import time
     start = time.time()
-    print(find_chromecasts())
+    ccs = find_chromecasts()
+    c = ccs[0]
+    print(c in ccs)
+    print(ccs)
     print(time.time() - start)

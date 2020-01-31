@@ -125,7 +125,7 @@ def chromecast_callback(chromecast):
     if str(chromecast.uuid) == previous_device and cast != chromecast:
         cast = chromecast
         cast.wait(timeout=5)
-    if chromecast not in chromecasts:
+    if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
         chromecasts.append(chromecast)
         chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
         device_names.clear()
