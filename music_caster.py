@@ -504,6 +504,11 @@ try:
     while True:
         if timer or playing_status != 'NOT PLAYING' or any(active_windows.values()): menu_item = tray.Read(timeout=10)
         else: menu_item = tray.Read()
+        if time.time() - settings_last_loaded > 10:
+            load_settings()
+            if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+            elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+            else: tray.Update(menu=menu_def_1)
         if discovery_started and time.time() - discovery_started > 5:
             discovery_started = 0
             stop_discovery()
@@ -1007,11 +1012,6 @@ try:
                             volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
-        if time.time() - settings_last_loaded > 10:
-            load_settings()
-            if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-            elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-            else: tray.Update(menu=menu_def_1)
 except Exception as e:
     if settings.get('DEBUG', False): raise e
     with open(f'{starting_dir}/error.log', 'a+') as f:
