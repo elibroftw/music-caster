@@ -40,7 +40,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.6'
+VERSION = '4.18.7'
 update_devices = False
 chromecasts = []
 device_names = ['1. Local device']
@@ -351,11 +351,12 @@ try:
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
                 return
+        playing_text = f"{artist.split(', ')[0]} - {title}"
         if notifications_enabled and not settings['repeat'] and not switching_device:
-            tray.ShowMessage('Music Caster', f"Playing: {artist.split(', ')[0]} - {title}", time=500)
+            tray.ShowMessage('Music Caster','Playing: ' + playing_text, time=500)
         if autoplay:
             playing_status = 'PLAYING'
-            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
         cast_last_checked = time.time()
 
 
@@ -447,7 +448,7 @@ try:
         elif local_music_player.music.get_busy():
             local_music_player.music.stop()
             # local_music_player.music.unload()  # only in 2.0
-        tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON)
+        tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 
 
     def next_song(from_timeout=False):
@@ -521,6 +522,7 @@ try:
         if menu_item == '__ACTIVATED__' and settings.get('EXPERIMENTAL', False):
             if not active_windows['main']:
                 active_windows['main'] = True
+                volume = settings['volume']
                 if playing_status in {'PAUSED', 'PLAYING'}:
                     current_song = music_queue[0]
                     metadata = music_meta_data[current_song]
@@ -530,8 +532,8 @@ try:
                     # main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
                     #                                   new_playing_text, album_cover_data=album_cover_data)
                     main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                      new_playing_text)
-                else: main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status)
+                                                      volume, new_playing_text)
+                else: main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status, volume)
                 main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
                 dq_len = len(done_queue)

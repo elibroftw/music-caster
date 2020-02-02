@@ -54,7 +54,7 @@ def create_songs_list(music_queue, done_queue, next_queue):
     return songs, selected_value
 
 
-def create_main_gui(music_queue, done_queue, next_queue, playing_status,
+def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                     now_playing_text='Nothing Playing', album_cover_data=None):
     # PLANNING:
     # Title: Music Caster
@@ -68,6 +68,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
                        Sg.Button(key='Pause/Resume', image_data=pause_resume_img, size=(10, 10)),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
+    # TODO: volume control
     # TODO: disable if nothing is playing
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar', enable_events=True,
@@ -76,6 +77,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
                             Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
     
     # Now Playing layout
+    volume_slider = Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume', tick_interval=5,
+                   enable_events=True, background_color='#4285f4', text_color='black', size=(49, 15))
     tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
                             size=(55, 0))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover')] if album_cover_data else [],
@@ -183,7 +186,7 @@ if __name__ == '__main__':
     dq = [r"C:\Users\maste\Music\Afrojack, Eva Simons - Take Over Control.mp3",
                   r"C:\Users\maste\Music\Alex H - And There I Was.mp3"]
     p_status = 'NOT_PLAYING'  # PLAYING, PAUSED
-    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, 'NOT_PLAYING', metadata),
+    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, 'NOT_PLAYING', metadata, 50),
                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
     main_last_event = ''
     update_times = 0
