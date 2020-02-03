@@ -2,6 +2,10 @@ Music Caster by Elijah Lopez Changelog
 
 View all changes at https://github.com/elibroftw/music-caster/releases
 
+4.19.1
+- FIXED: now playing text (MAIN GUI) was displaying song when playback was stopped
+- Can now use Up/Down and Page Up/Down to move through music queue GUI (EXPERIMENTAL)
+
 4.19.0
 - Changed tooltip to have song info
 - Tray shows which device is currently selected

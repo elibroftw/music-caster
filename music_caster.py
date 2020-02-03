@@ -38,7 +38,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.19.0'
+VERSION = '4.19.1'
 update_devices = False
 chromecasts = []
 device_names = []
@@ -440,7 +440,9 @@ try:
     def stop():
         global playing_status, cast, song_position, time_left
         playing_status = 'NOT PLAYING'
-        if mc is not None and cast is not None and cast.app_id == 'CC1AD845': mc.stop()
+        if mc is not None and cast is not None and cast.app_id == 'CC1AD845':
+            mc.stop()
+            while mc.is_playing or mc.is_paused: pass
         elif local_music_player.music.get_busy():
             local_music_player.music.stop()
             # local_music_player.music.unload()  # only in 2.0
@@ -696,6 +698,9 @@ try:
                 active_windows['main'] = False
                 main_window.CloseNonBlocking()
             main_last_event = main_event
+            p_r_button = main_window['Pause/Resume']
+            now_playing_text = main_window['now_playing']
+            update_text = False  # text refers to now playing text
             if main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
@@ -711,6 +716,13 @@ try:
                 if notifications_enabled:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
+            elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
+                with suppress(AttributeError, IndexError):
+                    if main_window.FindElementWithFocus() == main_window['music_queue']:
+                        move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
+                        new_i = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0]) + move
+                        new_i = min(max(new_i, 0), len(music_queue) - 1)
+                        main_window['music_queue'].Update(set_to_index=new_i)  # scroll_to_index=new_i
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     # TODO: disable progressbar when nothing is playing
@@ -728,11 +740,12 @@ try:
                 song_end = time.time() + time_left
                 song_start = song_end - song_length
                 update_progress_text = True
-            elif playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
+            if playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
                 # TODO: enable progress bar
                 metadata = music_meta_data[music_queue[0]]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 new_playing_text = f'{artist} - {title}'
+                update_text = now_playing_text.DisplayText != new_playing_text
                 progress_bar = main_window['progressbar']
                 update_song_position()
                 progress_bar.Update(song_position / song_length * 100)
@@ -749,10 +762,6 @@ try:
                 metadata = music_meta_data[music_queue[0]]
                 # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 update_progress_text = False
-
-            p_r_button = main_window['Pause/Resume']
-            now_playing_text = main_window['now_playing']
-            update_text = now_playing_text.DisplayText != new_playing_text
             lb_music_queue: Sg.Listbox = main_window['music_queue']
             dq_len = len(done_queue)
             update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
@@ -769,8 +778,10 @@ try:
                 main_window['time_left'].Update(value='00:00')
             if update_text: now_playing_text.Update(value=new_playing_text)
             if update_text or update_lb_mq:
-                lb_music_queue_songs, _ = create_songs_list(music_queue, done_queue, next_queue)
+                lb_music_queue_songs = create_songs_list(music_queue, done_queue, next_queue)[0]
                 lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
+            # if main_event not in {'__TIMEOUT__', None}:
+            #     print(main_event, main_values)
 
         # SETTINGS WINDOW
         if active_windows['settings']:
@@ -885,22 +896,24 @@ try:
                 if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
-            elif pl_editor_event in {'Move up', 'u:85'}:
+            elif pl_editor_event in {'Move up', 'u:85'}:  # u:85 is Ctrl + U
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move > 0:
                         new_i = index_to_move - 1
                         pl_files.insert(new_i, pl_files.pop(index_to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                        pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event in {'Move down', 'd:68'}:
+                        pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
+                                                                 scroll_to_index=new_i)
+            elif pl_editor_event in {'Move down', 'd:68'}:  # d:68 is Ctrl + D
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move < len(pl_files) - 1:
                         new_i = index_to_move + 1
                         pl_files.insert(new_i, pl_files.pop(index_to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                        pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+                        pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
+                                                                 scroll_to_index=new_i)
             elif pl_editor_event == 'Add songs':
                 selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
@@ -910,19 +923,19 @@ try:
                     # current_songs = pl_editor_window.Element('songs').GetListValues()
                     formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                     new_i = len(formatted_songs) - 1  # - len(new_files)
-                    pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
-            elif pl_editor_event in {'Remove song', 'r:82'}:
+                    pl_editor_window['songs'].Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+            elif pl_editor_event in {'Remove song', 'r:82'}:  # r:82 is Ctrl + R
                 if pl_editor_values['songs']:
-                    index_to_rm = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                    index_to_rm = pl_editor_window['songs'].GetListValues().index(pl_editor_values['songs'][0])
                     with suppress(ValueError): pl_files.pop(index_to_rm)
                     formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                     new_i = max(index_to_rm - 1, 0)
-                    pl_editor_window.Element('songs').Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
+                    pl_editor_window['songs'].Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
-                new_i = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0]) + move
+                new_i = pl_editor_window['songs'].GetListValues().index(pl_editor_values['songs'][0]) + move
                 new_i = min(max(new_i, 0), len(pl_files) - 1)
-                pl_editor_window.Element('songs').Update(set_to_index=new_i, scroll_to_index=new_i)
+                pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if open_pl_selector:
                 open_pl_selector = False
                 active_windows['playlist_selector'] = True
