@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
 from flask import Flask
@@ -12,7 +11,6 @@ from math import floor
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
 import mutagen
-import os
 from pathlib import Path
 # from PIL import Image
 import pychromecast.controllers.media
@@ -25,11 +23,9 @@ import PySimpleGUIWx as sg
 import wx
 from random import shuffle
 import requests
-import encodings.idna
 from shutil import copyfile
 from subprocess import Popen
 import sys
-import time
 import threading
 import traceback
 import webbrowser
@@ -40,30 +36,30 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.18.7'
+VERSION = '4.19.0'
 update_devices = False
 chromecasts = []
-device_names = ['1. Local device']
+device_names = []
 cast = None
 local_music_player.init(44100, -16, 2, 2048)
 starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
 home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
 # TODO: replace '_' with ' ' in load_setings
 settings = {  # default settings
-        'previous device': None,
-        'auto update': False,
-        'run on startup': True,
-        'notifications': True,
-        'shuffle_playlists': True,
-        'volume': 100,
-        'repeat': False,
-        'timer_shut_off_computer': False,
-        'timer_hibernate_computer': False,
-        'timer_sleep_computer': False,
-        'music directories': [home_music_dir],
-        'playlists': {},
-        'EXPERIMENTAL': False
-    }
+    'previous device': None,
+    'volume': 100,
+    'auto update': False,
+    'run on startup': True,
+    'notifications': True,
+    'shuffle_playlists': True,
+    'repeat': False,
+    'timer_shut_off_computer': False,
+    'timer_hibernate_computer': False,
+    'timer_sleep_computer': False,
+    'EXPERIMENTAL': False,
+    'music directories': [home_music_dir],
+    'playlists': {},
+}
 settings_file = f'{starting_dir}/settings.json'
 playlists = {}
 tray_playlists = ['Create/Edit a Playlist']
@@ -82,7 +78,7 @@ def change_settings(name, value):
     return value
 
 
-def valid_music_file(file_path):    return file_path.endswith('.mp3') #  or file_path.endswith('.flac')
+def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
 
 
 def download_and_extract(link, infile, outfile=None):
@@ -129,16 +125,18 @@ def chromecast_callback(chromecast):
         chromecasts.append(chromecast)
         chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
         device_names.clear()
-        device_names.append('1. Local device')
-        for i, cc in enumerate(chromecasts):
-            device_names.append(f'{i + 2}. {cc.name}')
+        for i, cc in enumerate(['Local device'] + chromecasts):
+            name = cc if i == 0 else cc.name
+            if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
+                device_names.append(f'✓ {name}')
+            else: device_names.append(f'{i + 1}. {name}')
         update_devices = True
 
 
 try:
     user = getuser()
     shortcut_path = f'C:/Users/{user}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-    # Mine is C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+    # Explorer > Ctrl + L > Type and enter in "Startup"
 
 
     def startup_setting():
@@ -183,8 +181,8 @@ try:
             copyfile('resources/default.png', 'images/default.png')
         else:  # download the default image
             with suppress(requests.ConnectionError):
-                default_img_url = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
-                response = requests.get(default_img_url, stream=True)
+                default_img = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
+                response = requests.get(default_img, stream=True)
                 with open(f'{images_dir}/default.png', 'wb') as handle:
                     for data in response.iter_content(): handle.write(data)
     for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
@@ -258,14 +256,11 @@ try:
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
     DEFAULT_DIR = music_directories[0]
-    music_queue = []
-    done_queue = []
-    next_queue = []
+    music_queue, done_queue, next_queue = [], [], []
     music_meta_data = {}  # file: {artist: str, title: str}
-    mc = None
     song_end = song_length = song_start = 0  # seconds but using time()
     progress_bar_last_update = song_position = 0  # also seconds but relative to length of song
-    playing_status = 'NOT PLAYING'
+    mc, playing_status, time_left = None, 'NOT PLAYING', 0
     settings_last_loaded = cast_last_checked = time.time()
 
 
@@ -333,7 +328,6 @@ try:
                     with open(thumb, 'wb') as f: f.write(pict)
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-                # cast: pychromecast.Chromecast
                 cast.wait(timeout=5)
                 cast.set_volume(volume)
                 mc = cast.media_controller
@@ -546,18 +540,19 @@ try:
                 main_window['music_queue'].Update(set_to_index=dq_len, scroll_to_index=dq_len)
                 main_window['Pause/Resume'].playing_status = playing_status
             main_window.TKroot.focus_force()
-        elif menu_item.split('.')[0].isdigit():  # if user selected a device
-            # temp = menu_item.split('. ')
-            # number = temp[0]
-            # device = ' '.join(temp[1:])
+        elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
             if i == 0: new_cast = None
             else:
                 try:
                     new_cast = chromecasts[i - 1]
                 except IndexError: new_cast = None
-                # try: next(cc for cc in chromecasts if cc.name == device)
-                # except StopIteration: new_cast = None
+            device_names.clear()
+            for index, cc in enumerate(['Local device'] + chromecasts):
+                name = cc if index == 0 else cc.name
+                if index == i: device_names.append(f'✓ {name}')
+                else: device_names.append(f'{index + 1}. {name}')
+            update_devices = True
             if cast != new_cast:
                 cast = new_cast
                 volume = settings['volume'] / 100
@@ -572,13 +567,12 @@ try:
                 if local_music_player.music.get_busy():
                     if playing_status == 'PLAYING': current_pos = time.time() - song_start
                     else: current_pos = song_position
-                    # current_pos = song_position + local_music_player.music.get_pos() / 1000
                     local_music_player.music.stop()
                 elif mc is not None:
                     with suppress(UnsupportedNamespace):
                         mc.update_status()  # Switch device without playback loss
                         current_pos = mc.status.adjusted_current_time
-                        mc.stop()
+                        if mc.is_playing or mc.is_paused: mc.stop()
                 mc = None if cast is None else cast.media_controller
                 if playing_status in {'PAUSED', 'PLAYING'}:
                     do_autoplay = False if playing_status == 'PAUSED' else True
@@ -589,8 +583,8 @@ try:
                 active_windows['settings'] = True
                 # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
                 settings_layout = create_settings(VERSION, music_directories, settings)
-                settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg, icon=WINDOW_ICON,
-                                            return_keyboard_events=True, use_default_focus=False)
+                settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
+                                            icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
                 settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
         elif menu_item == 'Create/Edit a Playlist':
@@ -634,7 +628,8 @@ try:
                 music_queue.clear()
                 done_queue.clear()
                 for directory in music_directories:
-                    music_queue.extend([file for file in glob(f'{directory}/**/*.*', recursive=True) if file != path_to_file and valid_music_file(file)])
+                    for file in glob(f'{directory}/**/*.*', recursive=True):
+                        if file != path_to_file and valid_music_file(file): music_queue.append(file)
                 shuffle(music_queue)
                 music_queue.insert(0, path_to_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
@@ -677,7 +672,8 @@ try:
         elif 'Pause' in {menu_item, keyboard_command}: pause()
         elif menu_item == 'Locate File':
             if music_queue:
-                path_to_song = music_queue[0].replace('/', '\\')  # todo: fix file paths early on
+                if sys.platform == 'win32': path_to_song = music_queue[0].replace('/', '\\')
+                else: path_to_song = music_queue[0].replace('\\', '/')
                 Popen(f'explorer /select,"{path_to_song}"')
         elif menu_item == 'Exit':
             tray.Hide()
@@ -826,7 +822,6 @@ try:
             elif settings_event == 'Open Settings': os.startfile(settings_file)
             settings_last_event = settings_event
         if active_windows['playlist_selector']:
-            # TODO: delete key
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
                 active_windows['playlist_selector'] = False

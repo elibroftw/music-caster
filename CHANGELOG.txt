@@ -2,8 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View all changes at https://github.com/elibroftw/music-caster/releases
 
-4.18.7
+4.19.0
 - Changed tooltip to have song info
+- Tray shows which device is currently selected
 
 4.18.6
 - Support for subfolders when using "Play All"
