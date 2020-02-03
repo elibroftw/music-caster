@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from contextlib import suppress
 from datetime import datetime, timedelta
+import encodings.idna
 from flask import Flask
 from getpass import getuser
 from glob import glob
