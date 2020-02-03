@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from contextlib import suppress
 from datetime import datetime, timedelta
-import encodings.idna
+import encodings.idna  # DO NOT REMOVE
 from flask import Flask
 from getpass import getuser
 from glob import glob
@@ -27,6 +27,7 @@ import requests
 from shutil import copyfile
 from subprocess import Popen
 import sys
+import time  # DO NOT REMOVE
 import threading
 import traceback
 import webbrowser
