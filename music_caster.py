@@ -722,7 +722,7 @@ try:
                         move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
                         new_i = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0]) + move
                         new_i = min(max(new_i, 0), len(music_queue) - 1)
-                        main_window['music_queue'].Update(set_to_index=new_i)  # scroll_to_index=new_i
+                        main_window['music_queue'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     # TODO: disable progressbar when nothing is playing
