@@ -340,7 +340,7 @@ try:
                 mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                               metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
-                while not mc.status.player_state == 'PLAYING': pass
+                while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
                 song_start = time.time() - song_position
                 song_end = song_start + song_length
             except (pychromecast.error.NotConnected, OSError):
@@ -409,7 +409,7 @@ try:
             if mc is not None:
                 mc.update_status()
                 mc.pause()
-                while not mc.status.player_is_paused: pass
+                while not mc.status.player_is_paused: time.sleep(0.1)
                 song_position = mc.status.adjusted_current_time
             else:
                 song_position = time.time() - song_start
@@ -427,7 +427,7 @@ try:
                 mc.update_status()
                 mc.play()
                 mc.block_until_active()
-                while not mc.status.player_state == 'PLAYING': pass
+                while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
                 song_position = mc.status.adjusted_current_time
             else: local_music_player.music.unpause()
             song_start = time.time() - song_position
@@ -442,7 +442,7 @@ try:
         playing_status = 'NOT PLAYING'
         if mc is not None and cast is not None and cast.app_id == 'CC1AD845':
             mc.stop()
-            while mc.is_playing or mc.is_paused: pass
+            while mc.is_playing or mc.is_paused: time.sleep(0.1)
         elif local_music_player.music.get_busy():
             local_music_player.music.stop()
             # local_music_player.music.unload()  # only in 2.0

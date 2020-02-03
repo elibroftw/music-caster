@@ -5,6 +5,7 @@ View all changes at https://github.com/elibroftw/music-caster/releases
 4.19.1
 - FIXED: now playing text (MAIN GUI) was displaying song when playback was stopped
 - Can now use Up/Down and Page Up/Down to move through music queue GUI (EXPERIMENTAL)
+- CPU won't spike anymore for a few seconds when trying to play something on cast device
 
 4.19.0
 - Changed tooltip to have song info
