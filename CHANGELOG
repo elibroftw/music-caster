@@ -4,6 +4,7 @@ View all changes at https://github.com/elibroftw/music-caster/releases
 
 4.20.0
 - Works if song is scrubbed from home app
+- Better song timing (when the next song will play)
 
 4.19.1
 - FIXED: now playing text (MAIN GUI) was displaying song when playback was stopped
