@@ -38,7 +38,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.19.1'
+VERSION = '4.20.0'
 update_devices = False
 chromecasts = []
 device_names = []
@@ -638,7 +638,7 @@ try:
                 music_queue.insert(0, path_to_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play All': play_all()
-        elif menu_item.startswith('PF: '):
+        elif menu_item.startswith('PF: '):  # play folder
             menu_item = menu_item[4:]
         elif menu_item == 'Play File Next':
             if music_directories: DEFAULT_DIR = music_directories[0]
@@ -1012,14 +1012,16 @@ try:
                     if cast.app_id == 'CC1AD845':
                         mc.update_status()
                         is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                        new_song_position = mc.status.adjusted_current_time
+                        volume = settings['volume']
+                        cast_volume = cast.status.volume_level * 100
+                        song_start = time.time() - new_song_position  # if music was scrubbed on the home app
+                        song_end = time.time() + song_length - new_song_position
+                        song_position = new_song_position
                         if is_paused and playing_status != 'PAUSED': pause()
                         elif is_playing and playing_status != 'PLAYING': resume()
                         elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
-                        # TODO: check if playback was scrubbed (|current time - song position| > 1 second)
-                        volume = settings['volume']
-                        cast_volume = cast.status.volume_level * 100
-                        if volume != cast_volume:
-                            volume = change_settings('volume', cast_volume)
+                        if volume != cast_volume: volume = change_settings('volume', cast_volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:

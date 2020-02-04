@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View all changes at https://github.com/elibroftw/music-caster/releases
 
+4.20.0
+- Works if song is scrubbed from home app
+
 4.19.1
 - FIXED: now playing text (MAIN GUI) was displaying song when playback was stopped
 - Can now use Up/Down and Page Up/Down to move through music queue GUI (EXPERIMENTAL)
