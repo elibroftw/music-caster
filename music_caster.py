@@ -667,8 +667,9 @@ try:
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': previous()
-        elif menu_item == 'Repeat':
+        elif 'Repeat' in menu_item:
             repeat_setting = change_settings('repeat', not settings['repeat'])
+            # TODO: use a check mark to tell user if repeat is enabled or not
             if notifications_enabled:
                 if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
                 else: tray.ShowMessage('Music Caster', 'Not repeating current song')

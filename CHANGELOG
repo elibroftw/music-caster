@@ -19,7 +19,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 - Support for subfolders when using "Play All"
 
 4.18.5
-- Fixed bug where all devices shoed the same name
+- Fixed bug where all devices showed the same name
 
 4.18.4
 - Minor refactoring + change in selecting device logic
