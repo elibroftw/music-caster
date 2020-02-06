@@ -132,7 +132,7 @@ def instance():
 
 @app.errorhandler(404)
 def page_not_found(_):
-    return 'test', 404
+    return '404 error', 404
 
 
 def save_json():
