@@ -40,7 +40,9 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
+# INITIALIZE VARIABLES
 VERSION = '4.17.27'
+PORT = 2001
 update_devices = False
 chromecasts = []
 device_names = ['1. Local Device']
@@ -65,35 +67,18 @@ settings = {  # default settings
         'playlists': {},
         'playlists_example': {'NAME': ['PATHS']},
         'EXPERIMENTAL': False
-    }
+}
 settings_file = f'{starting_dir}/settings.json'
-playlists = {}
-tray_playlists = ['Create/Edit a Playlist']
-music_directories = []
-notifications_enabled = True
-
-
-def save_json():
-    with open(settings_file, 'w') as outfile:
-        json.dump(settings, outfile, indent=4)
-
-
-def change_settings(name, value):
-    settings[name] = value
-    save_json()
-    return value
-
-
-def valid_music_file(file_path):    return file_path.endswith('.mp3') #  or file_path.endswith('.flac')
-
-
-def download_and_extract(link, infile, outfile=None):
-    r = requests.get(link, stream=True)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
-    if outfile is None: outfile = infile
-    with suppress(FileNotFoundError): os.remove(outfile)
-    os.rename(f'{starting_dir}/Update/{infile}', outfile)
+playlists, tray_playlists = {}, ['Create/Edit a Playlist']
+music_directories, notifications_enabled = [], True
+keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+main_last_event = settings_last_event = pl_editor_last_event = None
+open_pl_selector = update_progress_text = False
+new_playing_text, timer = 'Nothing Playing', 0
+active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False, 
+                  'playlist_editor': False}
+pl_name, pl_files = '', []
+app = Flask(__name__, static_folder='/', static_url_path='/')
 
 
 def load_settings():
@@ -121,6 +106,61 @@ def load_settings():
     else: save_json()
 
 
+load_settings()
+# Check if app is running already
+mutex = win32event.CreateMutex(None, False, 'name')
+last_error = win32api.GetLastError()
+if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
+    while True:
+        with suppress(requests.exceptions.InvalidSchema):
+            if PORT == 2100 or requests.get(f'localhost:{PORT}/instance').text == 'True': break
+        PORT += 1
+    sys.exit()
+
+
+@app.route('/instance/')
+def instance():
+    for k, v in active_windows:
+        if v:
+            if k == 'main': main_window.bring_to_front()
+            elif k == 'settings': settings_window.bring_to_front()
+            elif k == 'timer': timer_window.bring_to_front()
+            elif k == 'playlist_selectoro': pl_selector_window.bring_to_front()
+            else: pl_editor_window.bring_to_front()  #  playlist_editor
+            brea
+    # for window in active_windows
+    # TODO: Open up GUI
+    return 'True'
+
+
+@app.errorhandler(404)
+def page_not_found(_):
+    return 'test', 404
+
+
+def save_json():
+    with open(settings_file, 'w') as outfile:
+        json.dump(settings, outfile, indent=4)
+
+
+def change_settings(name, value):
+    settings[name] = value
+    save_json()
+    return value
+
+
+def valid_music_file(file_path): return file_path.endswith('.mp3') #  or file_path.endswith('.flac')
+
+
+def download_and_extract(link, infile, outfile=None):
+    r = requests.get(link, stream=True)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
+    if outfile is None: outfile = infile
+    with suppress(FileNotFoundError): os.remove(outfile)
+    os.rename(f'{starting_dir}/Update/{infile}', outfile)
+
+
 def chromecast_callback(chromecast):
     global update_devices, cast
     previous_device = settings['previous device']
@@ -133,13 +173,7 @@ def chromecast_callback(chromecast):
     update_devices = True
 
 
-try:
-    user = getuser()
-    shortcut_path = f'C:/Users/{user}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-    # Mine is C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
-
-
-    def startup_setting():
+def startup_setting(shortcut_path):
         run_on_startup = settings['run on startup']
         shortcut_exists = os.path.exists(shortcut_path)
         if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
@@ -161,16 +195,16 @@ try:
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
 
 
-    load_settings()
+try:
+    user = getuser()
+    shortcut_path = f'C:/Users/{user}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
+    # Mine is C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+    
     # Only one of the below can be True
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
-    # Check if app is running already
-    mutex = win32event.CreateMutex(None, False, 'name')
-    last_error = win32api.GetLastError()
-    if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False): sys.exit()
 
     images_dir = starting_dir + '/images'
     cc_music_dir = starting_dir + '/music files'
@@ -189,8 +223,9 @@ try:
         file = file.replace('\\', '/')
         if file != f'{images_dir}/default.png': os.remove(file)
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
-    PORT = 2001
-    app = Flask(__name__, static_folder='/', static_url_path='/')
+    
+
+    
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     while True:
@@ -232,7 +267,7 @@ try:
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                     Popen('pythonw updater.pyw')
                 sys.exit()
-    startup_setting()
+    startup_setting(shortcut_path)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time.time()
     
@@ -486,16 +521,7 @@ try:
         elif str(key) == '<177>': keyboard_command = 'Previous Song'
         elif str(key) == '<178>': keyboard_command = 'Stop'
 
-    # INITIALIZE VARIABLES
-    keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-    main_last_event = settings_last_event = pl_editor_last_event = None
-    open_pl_selector = update_progress_text = False
-    new_playing_text = 'Nothing Playing'
-    timer = 0
-    active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
-                      'playlist_editor': False}
-    pl_name = ''
-    pl_files = []
+    
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
     while True:
@@ -779,7 +805,7 @@ try:
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
             elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle_playlists'}:
                 change_settings(settings_event, settings_value)
-                if settings_event == 'run on startup': startup_setting()
+                if settings_event == 'run on startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
             elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
                 update_slider = False
