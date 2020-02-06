@@ -54,7 +54,7 @@ def create_songs_list(music_queue, done_queue, next_queue):
     return songs, selected_value
 
 
-def create_main_gui(music_queue, done_queue, next_queue, playing_status,
+def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                     now_playing_text='Nothing Playing', album_cover_data=None):
     # PLANNING:
     # Title: Music Caster
@@ -68,32 +68,35 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status,
                        Sg.Button(key='Pause/Resume', image_data=pause_resume_img, size=(10, 10)),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
+    # TODO: volume control
     # TODO: disable if nothing is playing
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
-                            Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar', enable_events=True,
-                                      relief=Sg.RELIEF_FLAT, background_color='#4285f4', disable_number_display=True),
+                            Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
+                                      enable_events=True, relief=Sg.RELIEF_FLAT, background_color='#4285f4',
+                                      disable_number_display=True),
                             # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
                             Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
     
     # Now Playing layout
+    volume_slider = Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume', tick_interval=5,
+                              enable_events=True, background_color='#4285f4', text_color='black', size=(49, 15))
     tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
-                            size=(55, 0))],
-                   [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover')] if album_cover_data else [],
+                            size=(55, 0))], [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150),
+                                                      key='album_cover')] if album_cover_data else [],
                    [Sg.Column(music_controls, justification='center')],
                    [Sg.Column(progress_bar_layout, justification='center')]]
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     tab2_layout = [[
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                   key='music_queue', background_color=bg, font=font_normal, enable_events=True),
-    ]]
-    col_3 = [
-        [Sg.Button()],
-        [Sg.Button()],
-        [Sg.Button()],
-        [Sg.Button()],
-        [Sg.Button()]
-    ]
+                   key='music_queue', background_color=bg, font=font_normal, enable_events=True)]]
+    # col_3 = [
+    #     [Sg.Button()],
+    #     [Sg.Button()],
+    #     [Sg.Button()],
+    #     [Sg.Button()],
+    #     [Sg.Button()]
+    # ]
     # TODO: play song, move up, move down, clear, add to queue, add to up next, remove - in a Column
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg)]])]]
@@ -145,8 +148,8 @@ def create_timer(settings):
 def playlist_selector(playlists):
     playlists = list(playlists.keys())
     layout = [
-        [Sg.Combo(values=playlists, size=(41, 5), key='pl_selector', background_color=bg,
-                  font=font_normal, enable_events=True, readonly=True, default_value=playlists[0] if playlists else None),
+        [Sg.Combo(values=playlists, size=(41, 5), key='pl_selector', background_color=bg, font=font_normal,
+                  enable_events=True, readonly=True, default_value=playlists[0] if playlists else None),
          Sg.Button(button_text='Edit', key='edit_pl', enable_events=True, font=font_normal),
          Sg.Button(button_text='Delete', key='del_pl', enable_events=True, font=font_normal),
          Sg.Button(button_text='New', key='create_pl', enable_events=True, font=font_normal)]]
@@ -163,8 +166,11 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
         Sg.Input(playlist_name, key='playlist_name'),
         Sg.Submit('Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
         Sg.Button('Cancel', key='Cancel', font=font_normal, enable_events=True)],
-        [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),), pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal, enable_events=True)],
-                       [Sg.Button('Remove song', key='Remove song', font=font_normal, enable_events=True)]], background_color=bg, border_width=0),
+        [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),),
+                                       pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal,
+                                       enable_events=True)],
+                       [Sg.Button('Remove song', key='Remove song', font=font_normal, enable_events=True)]],
+                  background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
@@ -179,11 +185,11 @@ if __name__ == '__main__':
     import time
     metadata = 'Gabriel & Dresden - This Love Kills Me (Gabriel & Dresden Club Mix - Above & Beyond Respray)'
     mq = [r"C:\Users\maste\Music\Adam K & Soha - Twilight.mp3",
-                   r"C:\Users\maste\Music\Arkham Knights - Knightvision.mp3"]
+          r"C:\Users\maste\Music\Arkham Knights - Knightvision.mp3"]
     dq = [r"C:\Users\maste\Music\Afrojack, Eva Simons - Take Over Control.mp3",
-                  r"C:\Users\maste\Music\Alex H - And There I Was.mp3"]
+          r"C:\Users\maste\Music\Alex H - And There I Was.mp3"]
     p_status = 'NOT_PLAYING'  # PLAYING, PAUSED
-    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, 'NOT_PLAYING', metadata),
+    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, 'NOT_PLAYING', metadata, 50),
                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
     main_last_event = ''
     update_times = 0

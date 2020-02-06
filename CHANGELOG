@@ -1,0 +1,56 @@
+Music Caster by Elijah Lopez Changelog
+
+View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
+
+4.20.0
+- Works if song is scrubbed from home app
+- Better song timing (when the next song will play)
+
+4.19.1
+- FIXED: now playing text (MAIN GUI) was displaying song when playback was stopped
+- Can now use Up/Down and Page Up/Down to move through music queue GUI (EXPERIMENTAL)
+- CPU won't spike anymore for a few seconds when trying to play something on cast device
+
+4.19.0
+- Changed tooltip to have song info
+- Tray shows which device is currently selected
+
+4.18.6
+- Support for subfolders when using "Play All"
+
+4.18.5
+- Fixed bug where all devices showed the same name
+
+4.18.4
+- Minor refactoring + change in selecting device logic
+- Change in chromecast devices sorting criteria (alpha, then UUID)
+
+4.18.3
+- Sorted device list alphabetically with (local device) being the exception
+
+4.18.2
+- Fixed multiple Chromecasts bug
+
+4.18.1
+- Fixed timer to work with improved performance
+- Changed "Stop Timing" to "Cancel Timer"
+
+4.18.0
+- Added "Locate File" feature to Controls tray menu
+- Added changelog
+
+4.17.27
+- Streamlined controls
+- New EXPERIMENTAL keyword in settings.json (set to true for main window access)
+
+4.17.26
+- Fixed bug to do with wanting to create/edit a playlist name with 'q'
+- Streamlined Play options (Play File, Play a File Next -> Play File Next, Play All) to be in a cascaded menu
+- Improved performance (theoretically) by not reading the tray if the program is not in use
+- Edited settings window to not have a copy button anymore, makes life harder than just clicking the email hyperlink
+- Updated GUI library to the latest
+- Fixed bug with main GUI
+- Main GUI is almost done, test it out by putting `"EXPERIMENTAL": True` in `settings.json`
+
+4.17.25
+- Fixed chromecast buffering bug that would screw up when the next song would start playing

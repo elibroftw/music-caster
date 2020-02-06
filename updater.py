@@ -28,7 +28,7 @@ def download_and_extract(link, infile, outfile=None):
 
 with suppress(FileNotFoundError):
     sleep(1)  # wait for calling script to exit
-    os.chdir(os.path.dirname(os.path.realpath(__file__)))  # just in case
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))  # change working dir
     if os.path.exists('settings.json'):
         with open('settings.json') as json_file:
             debug_setting = json.load(json_file).get('DEBUG', False)

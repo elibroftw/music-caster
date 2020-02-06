@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.18.0"
+#define MyAppVersion "4.20.0"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -38,6 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "{#SourcePath}\dist\Music Caster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\resources\default.png"; DestDir: "{app}\images"; Flags: ignoreversion
+Source: "{#SourcePath}\CHANGELOG"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
