@@ -39,6 +39,7 @@ import zipfile
 from helpers import *
 
 VERSION = '4.20.0'
+PORT = 2001
 update_devices = False
 chromecasts = []
 device_names = []
@@ -116,16 +117,16 @@ if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
 
 @app.route('/instance/')
 def instance():
-    for k, v in active_windows:
+    global keyboard_command
+    for k, v in active_windows:  # Opens up GUI
         if v:
             if k == 'main': main_window.bring_to_front()
             elif k == 'settings': settings_window.bring_to_front()
             elif k == 'timer': timer_window.bring_to_front()
             elif k == 'playlist_selectoro': pl_selector_window.bring_to_front()
             else: pl_editor_window.bring_to_front()  #  playlist_editor
-            brea
-    # for window in active_windows
-    # TODO: Open up GUI
+            return 'True'
+    keyboard_command = '__ACTIVATED__'
     return 'True'
 
 
@@ -526,8 +527,7 @@ try:
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
     while True:
-        if timer or playing_status != 'NOT PLAYING' or any(active_windows.values()): menu_item = tray.Read(timeout=10)
-        else: menu_item = tray.Read()
+        menu_item = tray.Read(timeout=10)
         if time.time() - settings_last_loaded > 10:
             load_settings()
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
@@ -548,7 +548,7 @@ try:
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
-        if menu_item == '__ACTIVATED__' and settings.get('EXPERIMENTAL', False):
+        if '__ACTIVATED__' in {menu_item, keyboard_command} and settings.get('EXPERIMENTAL', False):
             if not active_windows['main']:
                 active_windows['main'] = True
                 volume = settings['volume']
