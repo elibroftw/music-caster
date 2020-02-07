@@ -14,6 +14,7 @@ from mutagen.id3 import ID3
 import mutagen
 from pathlib import Path
 # from PIL import Image
+import platform
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
@@ -38,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.20.1'
+VERSION = '4.21.0'
 update_devices = False
 chromecasts = []
 device_names = []
@@ -1027,12 +1028,15 @@ try:
             cast_last_checked = time.time()
 except Exception as e:
     if settings.get('DEBUG', False): raise e
+    current_time = str(datetime.now())
+    trace_back_msg = traceback.format_exc()
     with open(f'{starting_dir}/error.log', 'a+') as f:
-        f.write(str(datetime.now()))
-        f.write('\n')
-        f.write(traceback.format_exc())
-        f.write('\n')
-    tray.ShowMessage('Music Caster', 'An error has occured. Please check error.log and email the developer.')
+        f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
+    with suppress(requests.ConnectionError):
+        requests.post('https://enmuvo35nwiw.x.pipedream.net',
+                      json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
+                            'TRACEBACK': trace_back_msg})
+    tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
     # noinspection PyUnboundLocalVariable
     stop()
     os.startfile(os.path.realpath(__file__))  # TODO: restart program

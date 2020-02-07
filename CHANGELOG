@@ -2,6 +2,15 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.21.0
+- Errors are now sent to me automatically
+- Information that is shared with me
+    - Music Caster Version
+    - OS platform and version
+    - Trace back error message
+    - (see bottom of music_caster.py)
+- Updated error.log to include Music Caster's version
+
 4.20.1
 - Fixed no response bug when you switch devices while song is paused
 
