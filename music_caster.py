@@ -38,7 +38,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.20.0'
+VERSION = '4.20.1'
 update_devices = False
 chromecasts = []
 device_names = []
@@ -340,7 +340,7 @@ try:
                 mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                               metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
-                while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
+                while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
                 song_start = time.time() - song_position
                 song_end = song_start + song_length
             except (pychromecast.error.NotConnected, OSError):

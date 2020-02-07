@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.20.1
+- Fixed no response bug when you switch devices while song is paused
+
 4.20.0
 - Works if song is scrubbed from home app
 - Better song timing (when the next song will play)
