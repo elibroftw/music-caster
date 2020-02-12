@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.21.1
+- fixed bug where "open settings.json" would fail if user had no JSON file handler
+
 4.21.0
 - Errors are now sent to me automatically
 - Information that is shared with me

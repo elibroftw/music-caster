@@ -39,7 +39,7 @@ from winerror import ERROR_ALREADY_EXISTS
 import zipfile
 from helpers import *
 
-VERSION = '4.21.0'
+VERSION = '4.21.1'
 update_devices = False
 chromecasts = []
 device_names = []
@@ -616,7 +616,7 @@ try:
             if not active_windows['timer']:
                 active_windows['timer'], timer_layout = True, create_timer(settings)
                 timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
-                                         return_keyboard_events=True)
+                                         return_keyboard_events=True, grab_anywhere=True)
                 timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
             timer_window.Element('minutes').SetFocus()
@@ -834,7 +834,12 @@ try:
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
                     # TODO: update menu "Play Folder" list
-            elif settings_event == 'Open Settings': os.startfile(settings_file)
+            elif settings_event == 'Open Settings':
+                try: os.startfile(settings_file)
+                except OSError:
+                    if sys.platform == 'win32': settings_file = settings_file.replace('/', '\\')
+                    else: path_to_song = music_queue[0].replace('\\', '/')
+                    Popen(f'explorer /select,"{settings_file}"')
             settings_last_event = settings_event
         if active_windows['playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
