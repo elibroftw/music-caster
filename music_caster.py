@@ -751,9 +751,69 @@ try:
                         new_i = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0]) + move
                         new_i = min(max(new_i, 0), len(music_queue) - 1)
                         main_window['music_queue'].Update(set_to_index=new_i, scroll_to_index=new_i)
+            elif main_event == 'move_up':
+                try: index_to_move = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
+                except IndexError: index_to_move = -1
+                if index_to_move > 0:
+                    new_i = index_to_move - 1
+                    dq_len = len(done_queue)
+                    nq_len = len(next_queue)
+                    if index_to_move < dq_len:  # move within dq
+                        done_queue.insert(new_i, done_queue.pop(index_to_move))
+                    elif index_to_move == dq_len:  # move index -1 to 1
+                        if next_queue: next_queue.insert(1, done_queue.pop())
+                        else: music_queue.insert(1, done_queue.pop())
+                    elif index_to_move == dq_len + 1:  # move 1 to -1
+                        if next_queue: done_queue.append(next_queue.pop(0))
+                        else: done_queue.append(music_queue.pop(1))
+                    elif index_to_move < dq_len + nq_len - 1:  # within next_queue
+                        nq_i = new_i - dq_len
+                        next_queue.insert(nq_i, next_queue.pop(nq_i + 1))
+                    elif next_queue and index_to_move == dq_len + nq_len - 1:  # moving into next queue
+                        next_queue.append(music_queue.pop(0))
+                    else:  # moving within mq
+                        mq_i = new_i - dq_len - nq_len
+                        music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
+                    updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+                    main_window['music_queue'].Update(values=updated_list,
+                                                      set_to_index=new_i, scroll_to_index=new_i)
+            elif main_event == 'move_down':
+                try: index_to_move = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
+                except IndexError: index_to_move = -1
+                dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
+                if index_to_move == -1: pass
+                elif index_to_move < dq_len + nq_len + mq_len - 1:
+                    new_i = index_to_move + 1
+                    if index_to_move < dq_len:  # move within dq
+                        done_queue.insert(new_i, done_queue.pop(index_to_move))
+                    elif index_to_move == dq_len - 1:  # move index -1 to 1
+                        if next_queue: next_queue.insert(1, done_queue.pop())
+                        else: music_queue.insert(1, done_queue.pop())
+                    elif index_to_move == dq_len:  # move 1 to -1
+                        if next_queue: done_queue.append(next_queue.pop(0))
+                        else: done_queue.append(music_queue.pop(1))
+                    elif index_to_move < dq_len + nq_len - 1:  # within next_queue
+                        nq_i = new_i - dq_len
+                        next_queue.insert(nq_i, next_queue.pop(nq_i - 1))
+                    elif next_queue and index_to_move == dq_len + nq_len - 1:  # moving into music_queue
+                        music_queue.insert(1, next_queue.pop())
+                    else:  # moving within mq
+                        mq_i = new_i - dq_len - nq_len
+                        music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
+                    updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+                    main_window['music_queue'].Update(values=updated_list,
+                                                      set_to_index=new_i, scroll_to_index=new_i)
+            elif main_event == 'remove':
+                dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
+                # if
+                # music_queue.pop(0)
+                # next_song()
+            elif main_event == 'queue_file': pass
+            elif main_event == 'play_next': pass
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
-                    # TODO: disable progressbar when nothing is playing
+                    progress_bar.Update(disabled=True)
+                    # maybe even make it invisible?
                     continue
                 new_position = main_values['progressbar'] / 100 * song_length
                 song_position = new_position
@@ -776,7 +836,7 @@ try:
                 update_text = now_playing_text.DisplayText != new_playing_text
                 progress_bar = main_window['progressbar']
                 update_song_position()
-                progress_bar.Update(song_position / song_length * 100)
+                progress_bar.Update(song_position / song_length * 100, disabled=False)
                 time_left = song_length - song_position
                 update_progress_text = True
                 progress_bar_last_update = time.time()
@@ -924,7 +984,7 @@ try:
                 if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
                 elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
                 else: tray.Update(menu=menu_def_1)
-            elif pl_editor_event in {'Move up', 'u:85'}:  # u:85 is Ctrl + U
+            elif pl_editor_event in {'move_up', 'u:85'}:  # u:85 is Ctrl + U
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move > 0:
@@ -933,7 +993,7 @@ try:
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
                                                                  scroll_to_index=new_i)
-            elif pl_editor_event in {'Move down', 'd:68'}:  # d:68 is Ctrl + D
+            elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
                 if pl_editor_values['songs']:
                     index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
                     if index_to_move < len(pl_files) - 1:
