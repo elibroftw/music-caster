@@ -1,142 +1,142 @@
-from bs4 import BeautifulSoup
-from contextlib import suppress
-from datetime import datetime, timedelta
-import encodings.idna  # DO NOT REMOVE
-from flask import Flask
-from getpass import getuser
-from glob import glob
-import io
-import json
-import logging
-from math import floor
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3
-import mutagen
-from pathlib import Path
-# from PIL import Image
-import platform
-import pychromecast.controllers.media
-from pychromecast.error import UnsupportedNamespace
-import pychromecast
-from pygame import mixer as local_music_player
-from pynput.keyboard import Listener
-import socket
-import PySimpleGUIWx as sg
-import wx
-from random import shuffle
-import requests
-from shutil import copyfile
-from subprocess import Popen
-import sys
-import time  # DO NOT REMOVE
-import threading
-import traceback
-import webbrowser
-import win32api
-import win32com.client
-import win32event
-from winerror import ERROR_ALREADY_EXISTS
-import zipfile
-from helpers import *
-
-VERSION = '4.21.1'
-update_devices = False
-chromecasts = []
-device_names = []
-cast = None
-local_music_player.init(44100, -16, 2, 2048)
-starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
-home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-# TODO: replace '_' with ' ' in load_setings
-settings = {  # default settings
-    'previous device': None,
-    'volume': 100,
-    'auto update': False,
-    'run on startup': True,
-    'notifications': True,
-    'shuffle_playlists': True,
-    'repeat': False,
-    'timer_shut_off_computer': False,
-    'timer_hibernate_computer': False,
-    'timer_sleep_computer': False,
-    'EXPERIMENTAL': False,
-    'music directories': [home_music_dir],
-    'playlists': {},
-}
-settings_file = f'{starting_dir}/settings.json'
-playlists = {}
-tray_playlists = ['Create/Edit a Playlist']
-music_directories = []
-notifications_enabled = True
-
-
-def save_json():
-    with open(settings_file, 'w') as outfile:
-        json.dump(settings, outfile, indent=4)
-
-
-def change_settings(name, value):
-    settings[name] = value
-    save_json()
-    return value
-
-
-def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
-
-
-def download_and_extract(link, infile, outfile=None):
-    r = requests.get(link, stream=True)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
-    if outfile is None: outfile = infile
-    with suppress(FileNotFoundError): os.remove(outfile)
-    os.rename(f'{starting_dir}/Update/{infile}', outfile)
-
-
-def load_settings():
-    """load (and fix if needed) the settings file"""
-    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
-    if os.path.exists(settings_file):
-        with open(settings_file) as json_file:
-            try: loaded_settings = json.load(json_file)
-            except json.decoder.JSONDecodeError as e: loaded_settings = {}
-            save_settings = False
-            for setting_name, setting_value in settings.items():
-                if setting_name not in loaded_settings:
-                    loaded_settings[setting_name] = setting_value
-                    save_settings = True
-            settings = loaded_settings
-            playlists = settings['playlists']
-            tray_playlists.clear()
-            tray_playlists.append('Create/Edit a Playlist')
-            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-            notifications_enabled = settings['notifications']
-            music_directories = settings['music directories']
-            if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
-            DEFAULT_DIR = music_directories[0]
-        if save_settings: save_json()
-    else: save_json()
-
-
-def chromecast_callback(chromecast):
-    global update_devices, cast, chromecasts
-    previous_device = settings['previous device']
-    if str(chromecast.uuid) == previous_device and cast != chromecast:
-        cast = chromecast
-        cast.wait(timeout=5)
-    if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
-        chromecasts.append(chromecast)
-        chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
-        device_names.clear()
-        for i, cc in enumerate(['Local device'] + chromecasts):
-            name = cc if i == 0 else cc.name
-            if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
-                device_names.append(f'✓ {name}')
-            else: device_names.append(f'{i + 1}. {name}')
-        update_devices = True
-
-
 try:
+    from bs4 import BeautifulSoup
+    from contextlib import suppress
+    from datetime import datetime, timedelta
+    import encodings.idna  # DO NOT REMOVE
+    from flask import Flask
+    from getpass import getuser
+    from glob import glob
+    import io
+    import json
+    import logging
+    from math import floor
+    from mutagen.easyid3 import EasyID3
+    from mutagen.id3 import ID3
+    import mutagen
+    from pathlib import Path
+    # from PIL import Image
+    import platform
+    import pychromecast.controllers.media
+    from pychromecast.error import UnsupportedNamespace
+    import pychromecast
+    from pygame import mixer as local_music_player
+    from pynput.keyboard import Listener
+    import socket
+    import PySimpleGUIWx as sg
+    import wx
+    from random import shuffle
+    import requests
+    from shutil import copyfile
+    from subprocess import Popen
+    import sys
+    import time  # DO NOT REMOVE
+    import threading
+    import traceback
+    import webbrowser
+    import win32api
+    import win32com.client
+    import win32event
+    from winerror import ERROR_ALREADY_EXISTS
+    import zipfile
+    from helpers import *
+
+    VERSION = '4.21.2'
+    update_devices = False
+    chromecasts = []
+    device_names = []
+    cast = None
+    local_music_player.init(44100, -16, 2, 2048)
+    starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
+    home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
+    # TODO: replace '_' with ' ' in load_setings
+    settings = {  # default settings
+        'previous device': None,
+        'volume': 100,
+        'auto update': False,
+        'run on startup': True,
+        'notifications': True,
+        'shuffle_playlists': True,
+        'repeat': False,
+        'timer_shut_off_computer': False,
+        'timer_hibernate_computer': False,
+        'timer_sleep_computer': False,
+        'EXPERIMENTAL': False,
+        'music directories': [home_music_dir],
+        'playlists': {},
+    }
+    settings_file = f'{starting_dir}/settings.json'
+    playlists = {}
+    tray_playlists = ['Create/Edit a Playlist']
+    music_directories = []
+    notifications_enabled = True
+
+
+    def save_json():
+        with open(settings_file, 'w') as outfile:
+            json.dump(settings, outfile, indent=4)
+
+
+    def change_settings(name, value):
+        settings[name] = value
+        save_json()
+        return value
+
+
+    def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
+
+
+    def download_and_extract(link, infile, outfile=None):
+        r = requests.get(link, stream=True)
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
+        if outfile is None: outfile = infile
+        with suppress(FileNotFoundError): os.remove(outfile)
+        os.rename(f'{starting_dir}/Update/{infile}', outfile)
+
+
+    def load_settings():
+        """load (and fix if needed) the settings file"""
+        global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
+        if os.path.exists(settings_file):
+            with open(settings_file) as json_file:
+                try: loaded_settings = json.load(json_file)
+                except json.decoder.JSONDecodeError as e: loaded_settings = {}
+                save_settings = False
+                for setting_name, setting_value in settings.items():
+                    if setting_name not in loaded_settings:
+                        loaded_settings[setting_name] = setting_value
+                        save_settings = True
+                settings = loaded_settings
+                playlists = settings['playlists']
+                tray_playlists.clear()
+                tray_playlists.append('Create/Edit a Playlist')
+                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+                notifications_enabled = settings['notifications']
+                music_directories = settings['music directories']
+                if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
+                DEFAULT_DIR = music_directories[0]
+            if save_settings: save_json()
+        else: save_json()
+
+
+    def chromecast_callback(chromecast):
+        global update_devices, cast, chromecasts
+        previous_device = settings['previous device']
+        if str(chromecast.uuid) == previous_device and cast != chromecast:
+            cast = chromecast
+            cast.wait(timeout=5)
+        if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
+            chromecasts.append(chromecast)
+            chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
+            device_names.clear()
+            for i, cc in enumerate(['Local device'] + chromecasts):
+                name = cc if i == 0 else cc.name
+                if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
+                    device_names.append(f'✓ {name}')
+                else: device_names.append(f'{i + 1}. {name}')
+            update_devices = True
+
+
     user = getuser()
     shortcut_path = f'C:/Users/{user}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
     # Explorer > Ctrl + L > Type and enter in "Startup"
