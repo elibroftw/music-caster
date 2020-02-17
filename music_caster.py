@@ -1,43 +1,43 @@
+from contextlib import suppress
+from datetime import datetime, timedelta
+import io
+import json
+import logging
+from math import floor
+import os
+from pathlib import Path
+import platform
+import socket
+from shutil import copyfile
+from random import shuffle
+from subprocess import Popen
+import sys
+import time  # DO NOT REMOVE
+import threading
+import traceback
+import webbrowser
+import zipfile
 try:
     from bs4 import BeautifulSoup
-    from contextlib import suppress
-    from datetime import datetime, timedelta
     import encodings.idna  # DO NOT REMOVE
     from flask import Flask
     from getpass import getuser
-    from glob import glob
-    import io
-    import json
-    import logging
-    from math import floor
     from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3
     import mutagen
-    from pathlib import Path
     # from PIL import Image
-    import platform
     import pychromecast.controllers.media
     from pychromecast.error import UnsupportedNamespace
     import pychromecast
     from pygame import mixer as local_music_player
     from pynput.keyboard import Listener
-    import socket
     import PySimpleGUIWx as sg
     import wx
-    from random import shuffle
     import requests
-    from shutil import copyfile
-    from subprocess import Popen
-    import sys
-    import time  # DO NOT REMOVE
-    import threading
-    import traceback
-    import webbrowser
     import win32api
     import win32com.client
     import win32event
     from winerror import ERROR_ALREADY_EXISTS
-    import zipfile
     from helpers import *
 
     VERSION = '4.21.2'
