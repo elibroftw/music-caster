@@ -1,5 +1,6 @@
 from contextlib import suppress
 from datetime import datetime, timedelta
+from glob import glob
 import io
 import json
 import logging
@@ -174,6 +175,8 @@ try:
     mutex = win32event.CreateMutex(None, False, 'name')
     last_error = win32api.GetLastError()
     if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False): sys.exit()
+
+    if settings.get('DEBUG', False): VERSION += '.DEBUG'
 
     images_dir = starting_dir + '/images'
     cc_music_dir = starting_dir + '/music files'
