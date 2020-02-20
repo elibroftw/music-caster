@@ -20,16 +20,18 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 OutputDir={#SourcePath}\dist
 OutputBaseFilename=Music Caster v{#MyAppVersion} Setup
-; OutputBaseFilename=Music Caster Setup
-Compression=lzma
-SolidCompression=yes
-WizardStyle=modern
-SetupIconFile="resources\Music Caster.ico"
+UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile="resources\Music Caster.ico"
+
+
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

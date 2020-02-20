@@ -53,7 +53,7 @@ try:
     settings = {  # default settings
         'previous device': None,
         'volume': 100,
-        'auto update': False,
+        'auto update': True,
         'run on startup': True,
         'notifications': True,
         'shuffle_playlists': True,
