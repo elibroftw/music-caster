@@ -1,5 +1,6 @@
 import PySimpleGUI as Sg
 import os
+import re
 
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
@@ -19,7 +20,19 @@ NEXT_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6
 PREVIOUS_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAdhJREFUSIm1lj2vKVEUhp8z0VLIiMRXQSPxUY2oRCGiJUq1QiIRiZbaUWgEvYbePyAamaBAh2bOVUg0EhqJ21xzMzfHdUbMm0wys9Ze69lv9sze82G1Wr8AM8bpZAIcBgIAzCbgBJjtdjsWi0XNXC4XFEV5qavb7cbj8TCZTOCPEwBKpRLZbFYdKMsyuVxON8Dj8dDv91EU5Q5BuCftdjuiKKqXy+XSDSgUCsznc/x+P8fjUY2rTs7ns6bgdDr9uLnP56PVahGNRtXY9XpV74XvivSoUqkwnU41gH9leph5okAgQKfTIRgMPh37kpNarcZoNPoRAHQ6kSSJbreL1+vVNamHEEHQmqzX6+TzeV3Nn0Ku1yuCIJBIJGg2mzgcr28MDyGKohAOhxkMBi83v+vhwrvdbhaLBZlMhu12awzkviaj0YhIJEK73X4/5Ha7aZ5rtRrJZJLlcvk+yHeazWbE43EajYZxkLs+Pz+JxWLIsmwcBGC9XpNKpahWq8ZB7up0OkiSxHg8Ng4CsNvtSKfTlMtl9YUxmf5+girEZrNpCp1Op25Yr9cjFAqxWq0QRVGNq7jhcMjhcFATm81GNwRgv99TLBY1J+uH1Wq9/afmLTIBvzD4v+s3geuMP4PEmxwAAAAASUVORK5CYII='
 PLAY_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAPFJREFUSIm1lrFthTAYBu890b7GuMooMAMWzALjgGABU8EIsEnSuKREIqksISUQg5+vNfrvu46HEOITeBGOJQI+AgoAXk9gCSxZnkcvbdsipXyL5VCilGKaJvI8DycBkFLSNI131anE4lvlJAG/KmeJRSnFPM8URRFOAhDHMXVd03WdU9UtiSXLMqcqLwm4VXlLLGdVb5MAbNvGuq7hJH3fk6YpwzD8eot8jxtjqKrqz+MWrxKt9eH6PbdKjDGUZck4jk7fXy7RWpMkibMALpRcXb/HqeTO+j2nJT7r9xyW+K7f8xBCfHtf+YcI+CLwf9cPX0FmElVF/McAAAAASUVORK5CYII='
 PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAGdJREFUSInt1jEKgDAMheG/oWs7pJv3v1cn3bKYCziLgihkEPK2hAdfxhRVXYFGXLwCSyAA0ATwYMTr3dbMTvMY49LpvTPnfOwByNfz3iSRRBJJJJFEfoMUVd0J/lYkGABoFdiCIT8AdVMOh/30v2kAAAAASUVORK5CYII='
+_nonbmp = re.compile(r'[\U00010000-\U0010FFFF]')
 # TODO: right click menus for list boxes
+
+
+def _surrogatepair(match):
+    char = match.group()
+    assert ord(char) > 0xffff
+    encoded = char.encode('utf-16-le')
+    return chr(int.from_bytes(encoded[:2], 'little')) +  chr(int.from_bytes(encoded[2:], 'little'))
+
+
+def with_surrogates(text):
+    return _nonbmp.sub(_surrogatepair, text)
 
 
 def create_songs_list(music_queue, done_queue, next_queue):
@@ -164,8 +177,8 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
         Sg.Text('Playlist name', text_color=fg,
                 background_color=bg, font=font_normal),
         Sg.Input(playlist_name, key='playlist_name'),
-        Sg.Submit('Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
-        Sg.Button('Cancel', key='Cancel', font=font_normal, enable_events=True)],
+        Sg.Submit('Save & quit', key='Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
+        Sg.Button('❌', key='Cancel', font=font_normal, enable_events=True)],
         [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),),
                                        pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal,
                                        enable_events=True)],
