@@ -19,6 +19,7 @@ NEXT_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6
 PREVIOUS_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAdhJREFUSIm1lj2vKVEUhp8z0VLIiMRXQSPxUY2oRCGiJUq1QiIRiZbaUWgEvYbePyAamaBAh2bOVUg0EhqJ21xzMzfHdUbMm0wys9Ze69lv9sze82G1Wr8AM8bpZAIcBgIAzCbgBJjtdjsWi0XNXC4XFEV5qavb7cbj8TCZTOCPEwBKpRLZbFYdKMsyuVxON8Dj8dDv91EU5Q5BuCftdjuiKKqXy+XSDSgUCsznc/x+P8fjUY2rTs7ns6bgdDr9uLnP56PVahGNRtXY9XpV74XvivSoUqkwnU41gH9leph5okAgQKfTIRgMPh37kpNarcZoNPoRAHQ6kSSJbreL1+vVNamHEEHQmqzX6+TzeV3Nn0Ku1yuCIJBIJGg2mzgcr28MDyGKohAOhxkMBi83v+vhwrvdbhaLBZlMhu12awzkviaj0YhIJEK73X4/5Ha7aZ5rtRrJZJLlcvk+yHeazWbE43EajYZxkLs+Pz+JxWLIsmwcBGC9XpNKpahWq8ZB7up0OkiSxHg8Ng4CsNvtSKfTlMtl9YUxmf5+girEZrNpCp1Op25Yr9cjFAqxWq0QRVGNq7jhcMjhcFATm81GNwRgv99TLBY1J+uH1Wq9/afmLTIBvzD4v+s3geuMP4PEmxwAAAAASUVORK5CYII='
 PLAY_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAPFJREFUSIm1lrFthTAYBu890b7GuMooMAMWzALjgGABU8EIsEnSuKREIqksISUQg5+vNfrvu46HEOITeBGOJQI+AgoAXk9gCSxZnkcvbdsipXyL5VCilGKaJvI8DycBkFLSNI131anE4lvlJAG/KmeJRSnFPM8URRFOAhDHMXVd03WdU9UtiSXLMqcqLwm4VXlLLGdVb5MAbNvGuq7hJH3fk6YpwzD8eot8jxtjqKrqz+MWrxKt9eH6PbdKjDGUZck4jk7fXy7RWpMkibMALpRcXb/HqeTO+j2nJT7r9xyW+K7f8xBCfHtf+YcI+CLwf9cPX0FmElVF/McAAAAASUVORK5CYII='
 PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAGdJREFUSInt1jEKgDAMheG/oWs7pJv3v1cn3bKYCziLgihkEPK2hAdfxhRVXYFGXLwCSyAA0ATwYMTr3dbMTvMY49LpvTPnfOwByNfz3iSRRBJJJJFEfoMUVd0J/lYkGABoFdiCIT8AdVMOh/30v2kAAAAASUVORK5CYII='
+VOLUME_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAlFJREFUSIm1lUFLKlEYhp85qS2ilLMQkwlSqJ8gbmxT0TKoCPoB6q6Va1euWrgXF24MNLKVEYjt+wtBUBHXbaBRDjP23ZXSXK+XGS++MIvD+d7z8H5nDp+htf4FrLI4DQJAfIEAgFUFDPy6TNNkc3PTa/lA+QUAXFxcEA6HPdf7htzd3XFwcMDT09NiIM1mk1QqhW3bLC0tTe2HQqH/gzQaDfb29gAQEQzDcO1fXl7y+Pg4P+Tq6or9/X23UbmtNzc3rK2tUa1W/w2JRCKsr68Ti8WIRqOYpkmz2WR3d3fKaFkWAJ1Oh3q9TqvVot1uc3R0hNbaXay17mutRWst7XZbvMiyLDFNU7TW8vDwICIiyWRS4vG4iIiUy2UZn6m17ruSjEYjL90DYHl5GYDDw0MASqUSw+EQx3GmW/tz4TiOZ8j39zcAtm3z/v5OJpMB4O3tjVgsNhsyr5RSE6hSChGZDRm3wOvBACsrK4TDYTqdDgAbGxv0ej1XbeDn4uvrCxFhNBohIgQCgan3MNZwOASg2+0CUCwWiUQiKKW4vb2dneT8/JxEIjH5kskk19fXf4WM4S8vL9TrdSzLolarAVCpVGYnsSxr8v+Pk+XzeQzD4Pj42GUMhUJ8fn5ydnYGQDabZWdnh1qtxsfHx+wks5TL5aYS/Xm56XSa19dXCoXClN/QWvfxOBkrlQonJyfYts329jb9ft+Lzd88yefz3N/fEwwG/dj8v5PT01MajYafyeivXWNtbW3hOA7Pz89eygdzQXxqoBYMAFgNAL0Fgwa/AcdlA4rMxiUnAAAAAElFTkSuQmCC'
 # TODO: right click menus for list boxes
 
 
@@ -65,10 +66,15 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     # Sg.Button('Shuffle', key='Shuffle'),
     music_controls = [[Sg.Button(key='Prev', image_data=PREVIOUS_BUTTON_IMG),
-                       Sg.Button(key='Pause/Resume', image_data=pause_resume_img, size=(10, 10)),
-                       Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
+                       # border_width=0, first add border to images
+                       Sg.Button(key='Pause/Resume', image_data=pause_resume_img),
+                       Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat'),
+                       Sg.Image(data=VOLUME_IMG),
+                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume',
+                                 disable_number_display=True, enable_events=True, background_color='#4285f4',
+                                 text_color='black', size=(10, 10))]]
+    # TODO: speaker image
     # TODO: use images
-    # TODO: volume control
     # TODO: progressbar invisible if nothing is playing?
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
@@ -78,8 +84,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                             Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
     
     # Now Playing layout
-    volume_slider = Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume', tick_interval=5,
-                              enable_events=True, background_color='#4285f4', text_color='black', size=(49, 15))
+
     tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
                             size=(55, 0))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150),
@@ -87,7 +92,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                    # [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover'),
                    #  Sg.Slider((range(0, 100)))] if album_cover_data else [Sg.Slider((range(0, 100)))],
                    # Maybe make volume on its own tab or horizontal?
-                   [Sg.Column(music_controls, justification='center')],
+                   [Sg.Column(music_controls, justification='center', size=(400, 30))],
                    [Sg.Column(progress_bar_layout, justification='center')]]
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
