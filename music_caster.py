@@ -828,8 +828,8 @@ try:
                 song_end = time.time() + time_left
                 song_start = song_end - song_length
                 update_progress_text = True
-            if playing_status == 'PLAYING' and time.time() - progress_bar_last_update > 1:
-                # TODO: enable progress bar
+            if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
+                # TODO: progressbar visible if playing?
                 metadata = music_meta_data[music_queue[0]]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 new_playing_text = f'{artist} - {title}'

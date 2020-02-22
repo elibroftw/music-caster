@@ -57,7 +57,7 @@ def create_songs_list(music_queue, done_queue, next_queue):
 def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                     now_playing_text='Nothing Playing', album_cover_data=None):
     # PLANNING:
-    # Title: Music Caster
+    # set progressbar in here?
     # Volume control
     # Show playing queue with controls for moving songs around
     # Show Current playing with it's album art, use default album art if one does not exist
@@ -69,7 +69,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG), Sg.Button('Repeat', key='Repeat')]]
     # TODO: use images
     # TODO: volume control
-    # TODO: disable if nothing is playing
+    # TODO: progressbar invisible if nothing is playing?
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
                                       enable_events=True, relief=Sg.RELIEF_FLAT, background_color='#4285f4',
