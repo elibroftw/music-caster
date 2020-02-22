@@ -88,7 +88,7 @@ try:
         save_json()
         return value
 
-    
+
     def update_volume(new_vol):
         if new_vol > 1: new_vol = new_vol / 100
         if cast is None:  local_music_player.music.set_volume(new_vol)
@@ -96,6 +96,13 @@ try:
 
 
     def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
+
+
+    def fix_path(filepath):
+        if sys.platform == 'win32':
+            return filepath.replace('/', '\\')
+        else:
+            return filepath.replace('\\', '/')
 
 
     def download_and_extract(link, infile, outfile=None):
@@ -820,9 +827,20 @@ try:
             # TODO
             elif main_event == 'remove':
                 dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
-                # if
-                # music_queue.pop(0)
-                # next_song()
+                index_to_remove = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
+                if index_to_remove < dq_len:
+                    done_queue.pop(index_to_remove)
+                elif index_to_remove == dq_len:
+                    music_queue.pop(0)
+                    play_file(music_queue[0])
+                elif index_to_remove <= nq_len + dq_len:
+                    next_queue.pop(index_to_remove - dq_len - 1)
+                elif index_to_remove < nq_len + mq_len + dq_len:
+                    music_queue.pop(index_to_remove - dq_len - nq_len)
+                updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+                new_i = min(len(updated_list), index_to_remove)
+                main_window['music_queue'].Update(values=updated_list,
+                                                  set_to_index=new_i, scroll_to_index=new_i)
             elif main_event == 'queue_file': pass
             elif main_event == 'play_next': pass
             elif main_event == 'open_explorer': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
