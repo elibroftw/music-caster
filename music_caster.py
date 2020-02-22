@@ -497,8 +497,10 @@ try:
             playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
             if not settings['repeat'] or not from_timeout or not music_queue:
-                settings['repeat'] = False
-                save_json()
+                change_settings('repeat', False)
+                if active_windows['main']:
+                    main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
+                    main_window['Repeat'].is_repeating = False
                 if music_queue: done_queue.append(music_queue.pop(0))
                 if next_queue: music_queue.insert(0, next_queue.pop(0))
             if music_queue: play_file(music_queue[0])
@@ -514,6 +516,10 @@ try:
         if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING':
             if done_queue:
+                change_settings('repeat', False)
+                if active_windows['main']:
+                    main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
+                    main_window['Repeat'].is_repeating = False
                 song = done_queue.pop()
                 music_queue.insert(0, song)
                 play_file(song)

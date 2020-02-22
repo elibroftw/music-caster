@@ -4,10 +4,10 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.22.0
 - New main window update
-- Added image for repeat button
+- Added image for the repeat button
 - Added volume control
 - Added music queue control
-- GUI volume slider's update when volume is updated through home app
+- GUI volume slider's update when the volume is updated through the home app
 
 4.21.2
 - bigger try-except to catch more bugs
