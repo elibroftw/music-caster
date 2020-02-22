@@ -1,5 +1,6 @@
 import PySimpleGUI as Sg
 import os
+import re
 
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
@@ -22,7 +23,19 @@ PAUSE_BUTTON_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw
 VOLUME_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAAlFJREFUSIm1lUFLKlEYhp85qS2ilLMQkwlSqJ8gbmxT0TKoCPoB6q6Va1euWrgXF24MNLKVEYjt+wtBUBHXbaBRDjP23ZXSXK+XGS++MIvD+d7z8H5nDp+htf4FrLI4DQJAfIEAgFUFDPy6TNNkc3PTa/lA+QUAXFxcEA6HPdf7htzd3XFwcMDT09NiIM1mk1QqhW3bLC0tTe2HQqH/gzQaDfb29gAQEQzDcO1fXl7y+Pg4P+Tq6or9/X23UbmtNzc3rK2tUa1W/w2JRCKsr68Ti8WIRqOYpkmz2WR3d3fKaFkWAJ1Oh3q9TqvVot1uc3R0hNbaXay17mutRWst7XZbvMiyLDFNU7TW8vDwICIiyWRS4vG4iIiUy2UZn6m17ruSjEYjL90DYHl5GYDDw0MASqUSw+EQx3GmW/tz4TiOZ8j39zcAtm3z/v5OJpMB4O3tjVgsNhsyr5RSE6hSChGZDRm3wOvBACsrK4TDYTqdDgAbGxv0ej1XbeDn4uvrCxFhNBohIgQCgan3MNZwOASg2+0CUCwWiUQiKKW4vb2dneT8/JxEIjH5kskk19fXf4WM4S8vL9TrdSzLolarAVCpVGYnsSxr8v+Pk+XzeQzD4Pj42GUMhUJ8fn5ydnYGQDabZWdnh1qtxsfHx+wks5TL5aYS/Xm56XSa19dXCoXClN/QWvfxOBkrlQonJyfYts329jb9ft+Lzd88yefz3N/fEwwG/dj8v5PT01MajYafyeivXWNtbW3hOA7Pz89eygdzQXxqoBYMAFgNAL0Fgwa/AcdlA4rMxiUnAAAAAElFTkSuQmCC'
 REPEAT_ALL_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAA8BJREFUSIm9Vk1IslsQftTATzGjUxJcDStbmAVRodSmdGEFLiqodqKEuWsTtAiqRdCqTYuili2yv42BiwiKst7KRSJoKWWlRbfCCMSCzMTzLT56b2aZd3HvwMDMnHnmec+c9/xwCCF/A8jHfydPeQD+4nK5SKVS32aVlZWhpaUFSqUSIpEILy8vCAaDYBgGgUDgJ5L8PABPfD4/n8/nIxqNZmSUl5fDaDRCp9NBoVBAKBTi9fUVV1dXqKyshM1mg9frzToTEEJiUqmUDg4O0vX1dUoIoYQQqlAoqMPhoLnI7u4uVavVLPaTxngCgWA4mUzyxWIxRkZGkEgkkEwmwTAMVCrVzx0HIJfL0d/fj3A4jJOTk8/Dibx3631NRkdHM4pcXl5ibW0NXq8XkUgEhYWFqK6uhsFgQG1tLZs3OzsLAFhdXU0vQAiJEUJoR0dHRhseHh7o2NjYd22ghBA6MDCQgfvUuhg3WxsYhsH09HTWVtlsNjQ1NaXFlpeX03yWhMfjZRTo7OzE1NRUVhIAODs7g9FoZP2Kigqo1WrW5wkEgmEAfJlMhu7ubqRSqTStq6uDSCTCzs5OVqJgMAidTgepVAoAKC4uxu3tLW5ubv5Z+P39fZSWloJSmgbmcDiQyWQ/zgYAlpaWoNFoAAANDQ3QarVwuVxgSSileHt7+xIcCoVyIvH5fKwtkUhQX18PAH9IWltboVQqQSkFl8vFysoK7u/vcyr8Uc7OzjA5Ocn6x8fHAAAOISS2uLiY39bWxg5aLBbY7fZ/TfKNPHEBwOl04vz8nI3K5fKc0AKBIKc8LgBsbGzA6XSywd7e3pzAzc3NCIfDODg4AMMwrB4eHkKr1bJ5PIFAMByNRvnn5+ewWq0A/vx+19fXbE+/k4uLC4jFYhgMBkgkElaLioqwvb0Nv98PAAl2M4ZCIbjdbrbAzMwMqqqqfpzN+Pg4JiYmMuLxeJy1044Vk8mUlsgwDHp6erKS6PV6dHV1Zc3J++jc3d3BbDZjfn6ejc3NzcFoNMLhcMDtduPx8REFBQWor69He3s79Hr9l4XTNvX7KfxRrVZrTpfVZ7FYLHRoaIhSSmlfX1/6pQWA//Er/H4/7HY7ampqcjpSfD4fzGYzNjc34fF4oFKpEI/HcXp6ing8nuAQQmLI8lppbGyEyWSCRqNBSUkJfv36hUQigUgkAo/Hg4WFBWxtbWXgxGIxUqkUnp+fn/KyEQCAy+VCKpVCIBCAVCqFUCjEy8sL7u7ucHR0hL29vS9xsVjs3czn/B/vrt90yAsNvOVsywAAAABJRU5ErkJggg=='
 REPEAT_SONG_IMG = b'iVBORw0KGgoAAAANSUhEUgAAABkAAAAZCAYAAADE6YVjAAABS2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIi8+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJyIj8+nhxg7wAAA8VJREFUSIm9Vk1IclsUXZlgikWdiiANSwWtBqFiFAbppIKgHBQ0MZ1IgTRp9kE1jWjSoKigZon9QX+DhpXcwEENtMJIUIvKfiZigWjleYPw9l0t8w3e23Dh7H3WXuvufdiHU0AIuQNQjP/OXvgAqnk8HlKp1I+o2tpatLe3Q61WQywWIx6PIxAIgGEY+P3+30SK+QBeBAJBsUAgQDQazULU1dXBYrHAZDJBoVBAJBIhkUjg+voaSqUSTqcTPp8vZyUghMQkEgkdHR2l+/v7lBBCCSFUoVDQvb09mo+53W6q1+vZ3IwvVigUCv+8v78LSkpKMDY2hmQyiff3dzAMg4aGht87DkAmk8FutyMcDuPi4iJzO8lPr9JnMj4+nkUSDAaxvb0Nn8+Hp6cnlJWVobGxEd3d3WhqamJx8/PzAID19XUuASEkRgihvb29WW14fn6mExMTP7WBEkLoyMhIVl5G62K8XG1gGAazs7M5W+V0OtHa2sqJra6ucnxWpLCwMIvAbDZjZmYmpwgAXF1dwWKxsL5cLoder2f9QqFQ+AeAQCqVoq+vD6lUivNpNBqIxWIcHh7mFAoEAjCZTJBIJACAiooK3N/f4/b29uvgj4+PUVNTA0opJ7mgoABSqfTXagDA5XKhubkZAKDT6WA0GuHxeMCKUErx9vb2bXIoFMpL5OzsjF1XVlZCq9UCwKdIR0cH1Go1KKXg8XhYW1vDw8NDXsR/29XVFaanp1n//Pz8S8Rms6Gzs5PdvLm5wdbWVl7Eer0ePT09qK6uxt3dHXZ2dnB6esrB8AHg6OgICoUCSqUSwOcE52PLy8swm82cmMPhwMbGBoaHh7+ChJCYVqulS0tL7DBdXl7mHEBCCD04OGDxXq+XqlQq6vV62djJyQl3GMPhMHslAIBKpcLAwMCPFXR1dcFoNAL4vHImJyeh0Wg4GJ1Oxx4BO4yhUIjTy7m5OdTX138r4nA42LVcLofL5UJFRUUWbnBwkCsCAFarlQNiGAb9/f1ZyQqF4lvxTCsvL88WiUQisNlsHODCwgJ2d3dht9uh1Wohk8mQSCTyEknj+Jkbe3t7GBoawuLiIhszGAwwGAx5Ef9tDMMAyKgkbZubm2hpaYHH4/nXxGn7+PjAysoKAKCAEBJDjtdKS0sLrFYrmpubUVVVhaKiIiSTSUSjUVRWVoLHy/7PRCKB/v5+eL1evL6+vvBzCQCAx+NBKpWC3++HRCKBSCRCPB5HJBJBMBiEyWRCW1sbSktLEY1G4Xa7MTU1hcfHxzRFccH/8e76B4nB4p8UAGKLAAAAAElFTkSuQmCC'
+_nonbmp = re.compile(r'[\U00010000-\U0010FFFF]')
 # TODO: right click menus for list boxes
+
+
+def _surrogatepair(match):
+    char = match.group()
+    assert ord(char) > 0xffff
+    encoded = char.encode('utf-16-le')
+    return chr(int.from_bytes(encoded[:2], 'little')) +  chr(int.from_bytes(encoded[2:], 'little'))
+
+
+def with_surrogates(text):
+    return _nonbmp.sub(_surrogatepair, text)
 
 
 def create_songs_list(music_queue, done_queue, next_queue):
@@ -178,8 +191,8 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
         Sg.Text('Playlist name', text_color=fg,
                 background_color=bg, font=font_normal),
         Sg.Input(playlist_name, key='playlist_name'),
-        Sg.Submit('Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
-        Sg.Button('Cancel', key='Cancel', font=font_normal, enable_events=True)],
+        Sg.Submit('Save & quit', key='Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
+        Sg.Button('❌', key='Cancel', font=font_normal, enable_events=True)],
         [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),),
                                        pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal,
                                        enable_events=True)],

@@ -1,188 +1,181 @@
-from bs4 import BeautifulSoup
 from contextlib import suppress
 from datetime import datetime, timedelta
-import encodings.idna  # DO NOT REMOVE
-from flask import Flask
-from getpass import getuser
 from glob import glob
 import io
 import json
 import logging
 from math import floor
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3
-import mutagen
+import os
 from pathlib import Path
-# from PIL import Image
 import platform
-import pychromecast.controllers.media
-from pychromecast.error import UnsupportedNamespace
-import pychromecast
-from pygame import mixer as local_music_player
-from pynput.keyboard import Listener
 import socket
-import PySimpleGUIWx as sg
-import wx
-from random import shuffle
-import requests
 from shutil import copyfile
+from random import shuffle
 from subprocess import Popen
 import sys
 import time  # DO NOT REMOVE
 import threading
 import traceback
 import webbrowser
-import win32api
-import win32com.client
-import win32event
-from winerror import ERROR_ALREADY_EXISTS
 import zipfile
-from helpers import *
+try:
+    from bs4 import BeautifulSoup
+    import encodings.idna  # DO NOT REMOVE
+    from flask import Flask
+    from getpass import getuser
+    from mutagen.easyid3 import EasyID3
+    from mutagen.id3 import ID3
+    import mutagen
+    # from PIL import Image
+    import pychromecast.controllers.media
+    from pychromecast.error import UnsupportedNamespace
+    import pychromecast
+    from pygame import mixer as local_music_player
+    from pynput.keyboard import Listener
+    import PySimpleGUIWx as sg
+    import wx
+    import requests
+    import win32api
+    import win32com.client
+    import win32event
+    from winerror import ERROR_ALREADY_EXISTS
+    from helpers import *
 
-VERSION = '4.21.0'
-PORT = 2001
-update_devices = False
-chromecasts = []
-device_names = []
-cast = None
-local_music_player.init(44100, -16, 2, 2048)
-starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
-home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-# TODO: replace '_' with ' ' in load_setings
-settings = {  # default settings
+    VERSION = '4.22.0'
+    PORT = 2001
+    update_devices, cast = False, None
+    chromecasts, device_names = [], []
+    local_music_player.init(44100, -16, 2, 2048)
+    starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
+    home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
+    # TODO: replace '_' with ' ' in load_setings
+    settings = {  # default settings
         'previous device': None,
-        'auto update': False,
+        'volume': 100,
+        'auto update': True,
         'run on startup': True,
         'notifications': True,
-        'shuffle_playlists': False,
-        'volume': 100,
-        'local volume': 100,
+        'shuffle_playlists': True,
         'repeat': False,
         'timer_shut_off_computer': False,
         'timer_hibernate_computer': False,
         'timer_sleep_computer': False,
+        'EXPERIMENTAL': False,
         'music directories': [home_music_dir],
-        'playlists': {},
-        'playlists_example': {'NAME': ['PATHS']},
-        'EXPERIMENTAL': False
-}
-settings_file = f'{starting_dir}/settings.json'
-playlists, tray_playlists = {}, ['Create/Edit a Playlist']
-music_directories, notifications_enabled = [], True
-keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-main_last_event = settings_last_event = pl_editor_last_event = None
-open_pl_selector = update_progress_text = False
-new_playing_text, timer = 'Nothing Playing', 0
-active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False, 
-                  'playlist_editor': False}
-pl_name, pl_files = '', []
-app = Flask(__name__, static_folder='/', static_url_path='/')
+        'playlists': {}
+    }
+    settings_file = f'{starting_dir}/settings.json'
+    playlists, tray_playlists = {}, ['Create/Edit a Playlist']
+    music_directories, notifications_enabled = [], True
+    keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+    main_last_event = settings_last_event = pl_editor_last_event = None
+    open_pl_selector = update_progress_text = False
+    new_playing_text, timer = 'Nothing Playing', 0
+    active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False, 
+                    'playlist_editor': False}
+    pl_name, pl_files = '', []
+    app = Flask(__name__, static_folder='/', static_url_path='/')
+    settings_file = f'{starting_dir}/settings.json'
 
 
-def load_settings():
-    """load (and fix if needed) the settings file"""
-    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
-    if os.path.exists(settings_file):
-        with open(settings_file) as json_file:
-            try: loaded_settings = json.load(json_file)
-            except json.decoder.JSONDecodeError as e: loaded_settings = {}
-            save_settings = False
-            for setting_name, setting_value in settings.items():
-                if setting_name not in loaded_settings:
-                    loaded_settings[setting_name] = setting_value
-                    save_settings = True
-            settings = loaded_settings
-            playlists = settings['playlists']
-            tray_playlists.clear()
-            tray_playlists.append('Create/Edit a Playlist')
-            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-            notifications_enabled = settings['notifications']
-            music_directories = settings['music directories']
-            if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
-            DEFAULT_DIR = music_directories[0]
-        if save_settings: save_json()
-    else: save_json()
+    def save_json():
+        with open(settings_file, 'w') as outfile:
+            json.dump(settings, outfile, indent=4)
 
 
-load_settings()
-# Check if app is running already
-mutex = win32event.CreateMutex(None, False, 'name')
-last_error = win32api.GetLastError()
-if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
-    while True:
-        with suppress(requests.exceptions.InvalidSchema):
-            if PORT == 2100 or requests.get(f'localhost:{PORT}/instance').text == 'True': break
-        PORT += 1
-    sys.exit()
+    def change_settings(name, value):
+        settings[name] = value
+        save_json()
+        return value
 
 
-@app.route('/instance/')
-def instance():
-    global keyboard_command
-    for k, v in active_windows:  # Opens up GUI
-        if v:
-            if k == 'main': main_window.bring_to_front()
-            elif k == 'settings': settings_window.bring_to_front()
-            elif k == 'timer': timer_window.bring_to_front()
-            elif k == 'playlist_selectoro': pl_selector_window.bring_to_front()
-            else: pl_editor_window.bring_to_front()  #  playlist_editor
-            return 'True'
-    keyboard_command = '__ACTIVATED__'
-    return 'True'
+    def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
 
 
-@app.errorhandler(404)
-def page_not_found(_):
-    return '404 error', 404
+    def download_and_extract(link, infile, outfile=None):
+        r = requests.get(link, stream=True)
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
+        if outfile is None: outfile = infile
+        with suppress(FileNotFoundError): os.remove(outfile)
+        os.rename(f'{starting_dir}/Update/{infile}', outfile)
 
 
-def save_json():
-    with open(settings_file, 'w') as outfile:
-        json.dump(settings, outfile, indent=4)
+    def load_settings():
+        """load (and fix if needed) the settings file"""
+        global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
+        if os.path.exists(settings_file):
+            with open(settings_file) as json_file:
+                try: loaded_settings = json.load(json_file)
+                except json.decoder.JSONDecodeError as e: loaded_settings = {}
+                save_settings = False
+                for setting_name, setting_value in settings.items():
+                    if setting_name not in loaded_settings:
+                        loaded_settings[setting_name] = setting_value
+                        save_settings = True
+                settings = loaded_settings
+                playlists = settings['playlists']
+                tray_playlists.clear()
+                tray_playlists.append('Create/Edit a Playlist')
+                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+                notifications_enabled = settings['notifications']
+                music_directories = settings['music directories']
+                if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
+                DEFAULT_DIR = music_directories[0]
+            if save_settings: save_json()
+        else: save_json()
 
 
-def change_settings(name, value):
-    settings[name] = value
-    save_json()
-    return value
+    load_settings()
+    # Check if app is running already
+    mutex = win32event.CreateMutex(None, False, 'name')
+    last_error = win32api.GetLastError()
+    if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
+        while True:
+            with suppress(requests.exceptions.InvalidSchema):
+                if PORT == 2100 or requests.get(f'localhost:{PORT}/instance').text == 'True': break
+            PORT += 1
+        sys.exit()
 
 
-def fix_path(filepath):
-    if sys.platform == 'win32': return filepath.replace('/', '\\')
-    else: return filepath.replace('\\', '/')
+    @app.route('/instance/')
+    def instance():
+        global keyboard_command
+        for k, v in active_windows:  # Opens up GUI
+            if v:
+                if k == 'main': main_window.bring_to_front()
+                elif k == 'settings': settings_window.bring_to_front()
+                elif k == 'timer': timer_window.bring_to_front()
+                elif k == 'playlist_selectoro': pl_selector_window.bring_to_front()
+                else: pl_editor_window.bring_to_front()  #  playlist_editor
+                return 'True'
+        keyboard_command = '__ACTIVATED__'
+        return 'True'
 
 
-def valid_music_file(file_path): return file_path.endswith('.mp3') #  or file_path.endswith('.flac')
+    @app.errorhandler(404)
+    def page_not_found(_):
+        return '404 error', 404
+
+    def chromecast_callback(chromecast):
+        global update_devices, cast, chromecasts
+        previous_device = settings['previous device']
+        if str(chromecast.uuid) == previous_device and cast != chromecast:
+            cast = chromecast
+            cast.wait(timeout=5)
+        if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
+            chromecasts.append(chromecast)
+            chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
+            device_names.clear()
+            for i, cc in enumerate(['Local device'] + chromecasts):
+                name = cc if i == 0 else cc.name
+                if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
+                    device_names.append(f'✓ {name}')
+                else: device_names.append(f'{i + 1}. {name}')
+            update_devices = True
 
 
-def download_and_extract(link, infile, outfile=None):
-    r = requests.get(link, stream=True)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
-    if outfile is None: outfile = infile
-    with suppress(FileNotFoundError): os.remove(outfile)
-    os.rename(f'{starting_dir}/Update/{infile}', outfile)
-
-
-def chromecast_callback(chromecast):
-    global update_devices, cast, chromecasts
-    previous_device = settings['previous device']
-    if str(chromecast.uuid) == previous_device and cast != chromecast:
-        cast = chromecast
-        cast.wait(timeout=5)
-    if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
-        chromecasts.append(chromecast)
-        chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
-        device_names.clear()
-        for i, cc in enumerate(['Local device'] + chromecasts):
-            name = cc if i == 0 else cc.name
-            if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
-                device_names.append(f'✓ {name}')
-            else: device_names.append(f'{i + 1}. {name}')
-        update_devices = True
-
-
-def startup_setting(shortcut_path):
+    def startup_setting(shortcut_path):
         run_on_startup = settings['run on startup']
         shortcut_exists = os.path.exists(shortcut_path)
         if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
@@ -204,7 +197,6 @@ def startup_setting(shortcut_path):
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
 
 
-try:
     user = getuser()
     shortcut_path = f'C:/Users/{user}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
     # Mine is C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
@@ -214,6 +206,8 @@ try:
     if temp.count(True) > 1:
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
+
+    if settings.get('DEBUG', False): VERSION += '.DEBUG'
 
     images_dir = starting_dir + '/images'
     cc_music_dir = starting_dir + '/music files'
@@ -649,7 +643,7 @@ try:
             if not active_windows['timer']:
                 active_windows['timer'], timer_layout = True, create_timer(settings)
                 timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
-                                         return_keyboard_events=True)
+                                         return_keyboard_events=True, grab_anywhere=True)
                 timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
             timer_window.Element('minutes').SetFocus()
@@ -749,6 +743,7 @@ try:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
                 update_repeat_img = True
+                main_window['Repeat'].is_repeating = repeat_setting
             elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 with suppress(AttributeError, IndexError):
                     if main_window.FindElementWithFocus() == main_window['music_queue']:
@@ -860,6 +855,7 @@ try:
             if update_repeat_img or settings['repeat'] != main_window['Repeat'].is_repeating:
                 if repeat_setting: main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG)
                 else: main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
+                main_window['Repeat'].is_repeating = settings['repeat']
             lb_music_queue: Sg.Listbox = main_window['music_queue']
             dq_len = len(done_queue)
             update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
@@ -930,7 +926,12 @@ try:
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
                     # TODO: update menu "Play Folder" list
-            elif settings_event == 'Open Settings': os.startfile(settings_file)
+            elif settings_event == 'Open Settings':
+                try: os.startfile(settings_file)
+                except OSError:
+                    if sys.platform == 'win32': settings_file = settings_file.replace('/', '\\')
+                    else: path_to_song = music_queue[0].replace('\\', '/')
+                    Popen(f'explorer /select,"{settings_file}"')
             settings_last_event = settings_event
         if active_windows['playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)

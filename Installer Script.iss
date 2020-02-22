@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.21.0"
+#define MyAppVersion "4.21.2"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -20,16 +20,18 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
+MinVersion=0,6.0.6001
+; Minimum version is Windows Vista or later
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 OutputDir={#SourcePath}\dist
 OutputBaseFilename=Music Caster v{#MyAppVersion} Setup
-; OutputBaseFilename=Music Caster Setup
-Compression=lzma
-SolidCompression=yes
-WizardStyle=modern
-SetupIconFile="resources\Music Caster.ico"
+UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile="resources\Music Caster.ico"
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
