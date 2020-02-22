@@ -147,6 +147,11 @@ def change_settings(name, value):
     return value
 
 
+def fix_path(filepath):
+    if sys.platform == 'win32': return filepath.replace('/', '\\')
+    else: return filepath.replace('\\', '/')
+
+
 def valid_music_file(file_path): return file_path.endswith('.mp3') #  or file_path.endswith('.flac')
 
 
@@ -705,10 +710,7 @@ try:
         elif 'Resume' in {menu_item, keyboard_command}: resume()
         elif 'Pause' in {menu_item, keyboard_command}: pause()
         elif menu_item == 'Locate File':
-            if music_queue:
-                if sys.platform == 'win32': path_to_song = music_queue[0].replace('/', '\\')
-                else: path_to_song = music_queue[0].replace('\\', '/')
-                Popen(f'explorer /select,"{path_to_song}"')
+            if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
             tray.Hide()
             with suppress(UnsupportedNamespace):
@@ -806,6 +808,7 @@ try:
                     updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
                     main_window['music_queue'].Update(values=updated_list,
                                                       set_to_index=new_i, scroll_to_index=new_i)
+            # TODO
             elif main_event == 'remove':
                 dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
                 # if
@@ -813,6 +816,7 @@ try:
                 # next_song()
             elif main_event == 'queue_file': pass
             elif main_event == 'play_next': pass
+            elif main_event == 'open_explorer': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     progress_bar.Update(disabled=True)
