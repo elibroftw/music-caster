@@ -88,6 +88,12 @@ try:
         save_json()
         return value
 
+    
+    def update_volume(new_vol):
+        if new_vol > 1: new_vol = new_vol / 100
+        if cast is None:  local_music_player.music.set_volume(new_vol)
+        else: cast.set_volume(new_vol)
+
 
     def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
 
@@ -744,6 +750,10 @@ try:
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
                 update_repeat_img = True
                 main_window['Repeat'].is_repeating = repeat_setting
+            elif main_event == 'volume':
+                new_volume = main_values['volume']
+                change_settings('volume', new_volume)
+                update_volume(new_volume)
             elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 with suppress(AttributeError, IndexError):
                     if main_window.FindElementWithFocus() == main_window['music_queue']:
@@ -908,12 +918,8 @@ try:
                         delta = 5
                     new_volume = settings_values['volume'] + delta
                 change_settings('volume', new_volume)
-                volume = new_volume / 100
                 if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
-                if cast is None:
-                    local_music_player.music.set_volume(volume)
-                else:
-                    cast.set_volume(volume)
+                update_volume(new_volume)
             elif settings_event == 'Remove Folder' and settings_values['music_dirs']:
                 selected_item = settings_values['music_dirs'][0]
                 if selected_item in music_directories:
@@ -1120,7 +1126,10 @@ try:
                         if is_paused and playing_status != 'PAUSED': pause()
                         elif is_playing and playing_status != 'PLAYING': resume()
                         elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
-                        if volume != cast_volume: volume = change_settings('volume', cast_volume)
+                        if volume != cast_volume:
+                            volume = change_settings('volume', cast_volume)
+                            if active_windows['settings']: settings_window['volume'].Update(volume)
+                            if active_windows['main']: main_window['volume'].Update(volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:

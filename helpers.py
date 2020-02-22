@@ -108,7 +108,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                    # [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover'),
                    #  Sg.Slider((range(0, 100)))] if album_cover_data else [Sg.Slider((range(0, 100)))],
                    # Maybe make volume on its own tab or horizontal?
-                   [Sg.Column(music_controls, justification='center', size=(400, 30))],
+                   [Sg.Column(music_controls, justification='center')],
                    [Sg.Column(progress_bar_layout, justification='center')]]
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
