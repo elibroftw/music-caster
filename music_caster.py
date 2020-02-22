@@ -22,7 +22,7 @@ try:
     from bs4 import BeautifulSoup
     import encodings.idna  # DO NOT REMOVE
     from flask import Flask
-    from getpass import getuser
+    import winshell
     from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3
     import mutagen
@@ -203,10 +203,8 @@ try:
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
 
 
-    user = getuser()
-    shortcut_path = f'C:/Users/{user}/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Music Caster.lnk'
-    # Mine is C:\Users\maste\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
-    
+    shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'  # NOTE: Windows only
+    # Access startup folder by entering "Startup" in Explorer address bar
     # Only one of the below can be True
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:
