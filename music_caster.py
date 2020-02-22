@@ -553,6 +553,7 @@ try:
             if not active_windows['main']:
                 active_windows['main'] = True
                 volume = settings['volume']
+                repeat_setting = settings['repeat']
                 if playing_status in {'PAUSED', 'PLAYING'}:
                     current_song = music_queue[0]
                     metadata = music_meta_data[current_song]
@@ -562,14 +563,15 @@ try:
                     # main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
                     #                                   new_playing_text, album_cover_data=album_cover_data)
                     main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                      volume, new_playing_text)
-                else: main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status, volume)
+                                                      volume, repeat_setting, new_playing_text)
+                else: main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeat_setting)
                 main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
                 dq_len = len(done_queue)
                 main_window.Read(timeout=1)
                 main_window['music_queue'].Update(set_to_index=dq_len, scroll_to_index=dq_len)
                 main_window['Pause/Resume'].playing_status = playing_status
+                main_window['Repeat'].is_repeating = repeat_setting
             main_window.TKroot.focus_force()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
@@ -728,7 +730,7 @@ try:
             main_last_event = main_event
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
-            update_text = False  # text refers to now playing text
+            update_text = update_repeat_img = False  # text refers to now playing text
             if main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
@@ -744,6 +746,7 @@ try:
                 if notifications_enabled:
                     if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
+                update_repeat_img = True
             elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 with suppress(AttributeError, IndexError):
                     if main_window.FindElementWithFocus() == main_window['music_queue']:
@@ -850,6 +853,9 @@ try:
                 metadata = music_meta_data[music_queue[0]]
                 # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 update_progress_text = False
+            if update_repeat_img or settings['repeat'] != main_window['Repeat'].is_repeating:
+                if repeat_setting: main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG)
+                else: main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
             lb_music_queue: Sg.Listbox = main_window['music_queue']
             dq_len = len(done_queue)
             update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
