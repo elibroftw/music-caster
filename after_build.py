@@ -2,7 +2,7 @@ import zipfile
 
 with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Music Caster.exe', 'Music Caster.exe')
-    zf.write('dist/Music Caster Downloader.exe', 'Music Caster Downloader.exe')
+    zf.write('dist/Updater.exe', 'Updater.exe')
     zf.write('resources/default.png', 'images/default.png')
     zf.write('CHANGELOG', 'CHANGELOG.txt')
 
