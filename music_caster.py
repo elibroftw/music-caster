@@ -453,10 +453,12 @@ try:
 
 
     def update_song_position():
-        global tray, song_position
-        if mc is not None:
-            mc.update_status()
-            song_position = mc.status.adjusted_current_time
+        global tray, song_position, cast
+        if cast is not None:
+            mc = cast.media_controller
+            if mc is not None:
+                mc.update_status()
+                song_position = mc.status.adjusted_current_time
         elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
 
