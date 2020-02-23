@@ -41,7 +41,7 @@ try:
     from winerror import ERROR_ALREADY_EXISTS
     from helpers import *
 
-    VERSION = '4.22.0'
+    VERSION = '4.22.1'
     PORT = 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
@@ -264,6 +264,7 @@ try:
                 details = entry.find('details',
                                      class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
                 download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
+                setup_download_link = f'https://github.com{download_links[0]}'
                 bundle_download_link = f'https://github.com{download_links[1]}'
                 source_download_link = f'https://github.com{download_links[-2]}'
                 os.chdir(starting_dir)
@@ -276,6 +277,7 @@ try:
                     Popen('pythonw updater.py')
                 elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
                     download_and_extract(bundle_download_link, 'Updater.exe')
+                    # TODO: download setup and then silent install without creating desktop shortcut
                     os.startfile('Updater.exe')
                 elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
@@ -286,19 +288,20 @@ try:
     discovery_started = time.time()
     
     # TODO: add play folder
+    repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
 
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
                        'Controls',
-                       ['Locate File', 'Repeat', 'Stop', 'Previous Song', 'Next Song', 'Pause'],
+                       ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
                        'E&xit']]
 
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
                        'Controls',
-                       ['Locate File', 'Repeat', 'Stop', 'Previous Song', 'Next Song', 'Resume'],
+                       ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
                        'E&xit']]
 
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
@@ -503,6 +506,7 @@ try:
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
             if not settings['repeat'] or not from_timeout or not music_queue:
                 change_settings('repeat', False)
+                tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
                 if active_windows['main']:
                     main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
                     main_window['Repeat'].is_repeating = False
@@ -522,6 +526,7 @@ try:
         elif playing_status != 'NOT PLAYING':
             if done_queue:
                 change_settings('repeat', False)
+                tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
                 if active_windows['main']:
                     main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
                     main_window['Repeat'].is_repeating = False
@@ -704,20 +709,20 @@ try:
                 else: os.system('sudo shutdown now')
             elif settings['timer_hibernate_computer']:
                 if sys.platform == 'win32': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-                else: pass  # NOTE: Music Caster is developed on Windows, mainly for Windows
+                else: pass
             elif settings['timer_sleep_computer']:
                 if sys.platform == 'win32': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
-                else: pass  # NOTE: Music Caster is developed on Windows, mainly for Windows
+                else: pass
         elif ('Next Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING'
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': previous()
-        elif 'Repeat' in menu_item:
+        elif menu_item in {'Repeat', 'Repeat ✓'}:
             repeat_setting = change_settings('repeat', not settings['repeat'])
-            # TODO: use a check mark to tell user if repeat is enabled or not
             if notifications_enabled:
                 if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
                 else: tray.ShowMessage('Music Caster', 'Not repeating current song')
+            tray.TaskBarIcon.menu[1][11][1] = 'Repeat ✓' if repeat_setting else 'Repeat'
         elif 'Resume' in {menu_item, keyboard_command}: resume()
         elif 'Pause' in {menu_item, keyboard_command}: pause()
         elif menu_item == 'Locate File':
@@ -761,6 +766,7 @@ try:
                     else: tray.ShowMessage('Music Caster', 'Repeating off')
                 update_repeat_img = True
                 main_window['Repeat'].is_repeating = repeat_setting
+                tray.TaskBarIcon.menu[1][11][1] = '✓ Repeat' if repeat_setting else 'Repeat'
             elif main_event == 'volume':
                 new_volume = main_values['volume']
                 change_settings('volume', new_volume)

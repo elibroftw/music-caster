@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.22.1
+- Added a check mark next to repeat tray menu if repeating song is True
+
 4.22.0
 - New main window update
 - Added image for the repeat button
