@@ -2,6 +2,11 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.22.1
+- Added button text color option
+- Fixed bug (reactivating a window through the tray)
+- Fixed volume slider bug
+
 4.22.0
 - New main window update
 - Added image for the repeat button
