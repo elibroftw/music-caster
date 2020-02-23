@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
-
 block_cipher = None
 
 
@@ -26,6 +25,7 @@ exe = EXE(pyz,
           [],
           name='Music Caster',
           debug=False,
+          manifest=None,
           bootloader_ignore_signals=False,
           strip=False,
           upx=False,

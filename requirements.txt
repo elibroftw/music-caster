@@ -5,7 +5,7 @@ Pillow
 pychromecast
 pygame
 PyInstaller
-pynput
+pynput==1.4.5
 pyperclip
 PySide2
 PySimpleGUI==4.15.2
