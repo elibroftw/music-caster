@@ -11,7 +11,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 - Added a checkmark next to repeat tray menu if the repeating song is True
 - Main GUI is now accessible to all! Just click the icon
 - Change accent color
-- Added settings options to change accent color (requires restart)
+- Added settings.json options to change accent color (requires restart)
 - Fixed keyboard shortcut option
 
 4.21.2
