@@ -4,6 +4,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.22.1
 - Added a check mark next to repeat tray menu if repeating song is True
+- Main GUI is now accessible to all! Just click the icon
 
 4.22.0
 - New main window update

@@ -570,7 +570,7 @@ try:
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
-        if '__ACTIVATED__' in {menu_item, keyboard_command} and settings.get('EXPERIMENTAL', False):
+        if '__ACTIVATED__' in {menu_item, keyboard_command}:
             if not active_windows['main']:
                 active_windows['main'] = True
                 volume = settings['volume']
