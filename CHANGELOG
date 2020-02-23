@@ -2,6 +2,11 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.22.2
+- Change accent color
+- Added settings options to change accent color (requires restart)
+- Fixed keyboard shortcut option
+
 4.22.1
 - Added a checkmark next to repeat tray menu if the repeating song is True
 - Main GUI is now accessible to all! Just click the icon
