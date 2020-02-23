@@ -2,6 +2,11 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.22.2
+- Fixed web access
+- Fixed song position bug (maybe)
+- Fixed port conflict bug
+
 4.22.1
 - Added button text color option
 - Fixed bug (reactivating a window through the tray)

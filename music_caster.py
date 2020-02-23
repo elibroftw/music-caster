@@ -11,6 +11,7 @@ import platform
 import socket
 from shutil import copyfile
 from random import shuffle
+import socket
 from subprocess import Popen
 import sys
 import time  # DO NOT REMOVE
@@ -110,6 +111,10 @@ try:
         else: return filepath.replace('\\', '/')
 
 
+    def is_port_in_use(port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(('localhost', port)) == 0
+    
     def download_and_extract(link, infile, outfile=None):
         r = requests.get(link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -243,14 +248,14 @@ try:
         file = file.replace('\\', '/')
         if file != f'{images_dir}/default.png': os.remove(file)
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
-    
-
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     while True:
         try:
-            threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'debug': False, 'use_reloader': False}).start()
-            break
+            if not is_port_in_use(PORT):
+                threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'debug': False, 'use_reloader': False}).start()
+                break
+            else: PORT += 1
         except OSError: PORT += 1
     if settings['auto update']:
         with suppress(requests.ConnectionError):
