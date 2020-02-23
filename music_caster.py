@@ -280,8 +280,8 @@ try:
                 elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
                     Popen('pythonw updater.py')
-                elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
-                    download_and_extract(bundle_download_link, 'Music Caster Downloader.exe')
+                elif os.path.exists('Music Caster Downloader.exe') or os.path.exists('Music Caster.exe'):
+                    download_and_extract(bundle_download_link, 'Updater.exe', 'Music Caster Downloader.exe')
                     # TODO: download setup and then silent install without creating desktop shortcut
                     os.startfile('Music Caster Downloader.exe')
                 elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
