@@ -42,7 +42,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION = '4.22.0'
+    VERSION = '4.22.1'
     PORT = 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
@@ -104,10 +104,8 @@ try:
 
 
     def fix_path(filepath):
-        if sys.platform == 'win32':
-            return filepath.replace('/', '\\')
-        else:
-            return filepath.replace('\\', '/')
+        if sys.platform == 'win32': return filepath.replace('/', '\\')
+        else: return filepath.replace('\\', '/')
 
 
     def download_and_extract(link, infile, outfile=None):
