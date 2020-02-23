@@ -42,7 +42,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION = '4.22.1'
+    VERSION = '4.22.2'
     PORT = 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
