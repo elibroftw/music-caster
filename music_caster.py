@@ -603,6 +603,7 @@ try:
                 main_window['Pause/Resume'].playing_status = playing_status
                 main_window['Repeat'].is_repeating = repeat_setting
             main_window.TKroot.focus_force()
+            main_window.normal()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
             if i == 0: new_cast = None
@@ -650,9 +651,11 @@ try:
                                             icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
                 settings_window.Read(timeout=1)
             settings_window.TKroot.focus_force()
+            settings_window.normal()
         elif menu_item == 'Create/Edit a Playlist':
             if active_windows['playlist_editor']:
                 pl_editor_window.TKroot.focus_force()
+                pl_editor_window.normal()
                 continue
             elif not active_windows['playlist_selector']:
                 load_settings()
@@ -661,6 +664,7 @@ try:
                                                icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
             pl_selector_window.TKroot.focus_force()
+            pl_selector_window.normal()
         elif menu_item.startswith('PL: '):
             playlist = menu_item[4:]
             music_queue.clear()
@@ -677,6 +681,7 @@ try:
                                          return_keyboard_events=True, grab_anywhere=True)
                 timer_window.Read(timeout=1)
             timer_window.TKroot.focus_force()
+            timer_window.normal()
             timer_window.Element('minutes').SetFocus()
         elif menu_item == 'Cancel Timer':
             timer = 0
@@ -993,6 +998,7 @@ try:
                                                icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
                 pl_selector_window.TKroot.focus_force()
+                pl_selector_window.normal()
                 save_json()
                 tray_playlists.clear()
                 tray_playlists.append('Create/Edit a Playlist')
@@ -1010,6 +1016,7 @@ try:
                 pl_selector_window.CloseNonBlocking()
                 pl_editor_window.Read(timeout=1)
                 pl_editor_window.TKroot.focus_force()
+                pl_editor_window.normal()
                 if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
                 else:
                     pl_editor_window.Element('songs').SetFocus()
@@ -1062,6 +1069,7 @@ try:
                     new_files = [file.replace('\\', '/') for file in selected_songs.split(';') if valid_music_file(file)]
                     pl_files += new_files
                     pl_editor_window.TKroot.focus_force()
+                    pl_editor_window.normal()
                     # current_songs = pl_editor_window.Element('songs').GetListValues()
                     formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                     new_i = len(formatted_songs) - 1  # - len(new_files)
@@ -1085,6 +1093,7 @@ try:
                                                icon=WINDOW_ICON, return_keyboard_events=True)
                 pl_selector_window.Read(timeout=1)
                 pl_selector_window.TKroot.focus_force()
+                pl_selector_window.normal()
             pl_editor_last_event = pl_editor_event
         if active_windows['timer']:
             timer_event, timer_values = timer_window.Read(timeout=1)
