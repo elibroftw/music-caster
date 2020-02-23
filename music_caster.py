@@ -49,11 +49,12 @@ try:
     local_music_player.init(44100, -16, 2, 2048)
     starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
     home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-    # TODO: replace '_' with ' ' in load_setings
+    # TODO: replace ' ' with '_' in load_setings
     settings = {  # default settings
         'previous device': None,
         'accent_color': '#00bfff',
         'text_color': '#aaaaaa',
+        'button_text_color': '#000000',
         'background_color': '#121212',
         'volume': 100,
         'auto update': True,
@@ -144,7 +145,7 @@ try:
 
     load_settings()
     helpers.ACCENT_COLOR, helpers.fg, helpers.bg = settings['accent_color'], settings['text_color'], settings['background_color']
-    helpers.BUTTON_COLOR = ('#000000', helpers.ACCENT_COLOR)
+    helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
     Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg)
     # Check if app is running already
     mutex = win32event.CreateMutex(None, False, 'name')
