@@ -280,13 +280,14 @@ try:
                 elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
                     Popen('pythonw updater.py')
-                elif os.path.exists('Music Caster Downloader.exe') or os.path.exists('Music Caster.exe'):
-                    download_and_extract(bundle_download_link, 'Updater.exe', 'Music Caster Downloader.exe')
-                    # TODO: download setup and then silent install without creating desktop shortcut
-                    os.startfile('Music Caster Downloader.exe')
                 elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                     Popen('pythonw updater.pyw')
+                elif os.path.exists('Music Caster Downloader.exe') or os.path.exists('Music Caster.exe'):
+                    download_and_extract(bundle_download_link, 'Updater.exe')
+                    # TODO: download setup and then silent install without creating desktop shortcut
+                    # TODO: rename to Music Caster Updater or MCupdater
+                    os.startfile('Updater.exe')
                 sys.exit()
     startup_setting(shortcut_path)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
