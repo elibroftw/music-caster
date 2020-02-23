@@ -22,7 +22,7 @@ import zipfile
 try:
     from bs4 import BeautifulSoup
     import encodings.idna  # DO NOT REMOVE
-    from flask import Flask
+    from flask import Flask, render_template
     import winshell
     from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3
@@ -80,8 +80,6 @@ try:
                     'playlist_editor': False}
     pl_name, pl_files = '', []
     app = Flask(__name__, static_folder='/', static_url_path='/')
-    app.debug = False
-
     settings_file = f'{starting_dir}/settings.json'
 
 
@@ -162,6 +160,19 @@ try:
                 if PORT == 2100 or requests.get(f'http://127.0.0.1:{PORT}/instance/').text == 'True': break
             PORT += 1
         sys.exit()
+
+
+    # @app.route('/')
+    # def home():  # web GUI
+    #     global music_queue, playing_status
+    #     if music_queue:
+    #         file_path = music_queue[0]
+    #         metadata = music_meta_data[file_path]
+    #     else:
+    #         metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+    #     art = Path(images_dir + f'/default.png').as_uri()[11:]
+    #     return render_template('home.html', main_button='fa fa-pause' if playing_status == 'PLAYING' else 'fa fa-play',
+    #                            art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
 
 
     @app.route('/instance/')
