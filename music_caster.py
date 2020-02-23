@@ -42,8 +42,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION = '4.22.1'
-    PORT = 2001
+    VERSION, PORT = '4.22.2', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -80,6 +79,8 @@ try:
                     'playlist_editor': False}
     pl_name, pl_files = '', []
     app = Flask(__name__, static_folder='/', static_url_path='/')
+    app.debug = False
+
     settings_file = f'{starting_dir}/settings.json'
 
 
@@ -153,7 +154,7 @@ try:
     if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
         while True:
             with suppress(requests.exceptions.InvalidSchema):
-                if PORT == 2100 or requests.get(f'localhost:{PORT}/instance').text == 'True': break
+                if PORT == 2100 or requests.get(f'http://127.0.0.1:{PORT}/instance/').text == 'True': break
             PORT += 1
         sys.exit()
 
@@ -161,7 +162,7 @@ try:
     @app.route('/instance/')
     def instance():
         global keyboard_command
-        for k, v in active_windows:  # Opens up GUI
+        for k, v in active_windows.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
                 elif k == 'settings': settings_window.bring_to_front()
@@ -244,12 +245,11 @@ try:
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
     
 
-    
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     while True:
         try:
-            threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
+            threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'debug': False, 'use_reloader': False}).start()
             break
         except OSError: PORT += 1
     if settings['auto update']:
