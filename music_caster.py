@@ -94,7 +94,8 @@ try:
 
 
     def update_volume(new_vol):
-        if new_vol > 1: new_vol = new_vol / 100
+        """new_vol: float[0, 100]"""
+        new_vol = new_vol / 100
         if cast is None:  local_music_player.music.set_volume(new_vol)
         else: cast.set_volume(new_vol)
 
