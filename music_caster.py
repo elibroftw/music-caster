@@ -40,6 +40,7 @@ try:
     import win32event
     from winerror import ERROR_ALREADY_EXISTS
     from helpers import *
+    import helpers
 
     VERSION = '4.22.1'
     PORT = 2001
@@ -51,6 +52,9 @@ try:
     # TODO: replace '_' with ' ' in load_setings
     settings = {  # default settings
         'previous device': None,
+        'accent_color': '#00bfff',
+        'text_color': '#aaaaaa',
+        'background_color': '#121212',
         'volume': 100,
         'auto update': True,
         'run on startup': True,
@@ -140,6 +144,9 @@ try:
 
 
     load_settings()
+    helpers.ACCENT_COLOR, helpers.fg, helpers.bg = settings['accent_color'], settings['text_color'], settings['background_color']
+    helpers.BUTTON_COLOR = ('#000000', helpers.ACCENT_COLOR)
+    Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg)
     # Check if app is running already
     mutex = win32event.CreateMutex(None, False, 'name')
     last_error = win32api.GetLastError()
@@ -217,8 +224,6 @@ try:
     if temp.count(True) > 1:
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
-
-    if settings.get('DEBUG', False): VERSION += '.DEBUG'
 
     images_dir = starting_dir + '/images'
     cc_music_dir = starting_dir + '/music files'
@@ -303,8 +308,8 @@ try:
                        'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
                        'E&xit']]
-
-    tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
+    tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
+    tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
     DEFAULT_DIR = music_directories[0]
