@@ -77,10 +77,9 @@ try:
     open_pl_selector = update_progress_text = False
     new_playing_text, timer = 'Nothing Playing', 0
     active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False, 
-                    'playlist_editor': False}
+                      'playlist_editor': False}
     pl_name, pl_files = '', []
     app = Flask(__name__, static_folder='/', static_url_path='/')
-    settings_file = f'{starting_dir}/settings.json'
 
 
     def save_json():
@@ -88,8 +87,8 @@ try:
             json.dump(settings, outfile, indent=4)
 
 
-    def change_settings(name, value):
-        settings[name] = value
+    def change_settings(settings_key, value):
+        settings[settings_key] = value
         save_json()
         return value
 
@@ -175,6 +174,11 @@ try:
     #                            art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
 
 
+    @app.route('/running/')
+    def running():
+        return 'True'
+
+
     @app.route('/instance/')
     def instance():
         global keyboard_command
@@ -183,8 +187,8 @@ try:
                 if k == 'main': main_window.bring_to_front()
                 elif k == 'settings': settings_window.bring_to_front()
                 elif k == 'timer': timer_window.bring_to_front()
-                elif k == 'playlist_selectoro': pl_selector_window.bring_to_front()
-                else: pl_editor_window.bring_to_front()  #  playlist_editor
+                elif k == 'playlist_selector': pl_selector_window.bring_to_front()
+                else: pl_editor_window.bring_to_front()  # playlist_editor
                 return 'True'
         keyboard_command = '__ACTIVATED__'
         return 'True'
