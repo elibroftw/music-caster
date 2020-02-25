@@ -1,0 +1,24 @@
+# UTF-8
+
+VSVersionInfo(
+    ffi=FixedFileInfo(
+        prodvers=(1, 0, 0, 0),
+        filevers=(1, 0, 0, 0),
+        mask=0x17,
+        flags=0x0,
+        OS=0x4,
+        fileType=0x1,
+        subtype=0x0,
+        date=(0, 0)),
+    kids=[StringFileInfo(
+        [StringTable(
+            '000004b0',
+            [StringStruct('CompanyName', 'Elijah Lopez'),
+            StringStruct('FileDescription', 'Music Caster Updater'),
+            StringStruct('FileVersion', '1.0.0.0'),
+            StringStruct('InternalName', 'Music Caster Updater'),
+            StringStruct('LegalCopyright', 'Copyright (c) 2019 - 2020, Elijah Lopez'),
+            StringStruct('OriginalFilename', 'Updater.exe'),
+            StringStruct('ProductName', 'Music Caster Updater'),
+            StringStruct('ProductVersion', '1.0.0.0')])]),
+        VarFileInfo([VarStruct('Translation', [0, 1200])])])
