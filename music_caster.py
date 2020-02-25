@@ -885,7 +885,7 @@ try:
                                                   set_to_index=new_i, scroll_to_index=new_i)
             elif main_event == 'queue_file': pass
             elif main_event == 'play_next': pass
-            elif main_event == 'open_explorer': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
+            elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     progress_bar.Update(disabled=True)

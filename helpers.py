@@ -118,7 +118,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
     q_ctrls = [
         [Sg.Button('Queue a file', key='queue_file', pad=(0, 5))],
         [Sg.Button('Play a file next', key='play_next', pad=(0, 5))],
-        [Sg.Button('Show in explorer', key='open_explorer', pad=(0, 5))]]
+        [Sg.Button('Locate playing file', key='locate_file', pad=(0, 5))]]
     tab2_layout = [[
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
