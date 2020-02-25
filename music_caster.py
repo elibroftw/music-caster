@@ -43,7 +43,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.22.2', 2001
+    VERSION, PORT = '4.22.3', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -829,11 +829,11 @@ try:
                     elif index_to_move == dq_len + 1:  # move 1 to -1
                         if next_queue: done_queue.append(next_queue.pop(0))
                         else: done_queue.append(music_queue.pop(1))
-                    elif index_to_move < dq_len + nq_len - 1:  # within next_queue
-                        nq_i = new_i - dq_len
+                    elif index_to_move < dq_len + nq_len + 1:  # within next_queue
+                        nq_i = new_i - dq_len - 1
                         next_queue.insert(nq_i, next_queue.pop(nq_i + 1))
-                    elif next_queue and index_to_move == dq_len + nq_len - 1:  # moving into next queue
-                        next_queue.append(music_queue.pop(0))
+                    elif next_queue and index_to_move == dq_len + nq_len + 1:  # moving into next queue
+                        next_queue.insert(nq_len - 1, music_queue.pop(1))
                     else:  # moving within mq
                         mq_i = new_i - dq_len - nq_len
                         music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
@@ -847,20 +847,20 @@ try:
                 if index_to_move == -1: pass
                 elif index_to_move < dq_len + nq_len + mq_len - 1:
                     new_i = index_to_move + 1
-                    if index_to_move < dq_len:  # move within dq
-                        done_queue.insert(new_i, done_queue.pop(index_to_move))
-                    elif index_to_move == dq_len - 1:  # move index -1 to 1
-                        if next_queue: next_queue.insert(1, done_queue.pop())
+                    if index_to_move == dq_len - 1:  # move index -1 to 1
+                        if next_queue: next_queue.insert(0, done_queue.pop())
                         else: music_queue.insert(1, done_queue.pop())
+                    elif index_to_move < dq_len:  # move within dq
+                        done_queue.insert(new_i, done_queue.pop(index_to_move))
                     elif index_to_move == dq_len:  # move 1 to -1
                         if next_queue: done_queue.append(next_queue.pop(0))
                         else: done_queue.append(music_queue.pop(1))
-                    elif index_to_move < dq_len + nq_len - 1:  # within next_queue
-                        nq_i = new_i - dq_len
+                    elif next_queue and index_to_move == dq_len + nq_len:  # moving into music_queue
+                        music_queue.insert(2, next_queue.pop())
+                    elif index_to_move < dq_len + nq_len + 1:  # within next_queue
+                        nq_i = index_to_move - dq_len - 1
                         next_queue.insert(nq_i, next_queue.pop(nq_i - 1))
-                    elif next_queue and index_to_move == dq_len + nq_len - 1:  # moving into music_queue
-                        music_queue.insert(1, next_queue.pop())
-                    else:  # moving within mq
+                    else:  # within music_queue
                         mq_i = new_i - dq_len - nq_len
                         music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
                     updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
