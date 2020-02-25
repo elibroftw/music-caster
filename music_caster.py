@@ -43,7 +43,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.22.3', 2001
+    VERSION, PORT = '4.22.4', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -868,21 +868,22 @@ try:
                                                       set_to_index=new_i, scroll_to_index=new_i)
             # TODO
             elif main_event == 'remove':
-                dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
-                index_to_remove = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
-                if index_to_remove < dq_len:
-                    done_queue.pop(index_to_remove)
-                elif index_to_remove == dq_len:
-                    music_queue.pop(0)
-                    play_file(music_queue[0])
-                elif index_to_remove <= nq_len + dq_len:
-                    next_queue.pop(index_to_remove - dq_len - 1)
-                elif index_to_remove < nq_len + mq_len + dq_len:
-                    music_queue.pop(index_to_remove - dq_len - nq_len)
-                updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
-                new_i = min(len(updated_list), index_to_remove)
-                main_window['music_queue'].Update(values=updated_list,
-                                                  set_to_index=new_i, scroll_to_index=new_i)
+                with suppress(IndexError):
+                    index_to_remove = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
+                    dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
+                    if index_to_remove < dq_len:
+                        done_queue.pop(index_to_remove)
+                    elif index_to_remove == dq_len:
+                        music_queue.pop(0)
+                        play_file(music_queue[0])
+                    elif index_to_remove <= nq_len + dq_len:
+                        next_queue.pop(index_to_remove - dq_len - 1)
+                    elif index_to_remove < nq_len + mq_len + dq_len:
+                        music_queue.pop(index_to_remove - dq_len - nq_len)
+                    updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+                    new_i = min(len(updated_list), index_to_remove)
+                    main_window['music_queue'].Update(values=updated_list,
+                                                      set_to_index=new_i, scroll_to_index=new_i)
             elif main_event == 'queue_file': pass
             elif main_event == 'play_next': pass
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
