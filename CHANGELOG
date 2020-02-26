@@ -2,6 +2,11 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.23.0
+- Volume and scrubbing now supports mouse scrolling!
+- Settings window "Enable notifications" -> "Notifications"
+- Might remove volume from settings
+
 4.22.4
 - Fixed IndexError's when no file sin queue
 

@@ -43,7 +43,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.22.4', 2001
+    VERSION, PORT = '4.23.0', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -57,6 +57,8 @@ try:
         'button_text_color': '#000000',
         'background_color': '#121212',
         'volume': 100,
+        'scrubbing_delta': 5,
+        'volume_delta': 5,
         'auto update': True,
         'run on startup': True,
         'notifications': True,
@@ -73,7 +75,7 @@ try:
     playlists, tray_playlists = {}, ['Create/Edit a Playlist']
     music_directories, notifications_enabled = [], True
     keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-    main_last_event = settings_last_event = pl_editor_last_event = None
+    mouse_hover = main_last_event = settings_last_event = pl_editor_last_event = None
     open_pl_selector = update_progress_text = False
     new_playing_text, timer = 'Nothing Playing', 0
     active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False, 
@@ -625,6 +627,10 @@ try:
                 main_window['music_queue'].Update(set_to_index=dq_len, scroll_to_index=dq_len)
                 main_window['Pause/Resume'].playing_status = playing_status
                 main_window['Repeat'].is_repeating = repeat_setting
+                main_window['volume'].bind('<Enter>', '_mouse_enter')
+                main_window['volume'].bind('<Leave>', '_mouse_leave')
+                main_window['progressbar'].bind('<Enter>', '_mouse_enter')
+                main_window['progressbar'].bind('<Leave>', '_mouse_leave')
             main_window.TKroot.focus_force()
             main_window.normal()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
@@ -673,6 +679,8 @@ try:
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
                                             icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
                 settings_window.Read(timeout=1)
+                settings_window['volume'].bind('<Enter>', '_mouse_enter')
+                settings_window['volume'].bind('<Leave>', '_mouse_leave')
             settings_window.TKroot.focus_force()
             settings_window.normal()
         elif menu_item == 'Create/Edit a Playlist':
@@ -786,7 +794,29 @@ try:
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
             update_text = update_repeat_img = False  # text refers to now playing text
-            if main_event == 'Pause/Resume':
+
+            if main_event.startswith('MouseWheel'):
+                main_event = main_event.split(':', 1)[1]
+                delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
+                if mouse_hover == 'progressbar':
+                    if playing_status in {'PLAYING', 'PAUSED'}:
+                        main_event = 'progressbar'
+                        update_song_position()
+                        print(song_position)
+                        new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
+                        main_window['progressbar'].Update(value=new_position)
+                        main_values['progressbar'] = new_position
+                elif mouse_hover == 'volume':
+                    main_event = 'volume'
+                    new_volume = min(max(0, main_values['volume'] + delta), 100)
+                    main_window['volume'].Update(value=new_volume)
+                    main_values['volume'] = new_volume
+                main_window.Refresh()
+            if main_event == 'progressbar_mouse_enter': mouse_hover = 'progressbar'
+            elif main_event == 'progressbar_mouse_leave': mouse_hover = ''
+            elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
+            elif main_event == 'volume_mouse_leave': mouse_hover = ''
+            elif main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
                 elif playing_status == 'NOT PLAYING' and music_queue: play_file(music_queue[0])
@@ -804,9 +834,18 @@ try:
                 update_repeat_img = True
                 main_window['Repeat'].is_repeating = repeat_setting
                 tray.TaskBarIcon.menu[1][11][1] = '✓ Repeat' if repeat_setting else 'Repeat'
-            elif main_event == 'volume':
-                new_volume = main_values['volume']
+            elif main_event in {'volume', 'a', 'd'} or main_event.isdigit():
+                delta = 0
+                if main_event.isdigit():
+                    update_slider = True
+                    new_volume = int(main_event) * 10
+                else:
+                    update_slider = False
+                    if main_event == 'a': delta = -5
+                    elif main_event == 'd': delta = 5
+                    new_volume = main_values['volume'] + delta
                 change_settings('volume', new_volume)
+                if update_slider or delta != 0: main_window['volume'].Update(value=new_volume)
                 update_volume(new_volume)
             elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 with suppress(AttributeError, IndexError):
@@ -867,7 +906,6 @@ try:
                     updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
                     main_window['music_queue'].Update(values=updated_list,
                                                       set_to_index=new_i, scroll_to_index=new_i)
-            # TODO
             elif main_event == 'remove':
                 with suppress(IndexError):
                     index_to_remove = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
@@ -890,10 +928,11 @@ try:
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
-                    progress_bar.Update(disabled=True)
+                    main_window['progressbar'].Update(disabled=True)
                     # maybe even make it invisible?
                     continue
                 new_position = main_values['progressbar'] / 100 * song_length
+                print(new_position)
                 song_position = new_position
                 if cast is not None:
                     cast.media_controller.seek(new_position)
@@ -965,6 +1004,15 @@ try:
             if settings_event in {'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
                 active_windows['settings'] = False
                 settings_window.CloseNonBlocking()
+            if settings_event.startswith('MouseWheel') and mouse_hover == 'volume':
+                settings_event = settings_event.split(':', 1)[1]
+                delta = {'Up': 5, 'Down': -5}.get(settings_event, 0)
+                settings_event = 'volume'
+                new_volume = min(max(0, settings_values['volume'] + delta), 100)
+                settings_window['volume'].Update(value=new_volume)
+                settings_values['volume'] = new_volume
+            if settings_event == 'volume_mouse_enter': mouse_hover = 'volume'
+            elif settings_event == 'volume_mouse_leave': mouse_hover = ''
             elif settings_event == 'email':
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
             elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle_playlists'}:
@@ -972,16 +1020,14 @@ try:
                 if settings_event == 'run on startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
             elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
-                update_slider = False
                 delta = 0
                 if settings_event.isdigit():
                     update_slider = True
                     new_volume = int(settings_event) * 10
                 else:
-                    if settings_event == 'a':
-                        delta = -5
-                    elif settings_event == 'd':
-                        delta = 5
+                    update_slider = False
+                    if settings_event == 'a': delta = -5
+                    elif settings_event == 'd': delta = 5
                     new_volume = settings_values['volume'] + delta
                 change_settings('volume', new_volume)
                 if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
