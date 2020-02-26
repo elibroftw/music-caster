@@ -4,6 +4,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.24.0
 - Web GUI fully functional
+- ID3 tags reading fix
 
 4.23.0
 - Volume and scrubbing now support mouse scrolling!
