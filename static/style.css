@@ -3,7 +3,7 @@ html {
 }
  body {
 	 font-family: 'Roboto', Arial, Verdana, sans-serif;
-	 background: #e4f2fb;
+	 background-color: slategrey;
 }
  a {
 	 text-decoration: none;
@@ -13,7 +13,7 @@ html {
 	 margin-right: auto;
 	 margin-left: auto;
 	 max-width: 20rem;
-	 background: #fff;
+	 background-color: #fff;
 	 border-radius: 0.25rem;
 	 box-shadow: 0 10px 20px -5px rgba(0, 0, 0, .19), 0 6px 6px -10px rgba(0, 0, 0, .23);
 }
@@ -124,7 +124,7 @@ html {
  .list--buttons li:nth-of-type(n+2) {
 	 margin-left: 1.25rem;
 }
- .list--buttons a {
+ .list--buttons a, #play-pause-btn {
 	 padding-top: 0.6rem;
 	 padding-right: 0.75rem;
 	 padding-bottom: 0.6rem;
@@ -133,7 +133,7 @@ html {
 	 border-radius: 50%;
 	 box-shadow: 0 3px 6px rgba(33, 33, 33, .1), 0 3px 12px rgba(33, 33, 33, .15);
 }
- .list--buttons a:focus, .list--buttons a:hover {
+ .list--buttons a:focus, .list--buttons a:hover, #play-pause-btn {
 	 color: rgba(171, 2, 26, .95);
 	 opacity: 1;
 	 box-shadow: 0 6px 9px rgba(33, 33, 33, .1), 0 6px 16px rgba(33, 33, 33, .15);
@@ -166,9 +166,10 @@ html {
  .list__link {
 	 transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
 }
- .list__link:focus, .list__link:hover {
+ .list__link:focus, .list__link:hover, #play-pause-btn {
 	 color: #d30320;
 }
+
  .player__footer {
 	 padding-top: 1rem;
 	 padding-bottom: 2rem;
@@ -182,4 +183,9 @@ html {
 
 .fa.fa-pause {
     margin-left: -3px;
+}
+
+.red {
+	color: #d30320;
+	opacity: .9 !important;
 }

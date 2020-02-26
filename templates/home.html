@@ -7,61 +7,39 @@
 <link rel="stylesheet" id="stylesheet" href="/{{starting_dir}}/static/style.css">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
       integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
+<meta http-equiv="refresh" content="30">
 <div class="wrapper">
     <div class="player__container">
+        <!-- TODO: theme option -->
         <div class="player__body">
             <div class="body__cover">
                 <ul class="list list--cover">
-                    <li>
-                        <a class="list__link" href=""><i class="fa fa-navicon"></i></a>
-                    </li>
-
-                    <li>
-                        <a class="list__link" href=""></a>
-                    </li>
-
-<!--                    <li>-->
-<!--                        <a class="list__link" href=""><i class="fa fa-search"></i></a>-->
-<!--                    </li>-->
+                    <li><a class="list__link" href=""><i class="fa fa-navicon"></i></a></li>
+                    <li><a class="list__link" href=""></a></li>
+                   <!-- <li><a class="list__link" href=""><i class="fa fa-search"></i></a></li> -->
                 </ul>
-
-                <img src={{art}} alt="Album cover"/>
-
-                <div class="range"></div>
+                <img src="{{art|safe}}" alt="Album Art" style="text-align: center"/>
+                <!-- <div class="range"></div> -->
             </div>
-
             <div class="body__info">
                 <div class="info__album">{{metadata['album']}}</div>
-
                 <div class="info__song">{{metadata['title']}}</div>
-
                 <div class="info__artist">{{metadata['artist']}}</div>
             </div>
-
             <div class="body__buttons">
                 <ul class="list list--buttons">
-                    <li><a href="#" class="list__link"><i class="fa fa-step-backward"></i></a></li>
-
-                    <li><a href="#" class="list__link"><i class="{{main_button}}"></i></a></li>
-
-                    <form action="" method="post">
-                        <button name="foo" value="upvote">Upvote</button>
-                    </form>
-
-                    <li><a href="#" class="list__link"><i class="fa fa-step-forward"></i></a></li>
+                    <li><a href="?prev" class="list__link"><i class="fa fa-step-backward"></i></a></li>
+                    <li><a href="?{{main_button}}" class="list__link"><i class="fa fa-{{main_button}}"></i></a></li>
+                    <li><a href="?next" class="list__link"><i class="fa fa-step-forward"></i></a></li>
                 </ul>
             </div>
         </div>
-
         <div class="player__footer">
             <ul class="list list--footer">
-                <li><a href="#" class="list__link"><i class="fa fa-heart-o"></i></a></li>
-
-                <li><a href="#" class="list__link"><i class="fa fa-random"></i></a></li>
-
-                <li><a href="#" class="list__link"><i class="fa fa-undo"></i></a></li>
-
-                <li><a href="#" class="list__link"><i class="fa fa-ellipsis-h"></i></a></li>
+                <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>
+                <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
+                <li><a href="?repeat" class="list__link {{repeat}}"><i class="fa fa-undo {{repeat}}"></i></a></li>
+                <li><a onclick="" href="/#settings" class="list__link"><i class="fa fa-ellipsis-h"></i></a></li>
             </ul>
         </div>
     </div>

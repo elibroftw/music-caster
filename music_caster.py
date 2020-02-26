@@ -1,3 +1,4 @@
+import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
 from glob import glob
@@ -22,7 +23,7 @@ import zipfile
 try:
     from bs4 import BeautifulSoup
     import encodings.idna  # DO NOT REMOVE
-    from flask import Flask, render_template
+    from flask import Flask, jsonify, render_template, request, redirect
     import winshell
     from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3
@@ -43,7 +44,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.23.0', 2001
+    VERSION, PORT = '4.24.0', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -92,6 +93,13 @@ try:
     def change_settings(settings_key, value):
         settings[settings_key] = value
         save_json()
+        if settings_key == 'repeat':
+            with suppress(IndexError):
+                if value: tray.TaskBarIcon.menu[1][11][1] = 'Repeat ✓'
+                else: tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
+            if active_windows['main']:
+                main_window['Repeat'].is_repeating = repeat_setting
+                main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
         return value
 
 
@@ -163,19 +171,39 @@ try:
         sys.exit()
 
 
-    # @app.route('/')
-    # def home():  # web GUI
-    #     global music_queue, playing_status
-    #     if music_queue:
-    #         file_path = music_queue[0]
-    #         metadata = music_meta_data[file_path]
-    #     else:
-    #         metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-    #     art = Path(images_dir + f'/default.png').as_uri()[11:]
-    #     return render_template('home.html', main_button='fa fa-pause' if playing_status == 'PLAYING' else 'fa fa-play',
-    #                            art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
+    @app.route('/', methods=['GET', 'POST'])
+    def home():  # web GUI
+        global music_queue, playing_status
+        if request.args:
+            if 'play' in request.args:
+                if playing_status == 'PAUSED': resume()
+                elif music_queue: play_file(music_queue[0])
+                else: play_all()
+            elif 'pause' in request.args and playing_status == 'PLAYING': pause()
+            elif 'next' in request.args: next_song()
+            elif 'prev' in request.args: previous()
+            elif 'repeat' in request.args: change_settings('repeat', not settings['repeat'])
+            elif 'shuffle' in request.args: change_settings('shuffle', not settings['shuffle'])
+            return redirect('/')
+        if music_queue:
+            file_path = music_queue[0]
+            metadata = music_meta_data[file_path]
+        else: metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+        art = metadata.get('art', Path(images_dir + f'/default.png').as_uri()[11:])
+        repeat_option = 'red' if settings['repeat'] else ''
+        shuffle_option = 'red' if settings['shuffle_playlists'] else ''
+        return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play', repeat=repeat_option,
+                                shuffle=shuffle_option, art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
 
+    @app.route('/metadata/')
+    def metadata():
+        if music_queue:
+            file_path = music_queue[0]
+            metadata = music_meta_data[file_path]
+        else: metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+        return jsonify(metadata)
 
+    
     @app.route('/running/')
     def running():
         return 'True'
@@ -364,14 +392,22 @@ try:
             title = EasyID3(file_path).get('title', ['Unknown'])[0]
             artist = EasyID3(file_path).get('artist', ['Unknown'])
             artist = ', '.join(artist)
-            album = EasyID3(file_path).get('album', 'Unknown')
+            album = EasyID3(file_path).get('album', 'Unknown')[0]
         except Exception as e:
             print(e)
             title = artist = album = 'Unknown'
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
-        music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
+        pict = None
+        tags = ID3(file_path)
+        for tag in tags.keys():
+            if 'APIC' in tag:
+                pict = tags[tag].data
+                break
+        if pict:
+            music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length, 'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
+        else: music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
             mc = None
             sample_rate = audio_info.sample_rate
@@ -390,8 +426,6 @@ try:
                 s.connect(('8.8.8.8', 80))
                 ipv4_address = s.getsockname()[0]
                 s.close()
-                # hostname = socket.gethostname()
-                # ipv4_address = socket.gethostbyname(hostname)
                 drive = file_path[:3]
                 file_path_obj = Path(file_path)
                 if drive != os.getcwd().replace('\\', '/'):
@@ -400,15 +434,8 @@ try:
                 else: new_file_path = file_path
                 uri_safe = Path(new_file_path).as_uri()[11:]
                 url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
-                thumb = images_dir + f'/{file_path_obj.stem}.png'
-                tags = ID3(file_path)
-                pict = None
-                for tag in tags.keys():
-                    if 'APIC' in tag:
-                        pict = tags[tag]
-                        break
-                if pict is not None:
-                    pict = pict.data
+                if pict:
+                    thumb = images_dir + f'/{file_path_obj.stem}.png'
                     with open(thumb, 'wb') as f: f.write(pict)
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
@@ -449,7 +476,7 @@ try:
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
 
 
-    # def get_album_cover(file_path):
+    # def get_album_cover(file_path, only_b64=True):
     #     file_path_obj = Path(file_path)
     #     thumb = images_dir + f'/{file_path_obj.stem}.png'
     #     tags = ID3(file_path)
@@ -540,10 +567,6 @@ try:
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
             if not settings['repeat'] or not from_timeout or not music_queue:
                 change_settings('repeat', False)
-                tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
-                if active_windows['main']:
-                    main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
-                    main_window['Repeat'].is_repeating = False
                 if music_queue: done_queue.append(music_queue.pop(0))
                 if next_queue: music_queue.insert(0, next_queue.pop(0))
             if music_queue: play_file(music_queue[0])
@@ -560,10 +583,6 @@ try:
         elif playing_status != 'NOT PLAYING':
             if done_queue:
                 change_settings('repeat', False)
-                tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
-                if active_windows['main']:
-                    main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
-                    main_window['Repeat'].is_repeating = False
                 song = done_queue.pop()
                 music_queue.insert(0, song)
                 play_file(song)
@@ -767,7 +786,6 @@ try:
             if notifications_enabled:
                 if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
                 else: tray.ShowMessage('Music Caster', 'Not repeating current song')
-            tray.TaskBarIcon.menu[1][11][1] = 'Repeat ✓' if repeat_setting else 'Repeat'
         elif 'Resume' in {menu_item, keyboard_command}: resume()
         elif 'Pause' in {menu_item, keyboard_command}: pause()
         elif menu_item == 'Locate File':
@@ -828,12 +846,8 @@ try:
                 pass
             elif main_event == 'Repeat':
                 repeat_setting = change_settings('repeat', not settings['repeat'])
-                if notifications_enabled:
-                    if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating on')
-                    else: tray.ShowMessage('Music Caster', 'Repeating off')
-                update_repeat_img = True
-                main_window['Repeat'].is_repeating = repeat_setting
-                tray.TaskBarIcon.menu[1][11][1] = '✓ Repeat' if repeat_setting else 'Repeat'
+                # update_repeat_img = True
+                # main_window['Repeat'].is_repeating = repeat_setting
             elif main_event in {'volume', 'a', 'd'} or main_event.isdigit():
                 delta = 0
                 if main_event.isdigit():
@@ -967,10 +981,10 @@ try:
                 metadata = music_meta_data[music_queue[0]]
                 # main_window['album_cover'].Update(data=metadata['album_cover_data'])
                 update_progress_text = False
-            if update_repeat_img or settings['repeat'] != main_window['Repeat'].is_repeating:
-                if repeat_setting: main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG)
-                else: main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
-                main_window['Repeat'].is_repeating = settings['repeat']
+            # if update_repeat_img or settings['repeat'] != main_window['Repeat'].is_repeating:
+            #     if repeat_setting: main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG)
+            #     else: main_window['Repeat'].Update(image_data=REPEAT_ALL_IMG)
+            #     main_window['Repeat'].is_repeating = settings['repeat']
             lb_music_queue: Sg.Listbox = main_window['music_queue']
             dq_len = len(done_queue)
             update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
