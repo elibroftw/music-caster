@@ -319,20 +319,20 @@ try:
     
     # TODO: add play folder
     repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
-    menu_def_1 = ['', ['&Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
+    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Playlists', tray_playlists,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play File', 'Play All'], 'Exit']]
 
-    menu_def_2 = ['', ['&Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
+    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Playlists', tray_playlists,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play File', 'Play File Next', 'Play All'],
                        'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
-                       'E&xit']]
+                       'Exit']]
 
-    menu_def_3 = ['', ['&Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
+    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Playlists', tray_playlists,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play File', 'Play File Next', 'Play All'],
                        'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
-                       'E&xit']]
+                       'Exit']]
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
