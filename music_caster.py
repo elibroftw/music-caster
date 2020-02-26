@@ -1211,7 +1211,10 @@ except Exception as e:
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
                             'TRACEBACK': trace_back_msg})
-    tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
-    # noinspection PyUnboundLocalVariable
-    stop()
-    os.startfile(os.path.realpath(__file__))  # TODO: restart program
+    with suppress(UnboundLocalError):
+        tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
+        # noinspection PyUnboundLocalVariable
+        stop()
+        os.chdir(starting_dir)  # TODO: restart program
+        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
+        elif os.path.exists('music_caster.pyw'): Popen('pythonw music_caster.pyw', shell=True)
