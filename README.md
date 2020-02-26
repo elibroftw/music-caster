@@ -21,37 +21,46 @@ Click image below for a video demo.
 </p>
 
 ## Usage
-TLDR: If you have music files in different folders, right click the tray icon and open settings
+# TLDR
+When running the app for the first time, if you have music files in different folders, right click the tray icon and open settings.
 
-On the first startup, the app will be in your hidden tray. You can move it onto the Taskbar and it'll stay in sight for future launches.
-If you right click the icon, a menu will pop up. Click Settings to open settings (no longer a file).
-Now you may add or remove music directories. By default, your home music directory is put into the music directories list.
-When you click Play All, all the music from these directories all shuffled into a list and played.
-When you click Play File, you can select a file to play and all of the music in your music directories are shuffled into the music queue.
+On the first startup, the app will be in your hidden tray. You can move it onto the "Taskbar" and it'll stay there on future launches.
+Right click the icon and then click Settings.
+Add or remove music dirs. The home music directory is there by default.
+
+When you click Play All, all the music from these directories are shuffled and played.
+
+When you click Play File, you can select a file to play and then the music in your directories are shuffled into the music queue.
 
 Music Caster supports media keys.
 
-## Limitations and known issues
+## Limitations and Known Issues
 - Only supports MP3 files (for now)
-- A major bug will result in a toast message + a error message output in an error.log.
+- Scrolling over the volume bar or progress meter does not work yet
 
-## Dealing With an Error
-You will have to email this to me yourself.
-The error.log file can be found in the installation folder of music caster.
-An easy way to find it is to right click Music Caster's Shortcut and then click Open file location.
-After doing this twice to the shortcut's, you will end up at the installation directory.
+## Errors
+- Errors are automatically sent to me
+- What's sent (why there is no opt-out)
+```JS
+// As seen near the bottom of music_caster.py
+'TIME': current_time,
+'VERSION': VERSION,          // of Music Caster
+'OS': platform.platform(),
+'TRACEBACK': trace_back_msg  // error output
+```
 
 ## Settings.json Guide
-- Music Caster will detect changes within 10 seconds of editing the settings.json file
-- The music directories is a list of directory paths ['C:/Users/maste/MEGAsync/Music', 'Put in a valid path']
-- The first path in music directories is the default directory you want to play a file
-- The playlist variable follows the convention {'PLAYLIST NAME': ['paths to files']}
-- Do not remove a setting variable as something might break.
+- Music Caster will detect changes within 10 seconds of editing `settings.json`
+  - Caveat: any color code changes requires a restart
+- The music directories is a list of valid directory paths ['C:/Users/maste/Music']
+  - The first path is the default directory MC opens when you want to play a file
+- The playlist variable follows the convention `{'PLAYLIST NAME': ['paths to files']}`
+- If MC stops working after changing the file, try using an IDE to detect syntax errors in `settings.json`
 
 ## Build Instructions
-1. Make sure all the required modules are installed (`pip install -r requirements.txt`)
+1. `pip install -r requirements.txt`
 2. Make sure Python scripts folder is on PATH
-3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a setup.exe, run build.bat
+3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a `setup.exe`, run `build` in CMD
 4. Otherwise, use `pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py`
 
 # Credits
