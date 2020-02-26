@@ -26,7 +26,9 @@ try:
     from flask import Flask, jsonify, render_template, request, redirect
     import winshell
     from mutagen.easyid3 import EasyID3
-    from mutagen.id3 import ID3
+    from mutagen.id3 import ID3, ID3NoHeaderError
+    from mutagen.mp3 import MP3
+    from mutagen.flac import FLAC
     import mutagen
     # from PIL import Image
     import pychromecast.controllers.media
@@ -400,7 +402,11 @@ try:
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
         pict = None
-        tags = ID3(file_path)
+        if file_path.lower().endswith('mp3'): tags = MP3(file_path)
+        elif file_path.lower().endswith('flac'): tags = FLAC(file_path)
+        else:
+            try: tags = ID3(file_path)
+            except ID3NoHeaderError: tags = mutagen.file.File(file_path)
         for tag in tags.keys():
             if 'APIC' in tag:
                 pict = tags[tag].data
