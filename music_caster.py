@@ -295,7 +295,7 @@ try:
                 os.chdir(starting_dir)
                 tray = sg.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
                 tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
-                tray.Hide()
+                tray.Update(tooltip='Downloading Update...')
                 if settings.get('DEBUG'):
                     print(setup_download_link)
                     print(bundle_download_link)
@@ -311,6 +311,7 @@ try:
                     # TODO: download setup and then silent install without creating desktop shortcut
                     # TODO: rename to Music Caster Updater or MCupdater
                     os.startfile('Updater.exe')
+                tray.Hide()
                 sys.exit()
     startup_setting(shortcut_path)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
