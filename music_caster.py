@@ -46,7 +46,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.24.0', 2001
+    VERSION, PORT = '4.24.1', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -332,17 +332,18 @@ try:
                     print(setup_download_link)
                     print(bundle_download_link)
                     print(source_download_link)
-                elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
-                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
-                    Popen('pythonw updater.py')
-                elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
-                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
-                    Popen('pythonw updater.pyw')
                 elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
                     download_and_extract(bundle_download_link, 'Updater.exe')
                     # TODO: download setup and then silent install without creating desktop shortcut
                     # TODO: rename to Music Caster Updater or MCupdater
-                    os.startfile('Updater.exe')
+                    Popen('Updater.exe')
+                elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
+                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
+                    Popen(['pythonw', 'updater.py'])
+                elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
+                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
+                    Popen(['pythonw', 'updater.pyw'])
+
                 tray.Hide()
                 sys.exit()
     startup_setting(shortcut_path)
@@ -515,7 +516,7 @@ try:
             if mc is not None:
                 mc.update_status()
                 try: song_position = mc.status.adjusted_current_time
-                except  UnsupportedNamespace: song_position = time.time() - song_start
+                except UnsupportedNamespace: song_position = time.time() - song_start
         elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
 
@@ -967,16 +968,18 @@ try:
                 update_progress_text = True
             if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
                 # TODO: progressbar visible if playing?
-                metadata = music_meta_data[music_queue[0]]
-                artist, title = metadata['artist'].split(', ')[0], metadata['title']
-                new_playing_text = f'{artist} - {title}'
-                update_text = now_playing_text.DisplayText != new_playing_text
-                progress_bar = main_window['progressbar']
-                update_song_position()
-                progress_bar.Update(song_position / song_length * 100, disabled=False)
-                time_left = song_length - song_position
-                update_progress_text = True
-                progress_bar_last_update = time.time()
+                if music_queue:
+                    metadata = music_meta_data[music_queue[0]]
+                    artist, title = metadata['artist'].split(', ')[0], metadata['title']
+                    new_playing_text = f'{artist} - {title}'
+                    update_text = now_playing_text.DisplayText != new_playing_text
+                    progress_bar = main_window['progressbar']
+                    update_song_position()
+                    progress_bar.Update(song_position / song_length * 100, disabled=False)
+                    time_left = song_length - song_position
+                    update_progress_text = True
+                    progress_bar_last_update = time.time()
+                else: playing_status = 'NOT PLAYING'
             if update_progress_text:
                 mins_elapsed, mins_left = floor(song_position / 60), floor(time_left / 60)
                 secs_elapsed, secs_left = floor(song_position % 60), floor(time_left % 60)
@@ -1283,5 +1286,5 @@ except Exception as e:
         # noinspection PyUnboundLocalVariable
         stop()
         os.chdir(starting_dir)
-        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
-        elif os.path.exists('music_caster.pyw'): Popen('pythonw music_caster.pyw', shell=True)
+        if getattr(sys, 'frozen', False): Popen('Music Caster.exe')
+        elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
