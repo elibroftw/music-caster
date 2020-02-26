@@ -318,16 +318,16 @@ try:
     
     # TODO: add play folder
     repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
-    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
+    menu_def_1 = ['', ['&Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play All'], 'E&xit']]
 
-    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
+    menu_def_2 = ['', ['&Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
                        'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
                        'E&xit']]
 
-    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
+    menu_def_3 = ['', ['&Settings', 'Refresh Devices', 'Select &Device', device_names, 'Playlists', tray_playlists,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play &File', 'Play File Next', 'Play All'],
                        'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
