@@ -1260,8 +1260,7 @@ except Exception as e:
                             'TRACEBACK': trace_back_msg})
     with suppress(UnboundLocalError):
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
-        # noinspection PyUnboundLocalVariable
         stop()
-        os.chdir(starting_dir)  # TODO: restart program
+        os.chdir(starting_dir)
         if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
         elif os.path.exists('music_caster.pyw'): Popen('pythonw music_caster.pyw', shell=True)
