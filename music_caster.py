@@ -820,7 +820,6 @@ try:
                     if playing_status in {'PLAYING', 'PAUSED'}:
                         main_event = 'progressbar'
                         update_song_position()
-                        print(song_position)
                         new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
                         main_window['progressbar'].Update(value=new_position)
                         main_values['progressbar'] = new_position
