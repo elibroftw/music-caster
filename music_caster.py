@@ -295,7 +295,7 @@ try:
                 os.chdir(starting_dir)
                 tray = sg.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
                 tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
-                tray.Hide()
+                tray.Update(tooltip='Downloading Update...')
                 if settings.get('DEBUG'):
                     print(setup_download_link)
                     print(bundle_download_link)
@@ -311,6 +311,7 @@ try:
                     # TODO: download setup and then silent install without creating desktop shortcut
                     # TODO: rename to Music Caster Updater or MCupdater
                     os.startfile('Updater.exe')
+                tray.Hide()
                 sys.exit()
     startup_setting(shortcut_path)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
@@ -1211,7 +1212,10 @@ except Exception as e:
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
                             'TRACEBACK': trace_back_msg})
-    tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
-    # noinspection PyUnboundLocalVariable
-    stop()
-    os.startfile(os.path.realpath(__file__))  # TODO: restart program
+    with suppress(UnboundLocalError):
+        tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
+        # noinspection PyUnboundLocalVariable
+        stop()
+        os.chdir(starting_dir)  # TODO: restart program
+        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
+        elif os.path.exists('music_caster.pyw'): Popen('pythonw music_caster.pyw', shell=True)
