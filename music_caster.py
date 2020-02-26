@@ -406,7 +406,7 @@ try:
         elif file_path.lower().endswith('flac'): tags = FLAC(file_path)
         else:
             try: tags = ID3(file_path)
-            except ID3NoHeaderError: tags = mutagen.file.File(file_path)
+            except ID3NoHeaderError: tags = mutagen.File(file_path)
         for tag in tags.keys():
             if 'APIC' in tag:
                 pict = tags[tag].data
