@@ -139,7 +139,7 @@ def create_settings(version, music_directories, settings):
                      background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Run on Startup', default=settings['run on startup'], key='run on startup', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
-         Sg.Checkbox('Enable Notifications', default=settings['notifications'], key='notifications',
+         Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
