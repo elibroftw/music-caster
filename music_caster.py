@@ -46,7 +46,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.24.1', 2001
+    VERSION, PORT = '4.24.2', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -831,7 +831,7 @@ try:
                         new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
                         main_window['progressbar'].Update(value=new_position)
                         main_values['progressbar'] = new_position
-                elif mouse_hover == 'volume':
+                else:  # 'volume'
                     main_event = 'volume'
                     new_volume = min(max(0, main_values['volume'] + delta), 100)
                     main_window['volume'].Update(value=new_volume)
@@ -1027,7 +1027,7 @@ try:
             if settings_event in {'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
                 active_windows['settings'] = False
                 settings_window.CloseNonBlocking()
-            if settings_event.startswith('MouseWheel') and mouse_hover == 'volume':
+            if settings_event.startswith('MouseWheel'):  #  and mouse_hover == 'volume'
                 settings_event = settings_event.split(':', 1)[1]
                 delta = {'Up': 5, 'Down': -5}.get(settings_event, 0)
                 settings_event = 'volume'
