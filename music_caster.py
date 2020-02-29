@@ -18,6 +18,7 @@ import sys
 import time  # DO NOT REMOVE
 import threading
 import traceback
+import uuid
 import webbrowser
 import zipfile
 try:
@@ -46,7 +47,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.24.2', 2001
+    VERSION, PORT = '4.24.3', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -106,22 +107,24 @@ try:
         return value
 
     
-    def hand_exception(exit_program=False):
+    def handle_exception(exit_program=False):
         if settings.get('DEBUG', False): raise e
         current_time = str(datetime.now())
         trace_back_msg = traceback.format_exc()
+        MAC = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
+        change_settings('auto update', False)
         with open(f'{starting_dir}/error.log', 'a+') as f:
             f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
         with suppress(requests.ConnectionError):
             requests.post('https://enmuvo35nwiw.x.pipedream.net',
                         json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                                'TRACEBACK': trace_back_msg})
+                              'TRACEBACK': trace_back_msg, 'STARTING_DIR': starting_dir, 'MAC': MAC})
         if exit_program:
             tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
             time.sleep(5)
             stop()
             os.chdir(starting_dir)
-            if getattr(sys, 'frozen', False): Popen('Music Caster.exe')
+            if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
             elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
             else: Popen(['python', 'music_caster.py'])
 
@@ -354,23 +357,23 @@ try:
                         print(setup_download_link)
                         print(bundle_download_link)
                         print(source_download_link)
-                    elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
+                    elif getattr(sys, 'frozen', False):
                         download_and_extract(bundle_download_link, 'Updater.exe')
                         # TODO: download setup and then silent install without creating desktop shortcut
                         # TODO: rename to Music Caster Updater or MCupdater
-                        Popen('Updater.exe')
+                        os.startfile('Updater.exe')
                     elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                         download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
                         Popen(['pythonw', 'updater.py'])
                     elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
                         download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
                         Popen(['pythonw', 'updater.pyw'])
-                except FileNotFoundError:
-                    change_settings('auto update', False)
-                    Popen('Music Caster.exe')
+                except Exception:
                     tray.ShowMessage('Auto update failed')
                     tray.Update(tooltip='Auto update failed')
+                    handle_exception()
                     time.sleep(5)
+                    if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
                 tray.Hide()
                 sys.exit()
     startup_setting(shortcut_path)
@@ -1300,16 +1303,18 @@ except Exception as e:
     if settings.get('DEBUG', False): raise e
     current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
+    MAC = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
+    change_settings('auto update', False)
     with open(f'{starting_dir}/error.log', 'a+') as f:
         f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                            'TRACEBACK': trace_back_msg})
+                            'TRACEBACK': trace_back_msg, 'STARTING_DIR': starting_dir, 'MAC': MAC})
     with suppress(UnboundLocalError):
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
         # noinspection PyUnboundLocalVariable
         stop()
         os.chdir(starting_dir)
-        if getattr(sys, 'frozen', False): Popen('Music Caster.exe')
+        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
         elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])

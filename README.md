@@ -38,12 +38,15 @@ Music Caster supports media keys.
 
 ## Errors
 - Errors are automatically sent to me
-- What's sent (why there is no opt-out)
+- What's sent
 ```JS
 // As seen near the bottom of music_caster.py
 'TIME': current_time,
 'VERSION': VERSION,          // of Music Caster
 'OS': platform.platform(),
+'TRACEBACK': trace_back_msg  // error output
+'MAC': MAC                   // unqiueness of error
+'STARTING_DIR': starting_dir // install folder
 'TRACEBACK': trace_back_msg  // error output
 ```
 
