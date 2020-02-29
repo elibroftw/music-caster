@@ -64,7 +64,7 @@ try:
         'volume': 100,
         'scrubbing_delta': 5,
         'volume_delta': 5,
-        'auto update': True,
+        'auto update': False,
         'run on startup': True,
         'notifications': True,
         'shuffle_playlists': True,
