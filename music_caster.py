@@ -328,22 +328,28 @@ try:
                 tray = sg.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
                 tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
                 tray.Update(tooltip='Downloading Update...')
-                if settings.get('DEBUG'):
-                    print(setup_download_link)
-                    print(bundle_download_link)
-                    print(source_download_link)
-                elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
-                    download_and_extract(bundle_download_link, 'Updater.exe')
-                    # TODO: download setup and then silent install without creating desktop shortcut
-                    # TODO: rename to Music Caster Updater or MCupdater
-                    Popen('Updater.exe')
-                elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
-                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
-                    Popen(['pythonw', 'updater.py'])
-                elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
-                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
-                    Popen(['pythonw', 'updater.pyw'])
-
+                try:
+                    if settings.get('DEBUG'):
+                        print(setup_download_link)
+                        print(bundle_download_link)
+                        print(source_download_link)
+                    elif os.path.exists('Updater.exe') or os.path.exists('Music Caster.exe'):
+                        download_and_extract(bundle_download_link, 'Updater.exe')
+                        # TODO: download setup and then silent install without creating desktop shortcut
+                        # TODO: rename to Music Caster Updater or MCupdater
+                        Popen('Updater.exe')
+                    elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
+                        download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
+                        Popen(['pythonw', 'updater.py'])
+                    elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
+                        download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
+                        Popen(['pythonw', 'updater.pyw'])
+                except FileNotFoundError:
+                    change_settings('auto update', False)
+                    Popen('Music Caster.exe')
+                    tray.ShowMessage('Auto update failed')
+                    tray.Update(tooltip='Auto update failed')
+                    time.sleep(5)
                 tray.Hide()
                 sys.exit()
     startup_setting(shortcut_path)
