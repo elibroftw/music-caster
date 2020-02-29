@@ -953,7 +953,6 @@ try:
                     # maybe even make it invisible?
                     continue
                 new_position = main_values['progressbar'] / 100 * song_length
-                print(new_position)
                 song_position = new_position
                 if cast is not None:
                     cast.media_controller.seek(new_position)
@@ -1012,8 +1011,6 @@ try:
             if update_text or update_lb_mq:
                 lb_music_queue_songs = create_songs_list(music_queue, done_queue, next_queue)[0]
                 lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
-            # if main_event not in {'__TIMEOUT__', None}:
-            #     print(main_event, main_values)
 
         # SETTINGS WINDOW
         if active_windows['settings']:
