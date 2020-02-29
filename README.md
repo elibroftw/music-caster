@@ -19,7 +19,7 @@ Click image below for a video demo.
 </p>
 
 ## Usage
-# TLDR
+### TLDR
 When running the app for the first time, if you have music files in different folders, right click the tray icon and open settings.
 
 On the first startup, the app will be in your hidden tray. You can move it onto the "Taskbar" and it'll stay there on future launches.

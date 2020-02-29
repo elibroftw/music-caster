@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.24.2
+- Scrolling in the  settings or main window by default changes volume
+
 4.24.1
 - Bug fixes
 
