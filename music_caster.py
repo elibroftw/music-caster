@@ -514,8 +514,9 @@ try:
         if cast is not None:
             mc = cast.media_controller
             if mc is not None:
-                mc.update_status()
-                try: song_position = mc.status.adjusted_current_time
+                try:
+                    mc.update_status()
+                    song_position = mc.status.adjusted_current_time
                 except UnsupportedNamespace: song_position = time.time() - song_start
         elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
