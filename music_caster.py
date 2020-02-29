@@ -53,6 +53,7 @@ try:
     starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
     home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
     # TODO: replace ' ' with '_' in load_setings
+    # TODO: Refactoring. Move all constants and functions to before the try-except
     settings = {  # default settings
         'previous device': None,
         'accent_color': '#00bfff',
@@ -103,6 +104,26 @@ try:
                 main_window['Repeat'].is_repeating = repeat_setting
                 main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
         return value
+
+    
+    def hand_exception(exit_program=False):
+        if settings.get('DEBUG', False): raise e
+        current_time = str(datetime.now())
+        trace_back_msg = traceback.format_exc()
+        with open(f'{starting_dir}/error.log', 'a+') as f:
+            f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
+        with suppress(requests.ConnectionError):
+            requests.post('https://enmuvo35nwiw.x.pipedream.net',
+                        json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
+                                'TRACEBACK': trace_back_msg})
+        if exit_program:
+            tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
+            time.sleep(5)
+            stop()
+            os.chdir(starting_dir)
+            if getattr(sys, 'frozen', False): Popen('Music Caster.exe')
+            elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
+            else: Popen(['python', 'music_caster.py'])
 
 
     def update_volume(new_vol):
