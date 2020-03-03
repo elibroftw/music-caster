@@ -1,6 +1,7 @@
 import PySimpleGUI as Sg
 import os
 import re
+import socket
 
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
@@ -35,6 +36,14 @@ def _surrogatepair(match):
 
 def with_surrogates(text):
     return _nonbmp.sub(_surrogatepair, text)
+
+
+def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
+
+
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
 
 
 def create_songs_list(music_queue, done_queue, next_queue):

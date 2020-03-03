@@ -9,10 +9,8 @@ from math import floor
 import os
 from pathlib import Path
 import platform
-import socket
 from shutil import copyfile
 from random import shuffle
-import socket
 from subprocess import Popen
 import sys
 import time  # DO NOT REMOVE
@@ -21,11 +19,183 @@ import traceback
 import uuid
 import webbrowser
 import zipfile
+# 3rd party imports
+from bs4 import BeautifulSoup
+import encodings.idna  # DO NOT REMOVE
+from flask import Flask, jsonify, render_template, request, redirect
+import requests
+import PySimpleGUIWx as SgWx
+import wx
+
+
+VERSION = '4.24.4'
+# TODO: Refactoring. Move all constants and functions to before the try-except
+# TODO: move static functions to helpers.py
+
+
+def fix_path(path):
+    if platform.system() == 'Windows': return path.replace('/', '\\')
+    else: return path.replace('\\', '/')
+
+
+def save_json():
+    with open(settings_file, 'w') as outfile:
+        json.dump(settings, outfile, indent=4)
+
+
+def change_settings(settings_key, value):
+    settings[settings_key] = value
+    save_json()
+    if settings_key == 'repeat':
+        with suppress(IndexError):
+            if value: tray.TaskBarIcon.menu[1][11][1] = 'Repeat ✓'
+            else: tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
+        if active_windows['main']:
+            main_window['Repeat'].is_repeating = repeat_setting
+            main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
+    return value
+
+
+def update_volume(new_vol):
+    """new_vol: float[0, 100]"""
+    new_vol = new_vol / 100
+    if cast is None:  local_music_player.music.set_volume(new_vol)
+    else: cast.set_volume(new_vol)
+
+
+def load_settings():
+    """load (and fix if needed) the settings file"""
+    # TODO: replace ' ' with '_'
+    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
+    if os.path.exists(settings_file):
+        with open(settings_file) as json_file:
+            try: loaded_settings = json.load(json_file)
+            except json.decoder.JSONDecodeError as e: loaded_settings = {}
+            save_settings = False
+            for setting_name, setting_value in settings.items():
+                if setting_name not in loaded_settings:
+                    loaded_settings[setting_name] = setting_value
+                    save_settings = True
+            settings = loaded_settings
+            playlists = settings['playlists']
+            tray_playlists.clear()
+            tray_playlists.append('Create/Edit a Playlist')
+            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+            notifications_enabled = settings['notifications']
+            music_directories = settings['music directories']
+            if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
+            DEFAULT_DIR = music_directories[0]
+        if save_settings: save_json()
+    else: save_json()
+
+
+def handle_exception(exception, restart_program=False):
+    if settings.get('DEBUG', False): raise exception
+    current_time = str(datetime.now())
+    trace_back_msg = traceback.format_exc()
+    mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+    with open(f'{starting_dir}/error.log', 'a+') as f:
+        f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
+    with suppress(requests.ConnectionError):
+        requests.post('https://enmuvo35nwiw.x.pipedream.net',
+                      json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
+                            'TRACEBACK': trace_back_msg, 'STARTING_DIR': starting_dir, 'MAC': mac})
+    if restart_program:
+        tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
+        time.sleep(5)
+        stop()
+        os.chdir(starting_dir)
+        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
+        elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
+        else: Popen(['python', 'music_caster.py'])
+
+
+def download_and_extract(link, infile, outfile=None):
+    r = requests.get(link, stream=True)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
+    if outfile is None: outfile = infile
+    with suppress(FileNotFoundError): os.remove(outfile)
+    os.rename(f'{starting_dir}/Update/{infile}', outfile)
+
+
+PORT, WAIT_TIMEOUT = 2001, 10
+update_devices, cast = False, None
+chromecasts, device_names = [], []
+starting_dir = fix_path(os.path.dirname(os.path.realpath(__file__)))
+home_music_dir = fix_path(str(Path.home()) + '/Music')
+settings = {  # default settings
+        'previous device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
+        'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto update': False,
+        'run on startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+        'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+        'EXPERIMENTAL': False, 'music directories': [home_music_dir], 'playlists': {}}
+settings_file = f'{starting_dir}/settings.json'
+playlists, tray_playlists = {}, ['Create/Edit a Playlist']
+music_directories, notifications_enabled = [], True
+pl_name, pl_files = '', []
+keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+mouse_hover = main_last_event = settings_last_event = pl_editor_last_event = None
+open_pl_selector = update_progress_text = False
+new_playing_text, timer = 'Nothing Playing', 0
+active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
+                  'playlist_editor': False}
+
+
+if settings['auto update']:
+    with suppress(requests.ConnectionError):
+        github_url = 'https://github.com/elibroftw/music-caster/releases'
+        html_doc = requests.get(github_url).text
+        soup = BeautifulSoup(html_doc, features='html.parser')
+        release_entries = soup.find_all('div', class_='release-entry')
+        for entry in release_entries:
+            latest_version = entry.find('a', class_='muted-link css-truncate')['title'][1:]
+            release_type = entry.find('span').text.strip()
+            if release_type == 'Latest release': break
+        major, minor, patch = (int(x) for x in VERSION.split('.'))
+        lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
+        if (lt_major > major or lt_major == major and lt_minor > minor
+                or lt_major == major and lt_minor == minor and lt_patch > patch):
+            details = entry.find('details',
+                                 class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+            download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
+            setup_download_link = f'https://github.com{download_links[0]}'
+            bundle_download_link = f'https://github.com{download_links[1]}'
+            source_download_link = f'https://github.com{download_links[-2]}'
+            os.chdir(starting_dir)
+            tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
+            tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
+            tray.Update(tooltip='Downloading Update...')
+            try:
+                if settings.get('DEBUG'):
+                    print(setup_download_link)
+                    print(bundle_download_link)
+                    print(source_download_link)
+                elif getattr(sys, 'frozen', False):
+                    download_and_extract(bundle_download_link, 'Updater.exe')
+                    # TODO: download setup and then silent install without creating desktop shortcut
+                    # TODO: rename to Music Caster Updater or MCupdater
+                    os.startfile('Updater.exe')
+                elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
+                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',
+                                         'updater.py')
+                    Popen(['pythonw', 'updater.py'])
+                elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
+                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',
+                                         'updater.pyw')
+                    Popen(['pythonw', 'updater.pyw'])
+            except Exception as e:
+                tray.ShowMessage('Auto update failed')
+                tray.Update(tooltip='Auto update failed')
+                change_settings('auto update', False)
+                handle_exception(e)
+                time.sleep(5)
+                if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
+            tray.Hide()
+            sys.exit()
+
+app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
-    from bs4 import BeautifulSoup
-    import encodings.idna  # DO NOT REMOVE
-    from flask import Flask, jsonify, render_template, request, redirect
-    import winshell
     from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3, ID3NoHeaderError
     from mutagen.mp3 import MP3
@@ -37,151 +207,15 @@ try:
     import pychromecast
     from pygame import mixer as local_music_player
     from pynput.keyboard import Listener
-    import PySimpleGUIWx as sg
-    import wx
-    import requests
     import win32api
     import win32com.client
     import win32event
     from winerror import ERROR_ALREADY_EXISTS
+    import winshell
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.24.4', 2001
-    update_devices, cast = False, None
-    chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
-    starting_dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
-    home_music_dir = str(Path.home()).replace('\\', '/') + '/Music'
-    # TODO: replace ' ' with '_' in load_setings
-    # TODO: Refactoring. Move all constants and functions to before the try-except
-    settings = {  # default settings
-        'previous device': None,
-        'accent_color': '#00bfff',
-        'text_color': '#aaaaaa',
-        'button_text_color': '#000000',
-        'background_color': '#121212',
-        'volume': 100,
-        'scrubbing_delta': 5,
-        'volume_delta': 5,
-        'auto update': False,
-        'run on startup': True,
-        'notifications': True,
-        'shuffle_playlists': True,
-        'repeat': False,
-        'timer_shut_off_computer': False,
-        'timer_hibernate_computer': False,
-        'timer_sleep_computer': False,
-        'EXPERIMENTAL': False,
-        'music directories': [home_music_dir],
-        'playlists': {}
-    }
-    settings_file = f'{starting_dir}/settings.json'
-    playlists, tray_playlists = {}, ['Create/Edit a Playlist']
-    music_directories, notifications_enabled = [], True
-    keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-    mouse_hover = main_last_event = settings_last_event = pl_editor_last_event = None
-    open_pl_selector = update_progress_text = False
-    new_playing_text, timer = 'Nothing Playing', 0
-    active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False, 
-                      'playlist_editor': False}
-    pl_name, pl_files = '', []
-    app = Flask(__name__, static_folder='/', static_url_path='/')
-
-
-    def save_json():
-        with open(settings_file, 'w') as outfile:
-            json.dump(settings, outfile, indent=4)
-
-
-    def change_settings(settings_key, value):
-        settings[settings_key] = value
-        save_json()
-        if settings_key == 'repeat':
-            with suppress(IndexError):
-                if value: tray.TaskBarIcon.menu[1][11][1] = 'Repeat ✓'
-                else: tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
-            if active_windows['main']:
-                main_window['Repeat'].is_repeating = repeat_setting
-                main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
-        return value
-
-    
-    def handle_exception(exit_program=False):
-        if settings.get('DEBUG', False): raise e
-        current_time = str(datetime.now())
-        trace_back_msg = traceback.format_exc()
-        MAC = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
-        change_settings('auto update', False)
-        with open(f'{starting_dir}/error.log', 'a+') as f:
-            f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
-        with suppress(requests.ConnectionError):
-            requests.post('https://enmuvo35nwiw.x.pipedream.net',
-                        json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                              'TRACEBACK': trace_back_msg, 'STARTING_DIR': starting_dir, 'MAC': MAC})
-        if exit_program:
-            tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
-            time.sleep(5)
-            stop()
-            os.chdir(starting_dir)
-            if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
-            elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
-            else: Popen(['python', 'music_caster.py'])
-
-
-    def update_volume(new_vol):
-        """new_vol: float[0, 100]"""
-        new_vol = new_vol / 100
-        if cast is None:  local_music_player.music.set_volume(new_vol)
-        else: cast.set_volume(new_vol)
-
-
-    def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
-
-
-    def fix_path(filepath):
-        if sys.platform == 'win32': return filepath.replace('/', '\\')
-        else: return filepath.replace('\\', '/')
-
-
-    def is_port_in_use(port):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            return s.connect_ex(('localhost', port)) == 0
-    
-    def download_and_extract(link, infile, outfile=None):
-        r = requests.get(link, stream=True)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
-        if outfile is None: outfile = infile
-        with suppress(FileNotFoundError): os.remove(outfile)
-        os.rename(f'{starting_dir}/Update/{infile}', outfile)
-
-
-    def load_settings():
-        """load (and fix if needed) the settings file"""
-        global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
-        if os.path.exists(settings_file):
-            with open(settings_file) as json_file:
-                try: loaded_settings = json.load(json_file)
-                except json.decoder.JSONDecodeError as e: loaded_settings = {}
-                save_settings = False
-                for setting_name, setting_value in settings.items():
-                    if setting_name not in loaded_settings:
-                        loaded_settings[setting_name] = setting_value
-                        save_settings = True
-                settings = loaded_settings
-                playlists = settings['playlists']
-                tray_playlists.clear()
-                tray_playlists.append('Create/Edit a Playlist')
-                tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-                notifications_enabled = settings['notifications']
-                music_directories = settings['music directories']
-                if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
-                DEFAULT_DIR = music_directories[0]
-            if save_settings: save_json()
-        else: save_json()
-
-
     load_settings()
     helpers.ACCENT_COLOR, helpers.fg, helpers.bg = settings['accent_color'], settings['text_color'], settings['background_color']
     helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
@@ -219,7 +253,7 @@ try:
         repeat_option = 'red' if settings['repeat'] else ''
         shuffle_option = 'red' if settings['shuffle_playlists'] else ''
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play', repeat=repeat_option,
-                                shuffle=shuffle_option, art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
+                               shuffle=shuffle_option, art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
 
     @app.route('/metadata/')
     def metadata():
@@ -259,7 +293,7 @@ try:
         previous_device = settings['previous device']
         if str(chromecast.uuid) == previous_device and cast != chromecast:
             cast = chromecast
-            cast.wait(timeout=5)
+            cast.wait(timeout=WAIT_TIMEOUT)
         if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
             chromecasts.append(chromecast)
             chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
@@ -294,7 +328,7 @@ try:
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
 
 
-    shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'  # NOTE: Windows only
+    shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'
     # Access startup folder by entering "Startup" in Explorer address bar
     # Only one of the below can be True
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
@@ -316,7 +350,7 @@ try:
                 with open(f'{images_dir}/default.png', 'wb') as handle:
                     for data in response.iter_content(): handle.write(data)
     for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
-        file = file.replace('\\', '/')
+        file = fix_path(file)
         if file != f'{images_dir}/default.png': os.remove(file)
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
     logging.getLogger('werkzeug').disabled = True
@@ -324,58 +358,10 @@ try:
     while True:
         try:
             if not is_port_in_use(PORT):
-                threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'debug': False, 'use_reloader': False}).start()
+                threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'debug': False}).start()
                 break
             else: PORT += 1
         except OSError: PORT += 1
-    if settings['auto update']:
-        with suppress(requests.ConnectionError):
-            github_url = 'https://github.com/elibroftw/music-caster/releases'
-            html_doc = requests.get(github_url).text
-            soup = BeautifulSoup(html_doc, features='html.parser')
-            release_entries = soup.find_all('div', class_='release-entry')
-            for entry in release_entries:
-                latest_version = entry.find('a', class_='muted-link css-truncate')['title'][1:]
-                release_type = entry.find('span').text.strip()
-                if release_type == 'Latest release': break
-            major, minor, patch = (int(x) for x in VERSION.split('.'))
-            lt_major, lt_minor, lt_patch = (int(x) for x in latest_version.split('.'))
-            if (lt_major > major or lt_major == major and lt_minor > minor
-                    or lt_major == major and lt_minor == minor and lt_patch > patch):
-                details = entry.find('details',
-                                     class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
-                download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
-                setup_download_link = f'https://github.com{download_links[0]}'
-                bundle_download_link = f'https://github.com{download_links[1]}'
-                source_download_link = f'https://github.com{download_links[-2]}'
-                os.chdir(starting_dir)
-                tray = sg.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
-                tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
-                tray.Update(tooltip='Downloading Update...')
-                try:
-                    if settings.get('DEBUG'):
-                        print(setup_download_link)
-                        print(bundle_download_link)
-                        print(source_download_link)
-                    elif getattr(sys, 'frozen', False):
-                        download_and_extract(bundle_download_link, 'Updater.exe')
-                        # TODO: download setup and then silent install without creating desktop shortcut
-                        # TODO: rename to Music Caster Updater or MCupdater
-                        os.startfile('Updater.exe')
-                    elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
-                        download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.py')
-                        Popen(['pythonw', 'updater.py'])
-                    elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
-                        download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py', 'updater.pyw')
-                        Popen(['pythonw', 'updater.pyw'])
-                except Exception:
-                    tray.ShowMessage('Auto update failed')
-                    tray.Update(tooltip='Auto update failed')
-                    handle_exception()
-                    time.sleep(5)
-                    if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
-                tray.Hide()
-                sys.exit()
     startup_setting(shortcut_path)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     discovery_started = time.time()
@@ -397,7 +383,7 @@ try:
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
                        'Exit']]
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
-    tray = sg.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
+    tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
     DEFAULT_DIR = music_directories[0]
@@ -476,7 +462,7 @@ try:
                     with open(thumb, 'wb') as f: f.write(pict)
                 else: thumb = images_dir + f'/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
-                cast.wait(timeout=5)
+                cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(volume)
                 mc = cast.media_controller
                 if mc.status.player_is_playing or mc.status.player_is_paused:
@@ -714,7 +700,7 @@ try:
                     local_music_player.music.set_volume(volume)
                 else:
                     change_settings('previous device', str(cast.uuid))
-                    cast.wait(timeout=5)
+                    cast.wait(timeout=WAIT_TIMEOUT)  # TODO: fix Chromecast is connection error
                     cast.set_volume(volume)
                 current_pos = 0
                 if local_music_player.music.get_busy():
@@ -803,20 +789,20 @@ try:
                 path_to_file = fd.GetPath()
                 next_queue.append(path_to_file)
                 if playing_status == 'NOT PLAYING':
-                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=5)
+                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
                     next_song()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time.time() > timer:
             stop()
             timer = 0
             if settings['timer_shut_off_computer']:
-                if sys.platform == 'win32': os.system('shutdown /p /f')
+                if platform.system() == 'Windows': os.system('shutdown /p /f')
                 else: os.system('sudo shutdown now')
             elif settings['timer_hibernate_computer']:
-                if sys.platform == 'win32': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
+                if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
                 else: pass
             elif settings['timer_sleep_computer']:
-                if sys.platform == 'win32': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+                if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
                 else: pass
         elif ('Next Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING'
               or playing_status == 'PLAYING' and time.time() > song_end):
@@ -1095,16 +1081,14 @@ try:
                     settings_window.Element('music_dirs').Update(music_directories)
             elif settings_event == 'Add Folder':
                 if settings_value not in music_directories and os.path.exists(settings_value):
-                    music_directories.append(settings_value.replace('\\', '/'))
+                    music_directories.append(fix_path(settings_value))
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
                     # TODO: update menu "Play Folder" list
             elif settings_event == 'Open Settings':
                 try: os.startfile(settings_file)
                 except OSError:
-                    if sys.platform == 'win32': settings_file = settings_file.replace('/', '\\')
-                    else: path_to_song = music_queue[0].replace('\\', '/')
-                    Popen(f'explorer /select,"{settings_file}"')
+                    Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
         if active_windows['playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
@@ -1191,7 +1175,7 @@ try:
             elif pl_editor_event == 'Add songs':
                 selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
-                    new_files = [file.replace('\\', '/') for file in selected_songs.split(';') if valid_music_file(file)]
+                    new_files = [fix_path(file) for file in selected_songs.split(';') if valid_music_file(file)]
                     pl_files += new_files
                     pl_editor_window.TKroot.focus_force()
                     pl_editor_window.normal()
@@ -1304,21 +1288,4 @@ try:
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:
-    if settings.get('DEBUG', False): raise e
-    current_time = str(datetime.now())
-    trace_back_msg = traceback.format_exc()
-    MAC = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
-    change_settings('auto update', False)
-    with open(f'{starting_dir}/error.log', 'a+') as f:
-        f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
-    with suppress(requests.ConnectionError):
-        requests.post('https://enmuvo35nwiw.x.pipedream.net',
-                      json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                            'TRACEBACK': trace_back_msg, 'STARTING_DIR': starting_dir, 'MAC': MAC})
-    with suppress(UnboundLocalError):
-        tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
-        # noinspection PyUnboundLocalVariable
-        stop()
-        os.chdir(starting_dir)
-        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
-        elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
+    handle_exception(e, True)
