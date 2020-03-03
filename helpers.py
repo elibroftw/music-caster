@@ -2,6 +2,7 @@ import PySimpleGUI as Sg
 import os
 import re
 import socket
+from glob import glob
 
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
@@ -80,13 +81,9 @@ def create_songs_list(music_queue, done_queue, next_queue):
 
 
 def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeating_song,
-                    now_playing_text='Nothing Playing', album_cover_data=None):
-    # PLANNING:
-    # set progressbar in here?
-    # Volume control
-    # Show playing queue with controls for moving songs around
-    # Show Current playing with it's album art, use default album art if one does not exist
-    # Have a scrubber (if the scrubber is 1 sec off from variable, then call play_file() with new value)
+                    music_dirs, now_playing_text='Nothing Playing', album_cover_data=None):
+    # TODO: Music Library Tab
+    
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     # Sg.Button('Shuffle', key='Shuffle'),
     music_controls = [[Sg.Button(key='Locate File', image_data=FOLDER_ICON),
@@ -99,17 +96,17 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
                                  text_color='#000000', size=(10, 10))]]
-    progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
+    progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
                                       enable_events=True, relief=Sg.RELIEF_FLAT, background_color=ACCENT_COLOR,
                                       disable_number_display=True, disabled=now_playing_text == 'Nothing Playing'),
                             # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
-                            Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
+                            Sg.Text('00:00', font=font_normal, text_color=fg, key='time_left')]]
     
     # Now Playing layout
-    tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
+    tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, key='now_playing',
                             size=(55, 0))],
-                   [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150),
+                   [Sg.Image(filename=album_cover_data, pad=(0, 0), size=(50, 50),
                              key='album_cover')] if album_cover_data else [],
                    # [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover'),
                    #  Sg.Slider((range(0, 100)))] if album_cover_data else [Sg.Slider((range(0, 100)))],
@@ -129,17 +126,26 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
                    Sg.Column(mq_ctrls, pad=(0, 5)), Sg.Column(q_ctrls, pad=(0, 5))]]
+    all_songs = []
+    for directory in music_dirs:
+            all_songs.extend([file for file in glob(f'{directory}/**/*.*', recursive=True) if valid_music_file(file)])
+
+    tab3_layout = [[
+        Sg.Listbox(all_songs, size=(50, 50), default_values=all_songs[0] if all_songs else '', text_color=fg, background_color=bg, font=font_normal, key='library')
+    ]]
+    # Sg.Tab('Library', tab3_layout, background=bg, key='tab3')
     # TODO: double click to play a song
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
+    
     return layout
 
 
 def create_settings(version, music_directories, settings):
     layout = [
-        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez   Email:', text_color=fg, background_color=bg,
+        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez   Email:', text_color=fg,
                  font=font_normal),
-         Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, background_color=bg, font=font_link,
+         Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, font=font_link,
                  click_submits=True, key='email')],
         [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
@@ -163,13 +169,13 @@ def create_settings(version, music_directories, settings):
 
 def create_timer(settings):
     layout = [
-        [Sg.Checkbox('Shut off computer when timer runs out', default=settings['timer_shut_off_computer'],
+        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=settings['timer_shut_off_computer'],
                      key='shut_off', text_color=fg, background_color=bg, font=font_normal,
                      enable_events=True)],
-        [Sg.Checkbox('Hibernate computer when timer runs out', default=settings['timer_hibernate_computer'],
+        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=settings['timer_hibernate_computer'],
                      key='hibernate', text_color=fg, background_color=bg, font=font_normal,
                      enable_events=True)],
-        [Sg.Checkbox('Sleep computer when timer runs out', default=settings['timer_sleep_computer'],
+        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=settings['timer_sleep_computer'],
                      key='sleep', text_color=fg, background_color=bg, font=font_normal,
                      enable_events=True)],
         [Sg.Text('Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
@@ -224,7 +230,7 @@ if __name__ == '__main__':
           r"C:\Users\maste\OneDrive\Music\Alex H, Andreas J - Snip.mp3"]
     p_status = 'NOT_PLAYING'  # PLAYING, PAUSED
     vol = 50
-    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, nq, 'NOT_PLAYING', vol, True, metadata),
+    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, nq, 'NOT_PLAYING', vol, True, [], metadata),
                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
     main_last_event = ''
     update_times = 0

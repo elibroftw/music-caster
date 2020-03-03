@@ -1,7 +1,6 @@
 import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
-from glob import glob
 import io
 import json
 import logging
@@ -231,7 +230,7 @@ try:
     local_music_player.init(44100, -16, 2, 2048)
     helpers.ACCENT_COLOR, helpers.fg, helpers.bg = settings['accent_color'], settings['text_color'], settings['background_color']
     helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
-    Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg)
+    Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg, text_element_background_color=bg)
 
 
     @app.route('/', methods=['GET', 'POST'])
@@ -252,7 +251,7 @@ try:
             file_path = music_queue[0]
             metadata = music_meta_data[file_path]
         else: metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-        art = metadata.get('art', Path(images_dir + f'/default.png').as_uri()[11:])
+        art = metadata.get('art', Path(f'{images_dir}/default.png').as_uri()[11:])
         repeat_option = 'red' if settings['repeat'] else ''
         shuffle_option = 'red' if settings['shuffle_playlists'] else ''
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play', repeat=repeat_option,
@@ -354,6 +353,8 @@ try:
                     for data in response.iter_content(): handle.write(data)
     for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
         if not file.endswith('default.png'): os.remove(file)
+    with open(f'{images_dir}/default.png', 'rb') as f:
+        DEFAULT_IMG_DATA = base64.b64encode(f.read())  # TODO RESIZE
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
@@ -462,7 +463,7 @@ try:
                 if pict:
                     thumb = images_dir + f'/{file_path_obj.stem}.png'
                     with open(thumb, 'wb') as f: f.write(pict)
-                else: thumb = images_dir + f'/default.png'
+                else: thumb = f'{images_dir}/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
                 cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(volume)
@@ -529,7 +530,7 @@ try:
     #         raw = pict = pict.data
     #         with open(thumb, 'wb') as f: f.write(pict)
     #     else:
-    #         thumb = images_dir + f'/default.png'
+    #         thumb = f'{images_dir}/default.png'
     #         with open(thumb, 'rb') as f: raw = f.read()
     #     data = io.BytesIO(raw)
     #     im = Image.open(data)
@@ -675,12 +676,13 @@ try:
                     metadata = music_meta_data[current_song]
                     artist, title = metadata['artist'].split(', ')[0], metadata['title']
                     new_playing_text = f'{artist} - {title}'
-                    # album_cover_data = metadata['album_cover_data']
-                    # main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                    #                                   new_playing_text, album_cover_data=album_cover_data)
+                    album_cover_data = metadata.get('album_cover_data', None)
                     main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                      volume, repeat_setting, new_playing_text)
-                else: main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeat_setting)
+                                                      volume, repeat_setting, music_directories, new_playing_text,
+                                                      album_cover_data=album_cover_data)
+                else:
+                    main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
+                                                      volume, repeat_setting, music_directories)
                 main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
                 dq_len = len(done_queue)
@@ -1263,28 +1265,10 @@ try:
                     timer_window.CloseNonBlocking()
                 except ValueError:
                     Sg.PopupOK('Input a number!')
-            elif timer_event == 'shut_off':
-                if timer_value:
-                    # Maybe use if statements? e.g. if timer_values['hibernate']:
-                    timer_window.Element('hibernate').Update(False)
-                    timer_window.Element('sleep').Update(False)
-                    change_settings('timer_hibernate_computer', False)
-                    change_settings('timer_sleep_computer', False)
-                change_settings('timer_shut_off_computer', timer_value)
-            elif timer_event == 'hibernate':
-                if timer_value:
-                    timer_window.Element('shut_off').Update(False)
-                    timer_window.Element('sleep').Update(False)
-                    change_settings('timer_shut_off_computer', False)
-                    change_settings('timer_sleep_computer', False)
-                change_settings('timer_hibernate_computer', timer_value)
-            elif timer_event == 'sleep':
-                if timer_value:
-                    timer_window.Element('shut_off').Update(False)
-                    timer_window.Element('hibernate').Update(False)
-                    change_settings('timer_shut_off_computer', False)
-                    change_settings('timer_hibernate_computer', False)
-                change_settings('timer_sleep_computer', timer_value)
+            elif timer_event in {'shut_off', 'hibernate', 'sleep'}:
+                change_settings('timer_hibernate_computer', timer_values['hibernate'])
+                change_settings('timer_sleep_computer', timer_values['sleep'])
+                change_settings('timer_shut_off_computer', timer_values['shut_off'])
         keyboard_command = None
         if mc is not None and time.time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
