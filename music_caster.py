@@ -131,8 +131,8 @@ def download_and_extract(link, infile, outfile=None):
 PORT, WAIT_TIMEOUT = 2001, 10
 update_devices, cast = False, None
 chromecasts, device_names = [], []
-starting_dir = fix_path(os.path.dirname(os.path.realpath(__file__)))
-home_music_dir = fix_path(str(Path.home()) + '/Music')
+starting_dir = os.path.dirname(os.path.realpath(__file__))
+home_music_dir = str(Path.home()) + '/Music'
 settings = {  # default settings
         'previous_device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
         'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
@@ -1101,7 +1101,7 @@ try:
                     settings_window.Element('music_dirs').Update(music_directories)
             elif settings_event == 'Add Folder':
                 if settings_value not in music_directories and os.path.exists(settings_value):
-                    music_directories.append(fix_path(settings_value))
+                    music_directories.append(settings_value)
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
                     # TODO: update menu "Play Folder" list
@@ -1195,7 +1195,7 @@ try:
             elif pl_editor_event == 'Add songs':
                 selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
-                    new_files = [fix_path(file) for file in selected_songs.split(';') if valid_music_file(file)]
+                    new_files = [file for file in selected_songs.split(';') if valid_music_file(file)]
                     pl_files += new_files
                     pl_editor_window.TKroot.focus_force()
                     pl_editor_window.normal()
