@@ -513,7 +513,7 @@ try:
             next_queue.append(path_to_file)
             if playing_status == 'NOT PLAYING':
                 if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
-                play_file(music_queue[0])
+                next_song()
 
 
     # def get_album_cover(file_path, only_b64=True):
