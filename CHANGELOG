@@ -4,6 +4,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.25.0
 - Added locate file option to main GUI (folder icon)
+- Fixed play file next bug
 
 4.24.4
 - Fixed volume scrolling behavior
