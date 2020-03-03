@@ -11,7 +11,7 @@ from pathlib import Path
 import platform
 from shutil import copyfile
 from random import shuffle
-from subprocess import Popen
+from subprocess import Popen, call
 import sys
 import time  # DO NOT REMOVE
 import threading
@@ -818,7 +818,7 @@ try:
                 else: tray.ShowMessage('Music Caster', 'Not repeating current song')
         elif 'Resume' in {menu_item, keyboard_command}: resume()
         elif 'Pause' in {menu_item, keyboard_command}: pause()
-        elif menu_item == 'Locate File':
+        elif menu_item in 'Locate File':
             if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
             tray.Hide()
@@ -859,12 +859,15 @@ try:
                     main_window['volume'].Update(value=new_volume)
                     main_values['volume'] = new_volume
                 main_window.Refresh()
+            # if main_event != '__TIMEOUT__': print(main_event)
             if main_event == 'progressbar_mouse_enter': mouse_hover = 'progressbar'
             elif main_event == 'progressbar_mouse_leave': mouse_hover = ''
             elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
             elif main_event == 'volume_mouse_leave': mouse_hover = ''
             elif main_event == 'tab2_mouse_enter': mouse_hover = 'tab2'
             elif main_event == 'tab2_mouse_leave': mouse_hover = ''
+            elif main_event in {'Locate File', 'e:69'}:
+                if music_queue: Popen(f'explorer /n,/select,"{fix_path(music_queue[0])}"')
             elif main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()

@@ -46,9 +46,12 @@ Music Caster supports media keys.
 'OS': platform.platform(),
 'TRACEBACK': trace_back_msg  // error output
 'MAC': MAC                   // unqiueness of error
-'STARTING_DIR': starting_dir // install folder
+'STARTING_DIR': starting_dir // install folder, will remove later
 'TRACEBACK': trace_back_msg  // error output
 ```
+
+## Keyboard Shortcuts
+There exists keyboard shortcuts, but I will put them here later
 
 ## Settings.json Guide
 - Music Caster will detect changes within 10 seconds of editing `settings.json`
@@ -68,3 +71,4 @@ Music Caster supports media keys.
 - default.png made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
 - speaker icon in main window made by [Naomi Atkinson](https://thenounproject.com/naomiatkinson/) from [The Noun Project](https://thenounproject.com/term/speaker/5609/) and modified by me
 - repeat icon in main window made by [Brandy Bora](https://thenounproject.com/brandy.bora) from [The Noun Project](https://thenounproject.com/search/?q=repeat&i=1555394) and modified by me
+- Folder icon in main window by [Landan Lloyd](https://thenounproject.com/landan/) from [The Noun Project](https://thenounproject.com/term/folder/1352565/)
