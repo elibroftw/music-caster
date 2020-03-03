@@ -502,6 +502,20 @@ try:
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
 
 
+    def play_next():
+        global music_directories, DEFAULT_DIR
+        if music_directories: DEFAULT_DIR = music_directories[0]
+        else: DEFAULT_DIR = ''
+        fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        if fd.ShowModal() != wx.ID_CANCEL:
+            path_to_file = fd.GetPath()
+            next_queue.append(path_to_file)
+            if playing_status == 'NOT PLAYING':
+                if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
+                play_file(music_queue[0])
+
+
     # def get_album_cover(file_path, only_b64=True):
     #     file_path_obj = Path(file_path)
     #     thumb = images_dir + f'/{file_path_obj.stem}.png'
@@ -771,29 +785,20 @@ try:
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
-                path_to_file = fd.GetPath()
-                play_file(path_to_file)
+                playing_file = fd.GetPath()
+                play_file(playing_file)
                 music_queue.clear()
                 done_queue.clear()
                 for directory in music_directories:
                     for file in glob(f'{directory}/**/*.*', recursive=True):
-                        if file != path_to_file and valid_music_file(file): music_queue.append(file)
+                        if file != playing_file and valid_music_file(file): music_queue.append(file)
                 shuffle(music_queue)
-                music_queue.insert(0, path_to_file)
+                music_queue.insert(0, playing_file)
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play All': play_all()
         elif menu_item.startswith('PF: '):  # play folder
             menu_item = menu_item[4:]
-        elif menu_item == 'Play File Next':
-            if music_directories: DEFAULT_DIR = music_directories[0]
-            fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
-                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-            if fd.ShowModal() != wx.ID_CANCEL:
-                path_to_file = fd.GetPath()
-                next_queue.append(path_to_file)
-                if playing_status == 'NOT PLAYING':
-                    if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
-                    next_song()
+        elif menu_item == 'Play File Next': play_next()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time.time() > timer:
             stop()
@@ -972,7 +977,7 @@ try:
                     main_window['music_queue'].Update(values=updated_list,
                                                       set_to_index=new_i, scroll_to_index=new_i)
             elif main_event == 'queue_file': pass
-            elif main_event == 'play_next': pass
+            elif main_event == 'play_next': play_next()
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':

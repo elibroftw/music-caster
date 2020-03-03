@@ -127,13 +127,12 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
         [Sg.Button('❌', key='remove', pad=(0, 5))],
         [Sg.Button('▼', key='move_down', pad=(2, 5))]]
     q_ctrls = [
-        [Sg.Button('Queue a file', key='queue_file', pad=(0, 5))],
-        [Sg.Button('Play a file next', key='play_next', pad=(0, 5))],
-        [Sg.Button('Locate playing file', key='locate_file', pad=(0, 5))]]
+        # [Sg.Button('Queue a file', key='queue_file', pad=(0, 5))],
+        [Sg.Button('Play a file next', key='play_next', pad=(0, 5))]]
     tab2_layout = [[
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
-                   Sg.Column(mq_ctrls, pad=(0, 5))]]  # Sg.Column(q_ctrls, pad=(0, 5))
+                   Sg.Column(mq_ctrls, pad=(0, 5)), Sg.Column(q_ctrls, pad=(0, 5))]]  #
     # TODO: double click to play a song
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
