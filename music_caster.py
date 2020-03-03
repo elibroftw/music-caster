@@ -503,7 +503,7 @@ try:
 
 
     def play_next():
-        global music_directories, DEFAULT_DIR
+        global music_directories, DEFAULT_DIR, playing_status
         if music_directories: DEFAULT_DIR = music_directories[0]
         else: DEFAULT_DIR = ''
         fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
@@ -513,6 +513,7 @@ try:
             next_queue.append(path_to_file)
             if playing_status == 'NOT PLAYING':
                 if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
+                playing_status = 'PLAYING'
                 next_song()
 
 
