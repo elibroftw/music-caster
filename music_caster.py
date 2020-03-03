@@ -47,7 +47,7 @@ try:
     from helpers import *
     import helpers
 
-    VERSION, PORT = '4.24.3', 2001
+    VERSION, PORT = '4.24.4', 2001
     update_devices, cast = False, None
     chromecasts, device_names = [], []
     local_music_player.init(44100, -16, 2, 2048)
@@ -689,6 +689,8 @@ try:
                 main_window['volume'].bind('<Leave>', '_mouse_leave')
                 main_window['progressbar'].bind('<Enter>', '_mouse_enter')
                 main_window['progressbar'].bind('<Leave>', '_mouse_leave')
+                main_window['tab2'].bind('<Enter>', '_mouse_enter')
+                main_window['tab2'].bind('<Leave>', '_mouse_leave')
             main_window.TKroot.focus_force()
             main_window.normal()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
@@ -737,8 +739,8 @@ try:
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
                                             icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
                 settings_window.Read(timeout=1)
-                settings_window['volume'].bind('<Enter>', '_mouse_enter')
-                settings_window['volume'].bind('<Leave>', '_mouse_leave')
+                # settings_window['volume'].bind('<Enter>', '_mouse_enter')
+                # settings_window['volume'].bind('<Leave>', '_mouse_leave')
             settings_window.TKroot.focus_force()
             settings_window.normal()
         elif menu_item == 'Create/Edit a Playlist':
@@ -862,7 +864,7 @@ try:
                         new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
                         main_window['progressbar'].Update(value=new_position)
                         main_values['progressbar'] = new_position
-                else:  # 'volume'
+                elif mouse_hover != 'tab2':  # 'volume'
                     main_event = 'volume'
                     new_volume = min(max(0, main_values['volume'] + delta), 100)
                     main_window['volume'].Update(value=new_volume)
@@ -872,6 +874,8 @@ try:
             elif main_event == 'progressbar_mouse_leave': mouse_hover = ''
             elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
             elif main_event == 'volume_mouse_leave': mouse_hover = ''
+            elif main_event == 'tab2_mouse_enter': mouse_hover = 'tab2'
+            elif main_event == 'tab2_mouse_leave': mouse_hover = ''
             elif main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
@@ -1055,34 +1059,34 @@ try:
             if settings_event in {'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
                 active_windows['settings'] = False
                 settings_window.CloseNonBlocking()
-            if settings_event.startswith('MouseWheel'):  #  and mouse_hover == 'volume'
-                settings_event = settings_event.split(':', 1)[1]
-                delta = {'Up': 5, 'Down': -5}.get(settings_event, 0)
-                settings_event = 'volume'
-                new_volume = min(max(0, settings_values['volume'] + delta), 100)
-                settings_window['volume'].Update(value=new_volume)
-                settings_values['volume'] = new_volume
-            if settings_event == 'volume_mouse_enter': mouse_hover = 'volume'
-            elif settings_event == 'volume_mouse_leave': mouse_hover = ''
-            elif settings_event == 'email':
+            # if settings_event.startswith('MouseWheel'):  #  and mouse_hover == 'volume'
+            #     settings_event = settings_event.split(':', 1)[1]
+            #     delta = {'Up': 5, 'Down': -5}.get(settings_event, 0)
+            #     settings_event = 'volume'
+            #     new_volume = min(max(0, settings_values['volume'] + delta), 100)
+            #     settings_window['volume'].Update(value=new_volume)
+            #     settings_values['volume'] = new_volume
+            # if settings_event == 'volume_mouse_enter': mouse_hover = 'volume'
+            # elif settings_event == 'volume_mouse_leave': mouse_hover = ''
+            if settings_event == 'email':
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
             elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle_playlists'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run on startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
-            elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
-                delta = 0
-                if settings_event.isdigit():
-                    update_slider = True
-                    new_volume = int(settings_event) * 10
-                else:
-                    update_slider = False
-                    if settings_event == 'a': delta = -5
-                    elif settings_event == 'd': delta = 5
-                    new_volume = settings_values['volume'] + delta
-                change_settings('volume', new_volume)
-                if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
-                update_volume(new_volume)
+            # elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
+            #     delta = 0
+            #     if settings_event.isdigit():
+            #         update_slider = True
+            #         new_volume = int(settings_event) * 10
+            #     else:
+            #         update_slider = False
+            #         if settings_event == 'a': delta = -5
+            #         elif settings_event == 'd': delta = 5
+            #         new_volume = settings_values['volume'] + delta
+            #     change_settings('volume', new_volume)
+            #     if update_slider or delta != 0: settings_window.Element('volume').Update(value=new_volume)
+            #     update_volume(new_volume)
             elif settings_event == 'Remove Folder' and settings_values['music_dirs']:
                 selected_item = settings_values['music_dirs'][0]
                 if selected_item in music_directories:

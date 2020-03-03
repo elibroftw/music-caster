@@ -124,8 +124,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
                    Sg.Column(mq_ctrls, pad=(0, 5))]]  # Sg.Column(q_ctrls, pad=(0, 5))
     # TODO: double click to play a song
-    layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg),
-                             Sg.Tab('Music Queue', tab2_layout, background_color=bg)]])]]
+    layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
+                             Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
     return layout
 
 
@@ -143,12 +143,12 @@ def create_settings(version, music_directories, settings):
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True)],
-        [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
-                   enable_events=True, background_color=ACCENT_COLOR, text_color='#000000', size=(49, 15))],
+        # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
+        #            enable_events=True, background_color=ACCENT_COLOR, text_color='#000000', size=(49, 15))],
         [Sg.Listbox(music_directories, size=(43, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
-             [Sg.Button('Remove Selected Folder', key='Remove Folder', enable_events=True, font=font_normal)],
+             [Sg.Button('Remove Folder', key='Remove Folder', enable_events=True, font=font_normal)],
              [Sg.FolderBrowse('Add Folder', font=font_normal, enable_events=True)],
              [Sg.Button('Open settings.json', key='Open Settings', font=font_normal,
                         enable_events=True)]], background_color=bg, border_width=0)]]

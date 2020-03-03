@@ -2,6 +2,10 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.24.4
+- Fixed volume scrolling behavior
+- Removed volume from settings window (use the main window instead)
+
 4.24.3
 - Better error handling
 - Added more error logging information
