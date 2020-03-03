@@ -26,6 +26,12 @@ from flask import Flask, jsonify, render_template, request, redirect
 import requests
 import PySimpleGUIWx as SgWx
 import wx
+import win32api
+import win32com.client
+import win32event
+from winerror import ERROR_ALREADY_EXISTS
+from helpers import *
+import helpers
 
 
 VERSION = '4.24.4'
@@ -39,11 +45,13 @@ def fix_path(path):
 
 
 def save_json():
+    global settings, settings_file
     with open(settings_file, 'w') as outfile:
         json.dump(settings, outfile, indent=4)
 
 
 def change_settings(settings_key, value):
+    global settings, active_windows, tray
     settings[settings_key] = value
     save_json()
     if settings_key == 'repeat':
@@ -65,13 +73,14 @@ def update_volume(new_vol):
 
 def load_settings():
     """load (and fix if needed) the settings file"""
-    # TODO: replace ' ' with '_'
     global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
             except json.decoder.JSONDecodeError as e: loaded_settings = {}
             save_settings = False
+            for setting_name, setting_value in tuple(loaded_settings.items()):
+                loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
             for setting_name, setting_value in settings.items():
                 if setting_name not in loaded_settings:
                     loaded_settings[setting_name] = setting_value
@@ -82,8 +91,8 @@ def load_settings():
             tray_playlists.append('Create/Edit a Playlist')
             tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
             notifications_enabled = settings['notifications']
-            music_directories = settings['music directories']
-            if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
+            music_directories = settings['music_directories']
+            if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
@@ -125,11 +134,11 @@ chromecasts, device_names = [], []
 starting_dir = fix_path(os.path.dirname(os.path.realpath(__file__)))
 home_music_dir = fix_path(str(Path.home()) + '/Music')
 settings = {  # default settings
-        'previous device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
-        'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto update': False,
-        'run on startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+        'previous_device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
+        'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
+        'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
         'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-        'EXPERIMENTAL': False, 'music directories': [home_music_dir], 'playlists': {}}
+        'EXPERIMENTAL': False, 'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists = {}, ['Create/Edit a Playlist']
 music_directories, notifications_enabled = [], True
@@ -140,9 +149,19 @@ open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False}
+load_settings()
+# Check if app is running already
+mutex = win32event.CreateMutex(None, False, 'name')
+last_error = win32api.GetLastError()
+if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
+    while True:
+        with suppress(requests.exceptions.InvalidSchema):
+            if PORT == 2100 or requests.get(f'http://127.0.0.1:{PORT}/instance/').text == 'True': break
+        PORT += 1
+    sys.exit()
 
 
-if settings['auto update']:
+if settings['auto_update']:
     with suppress(requests.ConnectionError):
         github_url = 'https://github.com/elibroftw/music-caster/releases'
         html_doc = requests.get(github_url).text
@@ -187,7 +206,7 @@ if settings['auto update']:
             except Exception as e:
                 tray.ShowMessage('Auto update failed')
                 tray.Update(tooltip='Auto update failed')
-                change_settings('auto update', False)
+                change_settings('auto_update', False)
                 handle_exception(e)
                 time.sleep(5)
                 if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
@@ -207,28 +226,12 @@ try:
     import pychromecast
     from pygame import mixer as local_music_player
     from pynput.keyboard import Listener
-    import win32api
-    import win32com.client
-    import win32event
-    from winerror import ERROR_ALREADY_EXISTS
     import winshell
-    from helpers import *
-    import helpers
 
     local_music_player.init(44100, -16, 2, 2048)
-    load_settings()
     helpers.ACCENT_COLOR, helpers.fg, helpers.bg = settings['accent_color'], settings['text_color'], settings['background_color']
     helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
     Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg)
-    # Check if app is running already
-    mutex = win32event.CreateMutex(None, False, 'name')
-    last_error = win32api.GetLastError()
-    if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
-        while True:
-            with suppress(requests.exceptions.InvalidSchema):
-                if PORT == 2100 or requests.get(f'http://127.0.0.1:{PORT}/instance/').text == 'True': break
-            PORT += 1
-        sys.exit()
 
 
     @app.route('/', methods=['GET', 'POST'])
@@ -290,7 +293,7 @@ try:
 
     def chromecast_callback(chromecast):
         global update_devices, cast, chromecasts
-        previous_device = settings['previous device']
+        previous_device = settings['previous_device']
         if str(chromecast.uuid) == previous_device and cast != chromecast:
             cast = chromecast
             cast.wait(timeout=WAIT_TIMEOUT)
@@ -306,12 +309,12 @@ try:
             update_devices = True
 
 
-    def startup_setting(shortcut_path):
-        run_on_startup = settings['run on startup']
-        shortcut_exists = os.path.exists(shortcut_path)
+    def startup_setting(path):
+        run_on_startup = settings['run_on_startup']
+        shortcut_exists = os.path.exists(path)
         if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
             shell = win32com.client.Dispatch('WScript.Shell')
-            shortcut = shell.CreateShortCut(shortcut_path)
+            shortcut = shell.CreateShortCut(path)
             if getattr(sys, 'frozen', False):  # Running in a bundle
                 target = f'{starting_dir}\\Music Caster.exe'
             else:  # set shortcut to python script; __file__
@@ -325,7 +328,7 @@ try:
             shortcut.WorkingDirectory = starting_dir
             shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
             shortcut.save()
-        elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
+        elif not run_on_startup and shortcut_exists: os.remove(path)
 
 
     shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'
@@ -385,7 +388,7 @@ try:
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
-    if not music_directories: music_directories = change_settings('music directories', [home_music_dir])
+    if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
     DEFAULT_DIR = music_directories[0]
     music_queue, done_queue, next_queue = [], [], []
     music_meta_data = {}  # file: {artist: str, title: str}
@@ -696,10 +699,10 @@ try:
                 cast = new_cast
                 volume = settings['volume'] / 100
                 if cast is None:
-                    change_settings('previous device', None)
+                    change_settings('previous_device', None)
                     local_music_player.music.set_volume(volume)
                 else:
-                    change_settings('previous device', str(cast.uuid))
+                    change_settings('previous_device', str(cast.uuid))
                     cast.wait(timeout=WAIT_TIMEOUT)  # TODO: fix Chromecast is connection error
                     cast.set_volume(volume)
                 current_pos = 0
@@ -1056,9 +1059,9 @@ try:
             # elif settings_event == 'volume_mouse_leave': mouse_hover = ''
             if settings_event == 'email':
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
-            elif settings_event in {'auto update', 'run on startup', 'notifications', 'shuffle_playlists'}:
+            elif settings_event in {'auto_update', 'run_on_startup', 'notifications', 'shuffle_playlists'}:
                 change_settings(settings_event, settings_value)
-                if settings_event == 'run on startup': startup_setting(shortcut_path)
+                if settings_event == 'run_on_startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
             # elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
             #     delta = 0
