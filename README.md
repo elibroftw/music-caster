@@ -13,7 +13,8 @@ Click the image below for a video demo.
 ## Screenshots (v4.25.0)
 <p align="center">
   <img width=470px src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" alt="Settings window screenshot">
-  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Startup.png?raw=true" alt="Tray startup screenshot">
+  <img width=470px src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" alt="Settings window screenshot">
+  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Main%GUI%20tab1.png?raw=true" alt="Main GUI tab1">
 </p>
 <p align="center">
   <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Playing.png?raw=true" alt="Tray playing screenshot">
