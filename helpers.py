@@ -143,10 +143,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
 
 def create_settings(version, music_directories, settings):
     layout = [
-        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez   Email:', text_color=fg,
-                 font=font_normal),
-         Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, font=font_link,
-                 click_submits=True, key='email')],
+        [Sg.Text(f'Music Caster Version {version} by Elijah Lopez   Email:', text_color=fg, font=font_normal),
+         Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, font=font_link, click_submits=True, key='email')],
         [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True),
          Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup', text_color=fg,
@@ -178,7 +176,7 @@ def create_timer(settings):
         [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=settings['timer_sleep_computer'],
                      key='sleep', text_color=fg, background_color=bg, font=font_normal,
                      enable_events=True)],
-        [Sg.Text('Enter minutes', text_color=fg, background_color=bg, font=font_normal)],
+        [Sg.Text('Enter minutes', text_color=fg, font=font_normal)],
         [Sg.Input(key='minutes'), Sg.Submit(font=font_normal)]]
     return layout
 
@@ -199,8 +197,7 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
     songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
     # TODO: remove .mp3
     layout = [[
-        Sg.Text('Playlist name', text_color=fg,
-                background_color=bg, font=font_normal),
+        Sg.Text('Playlist name', text_color=fg, font=font_normal),
         Sg.Input(playlist_name, key='playlist_name'),
         Sg.Submit('Save & quit', key='Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
         Sg.Button('❌', key='Cancel', font=font_normal, enable_events=True)],
