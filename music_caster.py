@@ -505,7 +505,7 @@ try:
     def play_next():
         global music_directories, DEFAULT_DIR, playing_status
         if music_directories: DEFAULT_DIR = music_directories[0]
-        else: DEFAULT_DIR = ''
+        else: DEFAULT_DIR = home_music_dir
         fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if fd.ShowModal() != wx.ID_CANCEL:
@@ -783,6 +783,7 @@ try:
             if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
         elif menu_item == 'Play File':
             if music_directories: DEFAULT_DIR = music_directories[0]
+            else: DEFAULT_DIR = home_music_dir
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
@@ -977,7 +978,15 @@ try:
                     new_i = min(len(updated_list), index_to_remove)
                     main_window['music_queue'].Update(values=updated_list,
                                                       set_to_index=new_i, scroll_to_index=new_i)
-            elif main_event == 'queue_file': pass
+            elif main_event == 'queue_file':
+                if music_directories: DEFAULT_DIR = music_directories[0]
+                else: DEFAULT_DIR = home_music_dir
+                fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                if fd.ShowModal() != wx.ID_CANCEL:
+                    playing_file = fd.GetPath()
+                    music_queue.append(playing_file)
+                pass
             elif main_event == 'play_next': play_next()
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             if main_event == 'progressbar':

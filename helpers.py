@@ -99,9 +99,6 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
                                  text_color='#000000', size=(10, 10))]]
-    # TODO: speaker image
-    # TODO: use images
-    # TODO: progressbar invisible if nothing is playing?
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
                                       enable_events=True, relief=Sg.RELIEF_FLAT, background_color=ACCENT_COLOR,
@@ -110,7 +107,6 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                             Sg.Text('00:00', font=font_normal, text_color=fg, background_color=bg, key='time_left')]]
     
     # Now Playing layout
-
     tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, background_color=bg, key='now_playing',
                             size=(55, 0))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150),
@@ -127,8 +123,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
         [Sg.Button('❌', key='remove', pad=(0, 5))],
         [Sg.Button('▼', key='move_down', pad=(2, 5))]]
     q_ctrls = [
-        # [Sg.Button('Queue a file', key='queue_file', pad=(0, 5))],
-        [Sg.Button('Play a file next', key='play_next', pad=(0, 5))]]
+        [Sg.Button('Queue a file', key='queue_file', pad=(0, 5))],
+        [Sg.Button('Play a file next ', key='play_next', pad=(0, 5))]]
     tab2_layout = [[
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
