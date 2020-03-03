@@ -353,8 +353,7 @@ try:
                 with open(f'{images_dir}/default.png', 'wb') as handle:
                     for data in response.iter_content(): handle.write(data)
     for file in glob(f'{cc_music_dir}/*.*') + glob(f'{images_dir}/*.*'):
-        file = fix_path(file)
-        if file != f'{images_dir}/default.png': os.remove(file)
+        if not file.endswith('default.png'): os.remove(file)
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
