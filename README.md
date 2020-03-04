@@ -11,12 +11,13 @@ Click the image below for a video demo.
 ## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases)
 
 ## Screenshots (v4.25.0)
+### Will move to my website soon
 <p align="center">
   <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" width=470px alt="Settings window screenshot" >
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Main%20GUI%20tab1.jpg" width=470px alt="Main GUI tab1">
-  <img src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Main%20GUI%20tab2.jpg" width=470px alt="Main GUI tab1">
+  <img src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Main%20GUI%20tab1.jpg" width=370px alt="Main GUI tab1">
+  <img src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Main%20GUI%20tab2.jpg" width=370px alt="Main GUI tab1">
 </p>
 <p align="center">
   <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Playing.png?raw=true" alt="Tray playing screenshot">
