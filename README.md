@@ -62,7 +62,7 @@ There exists keyboard shortcuts, but I will put them here later
 ## Settings.json Guide
 - Music Caster will detect changes within 10 seconds of editing `settings.json`
   - Caveat: any color code changes requires a restart
-- The music directories is a list of valid directory paths ['C:/Users/maste/Music']
+- The music directories is a list of valid directory paths
   - The first path is the default directory MC opens when you want to play a file
 - The playlist variable follows the convention `{'PLAYLIST NAME': ['paths to files']}`
 - If MC stops working after changing the file, try using an IDE to detect syntax errors in `settings.json`
