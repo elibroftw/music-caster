@@ -3,6 +3,7 @@ import os
 import re
 import socket
 from glob import glob
+from mutagen.easyid3 import EasyID3
 
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
@@ -81,7 +82,7 @@ def create_songs_list(music_queue, done_queue, next_queue):
 
 
 def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeating_song,
-                    music_dirs, now_playing_text='Nothing Playing', album_cover_data=None):
+                    all_songs: dict, now_playing_text='Nothing Playing', album_cover_data=None):
     # TODO: Music Library Tab
     
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
@@ -126,17 +127,15 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
                    Sg.Column(mq_ctrls, pad=(0, 5)), Sg.Column(q_ctrls, pad=(0, 5))]]
-    all_songs = []
-    for directory in music_dirs:
-            all_songs.extend([file for file in glob(f'{directory}/**/*.*', recursive=True) if valid_music_file(file)])
-
-    tab3_layout = [[
-        Sg.Listbox(all_songs, size=(50, 50), default_values=all_songs[0] if all_songs else '', text_color=fg, background_color=bg, font=font_normal, key='library')
-    ]]
-    # Sg.Tab('Library', tab3_layout, background=bg, key='tab3')
+    # song_lib = sorted(all_songs.keys())
+    # tab3_layout = [[
+    #     Sg.Listbox(song_lib, size=(80, 30), default_values=song_lib[0] if song_lib else '', text_color=fg,
+    #                background_color=bg, font=font_normal, key='library')
+    # ]]
     # TODO: double click to play a song
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
+                             # Sg.Tab('Library', tab3_layout, background_color=bg, key='tab3')]])]]
     
     return layout
 
@@ -227,7 +226,7 @@ if __name__ == '__main__':
           r"C:\Users\maste\OneDrive\Music\Alex H, Andreas J - Snip.mp3"]
     p_status = 'NOT_PLAYING'  # PLAYING, PAUSED
     vol = 50
-    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, nq, 'NOT_PLAYING', vol, True, [], metadata),
+    main_window = Sg.Window('Music Caster', create_main_gui(mq, dq, nq, 'NOT_PLAYING', vol, True, {}, metadata),
                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
     main_last_event = ''
     update_times = 0

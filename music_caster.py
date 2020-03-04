@@ -33,7 +33,7 @@ from helpers import *
 import helpers
 
 
-VERSION = '4.25.0'
+VERSION = '4.25.1'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -70,32 +70,21 @@ def update_volume(new_vol):
     else: cast.set_volume(new_vol)
 
 
-def load_settings():
-    """load (and fix if needed) the settings file"""
-    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
-    if os.path.exists(settings_file):
-        with open(settings_file) as json_file:
-            try: loaded_settings = json.load(json_file)
-            except json.decoder.JSONDecodeError as e: loaded_settings = {}
-            save_settings = False
-            for setting_name, setting_value in tuple(loaded_settings.items()):
-                loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
-            for setting_name, setting_value in settings.items():
-                if setting_name not in loaded_settings:
-                    loaded_settings[setting_name] = setting_value
-                    save_settings = True
-            settings = loaded_settings
-            playlists = settings['playlists']
-            tray_playlists.clear()
-            tray_playlists.append('Create/Edit a Playlist')
-            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-            notifications_enabled = settings['notifications']
-            music_directories = settings['music_directories']
-            if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
-            DEFAULT_DIR = music_directories[0]
-        if save_settings: save_json()
-    else: save_json()
-
+def compile_all_songs(update_global=True, ignore_file=''):
+    if update_global: global all_songs
+    else: all_songs = {}
+    all_songs.clear()
+    for directory in music_directories:
+        for file in glob(f'{directory}/**/*.*', recursive=True):
+            if file != ignore_file and valid_music_file(file):
+                try:
+                    title = EasyID3(file).get('title', ['Unknown'])[0]
+                    artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
+                    all_songs[f'{title} - {artist}'] = file
+                except Exception as e:
+                    handle_exception(e)
+                    all_songs[os.path.basename(file)] = file
+    return all_songs
 
 def handle_exception(exception, restart_program=False):
     if settings.get('DEBUG', False): raise exception
@@ -141,6 +130,7 @@ settings = {  # default settings
 settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists = {}, ['Create/Edit a Playlist']
 music_directories, notifications_enabled = [], True
+all_songs = {}
 pl_name, pl_files = '', []
 keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
 mouse_hover = main_last_event = settings_last_event = pl_editor_last_event = None
@@ -148,6 +138,36 @@ open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False}
+
+
+def load_settings():
+    """load (and fix if needed) the settings file"""
+    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
+    if os.path.exists(settings_file):
+        with open(settings_file) as json_file:
+            try: loaded_settings = json.load(json_file)
+            except json.decoder.JSONDecodeError as e: loaded_settings = {}
+            save_settings = False
+            for setting_name, setting_value in tuple(loaded_settings.items()):
+                loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
+            for setting_name, setting_value in settings.items():
+                if setting_name not in loaded_settings:
+                    loaded_settings[setting_name] = setting_value
+                    save_settings = True
+            settings = loaded_settings
+            playlists = settings['playlists']
+            tray_playlists.clear()
+            tray_playlists.append('Create/Edit a Playlist')
+            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+            notifications_enabled = settings['notifications']
+            music_directories = settings['music_directories']
+            if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
+            compile_all_songs()
+            DEFAULT_DIR = music_directories[0]
+        if save_settings: save_json()
+    else: save_json()
+
+
 load_settings()
 # Check if app is running already
 mutex = win32event.CreateMutex(None, False, 'name')
@@ -388,7 +408,9 @@ try:
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
-    if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
+    if not music_directories:
+        music_directories = change_settings('music_directories', [home_music_dir])
+        compile_all_songs()
     DEFAULT_DIR = music_directories[0]
     music_queue, done_queue, next_queue = [], [], []
     music_meta_data = {}  # file: {artist: str, title: str}
@@ -416,7 +438,7 @@ try:
             artist = ', '.join(artist)
             album = EasyID3(file_path).get('album', 'Unknown')[0]
         except Exception as e:
-            print(e)
+            handle_exception(e)
             title = artist = album = 'Unknown'
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
@@ -491,15 +513,20 @@ try:
         cast_last_checked = time.time()
 
 
-    def play_all():
+    def play_all(starting_file=None):
+        global playing_status
         music_queue.clear()
-        for directory in music_directories:
-            music_queue.extend([file for file in glob(f'{directory}/**/*.*', recursive=True) if valid_music_file(file)])
+        done_queue.clear()
+        if starting_file: music_queue.extend(compile_all_songs(False, starting_file).values())
+        else: music_queue.extend(all_songs.values())
         if music_queue:
             shuffle(music_queue)
-            done_queue.clear()
+            if starting_file: music_queue.insert(0, starting_file)
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+        elif next_queue:
+            playing_status = 'PLAYING'
+            next_song()
 
 
     def play_next():
@@ -678,11 +705,11 @@ try:
                     new_playing_text = f'{artist} - {title}'
                     album_cover_data = metadata.get('album_cover_data', None)
                     main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                      volume, repeat_setting, music_directories, new_playing_text,
+                                                      volume, repeat_setting, all_songs, new_playing_text,
                                                       album_cover_data=album_cover_data)
                 else:
                     main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                      volume, repeat_setting, music_directories)
+                                                      volume, repeat_setting, all_songs)
                 main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
                 dq_len = len(done_queue)
@@ -694,8 +721,8 @@ try:
                 main_window['volume'].bind('<Leave>', '_mouse_leave')
                 main_window['progressbar'].bind('<Enter>', '_mouse_enter')
                 main_window['progressbar'].bind('<Leave>', '_mouse_leave')
-                main_window['tab2'].bind('<Enter>', '_mouse_enter')
-                main_window['tab2'].bind('<Leave>', '_mouse_leave')
+                main_window['tab1'].bind('<Enter>', '_mouse_enter')
+                main_window['tab1'].bind('<Leave>', '_mouse_leave')
             main_window.TKroot.focus_force()
             main_window.normal()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
@@ -788,16 +815,15 @@ try:
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
-                playing_file = fd.GetPath()
-                play_file(playing_file)
-                music_queue.clear()
-                done_queue.clear()
-                for directory in music_directories:
-                    for file in glob(f'{directory}/**/*.*', recursive=True):
-                        if file != playing_file and valid_music_file(file): music_queue.append(file)
-                shuffle(music_queue)
-                music_queue.insert(0, playing_file)
-                tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+                play_all(fd.GetPath())
+                # playing_file = fd.GetPath()
+                # play_file(playing_file)
+                # music_queue.clear()
+                # done_queue.clear()
+                # music_queue.extend(compile_all_songs(False, playing_file).values())
+                # shuffle(music_queue)
+                # music_queue.insert(0, playing_file)
+                # tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play All': play_all()
         elif menu_item.startswith('PF: '):  # play folder
             menu_item = menu_item[4:]
@@ -861,7 +887,7 @@ try:
                         new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
                         main_window['progressbar'].Update(value=new_position)
                         main_values['progressbar'] = new_position
-                elif mouse_hover != 'tab2':  # 'volume'
+                elif mouse_hover == 'tab1':  # 'volume'
                     main_event = 'volume'
                     new_volume = min(max(0, main_values['volume'] + delta), 100)
                     main_window['volume'].Update(value=new_volume)
@@ -870,10 +896,10 @@ try:
             # if main_event != '__TIMEOUT__': print(main_event)
             if main_event == 'progressbar_mouse_enter': mouse_hover = 'progressbar'
             elif main_event == 'progressbar_mouse_leave': mouse_hover = ''
-            elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
-            elif main_event == 'volume_mouse_leave': mouse_hover = ''
-            elif main_event == 'tab2_mouse_enter': mouse_hover = 'tab2'
-            elif main_event == 'tab2_mouse_leave': mouse_hover = ''
+            # elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
+            # elif main_event == 'volume_mouse_leave': mouse_hover = ''
+            elif main_event == 'tab1_mouse_enter': mouse_hover = 'tab1'
+            elif main_event == 'tab1_mouse_leave': mouse_hover = ''
             elif main_event in {'Locate File', 'e:69'}:
                 if music_queue: Popen(f'explorer /n,/select,"{fix_path(music_queue[0])}"')
             elif main_event == 'Pause/Resume':
@@ -990,6 +1016,7 @@ try:
                 pass
             elif main_event == 'play_next': play_next()
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
+            elif main_event == 'library': play_all(all_songs[main_values['library']])
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     main_window['progressbar'].Update(disabled=True)
@@ -1099,11 +1126,13 @@ try:
                 selected_item = settings_values['music_dirs'][0]
                 if selected_item in music_directories:
                     music_directories.remove(selected_item)
+                    compile_all_songs()
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
             elif settings_event == 'Add Folder':
                 if settings_value not in music_directories and os.path.exists(settings_value):
                     music_directories.append(settings_value)
+                    compile_all_songs()
                     save_json()
                     settings_window.Element('music_dirs').Update(music_directories)
                     # TODO: update menu "Play Folder" list

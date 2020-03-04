@@ -2,6 +2,10 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.25.1
+- Better play_all?
+- Building a GUI tab to show all music
+
 4.25.0
 - Added locate file option to main GUI (folder icon)
 - Fixed play file next bug
