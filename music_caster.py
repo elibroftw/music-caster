@@ -257,9 +257,10 @@ if settings['auto_update']:
             sys.exit()
 
 
-with suppress(requests.exceptions.ConnectionError):
-    mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
-    requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION, 'TIME': str(datetime.now())})
+if settings.get('DEBUG', True):
+    with suppress(requests.exceptions.ConnectionError):
+        mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+        requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION, 'TIME': datetime.now().strftime('%m/%d/%Y %H:%M:%S')})
     
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
