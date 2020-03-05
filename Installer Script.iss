@@ -28,7 +28,7 @@ MinVersion=0,6.0.6001
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 OutputDir={#SourcePath}\dist
-OutputBaseFilename=Music Caster v{#MyAppVersion} Setup
+OutputBaseFilename=Music Caster x64 Setup
 UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
 SetupIconFile="resources\Music Caster.ico"
