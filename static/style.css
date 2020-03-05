@@ -23,6 +23,7 @@ html {
 }
  .body__cover img {
 	 max-width: 100%;
+	 width: 30rem;
 	 border-radius: 0.25rem;
 	 display: block;
 	 margin-left: auto;
