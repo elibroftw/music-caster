@@ -218,7 +218,7 @@ if settings['auto_update']:
                     print(source_download_link)
                 elif getattr(sys, 'frozen', False):
                     # download(setup_download_link, 'MC_SETUP.exe')
-                    # Popen('timeout 10 && "MC_SETUP.exe" /SILENT /MERGETASKS="!desktopicon"', shell=True)
+                    # Popen('timeout 10 && "MC_SETUP.exe" /VERYSILENT /MERGETASKS="!desktopicon"', shell=True)
                     # TEST ^ using "timeout 10 && py test.py" with sys.exit() right after and test.py containing a write to file
                     download_and_extract(bundle_download_link, 'Updater.exe')
                     os.startfile('Updater.exe')
@@ -721,7 +721,7 @@ try:
                 main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                         return_keyboard_events=True, use_default_focus=False)
                 dq_len = len(done_queue)
-                main_window.Read(timeout=1)
+                main_window.Finalize()
                 main_window['music_queue'].Update(set_to_index=dq_len, scroll_to_index=dq_len)
                 main_window['Pause/Resume'].playing_status = playing_status
                 main_window['Repeat'].is_repeating = repeat_setting
