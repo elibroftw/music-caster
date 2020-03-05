@@ -33,7 +33,7 @@ from helpers import *
 import helpers
 
 
-VERSION = '4.26.1'
+VERSION = '4.26.2'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -257,7 +257,7 @@ if settings['auto_update']:
             sys.exit()
 
 
-if settings.get('DEBUG', False):
+if not settings.get('DEBUG', False):
     with suppress(requests.exceptions.ConnectionError):
         mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION, 'TIME': datetime.now().strftime('%m/%d/%Y %H:%M:%S')})
