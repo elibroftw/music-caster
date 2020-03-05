@@ -24,6 +24,9 @@ html {
  .body__cover img {
 	 max-width: 100%;
 	 border-radius: 0.25rem;
+	 display: block;
+	 margin-left: auto;
+	 margin-right: auto;
 }
  .list {
 	 display: flex;
