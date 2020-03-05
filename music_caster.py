@@ -33,7 +33,7 @@ from helpers import *
 import helpers
 
 
-VERSION = '4.25.1'
+VERSION = '4.26.0'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -148,6 +148,7 @@ active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_se
 
 def load_settings():
     """load (and fix if needed) the settings file"""
+    # TODO: update any GUI values
     global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
@@ -771,13 +772,13 @@ try:
                     play_file(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
         elif menu_item == 'Settings':
             if not active_windows['settings']:
-                load_settings()
                 active_windows['settings'] = True
                 # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
                 settings_layout = create_settings(VERSION, music_directories, settings)
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
                                             icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
-                settings_window.Read(timeout=1)
+                # settings_window.Read(timeout=1)
+                settings_window.Finalize()
                 # settings_window['volume'].bind('<Enter>', '_mouse_enter')
                 # settings_window['volume'].bind('<Leave>', '_mouse_leave')
             settings_window.TKroot.focus_force()
