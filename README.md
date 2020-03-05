@@ -4,25 +4,13 @@ Music Caster</h1>
 
 Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc.)
 
+## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases)
+
 Click the image below for a video demo.
 
 [![demo link](https://i3.ytimg.com/vi/y0fWPyhNSB0/maxresdefault.jpg)](https://www.youtube.com/watch?v=y0fWPyhNSB0)
 
-## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases)
-
-## Screenshots (v4.25.0)
-### Will move to my website soon
-<p align="center">
-  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Settings%20Screenshot.jpg?raw=true" width=470px alt="Settings window screenshot" >
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Main%20GUI%20tab1.jpg" width=370px alt="Main GUI tab 1">
-  <img src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Main%20GUI%20tab2.jpg" width=370px alt="Main GUI tab 2">
-</p>
-<p align="center">
-  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Idle.png?raw=true" alt="Tray playing screenshot">
-  <img src="https://github.com/elibroftw/music-caster/blob/master/resources/Tray%20Paused.png?raw=true" alt="Settings window screenshot">
-</p>
+## [Screenshots (v4.25.0)](http://www.elopez.me/music-caster/)
 
 ## Usage
 ### TLDR
