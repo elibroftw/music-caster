@@ -68,7 +68,7 @@ with suppress(FileNotFoundError):
         print('Source code:', source_download_link)
         print('Installer:', setup_download_link)
     elif os.path.exists('Music Caster.exe'):
-        if is_portable:
+        if not os.path.exists('unins000.exe'):  # Portable
             if not os.path.exists('Portable'):
                 download(bundle_download_link, 'Portable.zip')
             for f in glob('Portable/**/*.*', recursive=True):

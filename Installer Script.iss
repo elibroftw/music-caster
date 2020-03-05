@@ -42,7 +42,7 @@ Source: "{#SourcePath}\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\resources\default.png"; DestDir: "{app}\images"; Flags: ignoreversion
 Source: "{#SourcePath}\templates\home.html"; DestDir: "{app}\templates"; Flags: ignoreversion
 Source: "{#SourcePath}\static\style.css"; DestDir: "{app}\static"; Flags: ignoreversion
-Source: "{#SourcePath}\CHANGELOG"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\CHANGELOG"; DestDir: "{app}\CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
