@@ -7,7 +7,7 @@ import io
 import os
 from contextlib import suppress
 from subprocess import Popen
-from shutil import copyfileobj, rmtree, move
+from shutil import copyfileobj, rmtree, copytree
 
 
 def download(url, outfile):
@@ -66,7 +66,15 @@ with suppress(FileNotFoundError):
         print('Bundle:', bundle_download_link)
         print('Source code:', source_download_link)
         print('Installer:', setup_download_link)
-    if os.path.exists('Music Caster.exe'):
+        is_portable = True
+        if is_portable:
+            if not os.path.exists('Portable'):
+                download(bundle_download_link, 'Portable.zip')
+            files = os.listdir('Portable')
+            dest = os.getcwd()
+            copytree('Portable', '')
+            os.remove('Portable')
+    elif os.path.exists('Music Caster.exe'):
         if is_portable:
             if not os.path.exists('Portable'):
                 download(bundle_download_link, 'Portable.zip')
