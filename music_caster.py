@@ -11,7 +11,6 @@ from shutil import copyfile
 from random import shuffle
 from subprocess import Popen, call
 import sys
-import time  # DO NOT REMOVE
 import threading
 import traceback
 import uuid
