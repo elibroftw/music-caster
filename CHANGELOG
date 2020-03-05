@@ -10,6 +10,8 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 - Update Web UI (looks good on mobile now, hard to access though)
 - More optimizations on the way (currently 12:30 AM, so tomorrow)
 - Changed setup name
+- Fixed auto-update error handling (ironic)
+- Fixed volume not changing when scrolling bug
 
 4.25.0
 - Added locate file option to main GUI (folder icon)

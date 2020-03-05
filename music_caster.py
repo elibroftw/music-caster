@@ -45,10 +45,8 @@ def fix_path(path):
 
 def save_json():
     global settings, settings_file
-    t1 = time.time()
     with open(settings_file, 'w') as outfile:
         json.dump(settings, outfile, indent=4)
-    print(time.time() - t1)
 
 
 def change_settings(settings_key, value):
@@ -100,8 +98,9 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
                 all_songs[file_info] = file
     return all_songs
 
+
 def handle_exception(exception, restart_program=False):
-    if settings.get('DEBUG', False): raise exception
+    if settings.get('DEBUG', False) and not getattr(sys, 'frozen', False): raise exception
     current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
@@ -248,7 +247,7 @@ if settings['auto_update']:
                                          'updater.pyw')
                     Popen(['pythonw', 'updater.pyw'])
             except Exception as e:
-                tray.ShowMessage('Auto update failed')
+                tray.ShowMessage('Music Caster', 'Auto update failed')
                 tray.Update(tooltip='Auto update failed')
                 change_settings('auto_update', False)
                 handle_exception(e)
@@ -745,8 +744,8 @@ try:
                 main_window['volume'].bind('<Leave>', '_mouse_leave')
                 main_window['progressbar'].bind('<Enter>', '_mouse_enter')
                 main_window['progressbar'].bind('<Leave>', '_mouse_leave')
-                main_window['tab1'].bind('<Enter>', '_mouse_enter')
-                main_window['tab1'].bind('<Leave>', '_mouse_leave')
+                main_window['tab2'].bind('<Enter>', '_mouse_enter')
+                main_window['tab2'].bind('<Leave>', '_mouse_leave')
             main_window.TKroot.focus_force()
             main_window.normal()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
@@ -903,7 +902,7 @@ try:
                         new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
                         main_window['progressbar'].Update(value=new_position)
                         main_values['progressbar'] = new_position
-                elif mouse_hover == 'tab1':  # 'volume'
+                elif mouse_hover == '':  # not in another tab
                     main_event = 'volume'
                     new_volume = min(max(0, main_values['volume'] + delta), 100)
                     main_window['volume'].Update(value=new_volume)
@@ -914,8 +913,10 @@ try:
             elif main_event == 'progressbar_mouse_leave': mouse_hover = ''
             # elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
             # elif main_event == 'volume_mouse_leave': mouse_hover = ''
-            elif main_event == 'tab1_mouse_enter': mouse_hover = 'tab1'
-            elif main_event == 'tab1_mouse_leave': mouse_hover = ''
+            elif main_event == 'tab2_mouse_enter': mouse_hover = 'tab2'
+            elif main_event == 'tab2_mouse_leave': mouse_hover = ''
+            elif main_event == 'tab3_mouse_enter': mouse_hover = 'tab3'
+            elif main_event == 'tab3_mouse_leave': mouse_hover = ''
             elif main_event in {'Locate File', 'e:69'}:
                 if music_queue: Popen(f'explorer /n,/select,"{fix_path(music_queue[0])}"')
             elif main_event == 'Pause/Resume':
