@@ -708,9 +708,11 @@ try:
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
-        if discovery_started and time.time() - discovery_started > 5:
+        if discovery_started and time.time() - discovery_started > 10:
             discovery_started = 0
             stop_discovery()
+            if not device_names:
+                device_names.append(f'✓ Local device')
         if menu_item == 'Refresh Devices':
             load_settings()
             update_devices = True

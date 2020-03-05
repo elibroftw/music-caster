@@ -2,6 +2,10 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.26.3
+- Select device no devices bug fix
+- WEB GUI fix
+
 4.26.2
 - Fixed bug
 
