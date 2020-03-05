@@ -7,7 +7,7 @@ import io
 import os
 from contextlib import suppress
 from subprocess import Popen
-from shutil import copyfileobj, rmtree, copytree
+from shutil import copyfileobj, rmtree
 from glob import glob
 
 

@@ -5,7 +5,6 @@ import io
 import json
 import logging
 from math import floor
-import os
 from pathlib import Path
 import platform
 from shutil import copyfile
