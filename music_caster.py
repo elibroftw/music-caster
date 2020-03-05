@@ -121,10 +121,15 @@ def handle_exception(exception, restart_program=False):
         else: Popen(['python', 'music_caster.py'])
 
 
-def download(link, outfile):
-    r = requests.get(link)
-    with open(outfile, 'wb') as f:
-        f.write(r.content)
+def download(url, outfile):
+    r = requests.get(url, stream=True)
+    if outfile.endswith('.zip'):
+        outfile = outfile.replace('.zip', '')
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall(outfile)
+    else:
+        with open(outfile, 'wb') as f:
+            f.write(r.content)
 
 
 def download_and_extract(link, infile, outfile=None):
