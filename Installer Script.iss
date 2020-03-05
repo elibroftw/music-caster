@@ -38,6 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "{#SourcePath}\dist\Music Caster.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}\dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\resources\default.png"; DestDir: "{app}\images"; Flags: ignoreversion
 Source: "{#SourcePath}\templates\home.html"; DestDir: "{app}\templates"; Flags: ignoreversion
 Source: "{#SourcePath}\static\style.css"; DestDir: "{app}\static"; Flags: ignoreversion
@@ -48,4 +49,5 @@ Source: "{#SourcePath}\CHANGELOG"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall
+; skipifsilent

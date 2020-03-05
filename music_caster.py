@@ -33,7 +33,7 @@ from helpers import *
 import helpers
 
 
-VERSION = '4.26.2'
+VERSION = '4.26.3'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -80,6 +80,7 @@ def get_file_info(file, on_error='BASENAME') -> (str, str):
         if on_error == 'BASENAME':
             return os.path.basename(file)
         return 'Unknown', 'Unknown'
+
 
 def compile_all_songs(update_global=True, ignore_file='') -> dict:
     global all_songs
@@ -157,6 +158,7 @@ open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False}
+if os.path.exists('MC_installer.exe'): os.remove('MC_Installer.exe')
 
 
 def load_settings():
@@ -233,10 +235,10 @@ if settings['auto_update']:
                     print(bundle_download_link)
                     print(source_download_link)
                 elif getattr(sys, 'frozen', False):
-                    # download(setup_download_link, 'MC_SETUP.exe')
-                    # Popen('timeout 10 && "MC_SETUP.exe" /VERYSILENT /MERGETASKS="!desktopicon"', shell=True)
-                    # TEST ^ using "timeout 10 && py test.py" with sys.exit() right after and test.py containing a write to file
-                    download_and_extract(bundle_download_link, 'Updater.exe')
+                    if not os.path.exists('Updater.exe'):
+                        download(bundle_download_link, 'Portable.zip')
+                        os.rename('Portable/Updater.exe', 'Updater.exe')
+                        # download_and_extract(bundle_download_link, 'Updater.exe')
                     os.startfile('Updater.exe')
                 elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',
