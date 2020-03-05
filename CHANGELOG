@@ -5,6 +5,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 4.25.1
 - Better play_all
 - Building a GUI tab to show all music
+- Update Web UI
 
 4.25.0
 - Added locate file option to main GUI (folder icon)
