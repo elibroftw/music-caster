@@ -30,9 +30,8 @@ Music Caster supports media keys.
 - Only supports MP3 files (for now)
 - Scrolling over the volume bar or progress meter does not work yet
 
-## Errors
+## Data Collection
 - Errors are automatically sent to me
-- What's sent
 ```JS
 // As seen near the bottom of music_caster.py
 'TIME': current_time,
@@ -40,9 +39,10 @@ Music Caster supports media keys.
 'OS': platform.platform(),
 'TRACEBACK': trace_back_msg  // error output
 'MAC': MAC                   // unqiueness of error
-'STARTING_DIR': starting_dir // install folder, will remove later
 'TRACEBACK': trace_back_msg  // error output
 ```
+- On every startup, MAC, VERSION, and TIME is sent to me so I know how many users I have
+- Only I have access to this data
 
 ## Keyboard Shortcuts
 There exists keyboard shortcuts, but I will put them here later

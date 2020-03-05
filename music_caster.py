@@ -33,7 +33,7 @@ from helpers import *
 import helpers
 
 
-VERSION = '4.26.0'
+VERSION = '4.26.1'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -109,7 +109,7 @@ def handle_exception(exception, restart_program=False):
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                            'TRACEBACK': trace_back_msg, 'STARTING_DIR': starting_dir, 'MAC': mac})
+                            'TRACEBACK': trace_back_msg, 'MAC': mac})
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
         time.sleep(5)
@@ -255,6 +255,12 @@ if settings['auto_update']:
                 if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
             tray.Hide()
             sys.exit()
+
+
+with suppress(requests.exceptions.ConnectionError):
+    mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+    requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION, 'TIME': str(datetime.now())})
+    
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
