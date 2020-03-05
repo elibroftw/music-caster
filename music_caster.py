@@ -45,12 +45,15 @@ def fix_path(path):
 
 def save_json():
     global settings, settings_file
+    t1 = time.time()
     with open(settings_file, 'w') as outfile:
         json.dump(settings, outfile, indent=4)
+    print(time.time() - t1)
 
 
 def change_settings(settings_key, value):
     global settings, active_windows, tray
+    if settings[settings_key] == value: return value
     settings[settings_key] = value
     save_json()
     if settings_key == 'repeat':
@@ -70,20 +73,31 @@ def update_volume(new_vol):
     else: cast.set_volume(new_vol)
 
 
-def compile_all_songs(update_global=True, ignore_file=''):
-    if update_global: global all_songs
-    else: all_songs = {}
+def get_file_info(file, on_error='BASENAME') -> (str, str):
+    try:
+        title = EasyID3(file).get('title', ['Unknown'])[0]
+        artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
+        return title, artist
+    except Exception as e:
+        if on_error == 'BASENAME':
+            return os.path.basename(file)
+        return 'Unknown', 'Unknown'
+
+def compile_all_songs(update_global=True, ignore_file='') -> dict:
+    global all_songs
+    if not update_global:
+        temp_songs = all_songs.copy()
+        if ignore_file:
+            file_info = get_file_info(ignore_file)
+            temp_songs.pop(' - '.join(file_info) if type(file_info) == tuple else file_info)
+        return temp_songs
     all_songs.clear()
     for directory in music_directories:
         for file in glob(f'{directory}/**/*.*', recursive=True):
             if file != ignore_file and valid_music_file(file):
-                try:
-                    title = EasyID3(file).get('title', ['Unknown'])[0]
-                    artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
-                    all_songs[f'{title} - {artist}'] = file
-                except Exception as e:
-                    handle_exception(e)
-                    all_songs[os.path.basename(file)] = file
+                file_info = get_file_info(file)
+                if type(file_info) == tuple: file_info = ' - '.join(file_info)
+                all_songs[file_info] = file
     return all_songs
 
 def handle_exception(exception, restart_program=False):
@@ -149,7 +163,7 @@ active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_se
 def load_settings():
     """load (and fix if needed) the settings file"""
     # TODO: update any GUI values
-    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR
+    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR, settings_last_loaded
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
@@ -167,12 +181,15 @@ def load_settings():
             tray_playlists.append('Create/Edit a Playlist')
             tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
             notifications_enabled = settings['notifications']
+            temp = music_directories.copy()
             music_directories = settings['music_directories']
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
-            compile_all_songs()
+            if temp != music_directories: compile_all_songs()
+            del temp
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
+    settings_last_loaded = time.time()
 
 
 load_settings()
@@ -823,14 +840,6 @@ try:
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
                 play_all(fd.GetPath())
-                # playing_file = fd.GetPath()
-                # play_file(playing_file)
-                # music_queue.clear()
-                # done_queue.clear()
-                # music_queue.extend(compile_all_songs(False, playing_file).values())
-                # shuffle(music_queue)
-                # music_queue.insert(0, playing_file)
-                # tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif menu_item == 'Play All': play_all()
         elif menu_item.startswith('PF: '):  # play folder
             menu_item = menu_item[4:]

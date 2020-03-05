@@ -2,10 +2,13 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
-4.25.1
-- Better play_all
+4.26.0
+- Better Play All (+ fixed a bug I created in the process before releasing)
+- Because of this bug, I have added a helper function to time my functions
+- Optimized `change_settings` (faster skips, although negligible)
 - Building a GUI tab to show all music
-- Update Web UI
+- Update Web UI (looks good on mobile now, hard to access though)
+- More optimizations on the way (currently 12:30 AM, so tomorrow)
 
 4.25.0
 - Added locate file option to main GUI (folder icon)
