@@ -1,4 +1,11 @@
 import zipfile
+import shutil
+import os
+
+files = ['images/default.png', 'static/style.css', 'templates/home.html']
+for file in files:
+    shutil.copyfile(file, 'dist/' + file)
+
 
 with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Music Caster.exe', 'Music Caster.exe')
