@@ -242,7 +242,6 @@ if settings['auto_update']:
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
-    from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3, ID3NoHeaderError
     from mutagen.mp3 import MP3
     from mutagen.flac import FLAC
