@@ -7,7 +7,7 @@ import io
 import os
 from contextlib import suppress
 from subprocess import Popen
-from shutil import copyfileobj, rmtree
+from shutil import copyfileobj, rmtree, move
 
 
 def download(url, outfile):
@@ -18,7 +18,7 @@ def download(url, outfile):
         z.extractall(outfile)
     else:
         with open(outfile, 'wb') as f:
-            f.write(r.content
+            f.write(r.content)
 
 
 def download_and_extract(link, infile, outfile=None):
@@ -68,8 +68,13 @@ with suppress(FileNotFoundError):
         print('Installer:', setup_download_link)
     if os.path.exists('Music Caster.exe'):
         if is_portable:
-            download_and_extract(bundle_download_link, 'Music Caster.exe')
-            os.startfile('Music Caster.exe')
+            if not os.path.exists('Portable'):
+                download(bundle_download_link, 'Portable.zip')
+            files = os.listdir('Portable')
+            dest1 = ''
+            for f in files:
+                print(f)
+            # os.startfile('Music Caster.exe')
         else:
             download(setup_download_link, 'MC_Installer.exe')
             Popen('MC_Installer.exe /VERYSILENT /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
