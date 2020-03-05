@@ -9,6 +9,7 @@ from contextlib import suppress
 from subprocess import Popen
 from shutil import copyfileobj, rmtree
 
+# "Music Caster x64 Setup.exe" /SILENT /MERGETASKS="!desktopicon"
 
 def download_and_extract(link, infile, outfile=None):
     if os.path.exists(f'Update/{infile}'):

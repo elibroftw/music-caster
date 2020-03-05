@@ -107,6 +107,12 @@ def handle_exception(exception, restart_program=False):
         else: Popen(['python', 'music_caster.py'])
 
 
+def download(link, outfile):
+    r = requests.get(link)
+    with open(outfile, 'wb') as f:
+        f.write(r.content)
+
+
 def download_and_extract(link, infile, outfile=None):
     r = requests.get(link, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -210,9 +216,10 @@ if settings['auto_update']:
                     print(bundle_download_link)
                     print(source_download_link)
                 elif getattr(sys, 'frozen', False):
+                    # download(setup_download_link, 'MC_SETUP.exe')
+                    # Popen('timeout 10 && "MC_SETUP.exe" /SILENT /MERGETASKS="!desktopicon"', shell=True)
+                    # TEST ^ using "timeout 10 && py test.py" with sys.exit() right after and test.py containing a write to file
                     download_and_extract(bundle_download_link, 'Updater.exe')
-                    # TODO: download setup and then silent install without creating desktop shortcut
-                    # TODO: rename to Music Caster Updater or MCupdater
                     os.startfile('Updater.exe')
                 elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',

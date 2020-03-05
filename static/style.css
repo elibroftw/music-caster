@@ -102,12 +102,12 @@ html {
 	 margin-bottom: 0.5rem;
 }
  .info__artist, .info__album {
-	 font-size: 0.75rem;
+	 font-size: 1rem;
 	 font-weight: 300;
 	 color: #666;
 }
  .info__song {
-	 font-size: 1.15rem;
+	 font-size: 1.5rem;
 	 font-weight: 400;
 	 color: #d30320;
 }
