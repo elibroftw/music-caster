@@ -3,7 +3,7 @@ Music Caster by Elijah Lopez Changelog
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
 4.26.1
-- Removed irrelevent data that was sent to me (install folder)
+- Removed irrelevant data that was sent to me (install folder)
 - Added POST request so I know how many users use Music Caster
 
 4.26.0
