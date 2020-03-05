@@ -72,7 +72,7 @@ with suppress(FileNotFoundError):
                 download(bundle_download_link, 'Portable.zip')
             files = os.listdir('Portable')
             dest = os.getcwd()
-            copytree('Portable', '')
+            copytree('Portable', dest)
             os.remove('Portable')
     elif os.path.exists('Music Caster.exe'):
         if is_portable:
