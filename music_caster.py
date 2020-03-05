@@ -33,7 +33,7 @@ from helpers import *
 import helpers
 
 
-VERSION = '4.26.3'
+VERSION = '4.27.0'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
