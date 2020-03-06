@@ -2,10 +2,10 @@ import PySimpleGUI as Sg
 import os
 import re
 import socket
-from glob import glob
-from mutagen.easyid3 import EasyID3
 from functools import wraps
-import time
+from contextlib import suppress
+import time  # DO NOT REMOVE
+import psutil
 
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
@@ -35,11 +35,19 @@ _nonbmp = re.compile(r'[\U00010000-\U0010FFFF]')
 def timing(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        start = time.time()
+        _start = time.time()
         result = f(*args, **kwargs)
-        print(f'{f.__name__} ELAPSED TIME:', time.time() - start)
+        print(f'{f.__name__} ELAPSED TIME:', time.time() - _start)
         return result
     return wrapper
+
+
+def is_already_running():
+    for proc in psutil.process_iter(['name']):
+        with suppress(psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            process_name = proc.name()
+            if process_name == 'Music Caster.exe': return True
+    return False
 
 
 def _surrogatepair(match):

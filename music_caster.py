@@ -1,7 +1,8 @@
 import base64
-from contextlib import suppress
 from datetime import datetime, timedelta
+import encodings.idna  # DO NOT REMOVE
 import io
+from glob import glob
 import json
 import logging
 from math import floor
@@ -9,7 +10,7 @@ from pathlib import Path
 import platform
 from shutil import copyfile
 from random import shuffle
-from subprocess import Popen, call
+from subprocess import Popen
 import sys
 import threading
 import traceback
@@ -18,20 +19,16 @@ import webbrowser
 import zipfile
 # 3rd party imports
 from bs4 import BeautifulSoup
-import encodings.idna  # DO NOT REMOVE
 from flask import Flask, jsonify, render_template, request, redirect
 import requests
 import PySimpleGUIWx as SgWx
 import wx
-import win32api
 import win32com.client
-import win32event
-from winerror import ERROR_ALREADY_EXISTS
 from helpers import *
 import helpers
 
 
-VERSION = '4.27.0'
+VERSION = '4.27.1'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -197,10 +194,7 @@ def load_settings():
 
 
 load_settings()
-# Check if app is running already
-mutex = win32event.CreateMutex(None, False, 'name')
-last_error = win32api.GetLastError()
-if last_error == ERROR_ALREADY_EXISTS and not settings.get('DEBUG', False):
+if not settings.get('DEBUG', False) and is_already_running():
     while True:
         with suppress(requests.exceptions.InvalidSchema):
             if PORT == 2100 or requests.get(f'http://127.0.0.1:{PORT}/instance/').text == 'True': break
@@ -270,6 +264,7 @@ if not settings.get('DEBUG', False):
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
+    from mutagen.easyid3 import EasyID3
     from mutagen.id3 import ID3, ID3NoHeaderError
     from mutagen.mp3 import MP3
     from mutagen.flac import FLAC
