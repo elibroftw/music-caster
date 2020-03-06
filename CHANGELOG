@@ -4,6 +4,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.27.1
 - Better duplicate detection
+- Fixed compile all songs bugs
 
 4.27.0
 - Select device no devices bug fix

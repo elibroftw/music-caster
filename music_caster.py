@@ -21,6 +21,11 @@ import zipfile
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect
 import requests
+import mutagen
+from mutagen.id3 import ID3, ID3NoHeaderError
+from mutagen.mp3 import MP3
+from mutagen.flac import FLAC
+from mutagen.easyid3 import EasyID3
 import PySimpleGUIWx as SgWx
 import wx
 import win32com.client
@@ -66,14 +71,16 @@ def update_volume(new_vol):
     else: cast.set_volume(new_vol)
 
 
-def get_file_info(file, on_error='BASENAME') -> (str, str):
-    try:
+def get_file_info(file, on_error='FILENAME') -> (str, str):
+    try:        
         title = EasyID3(file).get('title', ['Unknown'])[0]
         artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
-        return title, artist
+        if 'Aevion' in file: print(file)
+        return artist, title
     except Exception as e:
-        if on_error == 'BASENAME':
-            return os.path.basename(file)
+        handle_exception(e)
+        if on_error == 'FILENAME':
+            return os.path.splitext(file)[0]
         return 'Unknown', 'Unknown'
 
 
@@ -83,7 +90,7 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
         temp_songs = all_songs.copy()
         if ignore_file:
             file_info = get_file_info(ignore_file)
-            temp_songs.pop(' - '.join(file_info) if type(file_info) == tuple else file_info)
+            temp_songs.pop(' - '.join(file_info) if type(file_info) == tuple else file_info, None)
         return temp_songs
     all_songs.clear()
     for directory in music_directories:
@@ -264,11 +271,6 @@ if not settings.get('DEBUG', False):
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
-    from mutagen.easyid3 import EasyID3
-    from mutagen.id3 import ID3, ID3NoHeaderError
-    from mutagen.mp3 import MP3
-    from mutagen.flac import FLAC
-    import mutagen
     # from PIL import Image
     import pychromecast.controllers.media
     from pychromecast.error import UnsupportedNamespace
