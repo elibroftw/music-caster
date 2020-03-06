@@ -43,10 +43,12 @@ def timing(f):
 
 
 def is_already_running():
+    instances = 0
     for proc in psutil.process_iter(['name']):
         with suppress(psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             process_name = proc.name()
-            if process_name == 'Music Caster.exe': return True
+            if process_name == 'Music Caster.exe': instances += 1
+    if instances > 2: return True  # 2 because of main thread + Flask thread
     return False
 
 
