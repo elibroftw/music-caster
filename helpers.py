@@ -6,7 +6,7 @@ from functools import wraps
 from contextlib import suppress
 import time  # DO NOT REMOVE
 import psutil
-
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
 # Styling
@@ -47,8 +47,10 @@ def is_already_running():
     for proc in psutil.process_iter(['name']):
         with suppress(psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             process_name = proc.name()
-            if process_name == 'Music Caster.exe': instances += 1
-    if instances > 2: return True  # 2 because of main thread + Flask thread
+            if process_name == 'Music Caster.exe':
+                instances += 1
+                if instances > 2: return True
+                # 2 because of main thread + Flask thread
     return False
 
 

@@ -87,8 +87,15 @@ def get_file_info(file, on_error='FILENAME') -> (str, str):
         _title = EasyID3(file).get('title', ['Unknown'])[0]
         _artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
         return _artist, _title
+    except ID3NoHeaderError:
+        _tags = mutagen.File(file)
+        _tags.add_tags()
+        _tags.save()
+        return get_file_info(file)
     except Exception as _e:
-        handle_exception(_e)
+        if settings.get('DEBUG') or not file_info_exceptions:
+            handle_exception(_e)
+            file_info_exceptions += 1
         if on_error == 'FILENAME':
             return os.path.splitext(file)[0]
         return 'Unknown', 'Unknown'
@@ -161,6 +168,7 @@ update_devices, cast = False, None
 chromecasts, device_names = [], []
 starting_dir = os.path.dirname(os.path.realpath(__file__))
 home_music_dir = str(Path.home()) + '/Music'
+file_info_exceptions = 0
 settings = {  # default settings
         'previous_device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
         'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
@@ -206,7 +214,7 @@ def load_settings():
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
-            if _temp != music_directories: compile_all_songs()
+            if _temp != music_directories or music_directories == [home_music_dir]: compile_all_songs()
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
@@ -491,14 +499,17 @@ try:
         elif file_path.lower().endswith('m4a'): tags = M4A(file_path)
         else:
             try: tags = ID3(file_path)
-            except ID3NoHeaderError: tags = mutagen.File(file_path)
+            except ID3NoHeaderError:
+                tags = mutagen.File(file)
+                tags.add_tags()
+                tags.save()
         for tag in tags.keys():
             if 'APIC' in tag:
                 pict = tags[tag].data
                 break
         if pict:
             music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
-                                          'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8"")}'}
+                                          'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
         else: music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
             mc = None
@@ -563,9 +574,9 @@ try:
         done_queue.clear()
         if starting_file: music_queue.extend(compile_all_songs(False, starting_file).values())
         else: music_queue.extend(all_songs.values())
+        if music_queue: shuffle(music_queue)
+        if starting_file: music_queue.insert(0, starting_file)
         if music_queue:
-            shuffle(music_queue)
-            if starting_file: music_queue.insert(0, starting_file)
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif next_queue:
@@ -715,6 +726,7 @@ try:
     
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
+    if settings.get('DEBUG', False): print('Running in tray')
     while True:
         menu_item = tray.Read(timeout=10)
         if time.time() - settings_last_loaded > 10:
