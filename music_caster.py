@@ -12,11 +12,15 @@ from shutil import copyfile
 from random import shuffle
 from subprocess import Popen
 import sys
+import shutil
 import threading
 import traceback
 import uuid
 import webbrowser
 import zipfile
+# helper file
+from helpers import *
+import helpers
 # 3rd party imports
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect
@@ -26,14 +30,21 @@ from mutagen.id3 import ID3, ID3NoHeaderError
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC
 from mutagen.easyid3 import EasyID3
+from mutagen.oggvorbis import OggVorbis
+from mutagen.aac import AAC
+from mutagen.m4a import M4A
 import PySimpleGUIWx as SgWx
 import wx
 import win32com.client
-from helpers import *
-import helpers
+# from PIL import Image
+import pychromecast.controllers.media
+from pychromecast.error import UnsupportedNamespace
+import pychromecast
+from pygame import mixer as local_music_player
+from pynput.keyboard import Listener
+import winshell
 
-
-VERSION = '4.27.1'
+VERSION = '4.27.2'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 
@@ -73,12 +84,11 @@ def update_volume(new_vol):
 
 def get_file_info(file, on_error='FILENAME') -> (str, str):
     try:        
-        title = EasyID3(file).get('title', ['Unknown'])[0]
-        artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
-        if 'Aevion' in file: print(file)
-        return artist, title
-    except Exception as e:
-        handle_exception(e)
+        _title = EasyID3(file).get('title', ['Unknown'])[0]
+        _artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
+        return _artist, _title
+    except Exception as _e:
+        handle_exception(_e)
         if on_error == 'FILENAME':
             return os.path.splitext(file)[0]
         return 'Unknown', 'Unknown'
@@ -102,11 +112,14 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
     return all_songs
 
 
+def get_mac(): return ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+
+
 def handle_exception(exception, restart_program=False):
     if settings.get('DEBUG', False) and not getattr(sys, 'frozen', False): raise exception
     current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
-    mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+    mac = get_mac()
     with open(f'{starting_dir}/error.log', 'a+') as f:
         f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
     with suppress(requests.ConnectionError):
@@ -165,7 +178,8 @@ open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False}
-if os.path.exists('MC_installer.exe'): os.remove('MC_Installer.exe')
+with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
+shutil.rmtree('Update', ignore_errors=True)
 
 
 def load_settings():
@@ -189,11 +203,10 @@ def load_settings():
             tray_playlists.append('Create/Edit a Playlist')
             tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
             notifications_enabled = settings['notifications']
-            temp = music_directories.copy()
+            _temp = music_directories.copy()
             music_directories = settings['music_directories']
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
-            if temp != music_directories: compile_all_songs()
-            del temp
+            if _temp != music_directories: compile_all_songs()
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
@@ -265,24 +278,19 @@ if settings['auto_update']:
 
 if not settings.get('DEBUG', False):
     with suppress(requests.exceptions.ConnectionError):
-        mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
-        requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION, 'TIME': datetime.now().strftime('%m/%d/%Y %H:%M:%S')})
+        current_time = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
+        requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION,
+                                                                       'TIME': cur_time})
     
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
-    # from PIL import Image
-    import pychromecast.controllers.media
-    from pychromecast.error import UnsupportedNamespace
-    import pychromecast
-    from pygame import mixer as local_music_player
-    from pynput.keyboard import Listener
-    import winshell
-
     local_music_player.init(44100, -16, 2, 2048)
-    helpers.ACCENT_COLOR, helpers.fg, helpers.bg = settings['accent_color'], settings['text_color'], settings['background_color']
+    helpers.ACCENT_COLOR, helpers.fg = settings['accent_color'], settings['text_color']
+    helpers.bg = settings['background_color']
     helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
-    Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg, text_element_background_color=bg)
+    Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
+                  text_element_background_color=bg)
 
 
     @app.route('/', methods=['GET', 'POST'])
@@ -301,21 +309,22 @@ try:
             return redirect('/')
         if music_queue:
             file_path = music_queue[0]
-            metadata = music_meta_data[file_path]
-        else: metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+            _metadata = music_meta_data[file_path]
+        else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
         art = metadata.get('art', Path(f'{images_dir}/default.png').as_uri()[11:])
         repeat_option = 'red' if settings['repeat'] else ''
         shuffle_option = 'red' if settings['shuffle_playlists'] else ''
-        return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play', repeat=repeat_option,
-                               shuffle=shuffle_option, art=art, metadata=metadata, starting_dir=Path(starting_dir).as_uri()[11:])
+        return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
+                               repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
+                               starting_dir=Path(starting_dir).as_uri()[11:])
 
     @app.route('/metadata/')
     def metadata():
         if music_queue:
             file_path = music_queue[0]
-            metadata = music_meta_data[file_path]
-        else: metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-        return jsonify(metadata)
+            _metadata = music_meta_data[file_path]
+        else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+        return jsonify(_metadata)
 
     
     @app.route('/running/')
@@ -353,10 +362,10 @@ try:
             chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
             device_names.clear()
             for i, cc in enumerate(['Local device'] + chromecasts):
-                name = cc if i == 0 else cc.name
+                device_name = cc if i == 0 else cc.name
                 if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
-                    device_names.append(f'✓ {name}')
-                else: device_names.append(f'{i + 1}. {name}')
+                    device_names.append(f'✓ {device_name}')
+                else: device_names.append(f'{i + 1}. {device_name}')
             update_devices = True
 
 
@@ -465,19 +474,21 @@ try:
         song_length = audio_info.length
         volume = settings['volume'] / 100
         try:
-            title = EasyID3(file_path).get('title', ['Unknown'])[0]
-            artist = EasyID3(file_path).get('artist', ['Unknown'])
-            artist = ', '.join(artist)
+            _title = EasyID3(file_path).get('title', ['Unknown'])[0]
+            _artist = EasyID3(file_path).get('artist', ['Unknown'])
+            _artist = ', '.join(_artist)
             album = EasyID3(file_path).get('album', 'Unknown')[0]
         except Exception as e:
             handle_exception(e)
-            title = artist = album = 'Unknown'
+            _title = _artist = album = 'Unknown'
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
         pict = None
         if file_path.lower().endswith('mp3'): tags = MP3(file_path)
         elif file_path.lower().endswith('flac'): tags = FLAC(file_path)
+        elif file_path.lower().endswith('ogg'): tags = OggVorbis(file_path)
+        elif file_path.lower().endswith('m4a'): tags = M4A(file_path)
         else:
             try: tags = ID3(file_path)
             except ID3NoHeaderError: tags = mutagen.File(file_path)
@@ -486,8 +497,9 @@ try:
                 pict = tags[tag].data
                 break
         if pict:
-            music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length, 'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
-        else: music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length}
+            music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
+                                          'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8"")}'}
+        else: music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
             mc = None
             sample_rate = audio_info.sample_rate
@@ -525,7 +537,7 @@ try:
                 if mc.status.player_is_playing or mc.status.player_is_paused:
                     mc.stop()
                     mc.block_until_active(5)
-                music_metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+                music_metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
                 mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                               metadata=music_metadata, thumb=thumb, autoplay=autoplay)
                 mc.block_until_active()
@@ -536,7 +548,7 @@ try:
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
                 return
-        playing_text = f"{artist.split(', ')[0]} - {title}"
+        playing_text = f"{_artist.split(', ')[0]} - {_title}"
         if notifications_enabled and not settings['repeat'] and not switching_device:
             tray.ShowMessage('Music Caster','Playing: ' + playing_text, time=500)
         if autoplay:
@@ -565,10 +577,10 @@ try:
         global music_directories, DEFAULT_DIR, playing_status
         if music_directories: DEFAULT_DIR = music_directories[0]
         else: DEFAULT_DIR = home_music_dir
-        fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+        _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-        if fd.ShowModal() != wx.ID_CANCEL:
-            path_to_file = fd.GetPath()
+        if _fd.ShowModal() != wx.ID_CANCEL:
+            path_to_file = _fd.GetPath()
             next_queue.append(path_to_file)
             if playing_status == 'NOT PLAYING':
                 if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
@@ -1036,8 +1048,8 @@ try:
             elif main_event == 'queue_file':
                 if music_directories: DEFAULT_DIR = music_directories[0]
                 else: DEFAULT_DIR = home_music_dir
-                fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
-                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR,
+                                   wildcard='Audio File (*.mp3)|*mp3', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
                 if fd.ShowModal() != wx.ID_CANCEL:
                     playing_file = fd.GetPath()
                     music_queue.append(playing_file)
@@ -1300,15 +1312,10 @@ try:
                         minutes = abs(float(timer_values['minutes']))
                     elif timer_value.count(':') == 1:
                         now = datetime.now()
-                        # meridiem = time.strftime('%p')
                         if timer_value[-3:].strip().upper() in ('PM', 'AM'): timer_value = timer_value[timer_value:-3]
                         elif timer_value[-2:].upper() in ('PM', 'AM'): timer_value = timer_value[timer_value:-2]
                         to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
                         delta = (to_stop - datetime.now()).total_seconds()
-                        # Suppose you want to stop music at at 12:00 AM, but it's 11:00 PM.
-                        # 12:00 AM -> would make delta = -39,600 seconds (-11 Hours)
-                        # We want this to be 3600 seconds
-                        # 43,200 - 39,600 = 3600
                         if delta < 0: delta += 43200
                         minutes = delta // 60
                     else: continue
