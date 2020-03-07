@@ -2,9 +2,12 @@ import zipfile
 import shutil
 import os
 import json
+from contextlib import suppress
 
 files = ['images/default.png', 'static/style.css', 'templates/home.html']
-os.makedirs(['dist/images', 'dist/static', 'dist/templates'], exist_ok=True)
+for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
+    with suppress(OSError): os.mkdir(_dir)
+    
 for file in files:
     shutil.copyfile(file, 'dist/' + file)
 
