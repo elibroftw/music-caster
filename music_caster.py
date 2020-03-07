@@ -861,7 +861,7 @@ try:
             fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
-                play_all(fd.GetPath())
+                play_all(fd.GetPath())  # TODO: print this out
         elif menu_item == 'Play All': play_all()
         elif menu_item.startswith('PF: '):  # play folder
             menu_item = menu_item[4:]
