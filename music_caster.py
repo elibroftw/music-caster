@@ -117,14 +117,14 @@ def get_mac(): return ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) 
 
 def handle_exception(exception, restart_program=False):
     if settings.get('DEBUG', False) and not getattr(sys, 'frozen', False): raise exception
-    current_time = str(datetime.now())
+    _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     mac = get_mac()
     with open(f'{starting_dir}/error.log', 'a+') as f:
-        f.write(f'{current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
+        f.write(f'{_current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
-                      json={'TIME': current_time, 'VERSION': VERSION, 'OS': platform.platform(),
+                      json={'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
                             'TRACEBACK': trace_back_msg, 'MAC': mac})
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
@@ -280,7 +280,7 @@ if not settings.get('DEBUG', False):
     with suppress(requests.exceptions.ConnectionError):
         current_time = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION,
-                                                                       'TIME': cur_time})
+                                                                       'TIME': current_time})
     
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
@@ -478,8 +478,8 @@ try:
             _artist = EasyID3(file_path).get('artist', ['Unknown'])
             _artist = ', '.join(_artist)
             album = EasyID3(file_path).get('album', 'Unknown')[0]
-        except Exception as e:
-            handle_exception(e)
+        except Exception as _e:
+            handle_exception(_e)
             _title = _artist = album = 'Unknown'
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
