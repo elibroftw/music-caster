@@ -4,7 +4,7 @@ import os
 import json
 
 files = ['images/default.png', 'static/style.css', 'templates/home.html']
-os.makedirs(['dist/images', 'dist/static', 'dist/templates'])
+os.makedirs(['dist/images', 'dist/static', 'dist/templates'], exist_ok=True)
 for file in files:
     shutil.copyfile(file, 'dist/' + file)
 
