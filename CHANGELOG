@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.27.4
+- [Bug fix] Fixed Web GUI album art
+
 4.27.3
 - [Bug fix] Volume scrolling on main window popup
 - [Error handling] Updater raises fewer errors

@@ -45,7 +45,7 @@ from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import winshell
 
-VERSION = '4.27.3'
+VERSION = '4.27.4'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -322,7 +322,7 @@ try:
             file_path = music_queue[0]
             _metadata = music_meta_data[file_path]
         else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-        art = metadata.get('art', Path(f'{images_dir}/default.png').as_uri()[11:])
+        art = _metadata.get('art', Path(f'{images_dir}/default.png').as_uri()[11:])
         repeat_option = 'red' if settings['repeat'] else ''
         shuffle_option = 'red' if settings['shuffle_playlists'] else ''
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
@@ -509,8 +509,10 @@ try:
                 tags.save()
         for tag in tags.keys():
             if 'APIC' in tag:
+                print(tags[tag])
                 pict = tags[tag].data
                 break
+        print(tags.keys())
         if pict:
             music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
                                           'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
