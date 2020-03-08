@@ -1,5 +1,6 @@
 import base64
 from datetime import datetime, timedelta
+# noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
 import io
 from glob import glob
@@ -26,13 +27,13 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect
 import requests
 import mutagen
-from mutagen.id3 import ID3, ID3NoHeaderError
+import mutagen.id3
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC
 from mutagen.easyid3 import EasyID3
 from mutagen.oggvorbis import OggVorbis
+from mutagen.mp4 import MP4
 from mutagen.aac import AAC
-from mutagen.m4a import M4A
 import PySimpleGUIWx as SgWx
 import wx
 import win32com.client
@@ -106,23 +107,23 @@ def update_volume(new_vol):
     else: cast.set_volume(new_vol)
 
 
-def get_file_info(file, on_error='FILENAME') -> (str, str):
+def get_file_info(_file, on_error='FILENAME'):
     global file_info_exceptions
     try:        
-        _title = EasyID3(file).get('title', ['Unknown'])[0]
-        _artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
+        _title = EasyID3(_file).get('title', ['Unknown'])[0]
+        _artist = ', '.join(EasyID3(_file).get('artist', ['Unknown']))
         return _artist, _title
-    except ID3NoHeaderError:
-        _tags = mutagen.File(file)
+    except mutagen.id3.ID3NoHeaderError:
+        _tags = mutagen.File(_file)
         _tags.add_tags()
         _tags.save()
-        return get_file_info(file)
+        return get_file_info(_file)
     except Exception as _e:
         if settings.get('DEBUG') or not file_info_exceptions:
             handle_exception(_e)
             file_info_exceptions += 1
         if on_error == 'FILENAME':
-            return os.path.splitext(file)[0]
+            return os.path.splitext(_file)[0]
         return 'Unknown', 'Unknown'
 
 
@@ -136,11 +137,11 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
         return temp_songs
     all_songs.clear()
     for directory in music_directories:
-        for file in glob(f'{directory}/**/*.*', recursive=True):
-            if file != ignore_file and valid_music_file(file):
-                file_info = get_file_info(file)
+        for _file in glob(f'{directory}/**/*.*', recursive=True):
+            if _file != ignore_file and valid_music_file(_file):
+                file_info = get_file_info(_file)
                 if type(file_info) == tuple: file_info = ' - '.join(file_info)
-                all_songs[file_info] = file
+                all_songs[file_info] = _file
     return all_songs
 
 
@@ -152,8 +153,8 @@ def handle_exception(exception, restart_program=False):
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     mac = get_mac()
-    with open(f'{starting_dir}/error.log', 'a+') as f:
-        f.write(f'{_current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
+    with open(f'{starting_dir}/error.log', 'a+') as _f:
+        _f.write(f'{_current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
@@ -175,8 +176,8 @@ def download(url, outfile):
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall(outfile)
     else:
-        with open(outfile, 'wb') as f:
-            f.write(r.content)
+        with open(outfile, 'wb') as _f:
+            _f.write(r.content)
 
 
 def download_and_extract(link, infile, outfile=None):
@@ -195,11 +196,11 @@ shutil.rmtree('Update', ignore_errors=True)
 def load_settings():
     """load (and fix if needed) the settings file"""
     # TODO: update any GUI values
-    global settings, playlists, notifications_enabled, music_directories, tray_playlists, DEFAULT_DIR, settings_last_loaded
+    global settings, playlists, notifications_enabled, music_directories, DEFAULT_DIR, settings_last_loaded
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
-            except json.decoder.JSONDecodeError as e: loaded_settings = {}
+            except json.decoder.JSONDecodeError: loaded_settings = {}
             save_settings = False
             for setting_name, setting_value in tuple(loaded_settings.items()):
                 loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
@@ -209,9 +210,9 @@ def load_settings():
                     save_settings = True
             settings = loaded_settings
             playlists = settings['playlists']
-            tray_playlists.clear()
+            tray_playlists.clear()  # global variable
             tray_playlists.append('Create/Edit a Playlist')
-            tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+            tray_playlists.extend([f'PL: {pl}' for pl in playlists.keys()])
             notifications_enabled = settings['notifications']
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
@@ -367,15 +368,15 @@ try:
         if str(chromecast.uuid) == previous_device and cast != chromecast:
             cast = chromecast
             cast.wait(timeout=WAIT_TIMEOUT)
-        if chromecast.uuid not in [cc.uuid for cc in chromecasts]:
+        if chromecast.uuid not in [_cc.uuid for _cc in chromecasts]:
             chromecasts.append(chromecast)
-            chromecasts.sort(key=lambda cc: (cc.name, cc.uuid))
+            chromecasts.sort(key=lambda _cc: (_cc.name, _cc.uuid))
             device_names.clear()
-            for i, cc in enumerate(['Local device'] + chromecasts):
-                device_name = cc if i == 0 else cc.name
-                if (previous_device is None and i == 0) or (type(cc) != str and str(cc.uuid) == previous_device):
+            for _i, _cc in enumerate(['Local device'] + chromecasts):
+                device_name = _cc if _i == 0 else _cc.name
+                if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
                     device_names.append(f'✓ {device_name}')
-                else: device_names.append(f'{i + 1}. {device_name}')
+                else: device_names.append(f'{_i + 1}. {device_name}')
             update_devices = True
 
 
@@ -390,8 +391,8 @@ try:
             else:  # set shortcut to python script; __file__
                 bat_file = f'{starting_dir}\\music_caster.bat'
                 if os.path.exists(bat_file):
-                    with open('music_caster.bat', 'w') as f:
-                        f.write(f'pythonw {os.path.basename(__file__)}')
+                    with open('music_caster.bat', 'w') as _f:
+                        _f.write(f'pythonw {os.path.basename(__file__)}')
                 target = bat_file
                 shortcut.IconLocation = f'{starting_dir}\\icon.ico'
             shortcut.Targetpath = target
@@ -432,7 +433,7 @@ try:
     while True:
         try:
             if not is_port_in_use(PORT):
-                threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'debug': False}).start()
+                threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
                 break
             else: PORT += 1
         except OSError: PORT += 1
@@ -498,10 +499,11 @@ try:
         if file_path.lower().endswith('mp3'): tags = MP3(file_path)
         elif file_path.lower().endswith('flac'): tags = FLAC(file_path)
         elif file_path.lower().endswith('ogg'): tags = OggVorbis(file_path)
-        elif file_path.lower().endswith('m4a'): tags = M4A(file_path)
+        elif file_path.lower().endswith('m4a'): tags = MP4(file_path)
+        elif file_path.lower().endswith('aac'): tags = AAC(file_path)
         else:
-            try: tags = ID3(file_path)
-            except ID3NoHeaderError:
+            try: tags = mutagen.id3.ID3(file_path)
+            except mutagen.id3.ID3NoHeaderError:
                 tags = mutagen.File(file)
                 tags.add_tags()
                 tags.save()
@@ -541,7 +543,7 @@ try:
                 url = f'http://{ipv4_address}:{PORT}/{uri_safe}'
                 if pict:
                     thumb = images_dir + f'/{file_path_obj.stem}.png'
-                    with open(thumb, 'wb') as f: f.write(pict)
+                    with open(thumb, 'wb') as _f: _f.write(pict)
                 else: thumb = f'{images_dir}/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
                 cast.wait(timeout=WAIT_TIMEOUT)
@@ -563,7 +565,7 @@ try:
                 return
         playing_text = f"{_artist.split(', ')[0]} - {_title}"
         if notifications_enabled and not settings['repeat'] and not switching_device:
-            tray.ShowMessage('Music Caster','Playing: ' + playing_text, time=500)
+            tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
         if autoplay:
             playing_status = 'PLAYING'
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
@@ -591,7 +593,7 @@ try:
         if music_directories: DEFAULT_DIR = music_directories[0]
         else: DEFAULT_DIR = home_music_dir
         _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
-                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if _fd.ShowModal() != wx.ID_CANCEL:
             path_to_file = _fd.GetPath()
             next_queue.append(path_to_file)
@@ -628,7 +630,7 @@ try:
 
 
     def update_song_position():
-        global tray, song_position, cast
+        global tray, song_position, cast, mc
         if cast is not None:
             mc = cast.media_controller
             if mc is not None:
@@ -794,9 +796,9 @@ try:
                 except IndexError: new_cast = None
             device_names.clear()
             for index, cc in enumerate(['Local device'] + chromecasts):
-                name = cc if index == 0 else cc.name
-                if index == i: device_names.append(f'✓ {name}')
-                else: device_names.append(f'{index + 1}. {name}')
+                cc: pychromecast.Chromecast = cc if index == 0 else cc.name
+                if index == i: device_names.append(f'✓ {cc}')
+                else: device_names.append(f'{index + 1}. {cc}')
             update_devices = True
             if cast != new_cast:
                 cast = new_cast
@@ -1261,19 +1263,19 @@ try:
                 else: tray.Update(menu=menu_def_1)
             elif pl_editor_event in {'move_up', 'u:85'}:  # u:85 is Ctrl + U
                 if pl_editor_values['songs']:
-                    index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
-                    if index_to_move > 0:
-                        new_i = index_to_move - 1
-                        pl_files.insert(new_i, pl_files.pop(index_to_move))
+                    to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                    if to_move > 0:
+                        new_i = to_move - 1
+                        pl_files.insert(new_i, pl_files.pop(to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
                                                                  scroll_to_index=new_i)
             elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
                 if pl_editor_values['songs']:
-                    index_to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
-                    if index_to_move < len(pl_files) - 1:
-                        new_i = index_to_move + 1
-                        pl_files.insert(new_i, pl_files.pop(index_to_move))
+                    to_move = pl_editor_window.Element('songs').GetListValues().index(pl_editor_values['songs'][0])
+                    if to_move < len(pl_files) - 1:
+                        new_i = to_move + 1
+                        pl_files.insert(new_i, pl_files.pop(to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
                                                                  scroll_to_index=new_i)
