@@ -27,7 +27,7 @@ def download_and_extract(link, infile, outfile=None):
         if not outfile: outfile = infile
         if os.path.exists(outfile): os.remove(outfile)
         os.rename(f'Update/{infile}', outfile)
-        rmtree('Update')
+        rmtree('Update', True)
     else:
         r = requests.get(link, stream=True)
         z = zipfile.ZipFile(io.BytesIO(r.content))
