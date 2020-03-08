@@ -44,9 +44,33 @@ from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import winshell
 
-VERSION = '4.27.2'
+VERSION = '4.27.3'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
+PORT, WAIT_TIMEOUT = 2001, 10
+update_devices, cast = False, None
+chromecasts, device_names = [], []
+starting_dir = os.path.dirname(os.path.realpath(__file__))
+home_music_dir = str(Path.home()) + '/Music'
+file_info_exceptions = 0
+settings = {  # default settings
+        'previous_device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
+        'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
+        'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+        'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+        'EXPERIMENTAL': False, 'music_directories': [home_music_dir], 'playlists': {}}
+settings_file = f'{starting_dir}/settings.json'
+playlists, tray_playlists = {}, ['Create/Edit a Playlist']
+music_directories, notifications_enabled = [], True
+all_songs = {}
+pl_name, pl_files = '', []
+keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+main_last_event = settings_last_event = pl_editor_last_event = None
+mouse_hover = ''
+open_pl_selector = update_progress_text = False
+new_playing_text, timer = 'Nothing Playing', 0
+active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
+                  'playlist_editor': False}
 
 
 def fix_path(path):
@@ -83,6 +107,7 @@ def update_volume(new_vol):
 
 
 def get_file_info(file, on_error='FILENAME') -> (str, str):
+    global file_info_exceptions
     try:        
         _title = EasyID3(file).get('title', ['Unknown'])[0]
         _artist = ', '.join(EasyID3(file).get('artist', ['Unknown']))
@@ -163,29 +188,6 @@ def download_and_extract(link, infile, outfile=None):
     os.rename(f'{starting_dir}/Update/{infile}', outfile)
 
 
-PORT, WAIT_TIMEOUT = 2001, 10
-update_devices, cast = False, None
-chromecasts, device_names = [], []
-starting_dir = os.path.dirname(os.path.realpath(__file__))
-home_music_dir = str(Path.home()) + '/Music'
-file_info_exceptions = 0
-settings = {  # default settings
-        'previous_device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
-        'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
-        'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
-        'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-        'EXPERIMENTAL': False, 'music_directories': [home_music_dir], 'playlists': {}}
-settings_file = f'{starting_dir}/settings.json'
-playlists, tray_playlists = {}, ['Create/Edit a Playlist']
-music_directories, notifications_enabled = [], True
-all_songs = {}
-pl_name, pl_files = '', []
-keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
-mouse_hover = main_last_event = settings_last_event = pl_editor_last_event = None
-open_pl_selector = update_progress_text = False
-new_playing_text, timer = 'Nothing Playing', 0
-active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
-                  'playlist_editor': False}
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
 
