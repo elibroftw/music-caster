@@ -64,6 +64,7 @@ settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists = {}, ['Create/Edit a Playlist']
 music_directories, notifications_enabled = [], True
 all_songs = {}
+all_folders = set()
 pl_name, pl_files = '', []
 keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
@@ -218,7 +219,13 @@ def load_settings():
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
-            if _temp != music_directories or music_directories == [home_music_dir]: compile_all_songs()
+            if _temp != music_directories or music_directories == [home_music_dir]:
+                compile_all_songs()
+                all_folders.clear()
+                for music_dir in music_directories:
+                    for _dir in os.walk(music_dir):
+                        all_folders.add(_dir[0])
+                # [x[0] for x in os.walk(directory)]
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
@@ -510,10 +517,8 @@ try:
                 tags.save()
         for tag in tags.keys():
             if 'APIC' in tag:
-                print(tags[tag])
                 pict = tags[tag].data
                 break
-        print(tags.keys())
         if pict:
             music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
                                           'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
@@ -589,6 +594,16 @@ try:
         elif next_queue:
             playing_status = 'PLAYING'
             next_song()
+
+    
+    def play_folder(_folder):
+        folder_songs = {}
+        for _file in glob(f'{_folder}/**/*.*', recursive=True):
+            if valid_music_file(_file):
+                file_info = get_file_info(_file)
+                if type(file_info) == tuple: file_info = ' - '.join(file_info)
+                folder_song[file_info] = _file
+        return folder_song
 
 
     def play_next():
