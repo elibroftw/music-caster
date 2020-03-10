@@ -68,6 +68,7 @@ pl_name, pl_files = '', []
 keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
 mouse_hover = ''
+MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
@@ -594,7 +595,7 @@ try:
         global music_directories, DEFAULT_DIR, playing_status
         if music_directories: DEFAULT_DIR = music_directories[0]
         else: DEFAULT_DIR = home_music_dir
-        _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+        _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if _fd.ShowModal() != wx.ID_CANCEL:
             path_to_file = _fd.GetPath()
@@ -876,7 +877,7 @@ try:
         elif menu_item == 'Play File':
             if music_directories: DEFAULT_DIR = music_directories[0]
             else: DEFAULT_DIR = home_music_dir
-            fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard='Audio File (*.mp3)|*mp3',
+            fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
             if fd.ShowModal() != wx.ID_CANCEL:
                 play_all(fd.GetPath())  # TODO: print this out
