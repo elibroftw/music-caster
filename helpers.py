@@ -103,6 +103,7 @@ def create_songs_list(music_queue, done_queue, next_queue):
 def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeating_song,
                     all_songs: dict, now_playing_text='Nothing Playing', album_cover_data=None):
     # TODO: Music Library Tab
+    # TODO: Play Folder option
     
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     # Sg.Button('Shuffle', key='Shuffle'),

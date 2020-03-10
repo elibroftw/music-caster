@@ -45,7 +45,7 @@ from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import winshell
 
-VERSION = '4.27.4'
+VERSION = '4.28.0'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -61,10 +61,10 @@ settings = {  # default settings
         'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
         'EXPERIMENTAL': False, 'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
-playlists, tray_playlists = {}, ['Create/Edit a Playlist']
+playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
 music_directories, notifications_enabled = [], True
 all_songs = {}
-all_folders = set()
+all_folders = ['PF: Select Folder']
 pl_name, pl_files = '', []
 keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
@@ -221,11 +221,13 @@ def load_settings():
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
             if _temp != music_directories or music_directories == [home_music_dir]:
                 compile_all_songs()
-                all_folders.clear()
+                tray_folders.clear()
+                tray_folders.append('PF: Select Folder')
                 for music_dir in music_directories:
-                    for _dir in os.walk(music_dir):
-                        all_folders.add(_dir[0])
-                # [x[0] for x in os.walk(directory)]
+                    music_dir = music_dir.replace('\\', '/').split('/')
+                    if len(music_dir) > 2: music_dir = f'PF: .../{"/".join(music_dir[-2:])}'
+                    else: music_dir = 'PF: ' + '/'.join(music_dir)
+                    tray_folders.append(music_dir)
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
@@ -451,20 +453,21 @@ try:
     
     # TODO: add play folder
     repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
-    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play File', 'Play All'], 'Exit']]
+    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                       ['Play File', 'Play All', 'Playlists', tray_playlists, 'Folders', tray_folders], 'Exit']]
 
-    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play File', 'Play File Next', 'Play All'],
-                       'Controls',
-                       ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
-                       'Exit']]
+    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Timer',
+                       ['Set Timer', 'Cancel Timer'], 'Play',
+                       ['Play File', 'Play File Next', 'Play All', 'Playlists', tray_playlists, 'Folders',
+                        tray_folders], 'Controls',
+                       ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Pause'], 'Exit']]
 
-    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Playlists', tray_playlists,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play', ['Play File', 'Play File Next', 'Play All'],
-                       'Controls',
-                       ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
-                       'Exit']]
+    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Timer',
+                       ['Set Timer', 'Cancel Timer'], 'Play',
+                       ['Play File', 'Play File Next', 'Play All', 'Playlists', tray_playlists, 'Folders',
+                        tray_folders], 'Controls',
+                       ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'], 'Exit']]
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
@@ -597,13 +600,18 @@ try:
 
     
     def play_folder(_folder):
-        folder_songs = {}
+        global playing_status
+        music_queue.clear()
+        done_queue.clear()
         for _file in glob(f'{_folder}/**/*.*', recursive=True):
-            if valid_music_file(_file):
-                file_info = get_file_info(_file)
-                if type(file_info) == tuple: file_info = ' - '.join(file_info)
-                folder_song[file_info] = _file
-        return folder_song
+            if valid_music_file(_file): music_queue.append(_file)
+        if settings['shuffle_playlists']: shuffle(music_queue)
+        if music_queue:
+            play_file(music_queue[0])
+            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+        elif next_queue:
+            playing_status = 'PLAYING'
+            next_song()
 
 
     def play_next():
@@ -868,7 +876,7 @@ try:
                 pl_selector_window.Read(timeout=1)
             pl_selector_window.TKroot.focus_force()
             pl_selector_window.normal()
-        elif menu_item.startswith('PL: '):
+        elif menu_item.startswith('PL: '):  # playlist
             playlist = menu_item[4:]
             music_queue.clear()
             music_queue.extend(playlists[playlist])
@@ -877,6 +885,14 @@ try:
                 if settings['shuffle_playlists']: shuffle(music_queue)
                 play_file(music_queue[0])
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+        elif menu_item.startswith('PF: '):  # play folder  # TODO
+            if menu_item == 'PF: Select Folder':
+                dlg = wx.DirDialog(None, 'Choose music directory', DEFAULT_DIR,
+                                   wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+                if dlg.ShowModal() != wx.ID_CANCEL:
+                    path_to_folder = dlg.GetPath()
+                    play_folder(path_to_folder)
+            else: play_folder(music_directories[tray_folders.index(menu_item) - 1])
         elif menu_item == 'Set Timer':
             if not active_windows['timer']:
                 active_windows['timer'], timer_layout = True, create_timer(settings)
@@ -897,8 +913,6 @@ try:
             if fd.ShowModal() != wx.ID_CANCEL:
                 play_all(fd.GetPath())  # TODO: print this out
         elif menu_item == 'Play All': play_all()
-        elif menu_item.startswith('PF: '):  # play folder
-            menu_item = menu_item[4:]
         elif menu_item == 'Play File Next': play_next()
         elif 'Stop' in {menu_item, keyboard_command}: stop()
         elif timer and time.time() > timer:
