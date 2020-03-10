@@ -1094,6 +1094,7 @@ try:
                     main_window['music_queue'].Update(values=updated_list,
                                                       set_to_index=new_i, scroll_to_index=new_i)
             elif main_event == 'queue_file':
+                # TODO: folder option
                 if music_directories: DEFAULT_DIR = music_directories[0]
                 else: DEFAULT_DIR = home_music_dir
                 fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR,
@@ -1103,6 +1104,7 @@ try:
                     music_queue.append(playing_file)
                 pass
             elif main_event == 'play_next': play_next()
+            elif main_event == 'clear_queue': pass
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             elif main_event == 'library': play_all(all_songs[main_values['library']])
             if main_event == 'progressbar':
