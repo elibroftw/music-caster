@@ -455,18 +455,18 @@ try:
     repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Play File', 'Play All', 'Playlists', tray_playlists, 'Folders', tray_folders], 'Exit']]
+                       ['Folders', tray_folders, 'Playlists', tray_playlists], 'Play File', 'Play All', 'Exit']]
 
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Timer',
                        ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Play File', 'Play File Next', 'Play All', 'Playlists', tray_playlists, 'Folders',
-                        tray_folders], 'Controls',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                        'Play All'], 'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Pause'], 'Exit']]
 
     menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Timer',
                        ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Play File', 'Play File Next', 'Play All', 'Playlists', tray_playlists, 'Folders',
-                        tray_folders], 'Controls',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                        'Play All'], 'Controls',
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'], 'Exit']]
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
