@@ -455,7 +455,7 @@ try:
     repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists], 'Play File', 'Play All', 'Exit']]
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
 
     menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names, 'Timer',
                        ['Set Timer', 'Cancel Timer'], 'Play',
