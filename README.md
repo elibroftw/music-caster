@@ -2,9 +2,12 @@
 <img width=30px src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png" alt="Logo" style="vertical-align: bottom">
 Music Caster</h1>
 
+[![GitHub Releases](https://img.shields.io/github/downloads/elibroftw/music-caster/latest/total?color=blue&label=github%20downloads%40latest&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases/latest)
+[![Source Forge](https://img.shields.io/sourceforge/dt/music-caster?color=orange&label=SourceForge%20downloads&style=for-the-badge)](https://sourceforge.net/projects/music-caster/)
+
 Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc.)
 
-## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases)
+## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases/latest)
 
 Click the image below for a video demo.
 
