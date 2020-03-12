@@ -500,24 +500,20 @@ try:
             _artist = EasyID3(file_path).get('artist', ['Unknown'])
             _artist = ', '.join(_artist)
             album = EasyID3(file_path).get('album', 'Unknown')[0]
-        except Exception as _e:
-            handle_exception(_e)
+        except mutagen.id3.ID3NoHeaderError:
+            tags = mutagen.File(file)
+            tags.add_tags()
+            tags.save()
             _title = _artist = album = 'Unknown'
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
         pict = None
-        if file_path.lower().endswith('mp3'): tags = MP3(file_path)
-        elif file_path.lower().endswith('flac'): tags = FLAC(file_path)
-        elif file_path.lower().endswith('ogg'): tags = OggVorbis(file_path)
-        elif file_path.lower().endswith('m4a'): tags = MP4(file_path)
-        elif file_path.lower().endswith('aac'): tags = AAC(file_path)
-        else:
-            try: tags = mutagen.id3.ID3(file_path)
-            except mutagen.id3.ID3NoHeaderError:
-                tags = mutagen.File(file)
-                tags.add_tags()
-                tags.save()
+        try: tags = mutagen.id3.ID3(file_path)
+        except mutagen.id3.ID3NoHeaderError:
+            tags = mutagen.File(file)
+            tags.add_tags()
+            tags.save()
         for tag in tags.keys():
             if 'APIC' in tag:
                 pict = tags[tag].data
