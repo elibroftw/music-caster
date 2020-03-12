@@ -136,17 +136,19 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                    [Sg.Column(progress_bar_layout, justification='center')]]
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
-    mq_ctrls = [
+    mq_controls = [
         [Sg.Button('▲', key='move_up', pad=(2, 5))],
         [Sg.Button('❌', key='remove', pad=(0, 5))],
         [Sg.Button('▼', key='move_down', pad=(2, 5))]]
-    q_ctrls = [
-        [Sg.Button('Queue a file', font=font_normal, key='queue_file', pad=(0, 5))],
-        [Sg.Button('Play a file next ', font=font_normal, key='play_next', pad=(0, 5))]]
+    q_controls1 = [
+        [Sg.Button('Queue File...', font=font_normal, key='queue_file', pad=(0, 5))],
+        [Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(0, 5))],
+        [Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(0, 5))]]
+    q_controls2 = [[Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(0, 5))]]
     tab2_layout = [[
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, enable_events=True),
-        Sg.Column(mq_ctrls, pad=(0, 5)), Sg.Column(q_ctrls, pad=(0, 5))]]
+        Sg.Column(mq_controls, pad=(0, 5)), Sg.Column(q_controls1, pad=(0, 5)), Sg.Column(q_controls2, pad=(0, 5))]]
     # song_lib = sorted(all_songs.keys())
     # tab3_layout = [[
     #     Sg.Listbox(song_lib, size=(80, 30), default_values=song_lib[0] if song_lib else '', text_color=fg,

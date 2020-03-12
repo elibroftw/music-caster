@@ -28,12 +28,7 @@ from flask import Flask, jsonify, render_template, request, redirect
 import requests
 import mutagen
 import mutagen.id3
-from mutagen.mp3 import MP3
-from mutagen.flac import FLAC
 from mutagen.easyid3 import EasyID3
-from mutagen.oggvorbis import OggVorbis
-from mutagen.mp4 import MP4
-from mutagen.aac import AAC
 import PySimpleGUIWx as SgWx
 import wx
 import win32com.client
@@ -45,7 +40,7 @@ from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import winshell
 
-VERSION = '4.28.0'
+VERSION = '4.29.0'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -614,6 +609,8 @@ try:
         global music_directories, DEFAULT_DIR, playing_status
         if music_directories: DEFAULT_DIR = music_directories[0]
         else: DEFAULT_DIR = home_music_dir
+        # path_to_file = Sg.PopupGetFile('Select Music File', no_window=True, icon=WINDOW_ICON,
+        #                                initial_folder=DEFAULT_DIR)  # TODO: when file types becomes a parameter
         _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if _fd.ShowModal() != wx.ID_CANCEL:
@@ -1092,14 +1089,31 @@ try:
             elif main_event == 'queue_file':
                 if music_directories: DEFAULT_DIR = music_directories[0]
                 else: DEFAULT_DIR = home_music_dir
+                if not music_queue: start_playing = True
+                else: start_playing = False
                 fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR,
                                    wildcard='Audio File (*.mp3)|*mp3', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
                 if fd.ShowModal() != wx.ID_CANCEL:
-                    playing_file = fd.GetPath()
-                    music_queue.append(playing_file)
-                pass
+                    path_to_file = fd.GetPath()
+                    music_queue.append(path_to_file)
+                    if start_playing and music_queue: play_file(path_to_file)
+            elif main_event == 'queue_folder':
+                path_to_folder = Sg.PopupGetFolder('Select Folder', default_path=DEFAULT_DIR, no_window=True)
+                if not music_queue: start_playing = True
+                else: start_playing = False
+                if os.path.exists(path_to_folder):
+                    for file in glob(f'{path_to_folder}/**/*.*', recursive=True):
+                        if valid_music_file(file): music_queue.append(file)
+                    updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+                    main_window['music_queue'].Update(values=updated_list)
+                    if start_playing and music_queue: play_file(music_queue[0])
+            elif main_event == 'clear_queue':
+                if playing_status in {'PLAYING', 'PAUSED'}: stop()
+                music_queue.clear()
+                next_queue.clear()
+                done_queue.clear()
+                main_window['music_queue'].Update(values=[])
             elif main_event == 'play_next': play_next()
-            elif main_event == 'clear_queue': pass
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             elif main_event == 'library': play_all(all_songs[main_values['library']])
             if main_event == 'progressbar':
