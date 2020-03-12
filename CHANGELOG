@@ -3,7 +3,7 @@ Music Caster by Elijah Lopez Changelog
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
 4.29.0
-- [Feature] Added "Queue Folder" to main GUI (Tab 2)
+- [Feature] Added "Queue Folder" to the main GUI (Tab 2)
 - [Feature] Added "Clear Queue" to main GUI (Tab 2)
 - [Bug fix] Handled ID3 error when playing files
 - Reordered tray play menu
