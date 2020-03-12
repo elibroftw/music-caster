@@ -1102,9 +1102,13 @@ try:
                 path_to_folder = Sg.PopupGetFolder('Select Folder', default_path=DEFAULT_DIR, no_window=True)
                 if not music_queue: start_playing = True
                 else: start_playing = False
+
                 if os.path.exists(path_to_folder):
+                    temp_queue = []
                     for file in glob(f'{path_to_folder}/**/*.*', recursive=True):
-                        if valid_music_file(file): music_queue.append(file)
+                        if valid_music_file(file): temp_queue.append(file)
+                    if settings['shuffle_playlists']: shuffle(temp_queue)
+                    for file in temp_queue: music_queue.append(file)
                     updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
                     main_window['music_queue'].Update(values=updated_list)
                     if start_playing and music_queue: play_file(music_queue[0])
