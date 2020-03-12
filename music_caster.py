@@ -1097,6 +1097,7 @@ try:
                     path_to_file = fd.GetPath()
                     music_queue.append(path_to_file)
                     if start_playing and music_queue: play_file(path_to_file)
+                main_window.TKroot.focus_force()
             elif main_event == 'queue_folder':
                 path_to_folder = Sg.PopupGetFolder('Select Folder', default_path=DEFAULT_DIR, no_window=True)
                 if not music_queue: start_playing = True
@@ -1107,6 +1108,7 @@ try:
                     updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
                     main_window['music_queue'].Update(values=updated_list)
                     if start_playing and music_queue: play_file(music_queue[0])
+                main_window.TKroot.focus_force()
             elif main_event == 'clear_queue':
                 if playing_status in {'PLAYING', 'PAUSED'}: stop()
                 music_queue.clear()
