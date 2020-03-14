@@ -2,6 +2,10 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.30.0
+- [Feature] You can now open a file with Music Caster
+- File handling coming later
+
 4.29.0
 - [Feature] Added "Queue Folder" to the main GUI (Tab 2)
 - [Feature] Added "Clear Queue" to main GUI (Tab 2)

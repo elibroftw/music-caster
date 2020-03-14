@@ -40,7 +40,7 @@ from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import winshell
 
-VERSION = '4.29.0'
+VERSION = '4.30.0'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -50,7 +50,7 @@ starting_dir = os.path.dirname(os.path.realpath(__file__))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 settings = {  # default settings
-        'previous_device': None, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
+        'previous_device': None, 'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
         'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
         'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
         'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
@@ -231,9 +231,11 @@ def load_settings():
 
 load_settings()
 if not settings.get('DEBUG', False) and is_already_running():
-    while True:
+    r_text = 'False'
+    while PORT <= 2100 and r_text != 'True':
         with suppress(requests.exceptions.InvalidSchema):
-            if PORT == 2100 or requests.get(f'http://127.0.0.1:{PORT}/instance/').text == 'True': break
+            if len(sys.argv) > 1: r_text = requests.get(f'http://127.0.0.1:{PORT}/play?filename={sys.argv[1]}').text
+            else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
     sys.exit()
 
@@ -291,6 +293,21 @@ if settings['auto_update']:
             tray.Hide()
             sys.exit()
 
+# https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
+# if not settings.get('DEBUG', False) and getattr(sys, 'frozen', False) and settings['default_file_handler']:
+#     menu_name = 'Open With Music Caster'
+#     import winreg as wr
+#     for ext in ['Folder', '.mp3']:
+#         # Check for extension handler override
+#         key_val = 'SOFTWARE\\Classes\\' + ext + '\\shell\\' + menu_name + '\\command'
+#         try:
+#             key = wr.OpenKey(wr.HKEY_LOCAL_MACHINE, key_val, 0, wr.KEY_ALL_ACCESS)
+#         except WindowsError:
+#             key = wr.CreateKey(wr.HKEY_LOCAL_MACHINE, key_val)
+#         path_to_exe = f'{starting_dir}\\Music Caster.exe'
+#         wr.SetValueEx(key, '', 0, wr.REG_SZ, f'"{path_to_exe}"' + '\\"%1"\\')
+#         wr.CloseKey(key)
+
 
 if not settings.get('DEBUG', False):
     with suppress(requests.exceptions.ConnectionError):
@@ -333,6 +350,17 @@ try:
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
                                repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
                                starting_dir=Path(starting_dir).as_uri()[11:])
+
+
+    @app.route('/play/')
+    def play_file_page():
+        global music_queue, playing_status
+        if 'filename' in request.args:
+            _file_or_dir = request.args['filename']
+            if os.path.isfile(_file_or_dir): play_all(_file_or_dir)
+            elif os.path.isdir(_file_or_dir): play_folder(_file_or_dir)
+        return 'True'
+
 
     @app.route('/metadata/')
     def metadata():
@@ -749,6 +777,10 @@ try:
     
     listener_thread = Listener(on_press=on_press)
     listener_thread.start()
+    if len(sys.argv) > 1:
+        file_or_dir = sys.argv[1]
+        if os.path.isfile(file_or_dir): play_file(file_or_dir)
+        elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
     if settings.get('DEBUG', False): print('Running in tray')
     while True:
         menu_item = tray.Read(timeout=10)
@@ -982,7 +1014,7 @@ try:
             elif main_event == 'tab3_mouse_enter': mouse_hover = 'tab3'
             elif main_event == 'tab3_mouse_leave': mouse_hover = ''
             elif main_event in {'Locate File', 'e:69'}:
-                if music_queue: Popen(f'explorer /n,/select,"{fix_path(music_queue[0])}"')
+                if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             elif main_event == 'Pause/Resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()

@@ -36,7 +36,7 @@ exe = EXE(pyz,
                        'wxmsw30u_aui_vc140_x64.dll', 'wxmsw30u_gl_vc140_x64.dll', 'wxmsw30u_html_vc140_x64.dll',
                        'wxmsw30u_media_vc140_x64.dll', 'MSVCP140.DLL'],          
           runtime_tmpdir=None,
-          console=False,
+          console=True,
           icon='resources/Music Caster.ico',
           version='MC_version_info.txt')
 #  coll = COLLECT(
