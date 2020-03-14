@@ -40,13 +40,13 @@ from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import winshell
 
-VERSION = '4.30.0'
+VERSION = '4.30.1'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
 update_devices, cast = False, None
 chromecasts, device_names = [], []
-starting_dir = os.path.dirname(os.path.realpath(__file__))
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 settings = {  # default settings
@@ -421,11 +421,11 @@ try:
             shortcut = shell.CreateShortCut(path)
             if getattr(sys, 'frozen', False):  # Running in a bundle
                 target = f'{starting_dir}\\Music Caster.exe'
-            else:  # set shortcut to python script; __file__
+            else:
                 bat_file = f'{starting_dir}\\music_caster.bat'
                 if os.path.exists(bat_file):
                     with open('music_caster.bat', 'w') as _f:
-                        _f.write(f'pythonw {os.path.basename(__file__)}')
+                        _f.write(f'pythonw {os.path.basename(sys.argv[0])}')
                 target = bat_file
                 shortcut.IconLocation = f'{starting_dir}\\icon.ico'
             shortcut.Targetpath = target
