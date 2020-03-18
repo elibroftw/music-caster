@@ -157,7 +157,7 @@ def handle_exception(exception, restart_program=False):
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                            'EXCEPTION NAME': exc_type, 'LINE NUMBER': exc_tb.tb_lineno,
+                            'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': str(exc_tb.tb_lineno),
                             'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac})
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
