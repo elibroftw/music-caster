@@ -334,6 +334,12 @@ try:
                   text_element_background_color=bg)
 
 
+    @app.route('/shutdown/')
+    @app.route('/kill-server/')
+    def _kill_server():
+        request.environ.get('werkzeug.server.shutdown')()
+
+
     @app.route('/', methods=['GET', 'POST'])
     def home():  # web GUI
         global music_queue, playing_status
@@ -471,6 +477,7 @@ try:
     os.chdir(os.getcwd()[:3])  # set drive as the working dir
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
     while True:
         try:
             if not is_port_in_use(PORT):
@@ -576,6 +583,11 @@ try:
                 drive = file_path[:3]
                 file_path_obj = Path(file_path)
                 if drive != os.getcwd().replace('/', '\\'):
+                    # TEST the following (time it too)
+                    # requests.get(f'127.0.0.1:{PORT}/shutdown/')  # shutdown server
+                    # os.chdir(drive)
+                    # app = Flask(__name__, static_folder='/', static_url_path='/')
+                    # threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
                     new_file_path = f'{cc_music_dir}/{file_path_obj.name}'
                     for _file in glob(f'{cc_music_dir}/*'):
                         with suppress(OSError):
