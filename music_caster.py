@@ -41,7 +41,7 @@ from pynput.keyboard import Listener
 import pygame
 import winshell
 
-VERSION = '4.30.2'
+VERSION = '4.30.3'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -1393,10 +1393,11 @@ try:
                     new_i = max(index_to_rm - 1, 0)
                     pl_editor_window['songs'].Update(formatted_songs, set_to_index=new_i, scroll_to_index=new_i)
             elif pl_editor_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
-                move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
-                new_i = pl_editor_window['songs'].GetListValues().index(pl_editor_values['songs'][0]) + move
-                new_i = min(max(new_i, 0), len(pl_files) - 1)
-                pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
+                with suppress(IndexError):
+                    move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
+                    new_i = pl_editor_window['songs'].GetListValues().index(pl_editor_values['songs'][0]) + move
+                    new_i = min(max(new_i, 0), len(pl_files) - 1)
+                    pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if open_pl_selector:
                 open_pl_selector = False
                 active_windows['playlist_selector'] = True
