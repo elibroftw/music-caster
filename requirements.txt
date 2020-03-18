@@ -3,7 +3,7 @@ flask
 mutagen
 Pillow
 psutil
-pychromecast
+pychromecast==4.2.0
 pygame
 PyInstaller
 pynput==1.4.5

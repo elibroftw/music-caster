@@ -38,14 +38,15 @@ from pychromecast.error import UnsupportedNamespace
 import pychromecast
 from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
+import pygame
 import winshell
 
-VERSION = '4.30.1'
+VERSION = '4.30.2'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
 update_devices, cast = False, None
-chromecasts, device_names = [], []
+chromecasts, device_names = [], ['✓ Local device']
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
@@ -71,8 +72,8 @@ active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_se
                   'playlist_editor': False}
 
 
-def fix_path(path):
-    if platform.system() == 'Windows': return path.replace('/', '\\')
+def fix_path(path, by_os=True):
+    if by_os and platform.system() == 'Windows': return path.replace('/', '\\')
     else: return path.replace('\\', '/')
 
 
@@ -149,13 +150,15 @@ def handle_exception(exception, restart_program=False):
     if settings.get('DEBUG', False) and not getattr(sys, 'frozen', False): raise exception
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
+    exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
     mac = get_mac()
     with open(f'{starting_dir}/error.log', 'a+') as _f:
         _f.write(f'{_current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
                       json={'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                            'TRACEBACK': trace_back_msg, 'MAC': mac})
+                            'EXCEPTION NAME': exc_type, 'LINE NUMBER': exc_tb.tb_lineno,
+                            'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac})
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
         time.sleep(5)
@@ -318,7 +321,12 @@ if not settings.get('DEBUG', False):
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
-    local_music_player.init(44100, -16, 2, 2048)
+    try:
+        local_music_player.init(44100, -16, 2, 2048)
+        show_pygame_error = False
+    except pygame.error:
+        show_pygame_error = True
+
     helpers.ACCENT_COLOR, helpers.fg = settings['accent_color'], settings['text_color']
     helpers.bg = settings['background_color']
     helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
@@ -493,6 +501,8 @@ try:
                        ['Locate File', repeat_setting, 'Stop', 'Previous Song', 'Next Song', 'Resume'], 'Exit']]
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
+    if settings.get('notifications') and show_pygame_error:
+        tray.ShowMessage('Music Caster', 'ERROR: No local audio device found')
     if notifications_enabled: tray.ShowMessage('Music Caster', 'Music Caster is running in the tray', time=500)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
@@ -524,7 +534,7 @@ try:
             _artist = ', '.join(_artist)
             album = EasyID3(file_path).get('album', 'Unknown')[0]
         except mutagen.id3.ID3NoHeaderError:
-            tags = mutagen.File(file)
+            tags = mutagen.File(file_path)
             tags.add_tags()
             tags.save()
             _title = _artist = album = 'Unknown'
@@ -565,8 +575,11 @@ try:
                 s.close()
                 drive = file_path[:3]
                 file_path_obj = Path(file_path)
-                if drive != os.getcwd().replace('\\', '/'):
+                if drive != os.getcwd().replace('/', '\\'):
                     new_file_path = f'{cc_music_dir}/{file_path_obj.name}'
+                    for _file in glob(f'{cc_music_dir}/*'):
+                        with suppress(OSError):
+                            os.remove(_file)
                     copyfile(file_path, new_file_path)
                 else: new_file_path = file_path
                 uri_safe = Path(new_file_path).as_uri()[11:]
@@ -589,7 +602,8 @@ try:
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
                 song_start = time.time() - song_position
                 song_end = song_start + song_length
-            except (pychromecast.error.NotConnected, OSError):
+            except (pychromecast.error.NotConnected, OSError) as _e:
+                if _e == OSError: handle_exception(_e)
                 tray.ShowMessage('Music Caster', 'Could not connect to Chromecast device')
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
                 return
@@ -642,8 +656,8 @@ try:
         _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         if _fd.ShowModal() != wx.ID_CANCEL:
-            path_to_file = _fd.GetPath()
-            next_queue.append(path_to_file)
+            file_path = _fd.GetPath()
+            next_queue.append(file_path)
             if playing_status == 'NOT PLAYING':
                 if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
