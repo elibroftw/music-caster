@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.30.4
+- [Bug fix] Main GUI and shortcut creation
+
 4.30.3
 - [Bug fix] Playlist editor arrow key handler
 

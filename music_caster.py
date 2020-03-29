@@ -41,7 +41,7 @@ from pynput.keyboard import Listener
 import pygame
 import winshell
 
-VERSION = '4.30.3'
+VERSION = '4.30.4'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -428,25 +428,28 @@ try:
 
 
     def startup_setting(path):
-        run_on_startup = settings['run_on_startup']
-        shortcut_exists = os.path.exists(path)
-        if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
-            shell = win32com.client.Dispatch('WScript.Shell')
-            shortcut = shell.CreateShortCut(path)
-            if getattr(sys, 'frozen', False):  # Running in a bundle
-                target = f'{starting_dir}\\Music Caster.exe'
-            else:
-                bat_file = f'{starting_dir}\\music_caster.bat'
-                if os.path.exists(bat_file):
-                    with open('music_caster.bat', 'w') as _f:
-                        _f.write(f'pythonw {os.path.basename(sys.argv[0])}')
-                target = bat_file
-                shortcut.IconLocation = f'{starting_dir}\\icon.ico'
-            shortcut.Targetpath = target
-            shortcut.WorkingDirectory = starting_dir
-            shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
-            shortcut.save()
-        elif not run_on_startup and shortcut_exists: os.remove(path)
+        try:
+            run_on_startup = settings['run_on_startup']
+            shortcut_exists = os.path.exists(path)
+            if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
+                shell = win32com.client.Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(path)
+                if getattr(sys, 'frozen', False):  # Running in a bundle
+                    target = f'{starting_dir}\\Music Caster.exe'
+                else:
+                    bat_file = f'{starting_dir}\\music_caster.bat'
+                    if os.path.exists(bat_file):
+                        with open('music_caster.bat', 'w') as _f:
+                            _f.write(f'pythonw {os.path.basename(sys.argv[0])}')
+                    target = bat_file
+                    shortcut.IconLocation = f'{starting_dir}\\icon.ico'
+                shortcut.Targetpath = target
+                shortcut.WorkingDirectory = starting_dir
+                shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
+                shortcut.save()
+            elif not run_on_startup and shortcut_exists: os.remove(path)
+        except Exception as e:
+            handle_exception(e)
 
 
     shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'
@@ -837,7 +840,7 @@ try:
                 active_windows['main'] = True
                 volume = settings['volume']
                 repeat_setting = settings['repeat']
-                if playing_status in {'PAUSED', 'PLAYING'}:
+                if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
                     current_song = music_queue[0]
                     metadata = music_meta_data[current_song]
                     artist, title = metadata['artist'].split(', ')[0], metadata['title']
