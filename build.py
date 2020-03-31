@@ -18,7 +18,7 @@ MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuil
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build /p:Configuration=Release')
 s3 = subprocess.check_call('pyinstaller music_caster_onedir.spec')
-s4 = subprocess.check_call('iscc \"Installer Script NEW.iss\"')
+s4 = subprocess.check_call('iscc \"Setup Script.iss\"')
 s1.wait()
 
 
