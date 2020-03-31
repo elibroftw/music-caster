@@ -9,6 +9,7 @@ import logging
 from math import floor
 from pathlib import Path
 import platform
+import pprint
 from shutil import copyfile
 from random import shuffle
 from subprocess import Popen
@@ -41,7 +42,7 @@ from pynput.keyboard import Listener
 import pygame
 import winshell
 
-VERSION = '4.30.4'
+VERSION = '4.31.0'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -152,13 +153,18 @@ def handle_exception(exception, restart_program=False):
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
     mac = get_mac()
-    with open(f'{starting_dir}/error.log', 'a+') as _f:
-        _f.write(f'{_current_time}\nVERSION:{VERSION}\n{trace_back_msg}\n')
+    paylod = { 'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(), 
+               'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
+               'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac }
+    with open(f'{starting_dir}/error.log', 'r+') as _f:
+        content = _f.read()
+        f.seek(0, 0)
+        _f.write(pprint.pformat(paylod))
+        _f.write('\n')
+        _f.write(content)
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net',
-                      json={'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-                            'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
-                            'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac})
+                      json=payload)
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
         time.sleep(5)

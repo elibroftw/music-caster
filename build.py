@@ -41,16 +41,15 @@ with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
 
 print('Created dist/Portable.zip')
 
-with zipfile.ZipFile('dist/Python Files.zip', 'w') as zf:
-    zf.write('music_caster.py', 'music_caster.pyw')
-    zf.write('updater.py', 'updater.pyw')
-    zf.write('helpers.py', 'helpers.py')
+with zipfile.ZipFile('dist/Condensed Source.zip', 'w') as zf:
+    zf.write('music_caster.py')
+    zf.write('helpers.py')
+    zf.write('Music Caster Updater/Music Caster Updater/Program.cs', 'updater.cs')
     zf.write('resources/Music Caster.ico', 'icon.ico')
     zf.write('resources/default.png', 'images/default.png')
     zf.write('templates/home.html')
     zf.write('static/style.css')
     zf.write('requirements.txt')
-    zf.write('CHANGELOG', 'CHANGELOG.txt')
 
-print('Created dist/Python Files.zip')
+print('Created dist/Condensed Source.zip')
 print('Build Time:', time.time() - start_time, 'seconds')
