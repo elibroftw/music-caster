@@ -4,6 +4,7 @@ import os
 import shutil
 import json
 import zipfile
+import sys
 from contextlib import suppress
 
 start_time = time.time()
@@ -12,10 +13,12 @@ shutil.rmtree('dist/Music Caster', True)
 print('Installing dependencies...')
 subprocess.check_call('pip install -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 s1 = subprocess.Popen('pyinstaller music_caster_portable.spec')
-s2 = subprocess.Popen('pyinstaller updater.spec')
-s3 = subprocess.call('pyinstaller music_caster_onedir.spec')
-s2.wait()
-s4 = subprocess.call('iscc Installer Script NEW.iss')
+# s2 = subprocess.Popen('pyinstaller updater.spec')
+MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build /p:Configuration=Release')
+s3 = subprocess.check_call('pyinstaller music_caster_onedir.spec')
+s4 = subprocess.check_call('iscc \"Installer Script NEW.iss\"')
 s1.wait()
 
 
@@ -50,4 +53,4 @@ with zipfile.ZipFile('dist/Python Files.zip', 'w') as zf:
     zf.write('CHANGELOG', 'CHANGELOG.txt')
 
 print('Created dist/Python Files.zip')
-print('Time taken:', time.time() - start_time, 'seconds')
+print('Build Time:', time.time() - start_time, 'seconds')

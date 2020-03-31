@@ -59,10 +59,12 @@ There exists keyboard shortcuts, but I will put them here later
 - If MC stops working after changing the file, try using an IDE to detect syntax errors in `settings.json`
 
 ## Build Instructions
-1. `pip install -r requirements.txt`
-2. Make sure Python scripts folder is on PATH
-3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a `setup.exe`, run `build.py`
-4. Otherwise
+1. Have Python 3.6.x installed
+2. Have Visual Studio 2019 Installed
+3. `pip install -r requirements.txt`
+4. Make sure Python scripts folder is on PATH
+5. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH 
+6. run `build` or `build.py`
 
 ## Credits
 - default.png made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
