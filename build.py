@@ -14,7 +14,6 @@ shutil.rmtree('dist/Music Caster', True)
 print('Installing dependencies...')
 subprocess.check_call('pip install -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 s1 = subprocess.Popen('pyinstaller music_caster_portable.spec')
-# s2 = subprocess.Popen('pyinstaller updater.spec')
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build /p:Configuration=Release')

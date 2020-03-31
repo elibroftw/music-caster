@@ -1,14 +1,15 @@
+from contextlib import suppress
+from glob import glob
+import io
+import json
+import os
+from shutil import copyfileobj, rmtree
+from subprocess import Popen
 import time
+import zipfile
+
 from bs4 import BeautifulSoup
 import requests
-import json
-import zipfile
-import io
-import os
-from contextlib import suppress
-from subprocess import Popen
-from shutil import copyfileobj, rmtree
-from glob import glob
 
 
 def download(url, outfile):
