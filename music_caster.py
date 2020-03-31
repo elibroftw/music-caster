@@ -272,33 +272,20 @@ if settings['auto_update']:
             tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
             tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
             tray.Update(tooltip='Downloading Update...')
-            try:
-                if settings.get('DEBUG'):
-                    print(setup_download_link)
-                    print(bundle_download_link)
-                    print(source_download_link)
-                elif getattr(sys, 'frozen', False):
-                    if not os.path.exists('Updater.exe'):
-                        download(bundle_download_link, 'Portable.zip')
-                        os.rename('Portable/Updater.exe', 'Updater.exe')
-                    os.startfile('Updater.exe')
-                elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
-                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',
-                                         'updater.py')
-                    Popen(['pythonw', 'updater.py'])
-                elif os.path.exists('updater.pyw') or os.path.exists('music_caster.pyw'):
-                    download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',
-                                         'updater.pyw')
-                    Popen(['pythonw', 'updater.pyw'])
-            except Exception as e:
-                tray.ShowMessage('Music Caster', 'Auto update failed')
-                tray.Update(tooltip='Auto update failed')
-                change_settings('auto_update', False)
-                handle_exception(e)
+            if settings.get('DEBUG'):
+                print(setup_download_link)
+                print(bundle_download_link)
+                print(source_download_link)
+            elif getattr(sys, 'frozen', False) and os.path.exists('Updater.exe'):
+                os.startfile('Updater.exe')
+                tray.Hide()
+                sys.exit()
+            else:
+                tray.ShowMessage('Music Caster', f'Update v{latest_version} Available')
+                tray.Hide()
                 time.sleep(5)
-                if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
-            tray.Hide()
-            sys.exit()
+                tray.Close()
+            
 
 # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
 # if not settings.get('DEBUG', False) and getattr(sys, 'frozen', False) and settings['default_file_handler']:
