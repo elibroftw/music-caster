@@ -859,8 +859,8 @@ try:
                 main_window['music_queue'].Update(set_to_index=dq_len, scroll_to_index=dq_len)
                 main_window['Pause/Resume'].playing_status = playing_status
                 main_window['Repeat'].is_repeating = repeat_setting
-                main_window['volume'].bind('<Enter>', '_mouse_enter')
-                main_window['volume'].bind('<Leave>', '_mouse_leave')
+                main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
+                main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
                 main_window['progressbar'].bind('<Enter>', '_mouse_enter')
                 main_window['progressbar'].bind('<Leave>', '_mouse_leave')
                 main_window['tab2'].bind('<Enter>', '_mouse_enter')
@@ -1028,10 +1028,10 @@ try:
                         main_window['progressbar'].Update(value=new_position)
                         main_values['progressbar'] = new_position
                 elif mouse_hover == '':  # not in another tab
-                    main_event = 'volume'
-                    new_volume = min(max(0, main_values['volume'] + delta), 100)
-                    main_window['volume'].Update(value=new_volume)
-                    main_values['volume'] = new_volume
+                    main_event = 'volume_slider'
+                    new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
+                    main_window['volume_slider'].Update(value=new_volume)
+                    main_values['volume_slider'] = new_volume
                 main_window.Refresh()
             # if main_event != '__TIMEOUT__': print(main_event)
             if main_event == 'progressbar_mouse_enter': mouse_hover = 'progressbar'
@@ -1058,7 +1058,7 @@ try:
                 repeat_setting = change_settings('repeat', not settings['repeat'])
                 # update_repeat_img = True
                 # main_window['Repeat'].is_repeating = repeat_setting
-            elif main_event in {'volume', 'a', 'd'} or main_event.isdigit():
+            elif main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit():
                 delta = 0
                 if main_event.isdigit():
                     update_slider = True
@@ -1067,9 +1067,9 @@ try:
                     update_slider = False
                     if main_event == 'a': delta = -5
                     elif main_event == 'd': delta = 5
-                    new_volume = main_values['volume'] + delta
+                    new_volume = main_values['volume_slider'] + delta
                 change_settings('volume', new_volume)
-                if update_slider or delta != 0: main_window['volume'].Update(value=new_volume)
+                if update_slider or delta != 0: main_window['volume_slider'].Update(value=new_volume)
                 update_volume(new_volume)
             elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 with suppress(AttributeError, IndexError):
@@ -1479,7 +1479,7 @@ try:
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
                             if active_windows['settings']: settings_window['volume'].Update(volume)
-                            if active_windows['main']: main_window['volume'].Update(volume)
+                            if active_windows['main']: main_window['volume_slider'].Update(volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:

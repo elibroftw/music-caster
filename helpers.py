@@ -114,7 +114,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG),
                        Sg.Button(key='Repeat', image_data=REPEAT_SONG_IMG if repeating_song else REPEAT_ALL_IMG),
                        Sg.Image(data=VOLUME_IMG),
-                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume',
+                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
                                  text_color='#000000', size=(10, 10))]]
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, key='time_elapsed'),
