@@ -163,8 +163,7 @@ def handle_exception(exception, restart_program=False):
         _f.write('\n')
         _f.write(content)
     with suppress(requests.ConnectionError):
-        requests.post('https://enmuvo35nwiw.x.pipedream.net',
-                      json=payload)
+        requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
         time.sleep(5)
