@@ -41,13 +41,11 @@ def download_and_extract(link, infile, outfile=None):
 with suppress(FileNotFoundError):
     time.sleep(1)  # wait for calling script to exit
     os.chdir(os.path.dirname(os.path.realpath(__file__)))  # change working dir
-    loaded_settings = {'DEBUG': False, 'PORTABLE': False}
+    loaded_settings = {'DEBUG': False}
     if os.path.exists('settings.json'):
         with open('settings.json') as json_file:
             loaded_settings = json.load(json_file)
-    else: loaded_settings['portable'] = True
     debug_setting = loaded_settings.get('DEBUG', False)
-    is_portable = loaded_settings.get('PORTABLE', False)
     github_url = 'https://github.com/elibroftw/music-caster/releases'
     html_doc = requests.get(github_url).text
     soup = BeautifulSoup(html_doc, features='html.parser')
@@ -57,7 +55,7 @@ with suppress(FileNotFoundError):
         release_type = release_entry.find('span').text.strip()
         if release_type == 'Latest release': break
     details = release_entry.find('details', class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
-    download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
+    download_links = [link['href'] for link in details.find_all('a') if 'href' in link]
     setup_download_link = f'https://github.com{download_links[0]}'
     bundle_download_link = f'https://github.com{download_links[1]}'
     source_download_link = f'https://github.com{download_links[-2]}'
@@ -74,9 +72,8 @@ with suppress(FileNotFoundError):
             for f in glob('Portable/**/*.*', recursive=True):
                 if not f.endswith('Updater.exe'):
                     new_f = f.replace('Portable\\', '')
-                    if new_f != 'Updater.exe':
-                        with suppress(FileNotFoundError): os.remove(new_f)
-                        os.rename(f, f.replace('Portable\\', ''))
+                    with suppress(FileNotFoundError): os.remove(new_f)
+                    os.rename(f, new_f)
             os.remove('Portable')
             os.startfile('Music Caster.exe')
         else:

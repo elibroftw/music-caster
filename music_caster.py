@@ -32,7 +32,7 @@ from mutagen.easyid3 import EasyID3
 import PySimpleGUIWx as SgWx
 import wx
 import win32com.client
-# from PIL import Image
+from PIL import Image
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 import pychromecast
@@ -998,7 +998,7 @@ try:
             tray.Hide()
             with suppress(UnsupportedNamespace):
                 stop()
-                # if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
+                if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
                 # Commented because I am unsure if it is effective
             break
         

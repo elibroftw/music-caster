@@ -61,8 +61,8 @@ There exists keyboard shortcuts, but I will put them here later
 ## Build Instructions
 1. `pip install -r requirements.txt`
 2. Make sure Python scripts folder is on PATH
-3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a `setup.exe`, run `build` in CMD
-4. Otherwise, use `pyinstaller music_caster.spec && pyinstaller updater.spec && python after_build.py`
+3. If you have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH and want to build a `setup.exe`, run `build.py`
+4. Otherwise
 
 ## Credits
 - default.png made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
