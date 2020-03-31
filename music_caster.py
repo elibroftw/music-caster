@@ -270,22 +270,23 @@ if settings['auto_update']:
             source_download_link = f'https://github.com{download_links[-2]}'
             os.chdir(starting_dir)
             tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
-            tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
-            tray.Update(tooltip='Downloading Update...')
             if settings.get('DEBUG'):
                 print(setup_download_link)
                 print(bundle_download_link)
                 print(source_download_link)
             elif getattr(sys, 'frozen', False) and os.path.exists('Updater.exe'):
                 os.startfile('Updater.exe')
-                tray.Hide()
+                tray.Update(tooltip='Downloading Update...')
+                tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
+                time.sleep(2)
+                tray.Hide()    
                 sys.exit()
             else:
                 tray.ShowMessage('Music Caster', f'Update v{latest_version} Available')
                 tray.Hide()
                 time.sleep(5)
                 tray.Close()
-            
+                
 
 # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
 # if not settings.get('DEBUG', False) and getattr(sys, 'frozen', False) and settings['default_file_handler']:

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
-using System.Net.Http;
 
 using Newtonsoft.Json;
 using HtmlAgilityPack;
@@ -36,12 +35,10 @@ namespace Music_Caster_Updater
         }
         private static void Download(string url, string outfile)
         {
-            using (WebClient myWebClient = new WebClient())
-            {
-                string myStringWebResource = url;
-                myWebClient.DownloadFile(myStringWebResource, outfile);
-                if (outfile.EndsWith(".zip")) ExtractZip(outfile);
-            }
+            using WebClient myWebClient = new WebClient();
+            string myStringWebResource = url;
+            myWebClient.DownloadFile(myStringWebResource, outfile);
+            if (outfile.EndsWith(".zip")) ExtractZip(outfile);
         }
 
         private static List<string> DirectorySearch(string dir)
@@ -66,22 +63,19 @@ namespace Music_Caster_Updater
         }
 
 
-        static async System.Threading.Tasks.Task Main(string[] args)
+        static void Main(string[] args)
         {
-            HttpClient client = new HttpClient();
             Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
             Dictionary<string, object> loadedSettings = new Dictionary<string, object>() { { "DEBUG", false } };
 
             if (File.Exists("settings.json"))
             {
-                using (StreamReader r = new StreamReader("settings.json"))
-                {
-                    loadedSettings = JsonConvert.DeserializeObject<Dictionary<string, object>>(r.ReadToEnd());
-                }
+                using StreamReader r = new StreamReader("settings.json");
+                loadedSettings = JsonConvert.DeserializeObject<Dictionary<string, object>>(r.ReadToEnd());
             }
 
             bool debugSetting = (bool)loadedSettings.GetValueOrDefault("DEBUG", false);
-            string releasesURL = @"https://github.com/elibroftw/music-caster/releases";
+            const string releasesURL = @"https://github.com/elibroftw/music-caster/releases";
 
             HtmlWeb web = new HtmlWeb();
             HtmlDocument htmlDoc = web.Load(releasesURL);
