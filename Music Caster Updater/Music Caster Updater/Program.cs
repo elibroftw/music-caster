@@ -1,13 +1,14 @@
 ﻿using System;
-using System.IO;
-using System.Net;
-using System.IO.Compression;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
 using System.Net.Http;
 
 using Newtonsoft.Json;
 using HtmlAgilityPack;
-using System.Diagnostics;
+
 
 namespace Music_Caster_Updater
 {
@@ -22,11 +23,13 @@ namespace Music_Caster_Updater
                     string dir = Path.GetDirectoryName(entry.FullName);
                     if (dir != "" && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
                     if (entry.FullName.Contains("Updater")) continue;
-                    if (File.Exists(entry.FullName))
+                    try
                     {
-                        File.Delete(entry.FullName);
+                        if (File.Exists(entry.FullName)) File.Delete(entry.FullName);
+                        entry.ExtractToFile(entry.FullName);
                     }
-                    entry.ExtractToFile(entry.FullName);
+                    catch (IOException) { }
+                    catch (System.UnauthorizedAccessException) { }
                 }
             }
             File.Delete(fileName);
@@ -76,16 +79,16 @@ namespace Music_Caster_Updater
                     loadedSettings = JsonConvert.DeserializeObject<Dictionary<string, object>>(r.ReadToEnd());
                 }
             }
-            
-            bool debugSetting = (bool) loadedSettings.GetValueOrDefault("DEBUG", false);
+
+            bool debugSetting = (bool)loadedSettings.GetValueOrDefault("DEBUG", false);
             string releasesURL = @"https://github.com/elibroftw/music-caster/releases";
-            
+
             HtmlWeb web = new HtmlWeb();
             HtmlDocument htmlDoc = web.Load(releasesURL);
             HtmlNode releaseEntry = null;
             string latestVersion = null;
             foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//div[@class='release-entry']"))
-            {
+            {  // get the latest release
                 string releaseType = node.SelectSingleNode(".//span/a").InnerText;
                 if (releaseType == "Latest release")
                 {
@@ -99,7 +102,7 @@ namespace Music_Caster_Updater
                 HtmlNode details = releaseEntry.SelectSingleNode(".//details[contains(@class, 'details-reset') and contains(@class, 'Details-element')]");
                 List<string> downloadLinks = new List<string>();
                 foreach (HtmlNode node in details.SelectNodes(".//a"))
-                {
+                {  // get download links
                     string url = node.GetAttributeValue("href", "");
                     if (url != "")
                     {
@@ -109,29 +112,24 @@ namespace Music_Caster_Updater
                 string setupDownloadLink = $"https://github.com{downloadLinks[0]}";
                 string portableDownloadLink = $"https://github.com{downloadLinks[1]}";
                 string sourceDownloadLink = $"https://github.com{downloadLinks[downloadLinks.Count - 2]}";
-                debugSetting = false;
                 if (debugSetting)
                 {
                     Console.WriteLine($"Latest Version: {latestVersion}");
                     Console.WriteLine($"Portable: {portableDownloadLink}");
                     Console.WriteLine($"Installer: {setupDownloadLink}");
                     Console.WriteLine($"Source: {sourceDownloadLink}");
-                } else if (File.Exists("Music Caster.exe") || !debugSetting)
+                }
+                else if (File.Exists("unins000.exe"))
                 {
-                    if (File.Exists("unins000.exe"))
-                    { 
-                        Download(setupDownloadLink, "MC_Installer.exe");
-                        Process.Start("MC_Installer.exe / VERYSILENT / CLOSEAPPLICATIONS / FORCECLOSEAPPLICATIONS / MERGETASKS = \"!desktopicon\"");
-                    }
-                    else  // portable installation
-                    {
-                        Download(portableDownloadLink, "Portable.zip");
-                        Process.Start("\"Music Caster\"");           
-                    }
+                    Download(setupDownloadLink, "MC_Installer.exe");
+                    Process.Start("MC_Installer.exe / VERYSILENT / CLOSEAPPLICATIONS / FORCECLOSEAPPLICATIONS / MERGETASKS = \"!desktopicon\"");
+                }
+                else  // portable installation
+                {
+                    Download(portableDownloadLink, "Portable.zip");
+                    Process.Start("\"Music Caster.exe\"");
                 }
             }
-            
-
         }
     }
 }

@@ -39,7 +39,6 @@ def download_and_extract(link, infile, outfile=None):
 
 
 with suppress(FileNotFoundError):
-    time.sleep(1)  # wait for calling script to exit
     os.chdir(os.path.dirname(os.path.realpath(__file__)))  # change working dir
     loaded_settings = {'DEBUG': False}
     if os.path.exists('settings.json'):

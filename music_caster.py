@@ -276,7 +276,6 @@ if settings['auto_update']:
                     if not os.path.exists('Updater.exe'):
                         download(bundle_download_link, 'Portable.zip')
                         os.rename('Portable/Updater.exe', 'Updater.exe')
-                        # download_and_extract(bundle_download_link, 'Updater.exe')
                     os.startfile('Updater.exe')
                 elif os.path.exists('updater.py') or os.path.exists('music_caster.py'):
                     download_and_extract(source_download_link, f'music-caster-{latest_version}/updater.py',
