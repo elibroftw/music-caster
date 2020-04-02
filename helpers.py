@@ -107,20 +107,22 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
     
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     # Sg.Button('Shuffle', key='Shuffle'),
-    music_controls = [[Sg.Button(key='Locate File', image_data=FOLDER_ICON),
+    music_controls = [[Sg.Button(key='Locate File', image_data=FOLDER_ICON, tooltip='show file in explorer'),
                        Sg.Button(key='Prev', image_data=PREVIOUS_BUTTON_IMG),
                        # border_width=0, first add border to images
                        Sg.Button(key='Pause/Resume', image_data=pause_resume_img),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG),
-                       Sg.Button(key='Repeat', image_data=REPEAT_SONG_IMG if repeating_song else REPEAT_ALL_IMG),
-                       Sg.Image(data=VOLUME_IMG),
+                       Sg.Button(key='Repeat', image_data=REPEAT_SONG_IMG if repeating_song else REPEAT_ALL_IMG,
+                                 tooltip='repeat all tracks in music queue' if repeating_song else 'repeat current song'),
+                       Sg.Image(data=VOLUME_IMG, tooltip='control volume with mousewheel'),
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
-                                 text_color='#000000', size=(10, 10))]]
+                                 text_color='#000000', size=(10, 10), tooltip='scroll your mousewheel')]]
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
                                       enable_events=True, relief=Sg.RELIEF_FLAT, background_color=ACCENT_COLOR,
-                                      disable_number_display=True, disabled=now_playing_text == 'Nothing Playing'),
+                                      disable_number_display=True, disabled=now_playing_text == 'Nothing Playing',
+                                      tooltip='scroll your mousewheel'),
                             # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
                             Sg.Text('00:00', font=font_normal, text_color=fg, key='time_left')]]
     
@@ -137,9 +139,9 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     mq_controls = [
-        [Sg.Button('▲', key='move_up', pad=(2, 5))],
-        [Sg.Button('❌', key='remove', pad=(0, 5))],
-        [Sg.Button('▼', key='move_down', pad=(2, 5))]]
+        [Sg.Button('▲', key='move_up', pad=(2, 5), tooltip='move song up the queue')],
+        [Sg.Button('❌', key='remove', pad=(0, 5), tooltip='remove song from the queue')],
+        [Sg.Button('▼', key='move_down', pad=(2, 5), tooltip='move song down the queue')]]
     q_controls1 = [
         [Sg.Button('Queue File...', font=font_normal, key='queue_file', pad=(0, 5))],
         [Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(0, 5))],
@@ -197,7 +199,7 @@ def create_timer(settings):
         [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=settings['timer_sleep_computer'],
                   key='sleep', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
-        [Sg.Text('Enter minutes', text_color=fg, font=font_normal)],
+        [Sg.Text('Enter minutes or HH:MM',  tooltip='press enter once done', text_color=fg, font=font_normal)],
         [Sg.Input(key='minutes'), Sg.Submit(font=font_normal)]]
     return layout
 
@@ -207,9 +209,9 @@ def playlist_selector(playlists):
     layout = [
         [Sg.Combo(values=playlists, size=(41, 5), key='pl_selector', background_color=bg, font=font_normal,
                   enable_events=True, readonly=True, default_value=playlists[0] if playlists else None),
-         Sg.Button(button_text='Edit', key='edit_pl', enable_events=True, font=font_normal),
-         Sg.Button(button_text='Delete', key='del_pl', enable_events=True, font=font_normal),
-         Sg.Button(button_text='New', key='create_pl', enable_events=True, font=font_normal)]]
+         Sg.Button(button_text='Edit', key='edit_pl', tooltip='Ctrl + E', enable_events=True, font=font_normal),
+         Sg.Button(button_text='Delete', key='del_pl', tooltip='Ctrl + Del', enable_events=True, font=font_normal),
+         Sg.Button(button_text='New', key='create_pl', tooltip='Ctrl + N', enable_events=True, font=font_normal)]]
     return layout
 
 
@@ -220,18 +222,19 @@ def playlist_editor(initial_folder, playlists, playlist_name=''):
     layout = [[
         Sg.Text('Playlist name', text_color=fg, font=font_normal),
         Sg.Input(playlist_name, key='playlist_name'),
-        Sg.Submit('Save & quit', key='Save', font=font_normal, pad=(('11px', '11px'), (0, 0))),
-        Sg.Button('❌', key='Cancel', font=font_normal, enable_events=True)],
+        Sg.Submit('Save & quit', key='Save', tooltip='Ctrl + S', font=font_normal, pad=(('11px', '11px'), (0, 0))),
+        Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=font_normal, enable_events=True)],
         [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),),
                                        pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal,
                                        enable_events=True)],
-                       [Sg.Button('Remove song', key='Remove song', font=font_normal, enable_events=True)]],
+                       [Sg.Button('Remove song', key='Remove song', tooltip='Ctrl + R', font=font_normal,
+                                  enable_events=True)]],
                   background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
-             [Sg.Button('Move up', key='move_up', font=font_normal, enable_events=True)],
-             [Sg.Button('Move down ', key='move_down', font=font_normal, enable_events=True)]
+             [Sg.Button('Move up', key='move_up', tooltip='Ctrl + U', font=font_normal, enable_events=True)],
+             [Sg.Button('Move down ', key='move_down', tooltip='Ctrl + D', font=font_normal, enable_events=True)]
          ], background_color=bg, border_width=0)]]
     return layout
 

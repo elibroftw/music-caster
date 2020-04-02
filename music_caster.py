@@ -91,11 +91,12 @@ def change_settings(settings_key, value):
     save_json()
     if settings_key == 'repeat':
         with suppress(IndexError):
-            if value: tray.TaskBarIcon.menu[1][11][1] = 'Repeat ✓'
-            else: tray.TaskBarIcon.menu[1][11][1] = 'Repeat'
+            if value: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song ✓'
+            else: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song'
         if active_windows['main']:
             main_window['Repeat'].is_repeating = repeat_setting
-            main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
+            main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG,
+                                         tooltip='repeat all tracks in music queue' if value else 'repeat current song')
     return value
 
 
@@ -485,7 +486,8 @@ try:
     discovery_started = time.time()
     
     # TODO: add play folder
-    repeat_setting = 'Repeat ✓' if settings['repeat'] else 'Repeat'
+    repeat_setting = 'Repeat Song ✓' if settings['repeat'] else 'Repeat Song'
+    # NOTE: update change_settings if you change any menu_def
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
@@ -977,7 +979,7 @@ try:
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
         elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': previous()
-        elif menu_item in {'Repeat', 'Repeat ✓'}:
+        elif menu_item in {'Repeat Song', 'Repeat Song ✓'}:
             repeat_setting = change_settings('repeat', not settings['repeat'])
             if notifications_enabled:
                 if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
