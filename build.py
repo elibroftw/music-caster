@@ -41,7 +41,7 @@ with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
 
 print('Created dist/Portable.zip')
 
-with zipfile.ZipFile('dist/Condensed Source.zip', 'w') as zf:
+with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('music_caster.py')
     zf.write('helpers.py')
     zf.write('Music Caster Updater/Music Caster Updater/Program.cs', 'updater.cs')
@@ -51,5 +51,5 @@ with zipfile.ZipFile('dist/Condensed Source.zip', 'w') as zf:
     zf.write('static/style.css')
     zf.write('requirements.txt')
 
-print('Created dist/Condensed Source.zip')
+print('Created dist/Source Files Condensed.zip')
 print('Build Time:', time.time() - start_time, 'seconds')
