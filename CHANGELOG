@@ -5,9 +5,10 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 4.31.0
 - Optimized executable (smaller size + faster startup)
 - Optimized the updater by coding it in C#
+- Window positions are now remembered
 - Added some tooltips
-- Refactored main GUI code
 - Clarified what the repeat item does in the tray
+- Refactored main GUI code
 - [Bug fix] tray menu updates again if repeat is pressed
 
 4.30.4

@@ -52,14 +52,16 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 settings = {  # default settings
-        'previous_device': None, 'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
+        'previous_device': None,
+        'window_locations': {},
+        'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
         'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
         'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
         'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-        'EXPERIMENTAL': False, 'music_directories': [home_music_dir], 'playlists': {}}
+        'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
-music_directories, notifications_enabled = [], True
+music_directories, notifications_enabled, window_locations = [], True, {}
 all_songs = {}
 all_folders = ['PF: Select Folder']
 pl_name, pl_files = '', []
@@ -69,7 +71,7 @@ mouse_hover = ''
 MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
-active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
+window_active = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False}
 
 
@@ -85,7 +87,7 @@ def save_json():
 
 
 def change_settings(settings_key, value):
-    global settings, active_windows, tray
+    global settings, window_active, tray
     if settings[settings_key] == value: return value
     settings[settings_key] = value
     save_json()
@@ -93,9 +95,10 @@ def change_settings(settings_key, value):
         with suppress(IndexError):
             if value: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song ✓'
             else: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song'
-        if active_windows['main']:
+        if window_active['main']:
             main_window['Repeat'].is_repeating = repeat_setting
             main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
+            main_window['Repeat'].SetTooltip('repeat all tracks in music queue' if value else 'repeat current song')
     return value
 
 
@@ -194,6 +197,17 @@ def download_and_extract(link, infile, outfile=None):
     os.rename(f'{starting_dir}/Update/{infile}', outfile)
 
 
+def set_save_position_callback(window: Sg.Window, _key):
+    def save_window_position(_=None):
+        window_locations[_key] = window.CurrentLocation()
+        save_json()
+        window._OnClosingCallback()
+        window.TKroot.destroy()
+    window.TKroot.protocol("WM_DESTROY_WINDOW", save_window_position)
+    window.TKroot.protocol("WM_DELETE_WINDOW", save_window_position)
+    window.TKroot.bind('<Destroy>', save_window_position)
+
+
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
 
@@ -201,7 +215,7 @@ shutil.rmtree('Update', ignore_errors=True)
 def load_settings():
     """load (and fix if needed) the settings file"""
     # TODO: update any GUI values
-    global settings, playlists, notifications_enabled, music_directories, DEFAULT_DIR, settings_last_loaded
+    global settings, playlists, notifications_enabled, music_directories, DEFAULT_DIR, settings_last_loaded, window_locations
     if os.path.exists(settings_file):
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
@@ -221,6 +235,7 @@ def load_settings():
             notifications_enabled = settings['notifications']
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
+            window_locations = settings['window_locations']
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
             if _temp != music_directories or music_directories == [home_music_dir]:
                 compile_all_songs()
@@ -385,7 +400,7 @@ try:
     @app.route('/instance/')
     def instance():
         global keyboard_command
-        for k, v in active_windows.items():  # Opens up GUI
+        for k, v in window_active.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
                 elif k == 'settings': settings_window.bring_to_front()
@@ -829,10 +844,11 @@ try:
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
         if '__ACTIVATED__' in {menu_item, keyboard_command}:
-            if not active_windows['main']:
-                active_windows['main'] = True
+            if not window_active['main']:
+                window_active['main'] = True
                 volume = settings['volume']
                 repeat_setting = settings['repeat']
+                window_location = window_locations.get('main', (None, None))
                 if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
                     current_song = music_queue[0]
                     metadata = music_meta_data[current_song]
@@ -846,7 +862,7 @@ try:
                     main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
                                                       volume, repeat_setting, all_songs)
                 main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
-                                        return_keyboard_events=True, use_default_focus=False)
+                                        return_keyboard_events=True, use_default_focus=False, location=window_location)
                 dq_len = len(done_queue)
                 main_window.Finalize()
                 main_window['music_queue'].Update(set_to_index=dq_len, scroll_to_index=dq_len)
@@ -858,8 +874,9 @@ try:
                 main_window['progressbar'].bind('<Leave>', '_mouse_leave')
                 main_window['tab2'].bind('<Enter>', '_mouse_enter')
                 main_window['tab2'].bind('<Leave>', '_mouse_leave')
+                set_save_position_callback(main_window, 'main')
             main_window.TKroot.focus_force()
-            main_window.normal()
+            main_window.Normal()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
             if i == 0: new_cast = None
@@ -898,31 +915,32 @@ try:
                     do_autoplay = False if playing_status == 'PAUSED' else True
                     play_file(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
         elif menu_item == 'Settings':
-            if not active_windows['settings']:
-                active_windows['settings'] = True
+            if not window_active['settings']:
+                window_active['settings'] = True
                 # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
                 settings_layout = create_settings(VERSION, music_directories, settings)
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
-                                            icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False)
-                # settings_window.Read(timeout=1)
+                                            icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False,
+                                            location=window_locations.get('settings', (None, None)))
                 settings_window.Finalize()
-                # settings_window['volume'].bind('<Enter>', '_mouse_enter')
-                # settings_window['volume'].bind('<Leave>', '_mouse_leave')
+                set_save_position_callback(settings_window, 'settings')
             settings_window.TKroot.focus_force()
-            settings_window.normal()
+            settings_window.Normal()
         elif menu_item == 'Create/Edit a Playlist':
-            if active_windows['playlist_editor']:
+            if window_active['playlist_editor']:
                 pl_editor_window.TKroot.focus_force()
-                pl_editor_window.normal()
+                pl_editor_window.Normal()
                 continue
-            elif not active_windows['playlist_selector']:
+            elif not window_active['playlist_selector']:
                 load_settings()
-                active_windows['playlist_selector'] = True
+                window_active['playlist_selector'] = True
+                window_location = window_locations.get('playlist_selector', (None, None))
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
-                                               icon=WINDOW_ICON, return_keyboard_events=True)
-                pl_selector_window.Read(timeout=1)
+                                               icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
+                pl_selector_window.Finalize()
+                set_save_position_callback(pl_selector_window, 'playlist_selector')
             pl_selector_window.TKroot.focus_force()
-            pl_selector_window.normal()
+            pl_selector_window.Normal()
         elif menu_item.startswith('PL: '):  # playlist
             playlist = menu_item[4:]
             music_queue.clear()
@@ -941,13 +959,15 @@ try:
                     play_folder(path_to_folder)
             else: play_folder(music_directories[tray_folders.index(menu_item) - 1])
         elif menu_item == 'Set Timer':
-            if not active_windows['timer']:
-                active_windows['timer'], timer_layout = True, create_timer(settings)
+            if not window_active['timer']:
+                window_active['timer'], timer_layout = True, create_timer(settings)
+                window_location = window_locations.get('timer', (None, None))
                 timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
-                                         return_keyboard_events=True, grab_anywhere=True)
-                timer_window.Read(timeout=1)
+                                         return_keyboard_events=True, grab_anywhere=True, location=window_location)
+                timer_window.Finalize()
+                set_save_position_callback(timer_window, 'timer')
             timer_window.TKroot.focus_force()
-            timer_window.normal()
+            timer_window.Normal()
             timer_window.Element('minutes').SetFocus()
         elif menu_item == 'Cancel Timer':
             timer = 0
@@ -996,15 +1016,12 @@ try:
             break
         
         # MAIN WINDOW
-        if active_windows['main']:
+        if window_active['main']:
             main_event, main_values = main_window.Read(timeout=1)
-            if main_event is None:
-                active_windows['main'] = False
+            if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'Add Folder':
+                window_active['main'] = False
                 main_window.CloseNonBlocking()
                 continue
-            if main_event in {'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'Add Folder':
-                active_windows['main'] = False
-                main_window.CloseNonBlocking()
             main_last_event = main_event
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
@@ -1242,17 +1259,13 @@ try:
                 lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
 
         # SETTINGS WINDOW
-        if active_windows['settings']:
-            # TODO: handle delete key
+        if window_active['settings']:
             settings_event, settings_values = settings_window.Read(timeout=1)
-            if settings_event is None:
-                active_windows['settings'] = False
+            if settings_event in {None, 'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
+                window_active['settings'] = False
                 settings_window.CloseNonBlocking()
                 continue
             settings_value = settings_values.get(settings_event)
-            if settings_event in {'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
-                active_windows['settings'] = False
-                settings_window.CloseNonBlocking()
             # if settings_event.startswith('MouseWheel'):  #  and mouse_hover == 'volume'
             #     settings_event = settings_event.split(':', 1)[1]
             #     delta = {'Up': 5, 'Down': -5}.get(settings_event, 0)
@@ -1300,24 +1313,22 @@ try:
                 except OSError:
                     Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
-        if active_windows['playlist_selector']:
+        if window_active['playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
-                active_windows['playlist_selector'] = False
+                window_active['playlist_selector'] = False
                 pl_selector_window.CloseNonBlocking()
                 continue
             if pl_selector_event in {'del_pl', 'Delete:46'}:
                 pl_name = pl_selector_values.get('pl_selector', '')
                 if pl_name in playlists: del playlists[pl_name]
-                # new_values = list(playlists.keys())
-                # value = new_values[0] if new_values else ''
-                # pl_selector_window.Element('pl_selector').Update(value=value, values=new_values)
                 pl_selector_window.CloseNonBlocking()
+                window_location = window_locations.get('playlist_selector', (None, None))
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
-                                               icon=WINDOW_ICON, return_keyboard_events=True)
+                                               icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Read(timeout=1)
                 pl_selector_window.TKroot.focus_force()
-                pl_selector_window.normal()
+                pl_selector_window.Normal()
                 save_json()
                 tray_playlists.clear()
                 tray_playlists.append('Create/Edit a Playlist')
@@ -1330,21 +1341,23 @@ try:
                 else: pl_name = ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
                 pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(DEFAULT_DIR, playlists, pl_name),
-                                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True)
+                                             background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
+                                             location=window_locations.get('playlist_editor', (None, None)))
                 pl_files = playlists.get(pl_name, [])
                 pl_selector_window.CloseNonBlocking()
-                pl_editor_window.Read(timeout=1)
+                pl_editor_window.Finalize()
                 pl_editor_window.TKroot.focus_force()
-                pl_editor_window.normal()
+                pl_editor_window.Normal()
+                set_save_position_callback(pl_editor_window, 'playlist_editor')
                 if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
                 else:
                     pl_editor_window.Element('songs').SetFocus()
                     pl_editor_window.Element('songs').Update(set_to_index=0)
-                active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
-        if active_windows['playlist_editor']:
+                window_active['playlist_editor'], window_active['playlist_selector'] = True, False
+        if window_active['playlist_editor']:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
             if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
-                active_windows['playlist_editor'] = False
+                window_active['playlist_editor'] = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
             elif pl_editor_event in {'Save', 's:83'}:
@@ -1355,7 +1368,7 @@ try:
                     pl_name = new_name
                 playlists[pl_name] = pl_files
                 save_json()
-                active_windows['playlist_editor'] = False
+                window_active['playlist_editor'] = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
                 tray_playlists.clear()
@@ -1388,7 +1401,7 @@ try:
                     new_files = [file for file in selected_songs.split(';') if valid_music_file(file)]
                     pl_files += new_files
                     pl_editor_window.TKroot.focus_force()
-                    pl_editor_window.normal()
+                    pl_editor_window.Normal()
                     # current_songs = pl_editor_window.Element('songs').GetListValues()
                     formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                     new_i = len(formatted_songs) - 1  # - len(new_files)
@@ -1408,22 +1421,19 @@ try:
                     pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if open_pl_selector:
                 open_pl_selector = False
-                active_windows['playlist_selector'] = True
+                window_active['playlist_selector'] = True
+                window_location = window_locations.get('playlist_selector', (None, None))
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
-                                               icon=WINDOW_ICON, return_keyboard_events=True)
-                pl_selector_window.Read(timeout=1)
+                                               icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
+                pl_selector_window.Finalize()
                 pl_selector_window.TKroot.focus_force()
-                pl_selector_window.normal()
+                pl_selector_window.Normal()
+                set_save_position_callback(pl_selector_window, 'playlist_selector')
             pl_editor_last_event = pl_editor_event
-        if active_windows['timer']:
+        if window_active['timer']:
             timer_event, timer_values = timer_window.Read(timeout=1)
-            if timer_event is None:
-                active_windows['timer'] = False
-                timer_window.CloseNonBlocking()
-                continue
-            timer_value = timer_values.get(timer_event, None)
-            if timer_event in {'Escape:27', 'q', 'Q'}:
-                active_windows['timer'] = False
+            if timer_event in {None, 'Escape:27', 'q', 'Q'}:
+                window_active['timer'] = False
                 timer_window.CloseNonBlocking()
             elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
                 try:
@@ -1445,7 +1455,7 @@ try:
                         timer_set_to = timer_set_to.strftime('%#I:%M %p')
                         # timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
                         tray.ShowMessage('Music Caster', f'Timer set for {timer_set_to}', time=500)
-                    active_windows['timer'] = False
+                    window_active['timer'] = False
                     timer_window.CloseNonBlocking()
                 except ValueError:
                     Sg.PopupOK('Input a number!')
@@ -1471,8 +1481,8 @@ try:
                         elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
-                            if active_windows['settings']: settings_window['volume'].Update(volume)
-                            if active_windows['main']: main_window['volume_slider'].Update(volume)
+                            if window_active['settings']: settings_window['volume'].Update(volume)
+                            if window_active['main']: main_window['volume_slider'].Update(volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:
