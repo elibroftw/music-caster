@@ -95,8 +95,7 @@ def change_settings(settings_key, value):
             else: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song'
         if active_windows['main']:
             main_window['Repeat'].is_repeating = repeat_setting
-            main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG,
-                                         tooltip='repeat all tracks in music queue' if value else 'repeat current song')
+            main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
     return value
 
 
