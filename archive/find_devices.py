@@ -12,7 +12,7 @@ def connect_threaded(hostname, port, timeout, thread_index):
     if result: thread_results[thread_index] = hostname
 
 
-def connect(hostname, port, timeout=0.1):
+def connect(hostname, port=8008, timeout=0.1):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(timeout)
     result = sock.connect_ex((hostname, port))
@@ -46,7 +46,5 @@ if __name__ == '__main__':
     import time
     start = time.time()
     ccs = find_chromecasts()
-    c = ccs[0]
-    print(c in ccs)
     print(ccs)
     print(time.time() - start)

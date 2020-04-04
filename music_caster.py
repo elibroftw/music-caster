@@ -36,6 +36,7 @@ import win32com.client
 # from PIL import Image
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
+from pychromecast.config import APP_MEDIA_RECEIVER
 import pychromecast
 from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
@@ -682,7 +683,7 @@ try:
             file_path = _fd.GetPath()
             next_queue.append(file_path)
             if playing_status == 'NOT PLAYING':
-                if cast is not None and cast.app_id != 'CC1AD845': cast.wait(timeout=WAIT_TIMEOUT)
+                if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
                 next_song()
 
@@ -764,7 +765,7 @@ try:
     def stop():
         global playing_status, cast, song_position, time_left
         playing_status = 'NOT PLAYING'
-        if mc is not None and cast is not None and cast.app_id == 'CC1AD845':
+        if mc is not None and cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             mc.stop()
             while mc.is_playing or mc.is_paused: time.sleep(0.1)
         elif local_music_player.music.get_busy():
@@ -775,7 +776,7 @@ try:
 
     def next_song(from_timeout=False):
         global playing_status
-        if cast is not None and cast.app_id != 'CC1AD845':
+        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
             playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
             if not settings['repeat'] or not from_timeout or not music_queue:
@@ -792,7 +793,7 @@ try:
 
     def previous():
         global playing_status
-        if cast is not None and cast.app_id != 'CC1AD845': playing_status = 'NOT PLAYING'
+        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING':
             if done_queue:
                 change_settings('repeat', False)
@@ -1011,7 +1012,7 @@ try:
             tray.Hide()
             with suppress(UnsupportedNamespace):
                 stop()
-                if cast is not None and cast.app_id == 'CC1AD845': cast.quit_app()
+                if cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
                 # Commented because I am unsure if it is effective
             break
         
@@ -1467,7 +1468,7 @@ try:
         if mc is not None and time.time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast is not None:
-                    if cast.app_id == 'CC1AD845':
+                    if cast.app_id == APP_MEDIA_RECEIVER:
                         mc.update_status()
                         is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
                         new_song_position = mc.status.adjusted_current_time
