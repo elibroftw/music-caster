@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.32.0
+- Added basic optional Discord RPC integration
+
 4.31.0
 - Optimized executable (smaller size + faster startup)
 - Optimized the updater by coding it in C#

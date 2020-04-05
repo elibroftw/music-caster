@@ -41,9 +41,11 @@ import pychromecast
 from pygame import mixer as local_music_player
 from pynput.keyboard import Listener
 import pygame
+import pypresence
 import winshell
 
-VERSION = '4.31.0'
+VERSION = '4.32.0'
+MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -57,7 +59,7 @@ settings = {  # default settings
         'window_locations': {},
         'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
         'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
-        'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+        'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False, 'discord_rpc': True,
         'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
         'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
@@ -533,7 +535,8 @@ try:
     progress_bar_last_update = song_position = 0  # also seconds but relative to length of song
     mc, playing_status, time_left = None, 'NOT PLAYING', 0
     settings_last_loaded = cast_last_checked = time.time()
-
+    rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
+    rich_presence.connect()
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
@@ -638,6 +641,8 @@ try:
             playing_status = 'PLAYING'
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
         cast_last_checked = time.time()
+        if settings['discord_rpc']:
+            rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
 
 
     def play_all(starting_file=None):
@@ -740,8 +745,11 @@ try:
                 song_position = time.time() - song_start
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
+            _artist, _title = get_file_info(music_queue[0])
+            if settings['discord_rpc']:
+                rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Paused', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
-            playing_status = 'NOT PLAYING'
+            stop()
 
 
     def resume():
@@ -758,6 +766,9 @@ try:
             song_start = time.time() - song_position
             song_end = song_start + song_length
             playing_status = 'PLAYING'
+            _artist, _title = get_file_info(music_queue[0])
+            if settings['discord_rpc']:
+                rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Playing', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
 
@@ -772,6 +783,7 @@ try:
             local_music_player.music.stop()
             # local_music_player.music.unload()  # only in 2.0
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
+        if settings['discord_rpc']: rich_presence.clear()
 
 
     def next_song(from_timeout=False):
@@ -1010,6 +1022,8 @@ try:
             if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
             tray.Hide()
+            rich_presence.clear()
+            rich_presence.close()
             with suppress(UnsupportedNamespace):
                 stop()
                 if cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
@@ -1278,10 +1292,15 @@ try:
             # elif settings_event == 'volume_mouse_leave': mouse_hover = ''
             if settings_event == 'email':
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
-            elif settings_event in {'auto_update', 'run_on_startup', 'notifications', 'shuffle_playlists'}:
+            elif settings_event in {'auto_update', 'run_on_startup', 'notifications', 'shuffle_playlists', 'discord_rpc'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run_on_startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
+                elif settings_event == 'discord_rpc':
+                    if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
+                        artist, title = get_file_info(music_queue[0])
+                        rich_presence.update(state=artist, details=title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
+                    elif not settings_value: rich_presence.clear()
             # elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
             #     delta = 0
             #     if settings_event.isdigit():

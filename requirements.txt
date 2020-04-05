@@ -13,6 +13,7 @@ PySimpleGUI==4.16.0
 PySimpleGUIWx==0.14.0
 PySimpleGUIQt
 pypiwin32
+pypresence
 wxpython
 winshell
 requests
