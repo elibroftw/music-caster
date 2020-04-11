@@ -783,6 +783,8 @@ try:
     def stop():
         global playing_status, cast, song_position, time_left
         playing_status = 'NOT PLAYING'
+        if settings['discord_rpc']:
+            with suppress(AttributeError, pypresence.InvalidID, RuntimeError): rich_presence.clear()
         if mc is not None and cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             mc.stop()
             while mc.is_playing or mc.is_paused: time.sleep(0.1)
@@ -790,8 +792,6 @@ try:
             local_music_player.music.stop()
             # local_music_player.music.unload()  # only in 2.0
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
-        if settings['discord_rpc']:
-            with suppress(AttributeError, pypresence.InvalidID): rich_presence.clear()
 
 
     def next_song(from_timeout=False):
@@ -1030,12 +1030,11 @@ try:
             if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
             tray.Hide()
-            with suppress(AttributeError, pypresence.InvalidID):
-                rich_presence.clear()
-                rich_presence.close()
             with suppress(UnsupportedNamespace):
                 stop()
                 if cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
+            with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
+                rich_presence.close()
                 # Commented because I am unsure if it is effective
             break
         
