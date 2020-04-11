@@ -74,7 +74,7 @@ mouse_hover = ''
 MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
-window_active = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
+active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False}
 
 
@@ -90,7 +90,7 @@ def save_json():
 
 
 def change_settings(settings_key, value):
-    global settings, window_active, tray
+    global settings, active_windows, tray
     if settings[settings_key] == value: return value
     settings[settings_key] = value
     save_json()
@@ -98,7 +98,7 @@ def change_settings(settings_key, value):
         with suppress(IndexError):
             if value: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song ✓'
             else: tray.TaskBarIcon.menu[1][9][1] = 'Repeat Song'
-        if window_active['main']:
+        if active_windows['main']:
             main_window['Repeat'].is_repeating = repeat_setting
             main_window['Repeat'].Update(image_data=REPEAT_SONG_IMG if value else REPEAT_ALL_IMG)
             main_window['Repeat'].SetTooltip('repeat all tracks in music queue' if value else 'repeat current song')
@@ -201,7 +201,10 @@ def download_and_extract(link, infile, outfile=None):
 
 
 def set_save_position_callback(window: Sg.Window, _key):
+    print(_key)
+
     def save_window_position(_=None):
+        print(_)
         window_locations[_key] = window.CurrentLocation()
         save_json()
         window._OnClosingCallback()
@@ -403,7 +406,7 @@ try:
     @app.route('/instance/')
     def instance():
         global keyboard_command
-        for k, v in window_active.items():  # Opens up GUI
+        for k, v in active_windows.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
                 elif k == 'settings': settings_window.bring_to_front()
@@ -536,7 +539,8 @@ try:
     mc, playing_status, time_left = None, 'NOT PLAYING', 0
     settings_last_loaded = cast_last_checked = time.time()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
-    rich_presence.connect()
+    with suppress(pypresence.InvalidPipe):
+        rich_presence.connect()
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
@@ -642,7 +646,8 @@ try:
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
         cast_last_checked = time.time()
         if settings['discord_rpc']:
-            rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
+            with suppress(AttributeError, pypresence.InvalidID):
+                rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
 
 
     def play_all(starting_file=None):
@@ -747,7 +752,8 @@ try:
             playing_status = 'PAUSED'
             _artist, _title = get_file_info(music_queue[0])
             if settings['discord_rpc']:
-                rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Paused', small_image='logo', small_text='Music Caster')
+                with suppress(AttributeError, pypresence.InvalidID):
+                    rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Paused', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             stop()
 
@@ -768,7 +774,8 @@ try:
             playing_status = 'PLAYING'
             _artist, _title = get_file_info(music_queue[0])
             if settings['discord_rpc']:
-                rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Playing', small_image='logo', small_text='Music Caster')
+                with suppress(AttributeError, pypresence.InvalidID):
+                    rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Playing', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
 
@@ -783,7 +790,8 @@ try:
             local_music_player.music.stop()
             # local_music_player.music.unload()  # only in 2.0
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
-        if settings['discord_rpc']: rich_presence.clear()
+        if settings['discord_rpc']:
+            with suppress(AttributeError, pypresence.InvalidID): rich_presence.clear()
 
 
     def next_song(from_timeout=False):
@@ -857,8 +865,8 @@ try:
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
         if '__ACTIVATED__' in {menu_item, keyboard_command}:
-            if not window_active['main']:
-                window_active['main'] = True
+            if not active_windows['main']:
+                active_windows['main'] = True
                 volume = settings['volume']
                 repeat_setting = settings['repeat']
                 window_location = window_locations.get('main', (None, None))
@@ -928,8 +936,8 @@ try:
                     do_autoplay = False if playing_status == 'PAUSED' else True
                     play_file(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
         elif menu_item == 'Settings':
-            if not window_active['settings']:
-                window_active['settings'] = True
+            if not active_windows['settings']:
+                active_windows['settings'] = True
                 # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
                 settings_layout = create_settings(VERSION, music_directories, settings)
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
@@ -940,13 +948,13 @@ try:
             settings_window.TKroot.focus_force()
             settings_window.Normal()
         elif menu_item == 'Create/Edit a Playlist':
-            if window_active['playlist_editor']:
+            if active_windows['playlist_editor']:
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
                 continue
-            elif not window_active['playlist_selector']:
+            elif not active_windows['playlist_selector']:
                 load_settings()
-                window_active['playlist_selector'] = True
+                active_windows['playlist_selector'] = True
                 window_location = window_locations.get('playlist_selector', (None, None))
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
@@ -972,8 +980,8 @@ try:
                     play_folder(path_to_folder)
             else: play_folder(music_directories[tray_folders.index(menu_item) - 1])
         elif menu_item == 'Set Timer':
-            if not window_active['timer']:
-                window_active['timer'], timer_layout = True, create_timer(settings)
+            if not active_windows['timer']:
+                active_windows['timer'], timer_layout = True, create_timer(settings)
                 window_location = window_locations.get('timer', (None, None))
                 timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
                                          return_keyboard_events=True, grab_anywhere=True, location=window_location)
@@ -1022,8 +1030,9 @@ try:
             if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
             tray.Hide()
-            rich_presence.clear()
-            rich_presence.close()
+            with suppress(AttributeError, pypresence.InvalidID):
+                rich_presence.clear()
+                rich_presence.close()
             with suppress(UnsupportedNamespace):
                 stop()
                 if cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
@@ -1031,10 +1040,10 @@ try:
             break
         
         # MAIN WINDOW
-        if window_active['main']:
+        if active_windows['main']:
             main_event, main_values = main_window.Read(timeout=1)
             if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'Add Folder':
-                window_active['main'] = False
+                active_windows['main'] = False
                 main_window.CloseNonBlocking()
                 continue
             main_last_event = main_event
@@ -1274,10 +1283,10 @@ try:
                 lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
 
         # SETTINGS WINDOW
-        if window_active['settings']:
+        if active_windows['settings']:
             settings_event, settings_values = settings_window.Read(timeout=1)
             if settings_event in {None, 'q', 'Q'} or settings_event == 'Escape:27' and settings_last_event != 'Add Folder':
-                window_active['settings'] = False
+                active_windows['settings'] = False
                 settings_window.CloseNonBlocking()
                 continue
             settings_value = settings_values.get(settings_event)
@@ -1297,10 +1306,11 @@ try:
                 if settings_event == 'run_on_startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
                 elif settings_event == 'discord_rpc':
-                    if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
-                        artist, title = get_file_info(music_queue[0])
-                        rich_presence.update(state=artist, details=title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
-                    elif not settings_value: rich_presence.clear()
+                    with suppress(AttributeError, pypresence.InvalidID):
+                        if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
+                            artist, title = get_file_info(music_queue[0])
+                            rich_presence.update(state=artist, details=title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
+                        elif not settings_value: rich_presence.clear()
             # elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
             #     delta = 0
             #     if settings_event.isdigit():
@@ -1333,10 +1343,10 @@ try:
                 except OSError:
                     Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
-        if window_active['playlist_selector']:
+        if active_windows['playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
-                window_active['playlist_selector'] = False
+                active_windows['playlist_selector'] = False
                 pl_selector_window.CloseNonBlocking()
                 continue
             if pl_selector_event in {'del_pl', 'Delete:46'}:
@@ -1368,16 +1378,16 @@ try:
                 pl_editor_window.Finalize()
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
-                set_save_position_callback(pl_editor_window, 'playlist_editor')
+                # set_save_position_callback(pl_editor_window, 'playlist_editor')
                 if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
                 else:
                     pl_editor_window.Element('songs').SetFocus()
                     pl_editor_window.Element('songs').Update(set_to_index=0)
-                window_active['playlist_editor'], window_active['playlist_selector'] = True, False
-        if window_active['playlist_editor']:
+                active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
+        if active_windows['playlist_editor']:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
             if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
-                window_active['playlist_editor'] = False
+                active_windows['playlist_editor'] = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
             elif pl_editor_event in {'Save', 's:83'}:
@@ -1388,7 +1398,7 @@ try:
                     pl_name = new_name
                 playlists[pl_name] = pl_files
                 save_json()
-                window_active['playlist_editor'] = False
+                active_windows['playlist_editor'] = False
                 pl_editor_window.CloseNonBlocking()
                 open_pl_selector = True
                 tray_playlists.clear()
@@ -1416,6 +1426,7 @@ try:
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
                                                                  scroll_to_index=new_i)
             elif pl_editor_event == 'Add songs':
+                print('test')
                 selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
                     new_files = [file for file in selected_songs.split(';') if valid_music_file(file)]
@@ -1441,7 +1452,7 @@ try:
                     pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if open_pl_selector:
                 open_pl_selector = False
-                window_active['playlist_selector'] = True
+                active_windows['playlist_selector'] = True
                 window_location = window_locations.get('playlist_selector', (None, None))
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
@@ -1450,10 +1461,10 @@ try:
                 pl_selector_window.Normal()
                 set_save_position_callback(pl_selector_window, 'playlist_selector')
             pl_editor_last_event = pl_editor_event
-        if window_active['timer']:
+        if active_windows['timer']:
             timer_event, timer_values = timer_window.Read(timeout=1)
             if timer_event in {None, 'Escape:27', 'q', 'Q'}:
-                window_active['timer'] = False
+                active_windows['timer'] = False
                 timer_window.CloseNonBlocking()
             elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
                 try:
@@ -1475,7 +1486,7 @@ try:
                         timer_set_to = timer_set_to.strftime('%#I:%M %p')
                         # timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
                         tray.ShowMessage('Music Caster', f'Timer set for {timer_set_to}', time=500)
-                    window_active['timer'] = False
+                    active_windows['timer'] = False
                     timer_window.CloseNonBlocking()
                 except ValueError:
                     Sg.PopupOK('Input a number!')
@@ -1501,8 +1512,8 @@ try:
                         elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
                         if volume != cast_volume:
                             volume = change_settings('volume', cast_volume)
-                            if window_active['settings']: settings_window['volume'].Update(volume)
-                            if window_active['main']: main_window['volume_slider'].Update(volume)
+                            if active_windows['settings']: settings_window['volume'].Update(volume)
+                            if active_windows['main']: main_window['volume_slider'].Update(volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:

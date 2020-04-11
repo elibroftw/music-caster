@@ -4,6 +4,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.32.0
 - Added basic optional Discord RPC integration
+- Fixed playlist editor window (position is not saved for now)
 
 4.31.0
 - Optimized executable (smaller size + faster startup)
