@@ -44,7 +44,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.32.0'
+VERSION = '4.32.3'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py

@@ -102,7 +102,7 @@ namespace Music_Caster_Updater
                 else if (File.Exists("unins000.exe"))
                 {   // Was installed using the Installer
                     Download(setupDownloadLink, "MC_Installer.exe");
-                    Process.Start("MC_Installer.exe", "/ VERYSILENT / CLOSEAPPLICATIONS / FORCECLOSEAPPLICATIONS / MERGETASKS = \"!desktopicon\"");
+                    Process.Start("MC_Installer.exe", "/VERYSILENT /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /MERGETASKS=\"!desktopicon\"");
                 }
                 else
                 {   // portable installation
