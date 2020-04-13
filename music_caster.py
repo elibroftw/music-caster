@@ -45,7 +45,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.33.0'
+VERSION = '4.33.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -654,8 +654,8 @@ try:
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
         cast_last_checked = time.time()
         if settings['discord_rpc']:
-            with suppress(pypresence.InvalidPipe):
-                    rich_presence.connect()
+            with suppress(pypresence.InvalidPipe, RuntimeError):
+                rich_presence.connect()
             with suppress(AttributeError, pypresence.InvalidID):
                 rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
 

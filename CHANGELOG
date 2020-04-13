@@ -2,15 +2,18 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.33.1
+- [Bug fix] Discord RPC bug when using web GUI
+
 4.33.0
 - Added QR Code to settings for quick access to the web GUI
-- Fixed spelling errors in code (might be the reason I haven't received errors)
-- Fixed Web GUI when no file is playing
+- [Bug fix] Error when handling exception
+- [Bug fix] Web GUI when no file is playing
 
 4.32.3
-- Fixed Updater.exe AGAIN
+- [Bug fix] Updater.exe AGAIN
 - Added basic optional Discord RPC integration
-- Fixed playlist editor window (position is not saved for now)
+- [Bug fix] playlist editor window (window position is not saved for now)
 
 4.31.0
 - Optimized executable (smaller size + faster startup)
