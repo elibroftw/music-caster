@@ -10,6 +10,7 @@ from math import floor
 from pathlib import Path
 import platform
 import pprint
+import pyqrcode
 from shutil import copyfile
 from random import shuffle
 from subprocess import Popen
@@ -159,13 +160,13 @@ def handle_exception(exception, restart_program=False):
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
     mac = get_mac()
-    paylod = { 'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(), 
+    payload = { 'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
                'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
                'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac }
     with open(f'{starting_dir}/error.log', 'r+') as _f:
         content = _f.read()
         f.seek(0, 0)
-        _f.write(pprint.pformat(paylod))
+        _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
     with suppress(requests.ConnectionError):
@@ -201,10 +202,8 @@ def download_and_extract(link, infile, outfile=None):
 
 
 def set_save_position_callback(window: Sg.Window, _key):
-    print(_key)
 
     def save_window_position(_=None):
-        print(_)
         window_locations[_key] = window.CurrentLocation()
         save_json()
         window._OnClosingCallback()
@@ -367,7 +366,7 @@ try:
             elif 'repeat' in request.args: change_settings('repeat', not settings['repeat'])
             elif 'shuffle' in request.args: change_settings('shuffle', not settings['shuffle'])
             return redirect('/')
-        if music_queue:
+        if music_queue and playing_status in {'PLAYING', 'PAUSED'}:
             file_path = music_queue[0]
             _metadata = music_meta_data[file_path]
         else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
@@ -539,8 +538,20 @@ try:
     mc, playing_status, time_left = None, 'NOT PLAYING', 0
     settings_last_loaded = cast_last_checked = time.time()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
-    with suppress(pypresence.InvalidPipe):
-        rich_presence.connect()
+
+
+    def get_ipv4() -> str:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ipv4_address = s.getsockname()[0]
+        s.close()
+        return ipv4_address
+
+
+    def create_qr_code():
+        qr_code = pyqrcode.create(f'http://{get_ipv4()}:{PORT}')
+        return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
+
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
@@ -570,7 +581,7 @@ try:
         pict = None
         try: tags = mutagen.id3.ID3(file_path)
         except mutagen.id3.ID3NoHeaderError:
-            tags = mutagen.File(file)
+            tags = mutagen.File(file_path)
             tags.add_tags()
             tags.save()
         for tag in tags.keys():
@@ -595,10 +606,7 @@ try:
             song_end = song_start + song_length
         else:
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                s.connect(('8.8.8.8', 80))
-                ipv4_address = s.getsockname()[0]
-                s.close()
+                ipv4_address = get_ipv4()
                 drive = file_path[:3]
                 file_path_obj = Path(file_path)
                 if drive != os.getcwd().replace('/', '\\'):
@@ -646,6 +654,8 @@ try:
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
         cast_last_checked = time.time()
         if settings['discord_rpc']:
+            with suppress(pypresence.InvalidPipe):
+                    rich_presence.connect()
             with suppress(AttributeError, pypresence.InvalidID):
                 rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
 
@@ -939,7 +949,9 @@ try:
             if not active_windows['settings']:
                 active_windows['settings'] = True
                 # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
-                settings_layout = create_settings(VERSION, music_directories, settings)
+                # TODO: test if no internet connection
+                qr_data = create_qr_code()
+                settings_layout = create_settings(VERSION, music_directories, settings, qr_data)
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
                                             icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False,
                                             location=window_locations.get('settings', (None, None)))
@@ -1300,6 +1312,8 @@ try:
             # elif settings_event == 'volume_mouse_leave': mouse_hover = ''
             if settings_event == 'email':
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
+            if settings_event == 'web_gui':
+                webbrowser.open(f'http://{get_ipv4()}:{PORT}')
             elif settings_event in {'auto_update', 'run_on_startup', 'notifications', 'shuffle_playlists', 'discord_rpc'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run_on_startup': startup_setting(shortcut_path)
@@ -1425,7 +1439,6 @@ try:
                         pl_editor_window.Element('songs').Update(values=formatted_songs, set_to_index=new_i,
                                                                  scroll_to_index=new_i)
             elif pl_editor_event == 'Add songs':
-                print('test')
                 selected_songs = pl_editor_values['Add songs']
                 if selected_songs:
                     new_files = [file for file in selected_songs.split(';') if valid_music_file(file)]

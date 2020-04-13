@@ -2,6 +2,11 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.33.0
+- Added QR Code to settings for quick access to the web GUI
+- Fixed spelling errors in code (might be the reason I haven't received errors)
+- Fixed Web GUI when no file is playing
+
 4.32.3
 - Fixed Updater.exe AGAIN
 - Added basic optional Discord RPC integration
