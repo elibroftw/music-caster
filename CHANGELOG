@@ -2,6 +2,9 @@ Music Caster by Elijah Lopez Changelog
 
 View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
 
+4.33.3
+- [Bug fix] lag caused by Discord RPC
+
 4.33.2
 - Added tooltips for the QR Code and web GUI link
 - Removed "Email:" text and added tooltip to the email link

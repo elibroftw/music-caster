@@ -45,7 +45,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.33.2'
+VERSION = '4.33.3'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -538,6 +538,8 @@ try:
     mc, playing_status, time_left = None, 'NOT PLAYING', 0
     settings_last_loaded = cast_last_checked = time.time()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
+    with suppress(pypresence.InvalidPipe, RuntimeError):
+        rich_presence.connect()
 
 
     def get_ipv4() -> str:
@@ -654,8 +656,6 @@ try:
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
         cast_last_checked = time.time()
         if settings['discord_rpc']:
-            with suppress(pypresence.InvalidPipe, RuntimeError):
-                rich_presence.connect()
             with suppress(AttributeError, pypresence.InvalidID):
                 rich_presence.update(state=_artist, details=_title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
 
@@ -1078,11 +1078,8 @@ try:
                     main_window['volume_slider'].Update(value=new_volume)
                     main_values['volume_slider'] = new_volume
                 main_window.Refresh()
-            # if main_event != '__TIMEOUT__': print(main_event)
             if main_event == 'progressbar_mouse_enter': mouse_hover = 'progressbar'
             elif main_event == 'progressbar_mouse_leave': mouse_hover = ''
-            # elif main_event == 'volume_mouse_enter': mouse_hover = 'volume'
-            # elif main_event == 'volume_mouse_leave': mouse_hover = ''
             elif main_event == 'tab2_mouse_enter': mouse_hover = 'tab2'
             elif main_event == 'tab2_mouse_leave': mouse_hover = ''
             elif main_event == 'tab3_mouse_enter': mouse_hover = 'tab3'
@@ -1101,8 +1098,6 @@ try:
                 pass
             elif main_event == 'Repeat':
                 repeat_setting = change_settings('repeat', not settings['repeat'])
-                # update_repeat_img = True
-                # main_window['Repeat'].is_repeating = repeat_setting
             elif main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit():
                 delta = 0
                 if main_event.isdigit():
@@ -1319,9 +1314,10 @@ try:
                 if settings_event == 'run_on_startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
                 elif settings_event == 'discord_rpc':
-                    with suppress(AttributeError, pypresence.InvalidID):
+                    with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                         if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
                             artist, title = get_file_info(music_queue[0])
+                            rich_presence.connect()
                             rich_presence.update(state=artist, details=title, large_image='default', large_text='Listening', small_image='logo', small_text='Music Caster')
                         elif not settings_value: rich_presence.clear()
             # elif settings_event in {'volume', 'a', 'd'} or settings_event.isdigit():
