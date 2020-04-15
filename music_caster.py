@@ -56,13 +56,12 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 settings = {  # default settings
-        'previous_device': None,
-        'window_locations': {},
+        'previous_device': None, 'window_locations': {},
         'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
         'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
         'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False, 'discord_rpc': True,
-        'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-        'music_directories': [home_music_dir], 'playlists': {}}
+        'save_window_positions': True, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
+        'timer_sleep_computer': False, 'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
 music_directories, notifications_enabled, window_locations = [], True, {}
@@ -111,8 +110,8 @@ def change_settings(settings_key, new_value):
     settings[settings_key] = new_value
     save_json()
     if settings_key == 'repeat':
-        repeat_menu[0] = 'Repeat One ✓' if new_value else 'Repeat One'
-        repeat_menu[1] = 'Repeat All ✓' if new_value is False else 'Repeat All'
+        repeat_menu[0] = 'Repeat All ✓' if new_value is False else 'Repeat All'
+        repeat_menu[1] = 'Repeat One ✓' if new_value else 'Repeat One'
         repeat_menu[2] = 'Repeat Off ✓' if new_value is None else 'Repeat Off'
         refresh_tray()
         if active_windows['main']:
@@ -551,8 +550,8 @@ try:
 
     # TODO: add play folder
     repeat_setting = settings['repeat']
-    repeat_menu = ['Repeat One ✓' if repeat_setting else 'Repeat One',
-                   'Repeat All ✓' if repeat_setting is False else 'Repeat All',
+    repeat_menu = ['Repeat All ✓' if repeat_setting is False else 'Repeat All',
+                   'Repeat One ✓' if repeat_setting else 'Repeat One',
                    'Repeat Off ✓' if repeat_setting is None else 'Repeat Off']
     # NOTE: update change_settings if you change any menu_def
     menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
@@ -862,23 +861,22 @@ try:
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
             playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
-            if settings['repeat'] is False or not from_timeout or not music_queue:
-                change_settings('repeat', False)
+            if not settings['repeat'] or not music_queue or not from_timeout:
+                if settings['repeat']: change_settings('repeat', False)
                 if music_queue: done_queue.append(music_queue.pop(0))
                 if next_queue: music_queue.insert(0, next_queue.pop(0))
-            if settings['repeat'] and music_queue: play_file(music_queue[0])
-            elif settings['repeat'] is False and done_queue:
-                music_queue.extend(done_queue)
-                done_queue.clear()
-                play_file(music_queue[0])
-            else: stop()  # only one song in queue / repeat is off
+                if not music_queue and settings['repeat'] is False and done_queue:
+                    music_queue.extend(done_queue)
+                    done_queue.clear()
+            if music_queue: play_file(music_queue[0])
+            else: stop()  # repeat is off / no songs in queue
 
     def prev_song():
         global playing_status
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING':
             if done_queue:
-                change_settings('repeat', False)
+                if settings['repeat']: change_settings('repeat', False)
                 song = done_queue.pop()
                 music_queue.insert(0, song)
                 play_file(song)
@@ -891,7 +889,8 @@ try:
             active_windows['main'] = True
             volume = settings['volume']
             repeat_setting = settings['repeat']
-            window_location = window_locations.get('main', (None, None))
+            if settings['save_window_positions']: window_location = window_locations.get('main', (None, None))
+            else: window_location = (None, None)
             if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
                 current_song = music_queue[0]
                 metadata = music_meta_data[current_song]
@@ -946,7 +945,7 @@ try:
         elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
     if settings.get('DEBUG', False): print('Running in tray')
     while True:
-        menu_item = tray.Read(timeout=100)
+        menu_item = tray.Read(timeout=10)
         if menu_item == 'Refresh Devices':
             threading.Thread(target=start_chromecast_discovery, daemon=True).start()
         if '__ACTIVATED__' in {menu_item, daemon_command}: main_gui()
@@ -993,9 +992,11 @@ try:
                 # TODO: test if no internet connection
                 qr_data = create_qr_code()
                 settings_layout = create_settings(VERSION, music_directories, settings, qr_data)
+                if settings['save_window_positions']: window_location = window_locations.get('settings', (None, None))
+                else: window_location = (None, None)
                 settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
                                             icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False,
-                                            location=window_locations.get('settings', (None, None)))
+                                            location=window_location)
                 settings_window.Finalize()
                 set_save_position_callback(settings_window, 'settings')
             settings_window.TKroot.focus_force()
@@ -1007,7 +1008,8 @@ try:
                 continue
             elif not active_windows['playlist_selector']:
                 active_windows['playlist_selector'] = True
-                window_location = window_locations.get('playlist_selector', (None, None))
+                if settings['save_window_positions']: window_location = window_locations.get('playlist_selector', (None, None))
+                else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Finalize()
@@ -1034,7 +1036,8 @@ try:
         elif menu_item == 'Set Timer':
             if not active_windows['timer']:
                 active_windows['timer'], timer_layout = True, create_timer(settings)
-                window_location = window_locations.get('timer', (None, None))
+                if settings['save_window_positions']: window_location = window_locations.get('timer', (None, None))
+                else: window_location = (None, None)
                 timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
                                          return_keyboard_events=True, grab_anywhere=True, location=window_location)
                 timer_window.Finalize()
@@ -1340,7 +1343,8 @@ try:
                 webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
             if settings_event == 'web_gui':
                 webbrowser.open(f'http://{get_ipv4()}:{PORT}')
-            elif settings_event in {'auto_update', 'run_on_startup', 'notifications', 'shuffle_playlists', 'discord_rpc'}:
+            elif settings_event in {'auto_update', 'discord_rpc', 'notifications', 'run_on_startup',
+                                    'shuffle_playlists', 'save_window_positions'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run_on_startup': startup_setting(shortcut_path)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
@@ -1381,7 +1385,8 @@ try:
                 pl_name = pl_selector_values.get('pl_selector', '')
                 if pl_name in playlists: del playlists[pl_name]
                 pl_selector_window.Close()
-                window_location = window_locations.get('playlist_selector', (None, None))
+                if settings['save_window_positions']: window_location = window_locations.get('playlist_selector', (None, None))
+                else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Read(timeout=10)
@@ -1398,9 +1403,12 @@ try:
                 if pl_selector_event in {'edit_pl', 'e', 'e:69'}: pl_name = pl_selector_values.get('pl_selector', '')
                 else: pl_name = ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
+                if settings['save_window_positions']:
+                    window_location = window_locations.get('playlist_editor', (None, None))
+                else: window_location = (None, None)
                 pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(DEFAULT_DIR, playlists, pl_name),
                                              background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
-                                             location=window_locations.get('playlist_editor', (None, None)))
+                                             location=window_location)
                 pl_files = playlists.get(pl_name, [])
                 pl_selector_window.Close()
                 pl_editor_window.Finalize()
@@ -1480,7 +1488,8 @@ try:
             if open_pl_selector:
                 open_pl_selector = False
                 active_windows['playlist_selector'] = True
-                window_location = window_locations.get('playlist_selector', (None, None))
+                if settings['save_window_positions']: window_location = window_locations.get('playlist_selector', (None, None))
+                else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Finalize()

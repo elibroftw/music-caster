@@ -169,21 +169,30 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
 
 
 def create_settings(version, music_directories, settings, qr_code_data):
+    LEFT_CHECKMARKS_W = 17
+    RIGHT_CHECKMARKS_W = 21
     checkbox_col = Sg.Column([
-            [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', text_color=fg,
-                         background_color=bg, font=font_normal, enable_events=True, pad=(20, None)),
-             Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc',
-                         text_color=fg, background_color=bg, font=font_normal, enable_events=True, pad=(20, None))],
-            [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications',
-                         text_color=fg, background_color=bg, font=font_normal, enable_events=True, pad=(20, None)),
-             Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup', text_color=fg,
-                         background_color=bg, font=font_normal, enable_events=True, pad=(20, None))],
-            [Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
-                         text_color=fg, background_color=bg, font=font_normal, enable_events=True, pad=(20, None))]
-        ], pad=((0, 10), (10, 10)))
+        [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', text_color=fg,
+                     background_color=bg, font=font_normal, enable_events=True, size=(17, None),
+                     pad=((0, 5), (5, 5))),
+         Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc',
+                     text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     pad=((0, 5), (5, 5)))],
+        [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications',
+                     text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(17, None),
+                     pad=((0, 5), (5, 5))),
+         Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup', text_color=fg,
+                     background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     pad=((0, 5), (5, 5)))],
+        [Sg.Checkbox('Save Window Positions', default=settings['save_window_positions'],
+                     key='save_window_positions', size=(17, None), text_color=fg, background_color=bg, font=font_normal,
+                     enable_events=True, pad=((0, 5), (5, 5))),
+         Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
+                     text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     pad=((0, 5), (5, 5)))]
+        ], pad=((0, 0), (5, 0)))
     qr_code_col = Sg.Column([
-        [Sg.Button(image_data=qr_code_data, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]],
-        justification='left', element_justification='left')
+        [Sg.Button(image_data=qr_code_data, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]])
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, font=font_normal),
          Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, font=font_link, click_submits=True, key='email',
@@ -191,7 +200,7 @@ def create_settings(version, music_directories, settings, qr_code_data):
         [checkbox_col, qr_code_col],
         # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
         #            enable_events=True, background_color=ACCENT_COLOR, text_color='#000000', size=(49, 15))],
-        [Sg.Listbox(music_directories, size=(43, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        [Sg.Listbox(music_directories, size=(40, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
              [Sg.Button('Remove Folder', key='Remove Folder', enable_events=True, font=font_normal)],
