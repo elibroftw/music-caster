@@ -44,7 +44,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.32.0'
+VERSION = '4.33.4'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -360,7 +360,7 @@ try:
                 else: play_all()
             elif 'pause' in request.args and playing_status == 'PLAYING': pause()
             elif 'next' in request.args: next_song()
-            elif 'prev' in request.args: previous()
+            elif 'prev' in request.args: prev_song()
             elif 'repeat' in request.args: change_settings('repeat', not settings['repeat'])
             elif 'shuffle' in request.args: change_settings('shuffle', not settings['shuffle'])
             return redirect('/')
@@ -803,7 +803,7 @@ try:
             else: stop()
 
 
-    def previous():
+    def prev_song():
         global playing_status
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
         elif playing_status != 'NOT PLAYING':
@@ -818,11 +818,21 @@ try:
     def on_press(key):
         global keyboard_command
         if str(key) == '<179>':
-            if playing_status == 'PLAYING': keyboard_command = 'Pause'
-            elif playing_status == 'PAUSED': keyboard_command = 'Resume'
-        elif str(key) == '<176>': keyboard_command = 'Next Song'
-        elif str(key) == '<177>': keyboard_command = 'Previous Song'
-        elif str(key) == '<178>': keyboard_command = 'Stop'
+            if playing_status == 'PLAYING':
+                pause()
+                # keyboard_command = 'Pause'
+            elif playing_status == 'PAUSED':
+                resume()
+                # keyboard_command = 'Resume'
+        elif str(key) == '<176>':
+            next_song()
+            # keyboard_command = 'Next Song'
+        elif str(key) == '<177>':
+            prev_song()
+            # keyboard_command = 'Previous Song'
+        elif str(key) == '<178>':
+            stop()
+            # keyboard_command = 'Stop'
 
     
     listener_thread = Listener(on_press=on_press)
@@ -833,7 +843,10 @@ try:
         elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
     if settings.get('DEBUG', False): print('Running in tray')
     while True:
-        menu_item = tray.Read(timeout=10)
+        if any(active_windows.values()):
+            menu_item = tray.Read(timeout=10)
+        else:
+            menu_item = tray.Read(timeout=100)
         if time.time() - settings_last_loaded > 10:
             load_settings()
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
@@ -1010,7 +1023,7 @@ try:
         elif ('Next Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING'
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
-        elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': previous()
+        elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': prev_song()
         elif menu_item in {'Repeat Song', 'Repeat Song ✓'}:
             repeat_setting = change_settings('repeat', not settings['repeat'])
             if notifications_enabled:
@@ -1075,7 +1088,7 @@ try:
                 elif playing_status == 'NOT PLAYING' and music_queue: play_file(music_queue[0])
                 else: play_all()
             elif main_event == 'Next' and playing_status != 'NOT PLAYING': next_song(); progress_bar_last_update = 0
-            elif main_event == 'Prev' and playing_status != 'NOT PLAYING': previous(); progress_bar_last_update = 0
+            elif main_event == 'Prev' and playing_status != 'NOT PLAYING': prev_song(); progress_bar_last_update = 0
             elif main_event == 'Shuffle':
                 # TODO: just shuffle music queue
                 pass
