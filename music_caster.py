@@ -56,12 +56,12 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 settings = {  # default settings
-        'previous_device': None, 'window_locations': {},
-        'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
-        'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
-        'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False, 'discord_rpc': True,
-        'save_window_positions': True, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
-        'timer_sleep_computer': False, 'music_directories': [home_music_dir], 'playlists': {}}
+    'previous_device': None, 'window_locations': {},
+    'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
+    'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
+    'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False, 'discord_rpc': True,
+    'save_window_positions': True, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
+    'timer_sleep_computer': False, 'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
 music_directories, notifications_enabled, window_locations = [], True, {}
