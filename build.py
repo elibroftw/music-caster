@@ -10,12 +10,14 @@ from contextlib import suppress
 
 start_time = time.time()
 shutil.rmtree('dist/Music Caster', True)
+MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 print('Installing dependencies...')
 subprocess.check_call('pip install -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" -t:restore')
 s1 = subprocess.Popen('pyinstaller music_caster_portable.spec')
-MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
 subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build /p:Configuration=Release')
 s3 = subprocess.check_call('pyinstaller music_caster_onedir.spec')
 s4 = subprocess.check_call('iscc "Setup Script.iss"')
