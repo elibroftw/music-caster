@@ -1329,7 +1329,7 @@ try:
 
         # SETTINGS WINDOW
         if active_windows['settings']:
-            settings_event, settings_values = settings_window.Read(timeout=1)
+            settings_event, settings_values = settings_window.Read(timeout=10)
             if (settings_event in {None, 'q', 'Q'} or settings_event == 'Escape:27'
                     and settings_last_event != 'Add Folder'):
                 active_windows['settings'] = False
@@ -1372,7 +1372,7 @@ try:
                     Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
         if active_windows['playlist_selector']:
-            pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=1)
+            pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=10)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
                 active_windows['playlist_selector'] = False
                 pl_selector_window.Close()
@@ -1384,7 +1384,7 @@ try:
                 window_location = window_locations.get('playlist_selector', (None, None))
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
-                pl_selector_window.Read(timeout=1)
+                pl_selector_window.Read(timeout=10)
                 pl_selector_window.TKroot.focus_force()
                 pl_selector_window.Normal()
                 save_json()
@@ -1413,7 +1413,7 @@ try:
                     pl_editor_window.Element('songs').Update(set_to_index=0)
                 active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
         if active_windows['playlist_editor']:
-            pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=1)
+            pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=10)
             if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
                 active_windows['playlist_editor'] = False
                 pl_editor_window.Close()
@@ -1489,7 +1489,7 @@ try:
                 set_save_position_callback(pl_selector_window, 'playlist_selector')
             pl_editor_last_event = pl_editor_event
         if active_windows['timer']:
-            timer_event, timer_values = timer_window.Read(timeout=1)
+            timer_event, timer_values = timer_window.Read(timeout=10)
             if timer_event in {None, 'Escape:27', 'q', 'Q'}:
                 active_windows['timer'] = False
                 timer_window.Close()
