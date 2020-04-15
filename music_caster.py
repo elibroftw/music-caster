@@ -69,7 +69,7 @@ music_directories, notifications_enabled, window_locations = [], True, {}
 all_songs = {}
 all_folders = ['PF: Select Folder']
 pl_name, pl_files = '', []
-keyboard_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
+daemon_command = main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
 mouse_hover = ''
 MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
@@ -404,7 +404,7 @@ try:
 
     @app.route('/instance/')
     def instance():
-        global keyboard_command
+        global daemon_command
         for k, v in active_windows.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
@@ -413,7 +413,7 @@ try:
                 elif k == 'playlist_selector': pl_selector_window.bring_to_front()
                 else: pl_editor_window.bring_to_front()  # playlist_editor
                 return 'True'
-        keyboard_command = '__ACTIVATED__'
+        daemon_command = '__ACTIVATED__'
         return 'True'
 
 
@@ -833,8 +833,12 @@ try:
             elif music_queue: play_file(music_queue[0])
 
 
+    last_press = time.time()
+
+
     def on_press(key):
-        global keyboard_command
+        global daemon_command, last_press
+        if str(key) not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
         if str(key) == '<179>':
             if playing_status == 'PLAYING':
                 pause()
@@ -842,15 +846,16 @@ try:
             elif playing_status == 'PAUSED':
                 resume()
                 # keyboard_command = 'Resume'
-        elif str(key) == '<176>':
+        elif str(key) == '<176>' and playing_status != 'NOT PLAYING':
             next_song()
             # keyboard_command = 'Next Song'
-        elif str(key) == '<177>':
+        elif str(key) == '<177>' and playing_status != 'NOT PLAYING':
             prev_song()
             # keyboard_command = 'Previous Song'
         elif str(key) == '<178>':
             stop()
             # keyboard_command = 'Stop'
+        last_press = time.time()
 
     
     listener_thread = Listener(on_press=on_press)
@@ -861,10 +866,8 @@ try:
         elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
     if settings.get('DEBUG', False): print('Running in tray')
     while True:
-        if any(active_windows.values()):
-            menu_item = tray.Read(timeout=10)
-        else:
-            menu_item = tray.Read(timeout=100)
+        if any(active_windows.values()): menu_item = tray.Read(timeout=10)
+        else: menu_item = tray.Read(timeout=100)
         if time.time() - settings_last_loaded > 10:
             load_settings()
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
@@ -887,7 +890,7 @@ try:
             if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
             elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
             else: tray.Update(menu=menu_def_1)
-        if '__ACTIVATED__' in {menu_item, keyboard_command}:
+        if '__ACTIVATED__' in {menu_item, daemon_command}:
             if not active_windows['main']:
                 active_windows['main'] = True
                 volume = settings['volume']
@@ -1027,7 +1030,7 @@ try:
                 play_all(fd.GetPath())  # TODO: print this out
         elif menu_item == 'Play All': play_all()
         elif menu_item == 'Play File Next': play_next()
-        elif 'Stop' in {menu_item, keyboard_command}: stop()
+        elif 'Stop' in {menu_item, daemon_command}: stop()
         elif timer and time.time() > timer:
             stop()
             timer = 0
@@ -1040,17 +1043,17 @@ try:
             elif settings['timer_sleep_computer']:
                 if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
                 else: pass
-        elif ('Next Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING'
+        elif ('Next Song' in {menu_item, daemon_command} and playing_status != 'NOT PLAYING'
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
-        elif 'Previous Song' in {menu_item, keyboard_command} and playing_status != 'NOT PLAYING': prev_song()
+        elif 'Previous Song' in {menu_item, daemon_command} and playing_status != 'NOT PLAYING': prev_song()
         elif menu_item in {'Repeat Song', 'Repeat Song ✓'}:
             repeat_setting = change_settings('repeat', not settings['repeat'])
             if notifications_enabled:
                 if repeat_setting: tray.ShowMessage('Music Caster', 'Repeating current song')
                 else: tray.ShowMessage('Music Caster', 'Not repeating current song')
-        elif 'Resume' in {menu_item, keyboard_command}: resume()
-        elif 'Pause' in {menu_item, keyboard_command}: pause()
+        elif 'Resume' in {menu_item, daemon_command}: resume()
+        elif 'Pause' in {menu_item, daemon_command}: pause()
         elif menu_item in 'Locate File':
             if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
@@ -1515,7 +1518,7 @@ try:
                 change_settings('timer_hibernate_computer', timer_values['hibernate'])
                 change_settings('timer_sleep_computer', timer_values['sleep'])
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])
-        keyboard_command = None
+        daemon_command = None
         if mc is not None and time.time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast is not None:
