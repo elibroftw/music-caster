@@ -169,8 +169,6 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
 
 
 def create_settings(version, music_directories, settings, qr_code_data):
-    LEFT_CHECKMARKS_W = 17
-    RIGHT_CHECKMARKS_W = 21
     checkbox_col = Sg.Column([
         [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True, size=(17, None),
@@ -192,7 +190,8 @@ def create_settings(version, music_directories, settings, qr_code_data):
                      pad=((0, 5), (5, 5)))]
         ], pad=((0, 0), (5, 0)))
     qr_code_col = Sg.Column([
-        [Sg.Button(image_data=qr_code_data, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]])
+        [Sg.Button(image_data=qr_code_data, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]],
+        pad=(0, 0))
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', text_color=fg, font=font_normal),
          Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, font=font_link, click_submits=True, key='email',
