@@ -148,8 +148,8 @@ def get_file_info(_file, on_error='FILENAME'):
 
 
 def compile_all_songs(update_global=True, ignore_file='') -> dict:
-    # instead of calling this function, thread it and
-    # call .join() if you need to use all_songs
+    # TODO: instead of calling this function, thread it and
+    #  call .join() if you need to use all_songs
     global all_songs
     if not update_global:
         temp_songs = all_songs.copy()
