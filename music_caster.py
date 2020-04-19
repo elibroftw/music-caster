@@ -8,9 +8,7 @@ import json
 import logging
 from math import floor
 from pathlib import Path
-import platform
 import pprint
-import pyqrcode
 from shutil import copyfile
 from random import shuffle
 from subprocess import Popen
@@ -18,7 +16,6 @@ import sys
 import shutil
 import threading
 import traceback
-import uuid
 import webbrowser
 import zipfile
 # helper file
@@ -87,11 +84,6 @@ active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_se
                   'playlist_editor': False}
 
 
-def fix_path(path, by_os=True):
-    if by_os and platform.system() == 'Windows': return path.replace('/', '\\')
-    else: return path.replace('\\', '/')
-
-
 def save_json():
     global settings, settings_file
     with open(settings_file, 'w') as outfile:
@@ -146,7 +138,7 @@ def get_file_info(_file, on_error='FILENAME'):
         _tags.add_tags()
         _tags.save()
         return get_file_info(_file)
-    except Exception as _e:
+    except Exception as _e:  # NOTE: might be able to remove this
         if settings.get('DEBUG') or not file_info_exceptions:
             handle_exception(_e)
             file_info_exceptions += 1
@@ -171,9 +163,6 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
                 if type(file_info) == tuple: file_info = ' - '.join(file_info)
                 all_songs[file_info] = _file
     return all_songs
-
-
-def get_mac(): return ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
 
 
 def handle_exception(exception, restart_program=False):
@@ -291,7 +280,6 @@ if not settings.get('DEBUG', False) and is_already_running():
         PORT += 1
     sys.exit()
 
-
 if settings['auto_update']:
     with suppress(requests.ConnectionError):
         github_url = 'https://github.com/elibroftw/music-caster/releases'
@@ -358,24 +346,21 @@ if not settings.get('DEBUG', False):
 
 app = Flask(__name__, static_folder='/', static_url_path='/')
 try:
-    try:
-        local_music_player.init(44100, -16, 2, 2048)
-        show_pygame_error = False
-    except pygame.error:
-        show_pygame_error = True
-
+    local_music_player.init(44100, -16, 2, 2048)
+    show_pygame_error = False
+except pygame.error:
+    show_pygame_error = True
+try:
     helpers.ACCENT_COLOR, helpers.fg = settings['accent_color'], settings['text_color']
     helpers.bg = settings['background_color']
     helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
     Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
                   text_element_background_color=bg)
 
-
     @app.route('/shutdown/')
     @app.route('/kill-server/')
     def _kill_server():
         request.environ.get('werkzeug.server.shutdown')()
-
 
     @app.route('/', methods=['GET', 'POST'])
     def home():  # web GUI
@@ -402,7 +387,6 @@ try:
                                repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
                                starting_dir=Path(starting_dir).as_uri()[11:])
 
-
     @app.route('/play/')
     def play_file_page():
         global music_queue, playing_status
@@ -412,7 +396,6 @@ try:
             elif os.path.isdir(_file_or_dir): play_folder(_file_or_dir)
         return 'True'
 
-
     @app.route('/metadata/')
     def metadata():
         if music_queue:
@@ -421,37 +404,30 @@ try:
         else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
         return jsonify(_metadata)
 
-
     @app.route('/running/')
     def running():
         return 'True'
 
-
     @app.route('/instance/')
     def instance():
-        global daemon_command
         for k, v in active_windows.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
                 elif k == 'settings': settings_window.bring_to_front()
                 elif k == 'timer': timer_window.bring_to_front()
                 elif k == 'playlist_selector': pl_selector_window.bring_to_front()
-                else: pl_editor_window.bring_to_front()  # playlist_editor
+                elif k == 'playlist_editor': pl_editor_window.bring_to_front()
                 return 'True'
-        daemon_command = '__ACTIVATED__'
+        main_gui()
         return 'True'
-
 
     @app.errorhandler(404)
     def page_not_found(_):
         return '404 error', 404
 
-
     def __(): pass
 
-
     stop_discovery = __
-
 
     def chromecast_callback(chromecast):
         global update_devices, cast, chromecasts
@@ -471,7 +447,6 @@ try:
                 else: device_names.append(f'{_i + 1}. {device_name}')
             refresh_tray()
 
-
     def start_chromecast_discovery():
         # threading.Thread(target=start_chromecast_discovery, daemon=True).start()
         global stop_discovery
@@ -482,7 +457,6 @@ try:
         stop_discovery()
         if not device_names: device_names.append(f'✓ Local device')
         refresh_tray()
-
 
     def startup_setting(path):
         try:
@@ -507,7 +481,6 @@ try:
             elif not run_on_startup and shortcut_exists: os.remove(path)
         except Exception as _e:
             handle_exception(_e)
-
 
     shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'
     # Access startup folder by entering "Startup" in Explorer address bar
@@ -591,20 +564,6 @@ try:
     threading.Thread(target=start_chromecast_discovery, daemon=True).start()
     # stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     # discovery_started = time.time()
-
-
-    def get_ipv4() -> str:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ipv4_address = s.getsockname()[0]
-        s.close()
-        return ipv4_address
-
-
-    def create_qr_code():
-        qr_code = pyqrcode.create(f'http://{get_ipv4()}:{PORT}')
-        return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
-
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
@@ -708,9 +667,8 @@ try:
         cast_last_checked = time.time()
         if settings['discord_rpc']:
             with suppress(AttributeError, pypresence.InvalidID):
-                rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default', large_text='Listening',
-                                     small_image='logo', small_text='Music Caster')
-
+                rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
+                                     large_text='Listening', small_image='logo', small_text='Music Caster')
 
     def play_all(starting_file=None):
         global playing_status
@@ -727,7 +685,6 @@ try:
             playing_status = 'PLAYING'
             next_song()
 
-
     def play_folder(_folder):
         global playing_status
         music_queue.clear()
@@ -741,7 +698,6 @@ try:
         elif next_queue:
             playing_status = 'PLAYING'
             next_song()
-
 
     def play_next():
         global music_directories, DEFAULT_DIR, playing_status
@@ -758,7 +714,6 @@ try:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
                 next_song()
-
 
     # def get_album_cover(file_path, only_b64=True):
     #     file_path_obj = Path(file_path)
@@ -785,7 +740,6 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
-
     def update_song_position():
         global tray, song_position, cast, mc
         if cast is not None:
@@ -797,7 +751,6 @@ try:
                 except UnsupportedNamespace: song_position = time.time() - song_start
         elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
-
 
     def pause():
         global tray, playing_status, song_position
@@ -837,11 +790,10 @@ try:
             _artist, _title = get_file_info(music_queue[0])
             if settings['discord_rpc']:
                 with suppress(AttributeError, pypresence.InvalidID):
-                    rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default', large_text='Playing',
-                                         small_image='logo', small_text='Music Caster')
+                    rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
+                                         large_text='Playing', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             play_file(music_queue[0], position=song_position)
-
 
     def stop():
         global playing_status, cast, song_position, time_left
@@ -990,7 +942,7 @@ try:
                 active_windows['settings'] = True
                 # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
                 # TODO: test if no internet connection
-                qr_data = create_qr_code()
+                qr_data = create_qr_code(PORT)
                 settings_layout = create_settings(VERSION, music_directories, settings, qr_data)
                 if settings['save_window_positions']: window_location = window_locations.get('settings', (None, None))
                 else: window_location = (None, None)
@@ -1008,7 +960,8 @@ try:
                 continue
             elif not active_windows['playlist_selector']:
                 active_windows['playlist_selector'] = True
-                if settings['save_window_positions']: window_location = window_locations.get('playlist_selector', (None, None))
+                if settings['save_window_positions']:
+                    window_location = window_locations.get('playlist_selector', (None, None))
                 else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
@@ -1385,7 +1338,8 @@ try:
                 pl_name = pl_selector_values.get('pl_selector', '')
                 if pl_name in playlists: del playlists[pl_name]
                 pl_selector_window.Close()
-                if settings['save_window_positions']: window_location = window_locations.get('playlist_selector', (None, None))
+                if settings['save_window_positions']:
+                    window_location = window_locations.get('playlist_selector', (None, None))
                 else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
@@ -1488,7 +1442,8 @@ try:
             if open_pl_selector:
                 open_pl_selector = False
                 active_windows['playlist_selector'] = True
-                if settings['save_window_positions']: window_location = window_locations.get('playlist_selector', (None, None))
+                if settings['save_window_positions']:
+                    window_location = window_locations.get('playlist_selector', (None, None))
                 else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)

@@ -4,7 +4,7 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.34.0
 - [Feature] Added repeat off option (click repeat button 2x)
-- [Feature] Added "save window positions" setting
+- [Feature] Added "Save window positions" setting
 - More efficient (better CPU usage)
 - More threading
 
