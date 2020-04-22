@@ -1,4 +1,8 @@
 import base64
+import os
+import platform
+import time
+from contextlib import suppress
 from datetime import datetime, timedelta
 # noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
@@ -19,8 +23,13 @@ import traceback
 import webbrowser
 import zipfile
 # helper file
-from helpers import *
+from helpers import fix_path, get_ipv4, get_mac, create_qr_code, is_already_running, valid_music_file,\
+    find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer, create_playlist_editor, \
+    create_playlist_selector, bg, port_in_use, BUTTON_COLOR
+from b64_images import *
 import helpers
+import socket
+import PySimpleGUI as Sg
 # 3rd party imports
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect
@@ -80,8 +89,8 @@ mouse_hover = ''
 MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
-active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
-                  'playlist_editor': False}
+active_windows = {'main': False, 'settings': False, 'timer': False, 'create_playlist_selector': False,
+                  'create_playlist_editor': False}
 
 
 def save_json():
@@ -417,8 +426,8 @@ try:
                 if k == 'main': main_window.bring_to_front()
                 elif k == 'settings': settings_window.bring_to_front()
                 elif k == 'timer': timer_window.bring_to_front()
-                elif k == 'playlist_selector': pl_selector_window.bring_to_front()
-                elif k == 'playlist_editor': pl_editor_window.bring_to_front()
+                elif k == 'create_playlist_selector': pl_selector_window.bring_to_front()
+                elif k == 'create_playlist_editor': pl_editor_window.bring_to_front()
                 return 'True'
         main_gui()
         return 'True'
@@ -427,9 +436,7 @@ try:
     def page_not_found(_):
         return '404 error', 404
 
-    def __(): pass
-
-    stop_discovery = __
+    stop_discovery = None
 
     def chromecast_callback(chromecast):
         global update_devices, cast, chromecasts
@@ -450,11 +457,11 @@ try:
             refresh_tray()
 
     def start_chromecast_discovery():
-        # threading.Thread(target=start_chromecast_discovery, daemon=True).start()
         global stop_discovery
-        stop_discovery()
+        if stop_discovery is not None: stop_discovery()
         chromecasts.clear()
-        stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
+        stop_discovery = find_chromecasts(callback=chromecast_callback)
+        # stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
         time.sleep(10.1)
         stop_discovery()
         if not device_names: device_names.append(f'✓ Local device')
@@ -516,7 +523,7 @@ try:
     _debug_time = time.time()
     while True:
         try:
-            if not is_port_in_use(PORT):
+            if not port_in_use(PORT):
                 threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
                 break
             else: PORT += 1
@@ -564,8 +571,6 @@ try:
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
     threading.Thread(target=start_chromecast_discovery, daemon=True).start()
-    # stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-    # discovery_started = time.time()
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
@@ -956,19 +961,19 @@ try:
             settings_window.TKroot.focus_force()
             settings_window.Normal()
         elif menu_item == 'Create/Edit a Playlist':
-            if active_windows['playlist_editor']:
+            if active_windows['create_playlist_editor']:
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
                 continue
-            elif not active_windows['playlist_selector']:
-                active_windows['playlist_selector'] = True
+            elif not active_windows['create_playlist_selector']:
+                active_windows['create_playlist_selector'] = True
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('playlist_selector', (None, None))
+                    window_location = window_locations.get('create_playlist_selector', (None, None))
                 else: window_location = (None, None)
-                pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
+                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Finalize()
-                set_save_position_callback(pl_selector_window, 'playlist_selector')
+                set_save_position_callback(pl_selector_window, 'create_playlist_selector')
             pl_selector_window.TKroot.focus_force()
             pl_selector_window.Normal()
         elif menu_item.startswith('PL: '):  # playlist
@@ -1330,10 +1335,10 @@ try:
                 except OSError:
                     Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
-        if active_windows['playlist_selector']:
+        if active_windows['create_playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=10)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
-                active_windows['playlist_selector'] = False
+                active_windows['create_playlist_selector'] = False
                 pl_selector_window.Close()
                 continue
             if pl_selector_event in {'del_pl', 'Delete:46'}:
@@ -1341,9 +1346,9 @@ try:
                 if pl_name in playlists: del playlists[pl_name]
                 pl_selector_window.Close()
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('playlist_selector', (None, None))
+                    window_location = window_locations.get('create_playlist_selector', (None, None))
                 else: window_location = (None, None)
-                pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
+                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Read(timeout=10)
                 pl_selector_window.TKroot.focus_force()
@@ -1360,9 +1365,9 @@ try:
                 else: pl_name = ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('playlist_editor', (None, None))
+                    window_location = window_locations.get('create_playlist_editor', (None, None))
                 else: window_location = (None, None)
-                pl_editor_window = Sg.Window('Playlist Editor', playlist_editor(DEFAULT_DIR, playlists, pl_name),
+                pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(DEFAULT_DIR, playlists, pl_name),
                                              background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
                                              location=window_location)
                 pl_files = playlists.get(pl_name, [])
@@ -1370,16 +1375,16 @@ try:
                 pl_editor_window.Finalize()
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
-                # set_save_position_callback(pl_editor_window, 'playlist_editor')
+                # set_save_position_callback(pl_editor_window, 'create_playlist_editor')
                 if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
                 else:
                     pl_editor_window.Element('songs').SetFocus()
                     pl_editor_window.Element('songs').Update(set_to_index=0)
-                active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
-        if active_windows['playlist_editor']:
+                active_windows['create_playlist_editor'], active_windows['create_playlist_selector'] = True, False
+        if active_windows['create_playlist_editor']:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=10)
             if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
-                active_windows['playlist_editor'] = False
+                active_windows['create_playlist_editor'] = False
                 pl_editor_window.Close()
                 open_pl_selector = True
             elif pl_editor_event in {'Save', 's:83'}:
@@ -1390,7 +1395,7 @@ try:
                     pl_name = new_name
                 playlists[pl_name] = pl_files
                 save_json()
-                active_windows['playlist_editor'] = False
+                active_windows['create_playlist_editor'] = False
                 pl_editor_window.Close()
                 open_pl_selector = True
                 tray_playlists.clear()
@@ -1443,16 +1448,16 @@ try:
                     pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if open_pl_selector:
                 open_pl_selector = False
-                active_windows['playlist_selector'] = True
+                active_windows['create_playlist_selector'] = True
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('playlist_selector', (None, None))
+                    window_location = window_locations.get('create_playlist_selector', (None, None))
                 else: window_location = (None, None)
-                pl_selector_window = Sg.Window('Playlist Selector', playlist_selector(playlists), background_color=bg,
+                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists), background_color=bg,
                                                icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
                 pl_selector_window.Finalize()
                 pl_selector_window.TKroot.focus_force()
                 pl_selector_window.Normal()
-                set_save_position_callback(pl_selector_window, 'playlist_selector')
+                set_save_position_callback(pl_selector_window, 'create_playlist_selector')
             pl_editor_last_event = pl_editor_event
         if active_windows['timer']:
             timer_event, timer_values = timer_window.Read(timeout=10)

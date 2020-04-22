@@ -9,6 +9,8 @@ import socket
 import time
 import uuid
 from b64_images import *
+import threading
+import pychromecast
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 # FUTURE: C++ JPG TO PNG
@@ -78,11 +80,59 @@ def is_already_running():
 def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
 
 
-def is_port_in_use(port):
+def port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
 
+def find_chromecasts(timeout=0.2, callback=None):
+    _RANGE = 256  # support 256 unique ip's
+    hostname = socket.gethostname()
+    ipv4_address = socket.gethostbyname(hostname)
+    base = '.'.join(ipv4_address.split('.')[:-1])
+    thread_results = []
+    threads = []
+    chromecasts = []
+    stop_discovery = False
+
+    def _stop_discovery():
+        nonlocal stop_discovery
+        stop_discovery = True
+
+    def _connect_to_chromecast(ip, port=8009, thread_index=None):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        port_alive = sock.connect_ex((ip, port))
+        sock.close()
+        if not stop_discovery and port_alive == 0:
+            if callback is not None:
+                callback(pychromecast.Chromecast(ip))
+            elif thread_results:
+                assert isinstance(thread_index, int)
+                thread_results[thread_index] = ip
+        return port_alive == 0
+
+    for i in range(_RANGE):
+        possible_ip = f'{base}.{i}'
+        kwargs = {'thread_index': i}
+        t = threading.Thread(target=_connect_to_chromecast, args=[possible_ip], kwargs=kwargs, daemon=True)
+        threads.append(t)
+        thread_results.append(False)
+        t.start()
+
+    if callback is None:
+        for i, t in enumerate(threads):
+            t.join()
+            result = thread_results[i]  # ip address or False
+            if result:
+                cc = pychromecast.Chromecast(result)
+                if callback: callback(cc)
+                else: chromecasts.append(cc)
+        return chromecasts
+    return _stop_discovery
+
+
+# GUI RELATED FUNCTIONS
 def create_songs_list(music_queue, done_queue, next_queue):
     # TODO: use metadata and song names or just one artist name
     """:returns the formatted song queue, and the selected value (currently playing)"""
@@ -115,6 +165,7 @@ def create_songs_list(music_queue, done_queue, next_queue):
     return songs, selected_value
 
 
+# GUI LAYOUTS
 def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeating_song,
                     all_songs: dict, now_playing_text='Nothing Playing', album_cover_data=None):
     # TODO: Music Library Tab
@@ -244,7 +295,7 @@ def create_timer(settings):
     return layout
 
 
-def playlist_selector(playlists):
+def create_playlist_selector(playlists):
     playlists = list(playlists.keys())
     layout = [
         [Sg.Combo(values=playlists, size=(41, 5), key='pl_selector', background_color=bg, font=font_normal,
@@ -255,7 +306,7 @@ def playlist_selector(playlists):
     return layout
 
 
-def playlist_editor(initial_folder, playlists, playlist_name=''):
+def create_playlist_editor(initial_folder, playlists, playlist_name=''):
     paths = playlists.get(playlist_name, [])
     songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
     # TODO: remove .mp3

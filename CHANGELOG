@@ -5,8 +5,9 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 4.34.0
 - [Feature] Added repeat off option (click repeat button 2x)
 - [Feature] Added "Save window positions" setting
-- More efficient (better CPU usage)
-- More threading
+- [Optimization] Custom Chromecast finder (email me if MC doesn't detect any chromecasts)
+- [Optimization] Better CPU usage
+- [Optimization] More threading
 
 4.33.3
 - [Bug fix] lag caused by Discord RPC
