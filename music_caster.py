@@ -51,7 +51,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.34.0'
+VERSION = '4.34.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -185,22 +185,24 @@ def handle_exception(exception, restart_program=False):
     payload = {'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
                'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
                'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac}
-    with open(f'{starting_dir}/error.log', 'r+') as _f:
-        content = _f.read()
-        f.seek(0, 0)
+    with suppress(requests.ConnectionError):
+        requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
+    try:
+        with open(f'{starting_dir}/error.log', 'r') as _f:
+            content = f.read()
+    except (FileNotFoundError, ValueError):
+        content = ''
+    with open(f'{starting_dir}/error.log', 'w') as _f:
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
-    with suppress(requests.ConnectionError):
-        requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     if restart_program:
         tray.ShowMessage('Music Caster', 'An error has occurred. Restarting now.')
         time.sleep(5)
         stop()
         os.chdir(starting_dir)
         if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
-        elif os.path.exists('music_caster.pyw'): Popen(['pythonw', 'music_caster.pyw'])
-        else: Popen(['python', 'music_caster.py'])
+        sys.exit()
 
 
 def download(url, outfile):
