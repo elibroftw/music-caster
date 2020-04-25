@@ -85,7 +85,7 @@ def port_in_use(port):
         return s.connect_ex(('localhost', port)) == 0
 
 
-def find_chromecasts(timeout=0.2, callback=None):
+def find_chromecasts(timeout=0.3, callback=None):
     _RANGE = 256  # support 256 unique ip's
     hostname = socket.gethostname()
     ipv4_address = socket.gethostbyname(hostname)
