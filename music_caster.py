@@ -51,7 +51,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.34.1'
+VERSION = '4.34.2'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -63,11 +63,11 @@ home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 settings = {  # default settings
     'previous_device': None, 'window_locations': {},
-    'default_file_handler': True, 'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000',
-    'background_color': '#121212', 'volume': 100, 'scrubbing_delta': 5, 'volume_delta': 5, 'auto_update': False,
-    'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False, 'discord_rpc': True,
-    'save_window_positions': True, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
-    'timer_sleep_computer': False, 'music_directories': [home_music_dir], 'playlists': {}}
+    'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+    'discord_rpc': True, 'save_window_positions': True, 'default_file_handler': True,
+    'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000', 'background_color': '#121212',
+    'volume': 100, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+    'volume_delta': 5, 'muted': False, 'scrubbing_delta': 5, 'music_directories': [home_music_dir], 'playlists': {}}
 settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
 music_directories, notifications_enabled, window_locations = [], True, {}
@@ -227,14 +227,11 @@ def download_and_extract(link, infile, outfile=None):
 
 def set_save_position_callback(window: Sg.Window, _key):
 
-    def save_window_position(_=None):
-        window_locations[_key] = window.CurrentLocation()
-        save_json()
-        # noinspection PyProtectedMember
-        window._OnClosingCallback()
-        window.TKroot.destroy()
-    window.TKroot.protocol("WM_DESTROY_WINDOW", save_window_position)
-    window.TKroot.protocol("WM_DELETE_WINDOW", save_window_position)
+    def save_window_position(event):
+        if event.widget is window.TKroot:
+            window_locations[_key] = window.CurrentLocation()
+            save_json()
+
     window.TKroot.bind('<Destroy>', save_window_position)
 
 
@@ -1058,11 +1055,12 @@ try:
             # print(time.time() - _debug_time)
             _debug_time = time.time()
             main_event, main_values = main_window.Read(timeout=10)
-            if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'Add Folder':
+            if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'queue_folder':
                 active_windows['main'] = False
                 main_window.Close()
                 continue
-            main_last_event = main_event
+            if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event:
+                main_last_event = main_event
             p_r_button = main_window['Pause/Resume']
             now_playing_text = main_window['now_playing']
             update_text = update_repeat_img = False  # text refers to now playing text
@@ -1377,7 +1375,7 @@ try:
                 pl_editor_window.Finalize()
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
-                # set_save_position_callback(pl_editor_window, 'create_playlist_editor')
+                set_save_position_callback(pl_editor_window, 'create_playlist_editor')
                 if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
                 else:
                     pl_editor_window.Element('songs').SetFocus()

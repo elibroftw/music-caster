@@ -54,6 +54,7 @@ In addition, MAC and IP are sent to me on every startup
 
 ## UI Keyboard Shortcuts
 There exists keyboard shortcuts. I will finish this table later.
+Note that the progress bar and the volume slider can be controlled via scrolling.
 | Shortcut        | Window           | Behaviour  |
 | ------------- |:-------------:| -----:|
 | Ctrl + S | | |

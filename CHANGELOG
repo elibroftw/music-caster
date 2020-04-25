@@ -1,6 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
-View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?after=v4.17.25
+4.34.2
+- [Bug fix] Add folder works with save window positions
 
 4.34.1
 - [Bug fix] Errors are actually sent to me now
@@ -232,3 +233,5 @@ View pre v4.17.25 changes at https://github.com/elibroftw/music-caster/releases?
 
 4.17.25
 - Fixed chromecast buffering bug that would screw up when the next song would start playing
+
+Pre v4.17.25 changes found here https://github.com/elibroftw/music-caster/releases?after=v4.17.25
