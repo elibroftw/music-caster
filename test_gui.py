@@ -73,12 +73,12 @@ album_cover_data = metadata.get('album_cover_data', None)
 done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]
 music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
-playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'PLAYING',
-                                 47, False, {}, new_playing_text,
-                                 album_cover_data=album_cover_data)
-
-not_playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'NOT PLAYING',
-                                     47, True, {})
+# playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'PLAYING',
+#                                  47, False, {}, new_playing_text,
+#                                  album_cover_data=album_cover_data)
+#
+# not_playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'NOT PLAYING',
+#                                      47, True, {})
 # Sg.Window('Main GUI', playing_layout)
 
 # Settings GUI

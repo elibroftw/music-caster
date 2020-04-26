@@ -166,11 +166,14 @@ def create_songs_list(music_queue, done_queue, next_queue):
 
 
 # GUI LAYOUTS
-def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume, repeating_song,
-                    all_songs: dict, now_playing_text='Nothing Playing', album_cover_data=None):
+def create_main_gui(music_queue, done_queue, next_queue, playing_status, settings,
+                    now_playing_text='Nothing Playing', album_cover_data=None):
     # TODO: Music Library Tab
     # TODO: Play Folder option
-    
+    is_muted = settings['muted']
+    volume = volume = 0 if is_muted else settings['volume']
+    v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
+    repeating_song = settings['repeat']
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     # Sg.Button('Shuffle', key='Shuffle'),
     if repeating_song is None:
@@ -188,7 +191,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, volume,
                        Sg.Button(key='Pause/Resume', image_data=pause_resume_img),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG),
                        Sg.Button(key='Repeat', image_data=repeat_img, tooltip=repeat_btn_tooltip),
-                       Sg.Image(data=VOLUME_IMG, tooltip='press to mute/unmute volume', key='mute', enable_events=True),
+                       Sg.Image(data=v_slider_img, tooltip='press to mute/unmute volume', key='mute', enable_events=True),
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
                                  text_color='#000000', size=(10, 10), tooltip='scroll your mousewheel')]]

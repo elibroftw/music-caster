@@ -51,7 +51,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.34.2'
+VERSION = '4.35.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -519,7 +519,6 @@ try:
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
-    _debug_time = time.time()
     while True:
         try:
             if not port_in_use(PORT):
@@ -582,7 +581,7 @@ try:
         song_position = position
         audio_info = mutagen.File(file_path).info
         song_length = audio_info.length
-        volume = settings['volume'] / 100
+        volume = 0 if settings['muted'] else settings['volume'] / 100
         try:
             _title = EasyID3(file_path).get('title', ['Unknown'])[0]
             _artist = EasyID3(file_path).get('artist', ['Unknown'])
@@ -845,7 +844,6 @@ try:
         global main_window
         if not active_windows['main']:
             active_windows['main'] = True
-            volume = settings['volume']
             repeat_setting = settings['repeat']
             if settings['save_window_positions']: window_location = window_locations.get('main', (None, None))
             else: window_location = (None, None)
@@ -856,11 +854,10 @@ try:
                 new_playing_text = f'{artist} - {title}'
                 album_cover_data = metadata.get('album_cover_data', None)
                 main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                  volume, repeat_setting, all_songs, new_playing_text,
-                                                  album_cover_data=album_cover_data)
+                                                  settings, new_playing_text, album_cover_data=album_cover_data)
             else:
                 main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                  volume, repeat_setting, all_songs)
+                                                  settings)
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False, location=window_location)
             main_window.Finalize()
@@ -921,7 +918,7 @@ try:
             refresh_tray()
             if cast != new_cast:
                 cast = new_cast
-                volume = settings['volume'] / 100
+                volume = 0 if settings['muted'] else settings['volume'] / 100
                 if cast is None:
                     change_settings('previous_device', None)
                     local_music_player.music.set_volume(volume)
@@ -1052,9 +1049,7 @@ try:
 
         # MAIN WINDOW
         if active_windows['main']:
-            # print(time.time() - _debug_time)
-            _debug_time = time.time()
-            main_event, main_values = main_window.Read(timeout=10)
+            main_event, main_values = main_window.Read(timeout=5)
             if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'queue_folder':
                 active_windows['main'] = False
                 main_window.Close()
@@ -1117,6 +1112,18 @@ try:
                 change_settings('volume', new_volume)
                 if update_slider or delta != 0: main_window['volume_slider'].Update(value=new_volume)
                 update_volume(new_volume)
+            elif main_event == 'mute':
+                muted = change_settings('muted', not settings['muted'])
+                if muted:
+                    main_window['mute'].Update(data=VOLUME_MUTED_IMG)
+                    main_window['volume_slider'].Update(0)
+                    local_music_player.music.set_volume(0)
+                    if cast is not None: cast.set_volume(0)
+                else:
+                    main_window['mute'].Update(data=VOLUME_IMG)
+                    main_window['volume_slider'].Update(settings['volume'])
+                    local_music_player.music.set_volume(settings['volume'] / 100)
+                    if cast is not None: cast.set_volume(settings['volume'] / 100)
             elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
                 with suppress(AttributeError, IndexError):
                     if main_window.FindElementWithFocus() == main_window['music_queue']:
@@ -1322,13 +1329,13 @@ try:
                     music_directories.remove(selected_item)
                     compile_all_songs()
                     save_json()
-                    settings_window.Element('music_dirs').Update(music_directories)
+                    settings_window['music_dirs'].Update(music_directories)
             elif settings_event == 'Add Folder':
                 if settings_value not in music_directories and os.path.exists(settings_value):
                     music_directories.append(settings_value)
                     compile_all_songs()
                     save_json()
-                    settings_window.Element('music_dirs').Update(music_directories)
+                    settings_window['music_dirs'].Update(music_directories)
                     # TODO: update menu "Play Folder" list
             elif settings_event == 'Open Settings':
                 try: os.startfile(settings_file)
@@ -1509,9 +1516,13 @@ try:
                         elif is_playing and playing_status != 'PLAYING': resume()
                         elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
                         if volume != cast_volume:
-                            volume = change_settings('volume', cast_volume)
-                            if active_windows['settings']: settings_window['volume'].Update(volume)
-                            if active_windows['main']: main_window['volume_slider'].Update(volume)
+                            if cast_volume or cast_volume == 0 and not settings['muted']:
+                                volume = change_settings('volume', cast_volume)
+                                if volume and settings['muted']: change_settings('muted', not settings['muted'])
+                                if active_windows['main']:
+                                    if volume and settings['muted']:
+                                        main_window['mute'].Update(data=VOLUME_IMG)
+                                    main_window['volume_slider'].Update(volume)
                     elif playing_status in {'PAUSED', 'PLAYING'}: stop()
             cast_last_checked = time.time()
 except Exception as e:
