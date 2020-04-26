@@ -191,7 +191,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
                        Sg.Button(key='Pause/Resume', image_data=pause_resume_img),
                        Sg.Button(key='Next', image_data=NEXT_BUTTON_IMG),
                        Sg.Button(key='Repeat', image_data=repeat_img, tooltip=repeat_btn_tooltip),
-                       Sg.Image(data=v_slider_img, tooltip='press to mute/unmute volume', key='mute', enable_events=True),
+                       Sg.Image(data=v_slider_img, tooltip=f"press to {'unmute' if is_muted else 'mute'}",
+                                key='mute', enable_events=True),
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
                                  text_color='#000000', size=(10, 10), tooltip='scroll your mousewheel')]]
