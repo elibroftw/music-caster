@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.34.2"
+#define MyAppVersion "4.36.0"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -38,7 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "{#SourcePath}dist\Music Caster\*"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1\*"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 

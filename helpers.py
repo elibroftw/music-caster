@@ -275,9 +275,9 @@ def create_settings(version, music_directories, settings, qr_code_data):
         [Sg.Listbox(music_directories, size=(40, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
-             [Sg.Button('Remove Folder', key='Remove Folder', enable_events=True, font=font_normal)],
-             [Sg.FolderBrowse('Add Folder', font=font_normal, enable_events=True)],
-             [Sg.Button('Open settings.json', key='Open Settings', font=font_normal,
+             [Sg.Button('Remove Folder', key='remove_folder', enable_events=True, font=font_normal)],
+             [Sg.FolderBrowse('Add Music Folder', font=font_normal, enable_events=True, key='add_folder')],
+             [Sg.Button('Open settings.json', key='settings_file', font=font_normal,
                         enable_events=True)]], background_color=bg, border_width=0)]]
     return layout
 

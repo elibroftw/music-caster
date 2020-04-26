@@ -51,7 +51,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.35.0'
+VERSION = '4.36.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -84,7 +84,7 @@ timer_window: Sg.Window = None
 pl_editor_window: Sg.Window = None
 # noinspection PyTypeChecker
 pl_selector_window: Sg.Window = None
-daemon_command = main_last_event = settings_last_event = pl_editor_last_event = None
+main_last_event = settings_last_event = pl_editor_last_event = None
 mouse_hover = ''
 MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
@@ -99,7 +99,20 @@ def save_json():
         json.dump(settings, outfile, indent=4)
 
 
+def refresh_folders():
+    tray_folders.clear()
+    tray_folders.append('PF: Select Folder')
+    for music_dir in music_directories:
+        music_dir = music_dir.replace('\\', '/').split('/')
+        if len(music_dir) > 2:
+            music_dir = f'PF: .../{"/".join(music_dir[-2:])}'
+        else:
+            music_dir = 'PF: ' + '/'.join(music_dir)
+        tray_folders.append(music_dir)
+
+
 def refresh_tray():
+    refresh_folders()
     if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
     elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
     else: tray.Update(menu=menu_def_1)
@@ -159,6 +172,8 @@ def get_file_info(_file, on_error='FILENAME'):
 def compile_all_songs(update_global=True, ignore_file='') -> dict:
     # TODO: instead of calling this function, thread it and
     #  call .join() if you need to use all_songs
+    #  and use a lock
+    # song_compilation_lock = threading.Lock()
     global all_songs
     if not update_global:
         temp_songs = all_songs.copy()
@@ -267,13 +282,7 @@ def load_settings():
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
             if _temp != music_directories or music_directories == [home_music_dir]:
                 compile_all_songs()
-                tray_folders.clear()
-                tray_folders.append('PF: Select Folder')
-                for music_dir in music_directories:
-                    music_dir = music_dir.replace('\\', '/').split('/')
-                    if len(music_dir) > 2: music_dir = f'PF: .../{"/".join(music_dir[-2:])}'
-                    else: music_dir = 'PF: ' + '/'.join(music_dir)
-                    tray_folders.append(music_dir)
+                refresh_folders()
             DEFAULT_DIR = music_directories[0]
         if save_settings: save_json()
     else: save_json()
@@ -571,8 +580,8 @@ try:
     threading.Thread(target=start_chromecast_discovery, daemon=True).start()
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
-        global mc, song_start, song_end, playing_status, song_length, song_position, volume, images_dir,\
-               cast_last_checked, music_queue
+        global mc, song_start, song_end, playing_status, song_length, song_position,\
+            images_dir, cast_last_checked, music_queue
         while not os.path.exists(file_path):
             music_queue.remove(file_path)
             if music_queue: file_path = music_queue[0]
@@ -862,7 +871,7 @@ try:
                                     return_keyboard_events=True, use_default_focus=False, location=window_location)
             main_window.Finalize()
             main_window['music_queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
-            main_window['Pause/Resume'].playing_status = playing_status
+            main_window.playing_status = playing_status
             main_window['Repeat'].is_repeating = repeat_setting
             main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
             main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
@@ -874,14 +883,45 @@ try:
         main_window.TKroot.focus_force()
         main_window.Normal()
 
-    def track_settings_file():
+    def background_tasks():
+        global mc, cast, cast_last_checked, song_start, song_end, song_position, is_playing, is_paused
+
         while True:
             load_settings()  # NOTE: might need a lock
             refresh_tray()
+            if mc is not None:
+                with suppress(UnsupportedNamespace):
+                    if cast is not None and time.time() - cast_last_checked > 5:
+                        if cast.app_id == APP_MEDIA_RECEIVER:
+                            mc.update_status()
+                            is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                            new_song_position = mc.status.adjusted_current_time
+                            volume = settings['volume']
+                            cast_volume = cast.status.volume_level * 100
+                            song_start = time.time() - new_song_position  # if music was scrubbed on the home app
+                            song_end = time.time() + song_length - new_song_position
+                            song_position = new_song_position
+                            if is_paused and playing_status != 'PAUSED':
+                                pause()
+                            elif is_playing and playing_status != 'PLAYING':
+                                resume()
+                            elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING':
+                                stop()
+                            if volume != cast_volume:
+                                if cast_volume or cast_volume == 0 and not settings['muted']:
+                                    volume = change_settings('volume', cast_volume)
+                                    if volume and settings['muted']: change_settings('muted', not settings['muted'])
+                                    if active_windows['main']:
+                                        if volume and settings['muted']:
+                                            main_window['mute'].Update(data=VOLUME_IMG)
+                                        main_window['volume_slider'].Update(volume)
+                        elif playing_status in {'PAUSED', 'PLAYING'}:
+                            stop()
+                cast_last_checked = time.time()
             time.sleep(10)
 
     def on_press(key):
-        global daemon_command, last_press
+        global last_press
         if str(key) not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
         if str(key) == '<179>':
             if playing_status == 'PLAYING': pause()
@@ -893,17 +933,20 @@ try:
 
     last_press = time.time()
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
-    threading.Thread(target=track_settings_file, daemon=True).start()
+    threading.Thread(target=background_tasks, daemon=True).start()
     if len(sys.argv) > 1:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play_file(file_or_dir)
         elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
     if settings.get('DEBUG', False): print('Running in tray')
     while True:
-        menu_item = tray.Read(timeout=10)
+        if any(active_windows.values()):
+            menu_item = tray.Read(timeout=30)
+        else:
+            menu_item = tray.Read()
         if menu_item == 'Refresh Devices':
             threading.Thread(target=start_chromecast_discovery, daemon=True).start()
-        if '__ACTIVATED__' in {menu_item, daemon_command}: main_gui()
+        if menu_item == '__ACTIVATED__': main_gui()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
             if i == 0: new_cast = None
@@ -1033,9 +1076,9 @@ try:
             elif settings['timer_sleep_computer']:
                 if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
                 else: pass
-        elif menu_item in 'Repeat One':  repeat_setting = change_settings('repeat', True)
-        elif menu_item in 'Repeat All': repeat_setting = change_settings('repeat', False)
-        elif menu_item in 'Repeat Off': repeat_setting = change_settings('repeat', None)
+        elif menu_item == 'Repeat One': repeat_setting = change_settings('repeat', True)
+        elif menu_item == 'Repeat All': repeat_setting = change_settings('repeat', False)
+        elif menu_item == 'Repeat Off': repeat_setting = change_settings('repeat', None)
         elif menu_item == 'Locate File' and music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif menu_item == 'Exit':
             tray.Hide()
@@ -1049,7 +1092,7 @@ try:
 
         # MAIN WINDOW
         if active_windows['main']:
-            main_event, main_values = main_window.Read(timeout=5)
+            main_event, main_values = main_window.Read(timeout=10)
             if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'queue_folder':
                 active_windows['main'] = False
                 main_window.Close()
@@ -1281,15 +1324,15 @@ try:
             lb_music_queue: Sg.Listbox = main_window['music_queue']
             dq_len = len(done_queue)
             update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
-            if playing_status == 'PLAYING' and p_r_button.playing_status != 'PLAYING':
-                p_r_button.playing_status = 'PLAYING'
+            if playing_status == 'PLAYING' and main_window.playing_status != 'PLAYING':
+                main_window.playing_status = 'PLAYING'
                 p_r_button.Update(image_data=PAUSE_BUTTON_IMG)
-            elif playing_status == 'PAUSED' and p_r_button.playing_status != 'PAUSED':
-                p_r_button.playing_status = 'PAUSED'
+            elif playing_status == 'PAUSED' and main_window.playing_status != 'PAUSED':
+                main_window.playing_status = 'PAUSED'
                 p_r_button.Update(image_data=PLAY_BUTTON_IMG)
-            elif playing_status == 'NOT PLAYING' and p_r_button.playing_status != 'NOT PLAYING':
-                if p_r_button.playing_status == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
-                p_r_button.playing_status, new_playing_text, update_text = 'NOT PLAYING', 'Nothing Playing', True
+            elif playing_status == 'NOT PLAYING' and main_window.playing_status != 'NOT PLAYING':
+                if main_window.playing_status == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
+                main_window.playing_status, new_playing_text, update_text = 'NOT PLAYING', 'Nothing Playing', True
                 main_window['time_elapsed'].Update(value='00:00')
                 main_window['time_left'].Update(value='00:00')
             if update_text: now_playing_text.Update(value=new_playing_text)
@@ -1301,7 +1344,7 @@ try:
         if active_windows['settings']:
             settings_event, settings_values = settings_window.Read(timeout=10)
             if (settings_event in {None, 'q', 'Q'} or settings_event == 'Escape:27'
-                    and settings_last_event != 'Add Folder'):
+                    and settings_last_event != 'add_folder'):
                 active_windows['settings'] = False
                 settings_window.Close()
                 continue
@@ -1323,24 +1366,24 @@ try:
                             rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                                  large_text='Listening', small_image='logo', small_text='Music Caster')
                         elif not settings_value: rich_presence.clear()
-            elif settings_event == 'Remove Folder' and settings_values['music_dirs']:
+            elif settings_event == 'remove_folder' and settings_values['music_dirs']:
                 selected_item = settings_values['music_dirs'][0]
                 if selected_item in music_directories:
                     music_directories.remove(selected_item)
-                    compile_all_songs()
-                    save_json()
                     settings_window['music_dirs'].Update(music_directories)
-            elif settings_event == 'Add Folder':
+                    refresh_tray()
+                    save_json()
+                    compile_all_songs()
+            elif settings_event == 'add_folder':
                 if settings_value not in music_directories and os.path.exists(settings_value):
                     music_directories.append(settings_value)
-                    compile_all_songs()
-                    save_json()
                     settings_window['music_dirs'].Update(music_directories)
-                    # TODO: update menu "Play Folder" list
-            elif settings_event == 'Open Settings':
+                    refresh_tray()
+                    save_json()
+                    compile_all_songs()
+            elif settings_event == 'settings_file':
                 try: os.startfile(settings_file)
-                except OSError:
-                    Popen(f'explorer /select,"{fix_path(settings_file)}"')
+                except OSError: Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
         if active_windows['create_playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=10)
@@ -1383,10 +1426,10 @@ try:
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
                 set_save_position_callback(pl_editor_window, 'create_playlist_editor')
-                if pl_selector_event == 'create_pl': pl_editor_window.Element('playlist_name').SetFocus()
+                if pl_selector_event == 'create_pl': pl_editor_window['playlist_name'].SetFocus()
                 else:
-                    pl_editor_window.Element('songs').SetFocus()
-                    pl_editor_window.Element('songs').Update(set_to_index=0)
+                    pl_editor_window['songs'].SetFocus()
+                    pl_editor_window['songs'].Update(set_to_index=0)
                 active_windows['create_playlist_editor'], active_windows['create_playlist_selector'] = True, False
         if active_windows['create_playlist_editor']:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=10)
@@ -1499,31 +1542,31 @@ try:
                 change_settings('timer_hibernate_computer', timer_values['hibernate'])
                 change_settings('timer_sleep_computer', timer_values['sleep'])
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])
-        daemon_command = None
-        if mc is not None and time.time() - cast_last_checked > 5:
-            with suppress(UnsupportedNamespace):
-                if cast is not None:
-                    if cast.app_id == APP_MEDIA_RECEIVER:
-                        mc.update_status()
-                        is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-                        new_song_position = mc.status.adjusted_current_time
-                        volume = settings['volume']
-                        cast_volume = cast.status.volume_level * 100
-                        song_start = time.time() - new_song_position  # if music was scrubbed on the home app
-                        song_end = time.time() + song_length - new_song_position
-                        song_position = new_song_position
-                        if is_paused and playing_status != 'PAUSED': pause()
-                        elif is_playing and playing_status != 'PLAYING': resume()
-                        elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
-                        if volume != cast_volume:
-                            if cast_volume or cast_volume == 0 and not settings['muted']:
-                                volume = change_settings('volume', cast_volume)
-                                if volume and settings['muted']: change_settings('muted', not settings['muted'])
-                                if active_windows['main']:
-                                    if volume and settings['muted']:
-                                        main_window['mute'].Update(data=VOLUME_IMG)
-                                    main_window['volume_slider'].Update(volume)
-                    elif playing_status in {'PAUSED', 'PLAYING'}: stop()
-            cast_last_checked = time.time()
+        # if mc is not None and time.time() - cast_last_checked > 5:
+        #     # MAKE THIS IT's own thread
+        #     with suppress(UnsupportedNamespace):
+        #         if cast is not None:
+        #             if cast.app_id == APP_MEDIA_RECEIVER:
+        #                 mc.update_status()
+        #                 is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+        #                 new_song_position = mc.status.adjusted_current_time
+        #                 volume = settings['volume']
+        #                 cast_volume = cast.status.volume_level * 100
+        #                 song_start = time.time() - new_song_position  # if music was scrubbed on the home app
+        #                 song_end = time.time() + song_length - new_song_position
+        #                 song_position = new_song_position
+        #                 if is_paused and playing_status != 'PAUSED': pause()
+        #                 elif is_playing and playing_status != 'PLAYING': resume()
+        #                 elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
+        #                 if volume != cast_volume:
+        #                     if cast_volume or cast_volume == 0 and not settings['muted']:
+        #                         volume = change_settings('volume', cast_volume)
+        #                         if volume and settings['muted']: change_settings('muted', not settings['muted'])
+        #                         if active_windows['main']:
+        #                             if volume and settings['muted']:
+        #                                 main_window['mute'].Update(data=VOLUME_IMG)
+        #                             main_window['volume_slider'].Update(volume)
+        #             elif playing_status in {'PAUSED', 'PLAYING'}: stop()
+        #     cast_last_checked = time.time()
 except Exception as e:
     handle_exception(e, True)
