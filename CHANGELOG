@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.35.0
 - [Feature] Main GUI volume image acts like mute/unmute button
+- [Bug fix] Settings window error
 - [Optimization] Optimized image assets
 
 4.34.2
