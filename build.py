@@ -39,22 +39,23 @@ with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Updater.exe', 'Updater.exe')
     zf.write('resources/default.png', 'images/default.png')
     zf.write('templates/home.html')
-    # for f in glob.glob(r'Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1\*.*'):
-    #     zf.write(f, os.path.basename(f))
     zf.write('static/style.css')
     zf.write('CHANGELOG', 'CHANGELOG.txt')
+    # for f in glob.glob(r'Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1\*.*'):
+    #     zf.write(f, os.path.basename(f))
 
 print('Created dist/Portable.zip')
 
 with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('music_caster.py')
     zf.write('helpers.py')
-    zf.write('Music Caster Updater/Music Caster Updater/Program.cs', 'updater.cs')
+    zf.write('updater.py')
     zf.write('resources/Music Caster.ico', 'icon.ico')
     zf.write('resources/default.png', 'images/default.png')
     zf.write('templates/home.html')
     zf.write('static/style.css')
     zf.write('requirements.txt')
+    zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
 print('Build Time:', time.time() - start_time, 'seconds')

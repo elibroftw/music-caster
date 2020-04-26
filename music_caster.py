@@ -231,15 +231,6 @@ def download(url, outfile):
             _f.write(r.content)
 
 
-def download_and_extract(link, infile, outfile=None):
-    r = requests.get(link, stream=True)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(f'{starting_dir}/Update')  # extract to a folder called Update
-    if outfile is None: outfile = infile
-    with suppress(FileNotFoundError): os.remove(outfile)
-    os.rename(f'{starting_dir}/Update/{infile}', outfile)
-
-
 def set_save_position_callback(window: Sg.Window, _key):
 
     def save_window_position(event):
@@ -317,26 +308,30 @@ if settings['auto_update']:
                                  class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
             download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
             setup_download_link = f'https://github.com{download_links[0]}'
-            bundle_download_link = f'https://github.com{download_links[1]}'
-            source_download_link = f'https://github.com{download_links[-2]}'
+            portable_download_link = f'https://github.com{download_links[1]}'
             os.chdir(starting_dir)
             tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
             if settings.get('DEBUG'):
-                print(setup_download_link)
-                print(bundle_download_link)
-                print(source_download_link)
-            elif getattr(sys, 'frozen', False) and os.path.exists('Updater.exe'):
-                os.startfile('Updater.exe')
-                tray.Update(tooltip='Downloading Update...')
-                tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
-                time.sleep(2)
-                tray.Hide()
-                sys.exit()
-            else:
-                tray.ShowMessage('Music Caster', f'Update v{latest_version} Available')
-                tray.Hide()
-                time.sleep(5)
-                tray.Close()
+                print('Portable:', portable_download_link)
+                print('Installer:', setup_download_link)
+            elif getattr(sys, 'frozen', False):
+                if not os.path.exists('unis000.exe') and os.path.exists('Updater.exe'):
+                    os.startfile('Updater.exe')
+                    tray.Update(tooltip=f'Downloading Update v{latest_version}')
+                    tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
+                    time.sleep(2)
+                    tray.Hide()
+                    sys.exit()
+                elif os.path.exists('unis000.exe'):
+                    tray.Update(tooltip=f'Downloading Update v{latest_version}')
+                    tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
+                    download(setup_download_link, 'MC_Installer.exe')
+                    Popen('MC_Installer.exe /VERYSILENT /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
+                    tray.Hide()
+                    sys.exit()
+            tray.ShowMessage('Music Caster', f'Update v{latest_version} Available')
+            time.sleep(2)
+            tray.Close()
 
 
 # MODIFY REGISTRY
@@ -482,7 +477,7 @@ try:
             if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
                 shell = win32com.client.Dispatch('WScript.Shell')
                 shortcut = shell.CreateShortCut(path)
-                if getattr(sys, 'frozen', False):  # Running in a bundle
+                if getattr(sys, 'frozen', False):  # Running in as an executable
                     target = f'{starting_dir}\\Music Caster.exe'
                 else:
                     bat_file = f'{starting_dir}\\music_caster.bat'

@@ -1,7 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
 4.36.0
-- Switched updater back to Python
+- Embedded Updater for installer
+- Updater uses Python now again
 - [Optimization] less cpu usage when idle
 
 4.35.0

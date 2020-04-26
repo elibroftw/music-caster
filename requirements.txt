@@ -17,4 +17,3 @@ pypng~=0.0.20
 wxpython>=4.0,<4.1
 winshell~=0.6
 requests~=2.22.0
-win10toast~=0.9

@@ -3,15 +3,20 @@ from glob import glob
 import io
 import json
 import os
-from shutil import copyfileobj, rmtree
+from shutil import rmtree
 from subprocess import Popen
 import time
 import zipfile
-
+import sys
 
 from bs4 import BeautifulSoup
 import requests
-from win10toast import ToastNotifier
+
+
+try:
+    run_after_install = bool(sys.argv[1])
+except IndexError:
+    run_after_install = True
 
 
 def download(url, outfile):
@@ -21,28 +26,10 @@ def download(url, outfile):
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall(outfile)
     else:
-        with open(outfile, 'wb') as f:
-            f.write(r.content)
+        with open(outfile, 'wb') as _f:
+            _f.write(r.content)
 
 
-def download_and_extract(link, infile, outfile=None):
-    if os.path.exists(f'Update/{infile}'):
-        if not outfile: outfile = infile
-        if os.path.exists(outfile): os.remove(outfile)
-        os.rename(f'Update/{infile}', outfile)
-        rmtree('Update', True)
-    else:
-        r = requests.get(link, stream=True)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        if outfile is None: z.extract(infile)
-        else:
-            new_file = z.open(infile)
-            target = open(outfile, 'wb')
-            with new_file, target: copyfileobj(new_file, target)
-
-
-toaster = ToastNotifier()
-toaster.show_toast('Music Caster', 'Downloading and installing update', duration=15, threaded=True)
 os.chdir(os.path.dirname(os.path.realpath(__file__)))  # change working dir
 loaded_settings = {'DEBUG': False}
 if os.path.exists('settings.json'):
@@ -61,22 +48,22 @@ for release_entry in release_entries:
 details = release_entry.find('details', class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
 download_links = [link['href'] for link in details.find_all('a')]
 setup_download_link = f'https://github.com{download_links[0]}'
-bundle_download_link = f'https://github.com{download_links[1]}'
+portable_download_link = f'https://github.com{download_links[1]}'
 start = time.time()
 if debug_setting:
-    print('Bundle:', bundle_download_link)
+    print('Bundle:', portable_download_link)
     print('Installer:', setup_download_link)
 elif os.path.exists('Music Caster.exe'):
     if not os.path.exists('unins000.exe'):  # Portable
         if not os.path.exists('Portable'):
-            download(bundle_download_link, 'Portable.zip')
+            download(portable_download_link, 'Portable.zip')
         for f in glob('Portable/**/*.*', recursive=True):
             if not f.endswith('Updater.exe'):
                 new_f = f.replace('Portable\\', '')
                 with suppress(FileNotFoundError): os.remove(new_f)
                 os.rename(f, new_f)
-        os.remove('Portable')
-        os.startfile('Music Caster.exe')
+        rmtree('Portable', ignore_errors=True)
+        if run_after_install: os.startfile('Music Caster.exe')
     else:
         download(setup_download_link, 'MC_Installer.exe')
         Popen('MC_Installer.exe /VERYSILENT /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')

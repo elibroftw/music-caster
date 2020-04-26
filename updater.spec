@@ -29,8 +29,16 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=False,
-          upx_exclude=['vcruntime140.dll', 'python36.dll'],
+          upx_exclude=['VCRUNTIME140.dll', 'python36.dll'],
           runtime_tmpdir=None,
           console=False,
           icon='resources/Updater.ico',
           version='MCU_version_info.txt')
+#coll = COLLECT(
+#    exe,
+#    a.binaries,
+#    a.zipfiles,
+#    a.datas,
+#    name='Music Caster Updater',
+#    strip=False,
+#    upx=True)

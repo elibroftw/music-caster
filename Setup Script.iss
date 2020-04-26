@@ -38,7 +38,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "{#SourcePath}dist\Music Caster\*"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourcePath}dist\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
