@@ -1115,12 +1115,12 @@ try:
             elif main_event == 'mute':
                 muted = change_settings('muted', not settings['muted'])
                 if muted:
-                    main_window['mute'].Update(data=VOLUME_MUTED_IMG, tooltip='press to unmute')
+                    main_window['mute'].Update(data=VOLUME_MUTED_IMG)
                     main_window['volume_slider'].Update(0)
                     local_music_player.music.set_volume(0)
                     if cast is not None: cast.set_volume(0)
                 else:
-                    main_window['mute'].Update(data=VOLUME_IMG, tooltip='press to mute')
+                    main_window['mute'].Update(data=VOLUME_IMG)
                     main_window['volume_slider'].Update(settings['volume'])
                     local_music_player.music.set_volume(settings['volume'] / 100)
                     if cast is not None: cast.set_volume(settings['volume'] / 100)
