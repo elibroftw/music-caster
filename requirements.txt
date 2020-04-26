@@ -11,7 +11,7 @@ pyperclip~=1.7.0
 pyqrcode>=1.2,<1.3
 PySimpleGUI>=4.16.0,<4.17
 PySimpleGUIWx>=0.14.0,<0.15.0
-pypiwin32~=223
+pypiwin32==223
 pypresence~=4.0.0
 pypng~=0.0.20
 wxpython>=4.0,<4.1
