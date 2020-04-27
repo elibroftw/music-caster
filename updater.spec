@@ -33,7 +33,7 @@ exe = EXE(pyz,
           runtime_tmpdir=None,
           console=False,
           icon='resources/Updater.ico',
-          version='MCU_version_info.txt')
+          version='mcu_version_info.txt')
 #coll = COLLECT(
 #    exe,
 #    a.binaries,
