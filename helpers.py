@@ -185,11 +185,10 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     else:
         repeat_img = REPEAT_ALL_IMG
         repeat_btn_tooltip = 'click to turn repeat one, click again to turn repeat off'
-    music_controls = [[Sg.Button(key='locate_file', image_data=FOLDER_ICON, tooltip='show file in explorer'),
-                       Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG),
+    music_controls = [[Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG),
                        # border_width=0, first add border to images
                        Sg.Button(key='pause/resume', image_data=pause_resume_img),
-                       Sg.Button(key='nNext', image_data=NEXT_BUTTON_IMG),
+                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG),
                        Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_btn_tooltip),
                        Sg.Image(data=v_slider_img, tooltip='press to mute/unmute', key='mute', enable_events=True),
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
@@ -224,8 +223,9 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
         [Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(0, 5))],
         [Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(0, 5))]]
     q_controls2 = [
-        [Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(0, 5))]
-        # [Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(0, 5))]  # TODO
+        [Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(0, 5))],
+        [Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(0, 5),
+                   tooltip='show selected file in explorer')]
     ]
     tab2_layout = [[
         Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,

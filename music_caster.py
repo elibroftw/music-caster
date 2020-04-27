@@ -54,7 +54,11 @@ import winshell
 
 VERSION = '4.37.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
-UPDATE_MESSAGE = 'NEW: This updated notification\nNEW: Double click song in music queue to play it'
+UPDATE_MESSAGE = """
+NEW: This updated notification
+NEW: Double click song in music queue to play it
+NEW: Moved locate file to second tab
+"""
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
 PORT, WAIT_TIMEOUT = 2001, 10
@@ -1134,7 +1138,16 @@ try:
             elif main_event == 'tab3_mouse_enter': mouse_hover = 'tab3'
             elif main_event == 'tab3_mouse_leave': mouse_hover = ''
             elif main_event in {'locate_file', 'e:69'}:
-                if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
+                try:
+                    index = int(main_values['music_queue'][0].split('.', 1)[0])
+                except IndexError:
+                    index = 0
+                if index < 0:
+                    Popen(f'explorer /select,"{fix_path(done_queue[index])}"')
+                elif (index == 0 or index > len(next_queue)) and music_queue:
+                    Popen(f'explorer /select,"{fix_path(music_queue[index])}"')
+                elif 0 < index <= len(next_queue):
+                    Popen(f'explorer /select,"{fix_path(next_queue[index - 1])}"')
             elif main_event == 'pause/resume':
                 if playing_status == 'PAUSED': resume()
                 elif playing_status == 'PLAYING': pause()
