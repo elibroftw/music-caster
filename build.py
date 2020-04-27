@@ -52,6 +52,7 @@ print('Created dist/Portable.zip')
 with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('music_caster.py')
     zf.write('helpers.py')
+    zf.write('b64_images.py')
     zf.write('updater.py')
     zf.write('resources/Music Caster.ico', 'icon.ico')
     zf.write('resources/default.png', 'images/default.png')
