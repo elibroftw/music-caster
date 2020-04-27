@@ -61,7 +61,7 @@ elif os.path.exists('Music Caster.exe'):
             if not f.endswith('Updater.exe'):
                 new_f = f.replace('Portable\\', '')
                 with suppress(FileNotFoundError): os.remove(new_f)
-                os.rename(f, new_f)
+                os.renames(f, new_f)
         rmtree('Portable', ignore_errors=True)
         if run_after_install: os.startfile('Music Caster.exe')
     else:

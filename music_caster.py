@@ -315,14 +315,14 @@ if settings['auto_update']:
                 print('Portable:', portable_download_link)
                 print('Installer:', setup_download_link)
             elif getattr(sys, 'frozen', False):
-                if not os.path.exists('unis000.exe') and os.path.exists('Updater.exe'):
+                if not os.path.exists('unins000.exe') and os.path.exists('Updater.exe'):
                     os.startfile('Updater.exe')
                     tray.Update(tooltip=f'Downloading Update v{latest_version}')
                     tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
                     time.sleep(2)
                     tray.Hide()
                     sys.exit()
-                elif os.path.exists('unis000.exe'):
+                elif os.path.exists('unins000.exe'):
                     tray.Update(tooltip=f'Downloading Update v{latest_version}')
                     tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
                     download(setup_download_link, 'MC_Installer.exe')
