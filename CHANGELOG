@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.36.1
+- [Bug fix] Handled HeaderNotFoundError
+
 4.36.0
 - [Optimization] Embedded Updater (+ updating notification)
 - [Optimization] Less cpu usage when idle

@@ -36,6 +36,7 @@ from flask import Flask, jsonify, render_template, request, redirect
 import requests
 import mutagen
 import mutagen.id3
+import mutagen.mp3
 from mutagen.easyid3 import EasyID3
 import PySimpleGUIWx as SgWx
 import wx
@@ -51,7 +52,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.36.0'
+VERSION = '4.36.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -155,7 +156,7 @@ def get_file_info(_file, on_error='FILENAME'):
         _title = EasyID3(_file).get('title', ['Unknown'])[0]
         _artist = ', '.join(EasyID3(_file).get('artist', ['Unknown']))
         return _artist, _title
-    except mutagen.id3.ID3NoHeaderError:
+    except (mutagen.id3.ID3NoHeaderError, mutagen.mp3.HeaderNotFoundError):
         _tags = mutagen.File(_file)
         _tags.add_tags()
         _tags.save()
@@ -184,6 +185,7 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
     all_songs.clear()
     for directory in music_directories:
         for _file in glob(f'{directory}/**/*.*', recursive=True):
+            _file = _file.replace('\\', '/')
             if _file != ignore_file and valid_music_file(_file):
                 file_info = get_file_info(_file)
                 if type(file_info) == tuple: file_info = ' - '.join(file_info)
@@ -681,6 +683,7 @@ try:
 
     def play_all(starting_file=None):
         global playing_status
+        starting_file = starting_file.replace('\\', '/')
         music_queue.clear()
         done_queue.clear()
         if starting_file: music_queue.extend(compile_all_songs(False, starting_file).values())
