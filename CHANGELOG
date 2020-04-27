@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.37.0
+- [Feature] Added notification if MC was updated
+- [Feature] Double click a song in the music queue to play the song
+- [Bug fix] Two instances of Music Caster
+
 4.36.1
 - [Bug fix] Handled HeaderNotFoundError
 

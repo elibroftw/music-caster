@@ -29,7 +29,7 @@ When you click Play File, you can select a file to play and then the music in yo
 
 Music Caster supports media keys.
 
-There is a web GUI accessible at http://127.0.0.1:2001 or IPV4:2001. You can find your IPV4 by using ipconfig. If the 2001 port does not work, try 2002.
+There is a web GUI accessible through the settings window (click or scan the QR code)
 
 ## Limitations and Known Issues
 - Only supports MP3 files (for now)
