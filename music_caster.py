@@ -283,14 +283,15 @@ def load_settings():
 
 
 load_settings()
-if not settings.get('DEBUG', False) and is_already_running():
-    r_text = 'False'
+if is_already_running():
     while PORT <= 2100 and r_text != 'True':
         with suppress(requests.exceptions.InvalidSchema):
             if len(sys.argv) > 1: r_text = requests.get(f'http://127.0.0.1:{PORT}/play?filename={sys.argv[1]}').text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
-    sys.exit()
+    if not settings.get('DEBUG', False):
+        sys.exit()
+
 
 if settings['auto_update']:
     with suppress(requests.ConnectionError):
@@ -426,6 +427,7 @@ try:
 
     @app.route('/instance/')
     def instance():
+        global server_command
         for k, v in active_windows.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
@@ -434,7 +436,7 @@ try:
                 elif k == 'create_playlist_selector': pl_selector_window.bring_to_front()
                 elif k == 'create_playlist_editor': pl_editor_window.bring_to_front()
                 return 'True'
-        main_gui()
+        server_command = '__ACTIVATED__'
         return 'True'
 
     @app.errorhandler(404)
@@ -681,7 +683,7 @@ try:
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Listening', small_image='logo', small_text='Music Caster')
 
-    def play_all(starting_file=None):
+    def play_all(starting_file=''):
         global playing_status
         starting_file = starting_file.replace('\\', '/')
         music_queue.clear()
@@ -932,6 +934,7 @@ try:
     last_press = time.time()
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     threading.Thread(target=background_tasks, daemon=True).start()
+    server_command = None
     if len(sys.argv) > 1:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play_file(file_or_dir)
@@ -941,10 +944,10 @@ try:
         if any(active_windows.values()):
             menu_item = tray.Read(timeout=30)
         else:
-            menu_item = tray.Read()
+            menu_item = tray.Read(timeout=500)
         if menu_item == 'Refresh Devices':
             threading.Thread(target=start_chromecast_discovery, daemon=True).start()
-        if menu_item == '__ACTIVATED__': main_gui()
+        if '__ACTIVATED__' in {menu_item, server_command}: main_gui()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
             if i == 0: new_cast = None
@@ -1540,6 +1543,7 @@ try:
                 change_settings('timer_hibernate_computer', timer_values['hibernate'])
                 change_settings('timer_sleep_computer', timer_values['sleep'])
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])
+        server_command = None
         # if mc is not None and time.time() - cast_last_checked > 5:
         #     # MAKE THIS IT's own thread
         #     with suppress(UnsupportedNamespace):
