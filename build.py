@@ -23,7 +23,10 @@ s1 = subprocess.Popen('pyinstaller mc_portable.spec')
 s2 = subprocess.Popen('pyinstaller updater.spec')
 s3 = subprocess.check_call('pyinstaller mc_onedir.spec')
 s2.wait()
-s4 = subprocess.check_call('iscc "Setup Script.iss"')
+try:
+    s4 = subprocess.Popen('iscc setup_script.iss')
+except FileNotFoundError:
+    s4 = None
 s1.wait()
 
 
@@ -58,4 +61,6 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
+if s4 is not None: s4.wait()
+else: print('ERROR: could not create an installer: iscc not on path')
 print('Build Time:', time.time() - start_time, 'seconds')
