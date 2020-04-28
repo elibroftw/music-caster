@@ -52,7 +52,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.37.0'
+VERSION = '4.37.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UPDATE_MESSAGE = """
 NEW: This updated notification

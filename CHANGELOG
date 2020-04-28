@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.37.1
+- [Bug fix] Removed duplicate code
+
 4.37.0
 - [Feature] Added notification if MC was updated
 - [Feature] Double click a song in the music queue to play the song

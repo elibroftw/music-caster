@@ -171,7 +171,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     # TODO: Music Library Tab
     # TODO: Play Folder option
     is_muted = settings['muted']
-    volume = volume = 0 if is_muted else settings['volume']
+    volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
     repeating_song = settings['repeat']
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
