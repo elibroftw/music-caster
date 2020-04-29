@@ -59,6 +59,7 @@ UPDATE_MESSAGE = """
 NEW: Play files through web GUI
 FIX: Better Chromecast detection
 FIX: Metadata parsing
+FIX: Installer
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py

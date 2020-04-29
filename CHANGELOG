@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.38.1
 - [Bug fix] Handled more metadata errors
+- [Bug fix] Installer installs all files now
 
 4.38.0
 - [Feature] Can now play files from the web GUI

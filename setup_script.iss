@@ -37,7 +37,7 @@ SetupIconFile="resources\Music Caster.ico"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "{#SourcePath}dist\Music Caster\*"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourcePath}dist\Music Caster\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
