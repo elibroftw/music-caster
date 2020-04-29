@@ -53,11 +53,12 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.38.0'
+VERSION = '4.38.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UPDATE_MESSAGE = """
 NEW: Play files through web GUI
 FIX: Better Chromecast detection
+FIX: Metadata parsing
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -162,10 +163,13 @@ def get_file_info(_file, on_error='FILENAME'):
         _artist = ', '.join(EasyID3(_file).get('artist', ['Unknown']))
         return _artist, _title
     except (mutagen.id3.ID3NoHeaderError, mutagen.mp3.HeaderNotFoundError):
-        _tags = mutagen.File(_file)
-        _tags.add_tags()
-        _tags.save()
-        return get_file_info(_file)
+        try:
+            _tags = mutagen.File(_file)
+            _tags.add_tags()
+            _tags.save()
+            return get_file_info(_file)
+        except mutagen.MutagenError:
+            return 'Unknown', 'Unknown'
     except Exception as _e:  # NOTE: might be able to remove this
         if settings.get('DEBUG') or not file_info_exceptions:
             handle_exception(_e)
