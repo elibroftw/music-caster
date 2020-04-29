@@ -20,6 +20,7 @@ import sys
 import shutil
 import threading
 import traceback
+import urllib
 import webbrowser
 import zipfile
 # helper file
@@ -292,7 +293,9 @@ if is_already_running():
     r_text = ''
     while PORT <= 2100 and not r_text:
         with suppress(requests.exceptions.InvalidSchema):
-            if len(sys.argv) > 1: r_text = requests.get(f'http://127.0.0.1:{PORT}/play?filename={sys.argv[1]}').text
+            if len(sys.argv) > 1:
+                args = urllib.parse.urlencode({'filename': sys.argv[1]})
+                r_text = requests.get(f'http://127.0.0.1:{PORT}/play?{args}').text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
     if not settings.get('DEBUG', False):
@@ -408,9 +411,10 @@ try:
         shuffle_option = 'red' if settings['shuffle_playlists'] else ''
         list_of_songs = ''  #
         # sort by the formatted title
-        sorted_songs = sorted(all_songs.items(), key=lambda item: item[0])
+        sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
         for formatted_track, filename in sorted_songs:
-            list_of_songs += f'<a href="/play/?filename={filename}" class="track">formatted_track</a>\n'
+            filename = urllib.parse.urlencode({'filename': filename})
+            list_of_songs += f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track[:100]}</a>\n'
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
                                repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
                                starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)

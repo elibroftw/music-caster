@@ -1,6 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
-4.37.1
+4.38.0
+- [Feature] Can now play files from the web GUI
 - [Bug fix] Removed duplicate code
 - [Bug fix] Better Chromecast detection
 

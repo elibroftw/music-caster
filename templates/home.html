@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Music Caster - Web GUI</title>
+<title>Music Caster</title>
 <link rel="icon" type="image/png"
       href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png">
 <link rel="shortcut icon"
@@ -47,7 +47,7 @@
                     </svg>
                 </a></li> -->
                 <!-- <i class="fa fa-ellipsis-h"></i> -->
-                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file-audio-h"></i></a></li>
+                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file"></i></a></li>
                 <!-- <li><a onclick=/"showModal('settings')" href="/#settings" class="list__link"><i class="fa fa-sliders-h"></i></a></li> -->
             </ul>
         </div>
@@ -60,7 +60,8 @@
 </div>
 <div id="files-modal" class="modal">
     <div class="modal-content">
-        {{ list_of_songs }}
+        <h2>File Selection</h2>
+        {{ list_of_songs|safe }}
     </div>
 </div>
 <div id="settings-modal" class="modal">
@@ -82,11 +83,29 @@
     window.onclick = function (event) {
         if (event.target == modals['settings']) {
             modals['settings'].style.display = "none";
+            history.replaceState("", document.title, window.location.pathname + window.location.search);
         } else if (event.target == modals['queue']){
             modals['queue'].style.display = "none";
+            history.replaceState("", document.title, window.location.pathname + window.location.search);
         } else if (event.target == modals['files'])  {
             modals['files'].style.display = "none";
+            history.replaceState("", document.title, window.location.pathname + window.location.search);
         }
     }
-    // populate 
+
+    function getHash() {
+        try {
+            var hash = window.location.hash;
+            return hash.slice(1);
+        } catch (err) {
+            return ""
+        }
+    }
+
+        
+    if (getHash() == 'files') {
+        window.onload = function () {
+            showModal('files');
+        };
+    }    
 </script>
