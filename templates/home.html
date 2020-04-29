@@ -41,8 +41,52 @@
                 <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>
                 <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
                 <li><a href="?repeat" class="list__link {{repeat}}"><i class="fa fa-undo {{repeat}}"></i></a></li>
-                <li><a onclick="" href="/#settings" class="list__link"><i class="fa fa-ellipsis-h"></i></a></li>
+                <!-- <li><a onclick="showModal('queue')" href="/#music-queue" class="list__link">
+                    <svg>
+                        <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z" class="style-scope yt-icon"></path>
+                    </svg>
+                </a></li> -->
+                <!-- <i class="fa fa-ellipsis-h"></i> -->
+                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file-audio-h"></i></a></li>
+                <!-- <li><a onclick=/"showModal('settings')" href="/#settings" class="list__link"><i class="fa fa-sliders-h"></i></a></li> -->
             </ul>
         </div>
     </div>
 </div>
+<div id="queue-modal" class="modal">
+    <div class="modal-content">
+
+    </div>
+</div>
+<div id="files-modal" class="modal">
+    <div class="modal-content">
+        {{ list_of_songs }}
+    </div>
+</div>
+<div id="settings-modal" class="modal">
+    <div class="modal-content">
+        
+    </div>
+</div>
+<script>
+    var modals = {}
+    
+    modals['queue'] = document.getElementById("queue-modal");
+    modals['files'] = document.getElementById("files-modal");
+    modals['settings'] = document.getElementById("settings-modal");
+
+    function showModal(option) {
+        modals[option].style.display = "block";
+    }
+    
+    window.onclick = function (event) {
+        if (event.target == modals['settings']) {
+            modals['settings'].style.display = "none";
+        } else if (event.target == modals['queue']){
+            modals['queue'].style.display = "none";
+        } else if (event.target == modals['files'])  {
+            modals['files'].style.display = "none";
+        }
+    }
+    // populate 
+</script>

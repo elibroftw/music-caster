@@ -86,9 +86,9 @@ def port_in_use(port):
 
 
 def find_chromecasts(timeout=0.3, callback=None):
-    _RANGE = 256  # support 256 unique ip's
-    hostname = socket.gethostname()
-    ipv4_address = socket.gethostbyname(hostname)
+    # assuming subnet mask is 255.255.255.0
+    _RANGE = 256
+    ipv4_address = get_ipv4()
     base = '.'.join(ipv4_address.split('.')[:-1])
     thread_results = []
     threads = []

@@ -289,8 +289,8 @@ def load_settings():
 
 load_settings()
 if is_already_running():
-    r_text = 'False'
-    while PORT <= 2100 and r_text != 'True':
+    r_text = ''
+    while PORT <= 2100 and not r_text:
         with suppress(requests.exceptions.InvalidSchema):
             if len(sys.argv) > 1: r_text = requests.get(f'http://127.0.0.1:{PORT}/play?filename={sys.argv[1]}').text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
@@ -387,7 +387,7 @@ try:
 
     @app.route('/', methods=['GET', 'POST'])
     def home():  # web GUI
-        global music_queue, playing_status
+        global music_queue, playing_status, all_songs
         if request.args:
             if 'play' in request.args:
                 if playing_status == 'PAUSED': resume()
@@ -406,9 +406,14 @@ try:
         art = _metadata.get('art', Path(f'{images_dir}/default.png').as_uri()[11:])
         repeat_option = 'red' if settings['repeat'] else ''
         shuffle_option = 'red' if settings['shuffle_playlists'] else ''
+        list_of_songs = ''  #
+        # sort by the formatted title
+        sorted_songs = sorted(all_songs.items(), key=lambda item: item[0])
+        for formatted_track, filename in sorted_songs:
+            list_of_songs += f'<a href="/play/?filename={filename}" class="track">formatted_track</a>\n'
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
                                repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
-                               starting_dir=Path(starting_dir).as_uri()[11:])
+                               starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)
 
     @app.route('/play/')
     def play_file_page():
@@ -417,7 +422,7 @@ try:
             _file_or_dir = request.args['filename']
             if os.path.isfile(_file_or_dir): play_all(_file_or_dir)
             elif os.path.isdir(_file_or_dir): play_folder(_file_or_dir)
-        return 'True'
+        return redirect('/')
 
     @app.route('/metadata/')
     def metadata():
