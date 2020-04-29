@@ -220,6 +220,7 @@ a {
 
 .list__link:focus,
 .list__link:hover,
+.list__link>img:hover,
 #play-pause-btn {
 	color: #d30320;
 }
