@@ -53,7 +53,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.37.1'
+VERSION = '4.38.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UPDATE_MESSAGE = """
 NEW: This updated notification
@@ -424,6 +424,7 @@ try:
         global music_queue, playing_status
         if 'filename' in request.args:
             _file_or_dir = request.args['filename']
+            print(_file_or_dir)
             if os.path.isfile(_file_or_dir): play_all(_file_or_dir)
             elif os.path.isdir(_file_or_dir): play_folder(_file_or_dir)
         return redirect('/')
