@@ -56,9 +56,8 @@ import winshell
 VERSION = '4.38.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UPDATE_MESSAGE = """
-NEW: This updated notification
-NEW: Double click song in music queue to play it
-NEW: Moved locate file to second tab
+NEW: Play files through web GUI
+FIX: Better Chromecast detection
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
