@@ -56,7 +56,7 @@ import winshell
 VERSION = '4.39.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UPDATE_MESSAGE = """
-NEW: Search added to web GUI
+NEW: Improved web GUI
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py

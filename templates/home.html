@@ -88,11 +88,11 @@
     var searchBar = document.getElementById('search-bar');
 
     function showModal(option) {
+        closeModals();
         modals[option].style.display = 'block';
         if (option == 'files') {
             searchBar.focus();
             filterTracks();
-            
             var temp = searchBar.value;
             searchBar.value = '';
             searchBar.value = temp;
@@ -100,26 +100,32 @@
         document.getElementById('wrapper').style.filter = 'blur(6px)'
     }
 
+    function closeModals() {
+        modals['settings'].style.display = 'none';
+        modals['queue'].style.display = 'none';
+        modals['files'].style.display = 'none';
+        history.replaceState('', document.title, window.location.pathname + window.location.search);
+        document.getElementById('wrapper').style.filter = '';
+    }
+
     window.onclick = event => {  // close modal
         if (Object.values(modals).includes(event.target)) {
-            modals['settings'].style.display = 'none';
-            modals['queue'].style.display = 'none';
-            modals['files'].style.display = 'none';
-            history.replaceState('', document.title, window.location.pathname + window.location.search);
-            document.getElementById('wrapper').style.filter = '';
-        }        
+            closeModals();
+        }
     }
+
+    window.addEventListener('hashchange', e => {
+        hashVal = getHash();
+        if (hashVal == '') closeModals();
+        else {
+            try { showModal(hashVal); } catch (TypeError) {}
+        }
+    });
 
     window.onkeydown = event => {
         modalDisplays = Object.values(modals).map(el => el.style.display);
         // console.log(event.key);
-        if (event.key == 'Escape' && modalDisplays.includes('block')) {
-            modals['settings'].style.display = 'none';
-            modals['queue'].style.display = 'none';
-            modals['files'].style.display = 'none';
-            history.replaceState('', document.title, window.location.pathname + window.location.search);
-            document.getElementById('wrapper').style.filter = '';            
-        }
+        if (event.key == 'Escape' && modalDisplays.includes('block')) closeModals();
         //  else if (!modalDisplays.includes('block')) {
                 // list--buttons
         //     if (event.key == 'Space') {
@@ -130,7 +136,7 @@
 
         //     }
         // }
-        // add support for playback
+        // add playback control
     }
 
     function getHash() {
