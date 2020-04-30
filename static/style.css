@@ -248,38 +248,6 @@ a {
 	opacity: .9 !important;
 }
 
-h2 {
-	width: 80%;
-	font-size: x-large;
-	color: white;
-	font-family: 'Roboto', Arial, Verdana, sans-serif;
-	text-align: center;
-	margin-left: auto;
-	margin-right: auto;
-}
-
-.track {
-	/* max-width: 80%; */
-	width: 100%;
-  	width: -moz-available;          /* For Mozzila */
-  	width: -webkit-fill-available;  /* For Chrome */
-  	width: stretch; 
-	margin-left: auto;
-	margin-right: auto;
-	display: inline-block;
-	background-color: #121212b2;
-	color: whitesmoke;
-	padding: 1em;
-	text-align: left;
-	border: 1px solid black;
-	font-size: large;
-	font-family: 'Roboto', Arial, Verdana, sans-serif;
-}
-
-.track:hover {
-	color: cyan;
-}
-
 .modal {
 	display: none;
 	position: fixed;
@@ -300,8 +268,53 @@ h2 {
 	text-align: center;
 }
 
-@media screen and (max-width: 1200px) {
-	
+h2 {
+	width: 80%;
+	font-size: x-large;
+	color: white;
+	font-family: 'Roboto', Arial, Verdana, sans-serif;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.track {
+	width: 100%;
+  	width: -moz-available;          /* For Mozzila */
+  	width: -webkit-fill-available;  /* For Chrome */
+  	width: stretch; 
+	margin-left: auto;
+	margin-right: auto;
+	display: inline-block;
+	background-color: #121212b2;
+	color: whitesmoke;
+	padding: 1em;
+	text-align: left;
+	border: 1px solid black;
+	font-size: large;
+	font-family: 'Roboto', Arial, Verdana, sans-serif;
+}
+
+.track:hover {
+	color: cyan;
+}
+
+#search-bar {
+	color: whitesmoke;
+	background-color: #121212b2;
+	/* background-image: url('https://www.w3schools.com/css/searchicon.png'); */
+	background-position: 10px 12px;
+	background-repeat: no-repeat;
+	font-size: large;
+	font-family: 'Roboto', Arial, Verdana, sans-serif;
+	width: 100%;
+  	width: -moz-available;          
+  	width: -webkit-fill-available;
+  	width: stretch; 
+	padding: 12px 20px 12px 40px;
+	margin-bottom: 12px;
+	border: 1px solid black;
+	border-radius: 2em;
 }
 
 @media screen and (max-width: 800px) {
@@ -310,7 +323,7 @@ h2 {
 		width: 80%;
 	}
 
-	.wrapper {
-		margin-top: 17%;
+	#wrapper {
+		margin-top: 17.1%;
 	}
 }

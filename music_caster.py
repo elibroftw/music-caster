@@ -53,13 +53,10 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.38.1'
+VERSION = '4.39.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UPDATE_MESSAGE = """
-NEW: Play files through web GUI
-FIX: Better Chromecast detection
-FIX: Metadata parsing
-FIX: Installer
+NEW: Search added to web GUI
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -418,7 +415,7 @@ try:
         sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
         for formatted_track, filename in sorted_songs:
             filename = urllib.parse.urlencode({'filename': filename})
-            list_of_songs += f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track[:100]}</a>\n'
+            list_of_songs += f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
                                repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
                                starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)
@@ -428,7 +425,6 @@ try:
         global music_queue, playing_status
         if 'filename' in request.args:
             _file_or_dir = request.args['filename']
-            print(_file_or_dir)
             if os.path.isfile(_file_or_dir): play_all(_file_or_dir)
             elif os.path.isdir(_file_or_dir): play_folder(_file_or_dir)
         return redirect('/')

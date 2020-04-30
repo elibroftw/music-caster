@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.39.0
+- [Feature] Added search to web GUI
+
 4.38.1
 - [Bug fix] Handled more metadata errors
 - [Bug fix] Installer installs all files now

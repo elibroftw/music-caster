@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <title>Music Caster</title>
 <link rel="icon" type="image/png"
-      href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png">
+    href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png">
 <link rel="shortcut icon"
-      href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/music%20caster.ico">
+    href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/music%20caster.ico">
 <link rel="stylesheet" id="stylesheet" href="/{{starting_dir}}/static/style.css">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
-      integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
+    integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 <!-- <meta http-equiv="refresh" content="30"> -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#ffffff" />
-<div class="wrapper">
+<div id="wrapper">
     <div class="player__container">
         <!-- TODO: theme option -->
         <div class="player__body">
@@ -18,9 +18,9 @@
                 <ul class="list list--cover">
                     <li><a class="list__link" href=""><i class="fa fa-navicon"></i></a></li>
                     <li><a class="list__link" href=""></a></li>
-                   <!-- <li><a class="list__link" href=""><i class="fa fa-search"></i></a></li> -->
+                    <!-- <li><a class="list__link" href=""><i class="fa fa-search"></i></a></li> -->
                 </ul>
-                <img src="{{art|safe}}" alt="Album Art" style="text-align: center"/>
+                <img src="{{art|safe}}" alt="Album Art" style="text-align: center" />
                 <!-- <div class="range"></div> -->
             </div>
             <div class="body__info">
@@ -41,19 +41,20 @@
                 <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>
                 <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
                 <li><a href="?repeat" class="list__link {{repeat}}">
-                    <i class="fa fa-undo {{repeat}}"></i>
-<!--                    <svg class="{{repeat}}" style="width:24px;height:24px" viewBox="0 0 24 24">-->
-<!--                        <path fill="currentColor" d="M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z" />-->
-<!--                    </svg>-->
-<!--                    https://materialdesignicons.com/-->
-                </a></li>
+                        <i class="fa fa-undo {{repeat}}"></i>
+                        <!--                    <svg class="{{repeat}}" style="width:24px;height:24px" viewBox="0 0 24 24">-->
+                        <!--                        <path fill="currentColor" d="M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z" />-->
+                        <!--                    </svg>-->
+                        <!--                    https://materialdesignicons.com/-->
+                    </a></li>
                 <!-- <li><a onclick="showModal('queue')" href="/#music-queue" class="list__link">
                     <svg>
                         <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z" class="style-scope yt-icon"></path>
                     </svg>
                 </a></li> -->
                 <!-- <i class="fa fa-ellipsis-h"></i> -->
-                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file"></i></a></li>
+                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file"></i></a>
+                </li>
                 <!-- <li><a onclick=/"showModal('settings')" href="/#settings" class="list__link"><i class="fa fa-sliders-h"></i></a></li> -->
             </ul>
         </div>
@@ -61,62 +62,97 @@
 </div>
 <div id="queue-modal" class="modal">
     <div class="modal-content">
-
+        <!-- TODO -->
     </div>
 </div>
 <div id="files-modal" class="modal">
-    <div class="modal-content">
+    <div id="tracks-list" class="modal-content">
         <h2>File Selection</h2>
+        <input type="text" id="search-bar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
+        placeholder="Search for music..." title="Type in artist/tracks">
         {{ list_of_songs|safe }}
     </div>
 </div>
 <div id="settings-modal" class="modal">
     <div class="modal-content">
-        
+        <!-- TODO -->
     </div>
 </div>
 <script>
     var modals = {}
-    
-    modals['queue'] = document.getElementById("queue-modal");
-    modals['files'] = document.getElementById("files-modal");
-    modals['settings'] = document.getElementById("settings-modal");
+
+    modals['queue'] = document.getElementById('queue-modal');
+    modals['files'] = document.getElementById('files-modal');
+    modals['settings'] = document.getElementById('settings-modal');
+
+    var searchBar = document.getElementById('search-bar');
 
     function showModal(option) {
-        modals[option].style.display = "block";
-    }
-    
-    window.onclick = function (event) {
-        if (event.target == modals['settings']) {
-            modals['settings'].style.display = "none";
-            history.replaceState("", document.title, window.location.pathname + window.location.search);
-        } else if (event.target == modals['queue']){
-            modals['queue'].style.display = "none";
-            history.replaceState("", document.title, window.location.pathname + window.location.search);
-        } else if (event.target == modals['files'])  {
-            modals['files'].style.display = "none";
-            history.replaceState("", document.title, window.location.pathname + window.location.search);
+        modals[option].style.display = 'block';
+        if (option == 'files') {
+            searchBar.focus();
+            filterTracks();
+            
+            var temp = searchBar.value;
+            searchBar.value = '';
+            searchBar.value = temp;
         }
+        document.getElementById('wrapper').style.filter = 'blur(6px)'
+    }
+
+    window.onclick = event => {  // close modal
+        if (Object.values(modals).includes(event.target)) {
+            modals['settings'].style.display = 'none';
+            modals['queue'].style.display = 'none';
+            modals['files'].style.display = 'none';
+            history.replaceState('', document.title, window.location.pathname + window.location.search);
+            document.getElementById('wrapper').style.filter = '';
+        }        
+    }
+
+    window.onkeydown = event => {
+        modalDisplays = Object.values(modals).map(el => el.style.display);
+        // console.log(event.key);
+        if (event.key == 'Escape' && modalDisplays.includes('block')) {
+            modals['settings'].style.display = 'none';
+            modals['queue'].style.display = 'none';
+            modals['files'].style.display = 'none';
+            history.replaceState('', document.title, window.location.pathname + window.location.search);
+            document.getElementById('wrapper').style.filter = '';            
+        }
+        //  else if (!modalDisplays.includes('block')) {
+                // list--buttons
+        //     if (event.key == 'Space') {
+        //         window.location.replace('/')
+        //     } else if (event.key == '>') {
+
+        //     } else if (event.key == '<') {
+
+        //     }
+        // }
+        // add support for playback
     }
 
     function getHash() {
-        try {
-            var hash = window.location.hash;
-            return hash.slice(1);
-        } catch (err) {
-            return ""
+        try { return window.location.hash.slice(1); }
+        catch (err) { return ''; }
+    }
+
+    window.onload = () => { try { showModal(getHash()); } catch (TypeError) {} };
+
+    function filterTracks() {        
+        var filter = searchBar.value.toUpperCase();
+        var tracksList = document.getElementById('tracks-list');
+        var aTags = tracksList.getElementsByTagName('a');
+        for (const a of aTags) {
+            let txtValue = a.textContent || a.innerText
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                a.style.display = '';
+            } else {
+                a.style.display = 'none';
+            }
         }
     }
 
-        
-    if (getHash() == 'files') {
-        window.onload = function () {
-            showModal('files');
-        };
-    }
-
-    setTimeout(function () {
-        location.reload()
-    }, 30000);
-    
+    setTimeout(() => {location.reload()}, 30000);
 </script>
