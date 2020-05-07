@@ -20,7 +20,7 @@ import sys
 import shutil
 import threading
 import traceback
-import urllib
+import urllib.parse
 import webbrowser
 import zipfile
 # helper file
@@ -29,7 +29,6 @@ from helpers import fix_path, get_ipv4, get_mac, create_qr_code, is_already_runn
     create_playlist_selector, bg, port_in_use, BUTTON_COLOR
 from b64_images import *
 import helpers
-import socket
 import PySimpleGUI as Sg
 # 3rd party imports
 from bs4 import BeautifulSoup
@@ -53,10 +52,13 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.39.1'
+VERSION = '4.39.2'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
+EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
 NEW: Improved web GUI
+FIX: Better email hyperlink
+FIX: Music queue
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -339,7 +341,7 @@ if settings['auto_update']:
                     tray.ShowMessage('Music Caster', f'Downloading Update v{latest_version}')
                     tray.Update(tooltip=f'Downloading Update v{latest_version}')
                     download(setup_download_link, 'MC_Installer.exe')
-                    Popen('MC_Installer.exe /VERYSILENT /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
+                    Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
                     tray.Hide()
                     sys.exit()
             tray.ShowMessage('Music Caster', f'Update v{latest_version} Available')
@@ -415,7 +417,8 @@ try:
         sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
         for formatted_track, filename in sorted_songs:
             filename = urllib.parse.urlencode({'filename': filename})
-            list_of_songs += f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
+            el = f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
+            list_of_songs += el
         return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
                                repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
                                starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)
@@ -610,7 +613,7 @@ try:
         song_position = position
         audio_info = mutagen.File(file_path).info
         song_length = audio_info.length
-        volume = 0 if settings['muted'] else settings['volume'] / 100
+        _volume = 0 if settings['muted'] else settings['volume'] / 100
         try:
             _title = EasyID3(file_path).get('title', ['Unknown'])[0]
             _artist = EasyID3(file_path).get('artist', ['Unknown'])
@@ -645,7 +648,7 @@ try:
                 local_music_player.quit()
                 local_music_player.init(sample_rate, -16, 2, 2048)
             local_music_player.music.load(file_path)
-            local_music_player.music.set_volume(volume)
+            local_music_player.music.set_volume(_volume)
             local_music_player.music.play(start=song_position)
             if not autoplay: local_music_player.music.pause()
             song_start = time.time() - song_position
@@ -675,7 +678,7 @@ try:
                 else: thumb = f'{images_dir}/default.png'
                 thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
                 cast.wait(timeout=WAIT_TIMEOUT)
-                cast.set_volume(volume)
+                cast.set_volume(_volume)
                 mc = cast.media_controller
                 if mc.status.player_is_playing or mc.status.player_is_paused:
                     mc.stop()
@@ -905,7 +908,7 @@ try:
         main_window.Normal()
 
     def background_tasks():
-        global mc, cast, cast_last_checked, song_start, song_end, song_position, is_playing, is_paused
+        global mc, cast, cast_last_checked, song_start, song_end, song_position
 
         while True:
             load_settings()  # NOTE: might need a lock
@@ -917,7 +920,7 @@ try:
                             mc.update_status()
                             is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
                             new_song_position = mc.status.adjusted_current_time
-                            volume = settings['volume']
+                            _volume = settings['volume']
                             cast_volume = cast.status.volume_level * 100
                             song_start = time.time() - new_song_position  # if music was scrubbed on the home app
                             song_end = time.time() + song_length - new_song_position
@@ -928,14 +931,14 @@ try:
                                 resume()
                             elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING':
                                 stop()
-                            if volume != cast_volume:
+                            if _volume != cast_volume:
                                 if cast_volume or cast_volume == 0 and not settings['muted']:
-                                    volume = change_settings('volume', cast_volume)
-                                    if volume and settings['muted']: change_settings('muted', not settings['muted'])
+                                    _volume = change_settings('volume', cast_volume)
+                                    if _volume and settings['muted']: change_settings('muted', not settings['muted'])
                                     if active_windows['main']:
-                                        if volume and settings['muted']:
+                                        if _volume and settings['muted']:
                                             main_window['mute'].Update(data=VOLUME_IMG)
-                                        main_window['volume_slider'].Update(volume)
+                                        main_window['volume_slider'].Update(_volume)
                         elif playing_status in {'PAUSED', 'PLAYING'}:
                             stop()
                 cast_last_checked = time.time()
@@ -1031,8 +1034,9 @@ try:
                 if settings['save_window_positions']:
                     window_location = window_locations.get('create_playlist_selector', (None, None))
                 else: window_location = (None, None)
-                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists), background_color=bg,
-                                               icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
+                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
+                                               background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
+                                               location=window_location)
                 pl_selector_window.Finalize()
                 set_save_position_callback(pl_selector_window, 'create_playlist_selector')
             pl_selector_window.TKroot.focus_force()
@@ -1231,7 +1235,7 @@ try:
                 nq_len = len(next_queue)
                 if index_to_move < dq_len:  # move within dq
                     done_queue.insert(new_i, done_queue.pop(index_to_move))
-                elif index_to_move == dq_len:  # move index -1 to 1
+                elif index_to_move == dq_len and done_queue:  # move index -1 to 1
                     if next_queue: next_queue.insert(1, done_queue.pop())
                     else: music_queue.insert(1, done_queue.pop())
                 elif index_to_move == dq_len + 1:  # move 1 to -1
@@ -1392,7 +1396,7 @@ try:
                 continue
             settings_value = settings_values.get(settings_event)
             if settings_event == 'email':
-                webbrowser.open('mailto:elijahllopezz@gmail.com?subject=Regarding%20Music%20Caster')
+                webbrowser.open(f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}')
             if settings_event == 'web_gui':
                 webbrowser.open(f'http://{get_ipv4()}:{PORT}')
             elif settings_event in {'auto_update', 'discord_rpc', 'notifications', 'run_on_startup',
@@ -1440,8 +1444,9 @@ try:
                 if settings['save_window_positions']:
                     window_location = window_locations.get('create_playlist_selector', (None, None))
                 else: window_location = (None, None)
-                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists), background_color=bg,
-                                               icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
+                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
+                                               background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
+                                               location=window_location)
                 pl_selector_window.Read(timeout=10)
                 pl_selector_window.TKroot.focus_force()
                 pl_selector_window.Normal()
@@ -1504,7 +1509,7 @@ try:
                         pl_files.insert(new_i, pl_files.pop(to_move))
                         formatted_songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                         pl_editor_window['songs'].Update(values=formatted_songs, set_to_index=new_i,
-                                                                 scroll_to_index=new_i)
+                                                         scroll_to_index=new_i)
             elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
                 if pl_editor_values['songs']:
                     to_move = pl_editor_window['songs'].GetListValues().index(pl_editor_values['songs'][0])
@@ -1542,8 +1547,9 @@ try:
                 if settings['save_window_positions']:
                     window_location = window_locations.get('create_playlist_selector', (None, None))
                 else: window_location = (None, None)
-                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists), background_color=bg,
-                                               icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
+                pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
+                                               background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
+                                               location=window_location)
                 pl_selector_window.Finalize()
                 pl_selector_window.TKroot.focus_force()
                 pl_selector_window.Normal()
