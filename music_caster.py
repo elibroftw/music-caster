@@ -52,7 +52,7 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.39.2'
+VERSION = '4.39.3'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -162,7 +162,7 @@ def get_file_info(_file, on_error='FILENAME'):
         _title = EasyID3(_file).get('title', ['Unknown'])[0]
         _artist = ', '.join(EasyID3(_file).get('artist', ['Unknown']))
         return _artist, _title
-    except (mutagen.id3.ID3NoHeaderError, mutagen.mp3.HeaderNotFoundError):
+    except (mutagen.id3.ID3NoHeaderError, mutagen.mp3.HeaderNotFoundError, mutagen.MutagenError):
         try:
             _tags = mutagen.File(_file)
             _tags.add_tags()
@@ -210,7 +210,7 @@ def handle_exception(exception, restart_program=False):
     mac = get_mac()
     payload = {'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
                'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
-               'TRACEBACK': fix_path(trace_back_msg, False), 'MAC': mac}
+               'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac}
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     try:
@@ -1241,7 +1241,7 @@ try:
                 elif index_to_move == dq_len + 1:  # move 1 to -1
                     if next_queue: done_queue.append(next_queue.pop(0))
                     else: done_queue.append(music_queue.pop(1))
-                elif index_to_move < dq_len + nq_len + 1:  # within next_queue
+                elif next_queue and index_to_move < dq_len + nq_len + 1:  # within next_queue
                     nq_i = new_i - dq_len - 1
                     next_queue.insert(nq_i, next_queue.pop(nq_i + 1))
                 elif next_queue and index_to_move == dq_len + nq_len + 1:  # moving into next queue
