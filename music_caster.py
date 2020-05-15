@@ -52,13 +52,11 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.39.3'
+VERSION = '4.39.4'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-NEW: Improved web GUI
-FIX: Better email hyperlink
-FIX: Music queue
+FIX: Music queue (+2)
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -1281,7 +1279,7 @@ try:
                     done_queue.pop(index_to_remove)
                 elif index_to_remove == dq_len:
                     music_queue.pop(0)
-                    play_file(music_queue[0])
+                    if music_queue: play_file(music_queue[0])
                 elif index_to_remove <= nq_len + dq_len:
                     next_queue.pop(index_to_remove - dq_len - 1)
                 elif index_to_remove < nq_len + mq_len + dq_len:
