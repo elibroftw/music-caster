@@ -1,15 +1,15 @@
-from contextlib import suppress
 from functools import wraps
 import os
 import platform
-import psutil
 import pyqrcode
 import PySimpleGUI as Sg
 import socket
 import time
 import uuid
 from b64_images import *
+from subprocess import getoutput
 import threading
+import re
 import pychromecast
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
@@ -56,17 +56,30 @@ def create_qr_code(port):
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
 
 
+def get_running_processes():
+    # edited from https://stackoverflow.com/a/22914414/7732434
+    tasks = getoutput('tasklist').splitlines()
+    for task in tasks:
+        m = re.match('(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
+        if m is not None:
+            process = {'name': m.group(1),  # Image name
+                       'pid': m.group(2),
+                       'session_name': m.group(3),
+                       'session_num': m.group(4),
+                       'mem_usage': m.group(5)}
+            yield process
+
+
 def is_already_running():
     instances = 0
-    for process in psutil.process_iter(['name']):
-        with suppress(psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            process_name = process.name()
-            if process_name == 'Music Caster.exe':
-                instances += 1
-                if instances > 2: return True
-                # 2 because of main thread + Flask thread
+    for process in get_running_processes():
+        process_name = process['name']
+        if process_name == 'Music Caster.exe':
+            instances += 1
+            if instances > 2: return True
     return False
-# import re
+
+
 # _nonbmp = re.compile(r'[\U00010000-\U0010FFFF]')
 # def _surrogate_pair(match):
 #     char = match.group()
@@ -333,3 +346,4 @@ def create_playlist_editor(initial_folder, playlists, playlist_name=''):
              [Sg.Button('Move down ', key='move_down', tooltip='Ctrl + D', font=font_normal, enable_events=True)]
          ], background_color=bg, border_width=0)]]
     return layout
+

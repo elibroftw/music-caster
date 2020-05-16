@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.39.5
+- [Optimization] Optimized the instance checker, startup time reduce by 9 seconds!
+- [Bug fix] Reverted how keyboard commands work
+
 4.39.4
 - [Bug fix] Music queue remove
 

@@ -26,7 +26,7 @@ import zipfile
 # helper file
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, is_already_running, valid_music_file,\
     find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer, create_playlist_editor, \
-    create_playlist_selector, bg, port_in_use, BUTTON_COLOR
+    create_playlist_selector, bg, port_in_use, BUTTON_COLOR, timing
 from b64_images import *
 import helpers
 import PySimpleGUI as Sg
@@ -52,11 +52,11 @@ import pygame
 import pypresence
 import winshell
 
-VERSION = '4.39.4'
+VERSION = '4.39.5'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-FIX: Music queue remove
+Cut 9 seconds off of startup
 """
 # TODO: Refactoring. Move all constants and functions to before the try-except
 # TODO: move static functions to helpers.py
@@ -79,6 +79,8 @@ music_directories, notifications_enabled, window_locations = [], True, {}
 all_songs = {}
 all_folders = ['PF: Select Folder']
 pl_name, pl_files = '', []
+# noinspection PyTypeChecker
+daemon_command = None
 # noinspection PyTypeChecker
 main_window: Sg.Window = None
 # noinspection PyTypeChecker
@@ -292,15 +294,14 @@ def load_settings():
 load_settings()
 if is_already_running():
     r_text = ''
-    while PORT <= 2100 and not r_text:
+    while PORT <= 2005 and not r_text:
         with suppress(requests.exceptions.InvalidSchema):
             if len(sys.argv) > 1:
                 args = urllib.parse.urlencode({'filename': sys.argv[1]})
                 r_text = requests.get(f'http://127.0.0.1:{PORT}/play?{args}').text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
-    if not settings.get('DEBUG', False):
-        sys.exit()
+    if not settings.get('DEBUG', False): sys.exit()
 
 
 if settings['auto_update']:
@@ -444,7 +445,7 @@ try:
 
     @app.route('/instance/')
     def instance():
-        global server_command
+        global daemon_command
         for k, v in active_windows.items():  # Opens up GUI
             if v:
                 if k == 'main': main_window.bring_to_front()
@@ -453,7 +454,7 @@ try:
                 elif k == 'create_playlist_selector': pl_selector_window.bring_to_front()
                 elif k == 'create_playlist_editor': pl_editor_window.bring_to_front()
                 return 'True'
-        server_command = '__ACTIVATED__'
+        daemon_command = '__ACTIVATED__'
         return 'True'
 
     @app.errorhandler(404)
@@ -943,33 +944,29 @@ try:
             time.sleep(10)
 
     def on_press(key):
-        global last_press
+        global last_press, daemon_command
         if str(key) not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
         if str(key) == '<179>':
-            if playing_status == 'PLAYING': pause()
-            elif playing_status == 'PAUSED': resume()
-        elif str(key) == '<176>' and playing_status != 'NOT PLAYING': next_song()
-        elif str(key) == '<177>' and playing_status != 'NOT PLAYING': prev_song()
-        elif str(key) == '<178>': stop()
+            if playing_status == 'PLAYING': daemon_command = 'Pause'
+            elif playing_status == 'PAUSED': daemon_command = 'Resume'
+        elif str(key) == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Song'
+        elif str(key) == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Song'
+        elif str(key) == '<178>': daemon_command = 'Stop'
         last_press = time.time()
 
     last_press = time.time()
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     threading.Thread(target=background_tasks, daemon=True).start()
-    server_command = None
     if len(sys.argv) > 1:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play_file(file_or_dir)
         elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
     if settings.get('DEBUG', False): print('Running in tray')
     while True:
-        if any(active_windows.values()):
-            menu_item = tray.Read(timeout=30)
-        else:
-            menu_item = tray.Read(timeout=500)
+        menu_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
         if menu_item == 'Refresh Devices':
             threading.Thread(target=start_chromecast_discovery, daemon=True).start()
-        if '__ACTIVATED__' in {menu_item, server_command}: main_gui()
+        if '__ACTIVATED__' in {menu_item, daemon_command}: main_gui()
         elif menu_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(menu_item)
             if i == 0: new_cast = None
@@ -1081,13 +1078,13 @@ try:
                 play_all(fd.GetPath())  # TODO: print this out
         elif menu_item == 'Play All': play_all()
         elif menu_item == 'Play File Next': play_next()
-        elif menu_item == 'Pause': pause()
-        elif menu_item == 'Resume': resume()
-        elif (menu_item == 'Next Song' and playing_status != 'NOT PLAYING'
+        elif 'Pause' in {menu_item, daemon_command}: pause()
+        elif 'Resume' in {menu_item, daemon_command}: resume()
+        elif ('Next Song' in {menu_item, daemon_command} and playing_status != 'NOT PLAYING'
               or playing_status == 'PLAYING' and time.time() > song_end):
             next_song(from_timeout=time.time() > song_end)
-        elif menu_item == 'Previous Song' and playing_status != 'NOT PLAYING': prev_song()
-        elif menu_item == 'Stop': stop()
+        elif 'Previous Song' in {menu_item, daemon_command} and playing_status != 'NOT PLAYING': prev_song()
+        elif 'Stop' in {menu_item, daemon_command}: stop()
         elif timer and time.time() > timer:
             stop()
             timer = 0
@@ -1586,7 +1583,7 @@ try:
                 change_settings('timer_hibernate_computer', timer_values['hibernate'])
                 change_settings('timer_sleep_computer', timer_values['sleep'])
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])
-        server_command = None
+        daemon_command = None
         # if mc is not None and time.time() - cast_last_checked > 5:
         #     # MAKE THIS IT's own thread
         #     with suppress(UnsupportedNamespace):
