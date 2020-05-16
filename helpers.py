@@ -7,7 +7,8 @@ import socket
 import time
 import uuid
 from b64_images import *
-from subprocess import getoutput
+from subprocess import Popen, PIPE, DEVNULL
+import subprocess
 import threading
 import re
 import pychromecast
@@ -58,7 +59,8 @@ def create_qr_code(port):
 
 def get_running_processes():
     # edited from https://stackoverflow.com/a/22914414/7732434
-    tasks = getoutput('tasklist').splitlines()
+    p = subprocess.run('tasklist', shell=True, stderr=PIPE, stdin=DEVNULL, stdout=PIPE)
+    tasks = p.stdout.decode().splitlines()
     for task in tasks:
         m = re.match('(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
