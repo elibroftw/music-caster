@@ -381,8 +381,8 @@ if settings['auto_update']:
             if settings.get('DEBUG'):
                 print('Installer Link:', setup_download_link)
             elif getattr(sys, 'frozen', False) and os.path.exists('unins000.exe') or os.path.exists('Updater.exe'):
-                tray.ShowMessage('Music Caster', f'Downloading Update v{latest_ver}')
-                tray.Update(tooltip=f'Downloading Update v{latest_ver}')
+                tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
+                tray.Update(tooltip=f'Downloading update v{latest_ver}')
                 if os.path.exists('unis000.exe'):
                     download(setup_download_link, 'MC_Installer.exe')
                     Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
