@@ -12,7 +12,7 @@ import logging
 from math import floor
 from pathlib import Path
 import pprint
-from shutil import copyfile
+from shutil import copyfile, copyfileobj
 from random import shuffle
 from subprocess import Popen
 import sys
@@ -252,7 +252,7 @@ def download(url, outfile):
         z.extractall(outfile)
     else:
         with open(outfile, 'wb') as _f:
-            _f.write(r.content)
+            copyfileobj(r.raw, _f)
 
 
 def set_save_position_callback(window: Sg.Window, _key):
