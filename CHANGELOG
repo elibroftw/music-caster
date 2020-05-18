@@ -2,7 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.40.0
 - [Optimization] Reduced startup time by ~2 seconds
-- [Optimization] No more copying files from different drives, solution was so simple but took ~1 year to find!
+- [Optimization] No more copying files from different drives, the solution was so simple but took ~10 months to find!
 - [Bug Fix] Stopped Music Caster collisions between two devices on the same network
 - [Security] Server will only serve music files and only if the correct UUID is passed
 
