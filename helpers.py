@@ -58,6 +58,7 @@ def create_qr_code(port):
 
 
 def get_running_processes():
+    # ~0.8 seconds
     # edited from https://stackoverflow.com/a/22914414/7732434
     p = subprocess.run('tasklist', shell=True, stderr=PIPE, stdin=DEVNULL, stdout=PIPE)
     tasks = p.stdout.decode().splitlines()
@@ -93,11 +94,6 @@ def is_already_running():
 
 
 def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
-
-
-def port_in_use(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
 
 
 def find_chromecasts(timeout=0.3, callback=None):
@@ -349,3 +345,19 @@ def create_playlist_editor(initial_folder, playlists, playlist_name=''):
          ], background_color=bg, border_width=0)]]
     return layout
 
+
+# TODO: REGISTRY MODIFICATION to set as default music file handler
+# https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
+# if not settings.get('DEBUG', False) and getattr(sys, 'frozen', False) and settings['default_file_handler']:
+#     menu_name = 'Open With Music Caster'
+#     import winreg as wr
+#     for ext in ['Folder', '.mp3']:
+#         # Check for extension handler override
+#         key_val = 'SOFTWARE\\Classes\\' + ext + '\\shell\\' + menu_name + '\\command'
+#         try:
+#             key = wr.OpenKey(wr.HKEY_LOCAL_MACHINE, key_val, 0, wr.KEY_ALL_ACCESS)
+#         except WindowsError:
+#             key = wr.CreateKey(wr.HKEY_LOCAL_MACHINE, key_val)
+#         path_to_exe = f'{starting_dir}\\Music Caster.exe'
+#         wr.SetValueEx(key, '', 0, wr.REG_SZ, f'"{path_to_exe}"' + '\\"%1"\\')
+#         wr.CloseKey(key)
