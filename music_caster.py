@@ -1,7 +1,6 @@
 import base64
 import os
 import platform
-import time
 from contextlib import suppress
 from datetime import datetime, timedelta
 # noinspection PyUnresolvedReferences
@@ -20,42 +19,49 @@ import sys
 import socket
 import shutil
 import threading
+import time
 import traceback
 import urllib.parse
 import webbrowser
 import zipfile
-# helper file
+# helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, is_already_running, valid_music_file,\
     find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer, create_playlist_editor, \
     create_playlist_selector, bg, BUTTON_COLOR, timing
-from b64_images import *
 import helpers
-import PySimpleGUI as Sg
+from b64_images import *
 # 3rd party imports
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect, send_file
-import requests
 import mutagen
 import mutagen.id3
 import mutagen.mp3
 from mutagen.easyid3 import EasyID3
+from mutagen import MutagenError
+# noinspection PyProtectedMember
+from mutagen.id3 import ID3NoHeaderError
+# noinspection PyProtectedMember
+from mutagen.mp3 import HeaderNotFoundError
+# from PIL import Image
+import PySimpleGUI as Sg
 import PySimpleGUIWx as SgWx
 import wx
-import win32com.client
-# from PIL import Image
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace
 from pychromecast.config import APP_MEDIA_RECEIVER
 import pychromecast
 from pygame import mixer as local_music_player
+# noinspection PyPep8Naming
+from pygame import error as PygameError
 import pynput.keyboard
-import pygame
 import pypresence
-import winshell
+import requests
 from uuid import uuid4
+import win32com.client
+import winshell
+
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-__start = time.time()
 VERSION = '4.40.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
@@ -64,7 +70,7 @@ Security and Optimizations
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
-update_devices, cast = False, None
+show_pygame_error, update_devices, cast = False, False, None
 chromecasts, device_names = [], ['✓ Local device']
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
@@ -169,13 +175,13 @@ def get_file_info(_file, on_error='FILENAME'):
         _title = EasyID3(_file).get('title', ['Unknown'])[0]
         _artist = ', '.join(EasyID3(_file).get('artist', ['Unknown']))
         return _artist, _title
-    except (mutagen.id3.ID3NoHeaderError, mutagen.mp3.HeaderNotFoundError, mutagen.MutagenError):
+    except (ID3NoHeaderError, HeaderNotFoundError, MutagenError):
         try:
             _tags = mutagen.File(_file)
             _tags.add_tags()
             _tags.save()
             return get_file_info(_file)
-        except mutagen.MutagenError:
+        except MutagenError:
             return 'Unknown', 'Unknown'
     except Exception as _e:  # NOTE: might be able to remove this
         if settings.get('DEBUG') or not file_info_exceptions:
@@ -294,43 +300,65 @@ def load_settings():
 
 
 def create_shortcut(_shortcut_path):
+    def _threaded():
+        try:
+            run_on_startup = settings['run_on_startup']
+            shortcut_exists = os.path.exists(_shortcut_path)
+            if run_on_startup and not shortcut_exists:
+                shell = win32com.client.Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(_shortcut_path)
+                if getattr(sys, 'frozen', False):  # Running in as an executable
+                    target = f'{starting_dir}\\Music Caster.exe'
+                else:
+                    bat_file = f'{starting_dir}\\music_caster.bat'
+                    if os.path.exists(bat_file):
+                        with open('music_caster.bat', 'w') as _f:
+                            _f.write(f'pythonw {os.path.basename(sys.argv[0])}')
+                    target = bat_file
+                    shortcut.IconLocation = f'{starting_dir}\\icon.ico'
+                shortcut.Targetpath = target
+                shortcut.WorkingDirectory = starting_dir
+                shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
+                shortcut.save()
+            elif not run_on_startup and shortcut_exists:
+                os.remove(_shortcut_path)
+        except Exception as _e:
+            handle_exception(_e)
+    if not settings.get('DEBUG', False): threading.Thread(target=_threaded).start()
+
+
+def send_info():
+    # Look at README.md for privacy policy
+    with suppress(requests.exceptions.ConnectionError):
+        current_time = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
+        requests.post('https://en3ay96poz86qa9.m.pipedream.net',
+                      json={'MAC': get_mac(), 'VERSION': VERSION, 'TIME': current_time})
+
+
+def init_pygame():
+    global show_pygame_error
     try:
-        run_on_startup = settings['run_on_startup']
-        shortcut_exists = os.path.exists(_shortcut_path)
-        if run_on_startup and not shortcut_exists and not settings.get('DEBUG', False):
-            shell = win32com.client.Dispatch('WScript.Shell')
-            shortcut = shell.CreateShortCut(_shortcut_path)
-            if getattr(sys, 'frozen', False):  # Running in as an executable
-                target = f'{starting_dir}\\Music Caster.exe'
-            else:
-                bat_file = f'{starting_dir}\\music_caster.bat'
-                if os.path.exists(bat_file):
-                    with open('music_caster.bat', 'w') as _f:
-                        _f.write(f'pythonw {os.path.basename(sys.argv[0])}')
-                target = bat_file
-                shortcut.IconLocation = f'{starting_dir}\\icon.ico'
-            shortcut.Targetpath = target
-            shortcut.WorkingDirectory = starting_dir
-            shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
-            shortcut.save()
-        elif not run_on_startup and shortcut_exists: os.remove(_shortcut_path)
-    except Exception as _e:
-        handle_exception(_e)
+        local_music_player.init(44100, -16, 2, 2048)
+    except PygameError:
+        show_pygame_error = True
 
 
-load_settings()  # ~0.85 seconds
+load_settings_thread = threading.Thread(target=load_settings, daemon=True)
+load_settings_thread.start()
+init_pygame_thread = threading.Thread(target=init_pygame, daemon=True)
+init_pygame_thread.start()
+exit_program = False
 if is_already_running():  # ~0.8 seconds
-    r_text = ''
+    r_text, exit_program = '', True
     while PORT <= 2005 and not r_text:
         with suppress(requests.exceptions.InvalidSchema):
-            if len(sys.argv) > 1:
+            if len(sys.argv) > 1:  # music file was opened with MC
                 args = urllib.parse.urlencode({'filename': sys.argv[1]})
                 r_text = requests.get(f'http://127.0.0.1:{PORT}/play?{args}').text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
-    if not settings.get('DEBUG', False): sys.exit()
-
-
+load_settings_thread.join()
+if exit_program and not settings.get('DEBUG', False): sys.exit()
 if settings['auto_update']:
     with suppress(requests.ConnectionError):
         releases_url = 'https://github.com/elibroftw/music-caster/releases'
@@ -341,9 +369,9 @@ if settings['auto_update']:
             release_type = entry.find('span').text.strip()
             if release_type == 'Latest release' or settings.get('EXPERIMENTAL', False): break
         major, minor, patch = (int(x) for x in VERSION.split('.'))
-        ltst_major, lst_minor, ltst_patch = (int(x) for x in latest_ver.split('.'))
-        if (ltst_major > major or ltst_major == major and lst_minor > minor
-                or ltst_major == major and lst_minor == minor and ltst_patch > patch):
+        latest_major, latest_minor, latest_patch = (int(x) for x in latest_ver.split('.'))
+        if (latest_major > major or latest_major == major and latest_minor > minor
+                or latest_major == major and latest_minor == minor and latest_patch > patch):
             details = entry.find('details',
                                  class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
             download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
@@ -366,116 +394,124 @@ if settings['auto_update']:
             tray.ShowMessage('Music Caster', f'Update v{latest_ver} Available')
             time.sleep(2)
             tray.Close()
-
+if not settings.get('DEBUG', False):
+    threading.Thread(target=send_info, daemon=True).start()
+SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
+create_shortcut(SHORTCUT_PATH)
+# TODO: Set as default music file handler (See MODIFY REGISTRY in helpers.py)
 helpers.ACCENT_COLOR, helpers.fg = settings['accent_color'], settings['text_color']
 helpers.bg = settings['background_color']
 helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
 Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
               text_element_background_color=bg)
-
-# TODO: Set as default music file handler (See MODIFY REGISTRY in helpers.py)
-
-
-def send_info():
-    # Look at README.md for privacy policy
-    with suppress(requests.exceptions.ConnectionError):
-        current_time = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
-        requests.post('https://en3ay96poz86qa9.m.pipedream.net',
-                      json={'MAC': get_mac(), 'VERSION': VERSION, 'TIME': current_time})
-
-
-if not settings.get('DEBUG', False):
-    threading.Thread(target=send_info, daemon=True).start()
-    
-try:
-    local_music_player.init(44100, -16, 2, 2048)
-    show_pygame_error = False
-except pygame.error:
-    show_pygame_error = True
-
 app = Flask(__name__, static_folder='/', static_url_path='/')
-try:
-    # use socketio?
-    @app.route('/', methods=['GET', 'POST'])
-    def home():  # web GUI
-        global music_queue, playing_status, all_songs
-        if request.args:
-            if 'play' in request.args:
-                if playing_status == 'PAUSED': resume()
-                elif music_queue: play_file(music_queue[0])
-                else: play_all()
-            elif 'pause' in request.args and playing_status == 'PLAYING': pause()
-            elif 'next' in request.args: next_song()
-            elif 'prev' in request.args: prev_song()
-            elif 'repeat' in request.args: change_settings('repeat', not settings['repeat'])  # TODO
-            elif 'shuffle' in request.args: change_settings('shuffle', not settings['shuffle'])
-            return redirect('/')
-        if music_queue and playing_status in {'PLAYING', 'PAUSED'}:
-            file_path = music_queue[0]
-            _metadata = music_meta_data[file_path]
-        else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-        art = _metadata.get('art', Path(f'{thumbs_dir}/default.png').as_uri()[11:])
-        repeat_option = 'red' if settings['repeat'] else ''
-        shuffle_option = 'red' if settings['shuffle_playlists'] else ''
-        list_of_songs = ''  #
-        # sort by the formatted title
-        sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
-        for formatted_track, filename in sorted_songs:
-            filename = urllib.parse.urlencode({'path': filename})
-            el = f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
-            list_of_songs += el
-        return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
-                               repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
-                               starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)
 
-    @app.route('/play/')
-    def play_file_page():
-        global music_queue, playing_status
-        if 'path' in request.args:
-            _file_or_dir = request.args['path']
-            if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir): play_all(_file_or_dir)
-            elif os.path.isdir(_file_or_dir): play_folder(_file_or_dir)
+
+# use socket io?
+@app.route('/', methods=['GET', 'POST'])
+def home():  # web GUI
+    global music_queue, playing_status, all_songs
+    if request.args:
+        if 'play' in request.args:
+            if playing_status == 'PAUSED':
+                resume()
+            elif music_queue:
+                play_file(music_queue[0])
+            else:
+                play_all()
+        elif 'pause' in request.args and playing_status == 'PLAYING':
+            pause()
+        elif 'next' in request.args:
+            next_song()
+        elif 'prev' in request.args:
+            prev_song()
+        elif 'repeat' in request.args:
+            change_settings('repeat', not settings['repeat'])  # TODO
+        elif 'shuffle' in request.args:
+            change_settings('shuffle', not settings['shuffle'])
         return redirect('/')
+    if music_queue and playing_status in {'PLAYING', 'PAUSED'}:
+        file_path = music_queue[0]
+        _metadata = music_meta_data[file_path]
+    else:
+        _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+    art = _metadata.get('art', Path(f'{thumbs_dir}/default.png').as_uri()[11:])
+    repeat_option = 'red' if settings['repeat'] else ''
+    shuffle_option = 'red' if settings['shuffle_playlists'] else ''
+    list_of_songs = ''  #
+    # sort by the formatted title
+    sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
+    for formatted_track, filename in sorted_songs:
+        filename = urllib.parse.urlencode({'path': filename})
+        el = f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
+        list_of_songs += el
+    return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
+                           repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
+                           starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)
 
-    @app.route('/metadata/')
-    def metadata():
-        if music_queue:
-            file_path = music_queue[0]
-            _metadata = music_meta_data[file_path]
-        else: _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-        return jsonify(_metadata)
 
-    @app.route('/running/')
-    def running():
-        return 'True'
+@app.route('/play/')
+def play_file_page():
+    global music_queue, playing_status
+    if 'path' in request.args:
+        _file_or_dir = request.args['path']
+        if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
+            play_all(_file_or_dir)
+        elif os.path.isdir(_file_or_dir):
+            play_folder(_file_or_dir)
+    return redirect('/')
 
-    @app.route('/instance/')
-    def instance():
-        global daemon_command
-        for k, v in active_windows.items():  # Opens up GUI
-            if v:
-                if k == 'main': main_window.bring_to_front()
-                elif k == 'settings': settings_window.bring_to_front()
-                elif k == 'timer': timer_window.bring_to_front()
-                elif k == 'create_playlist_selector': pl_selector_window.bring_to_front()
-                elif k == 'create_playlist_editor': pl_editor_window.bring_to_front()
-                return 'True'
-        daemon_command = '__ACTIVATED__'
-        return 'True'
 
-    @app.route('/file/', methods=['GET'])
-    def get_file():
-        if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:
-            _file_or_dir = request.args['path']
-            print(_file_or_dir)
-            if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):  # security reasons
-                return send_file(_file_or_dir, cache_timeout=0, conditional=True)
-        return '404'
+@app.route('/metadata/')
+def metadata():
+    if music_queue:
+        file_path = music_queue[0]
+        _metadata = music_meta_data[file_path]
+    else:
+        _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+    return jsonify(_metadata)
 
-    @app.errorhandler(404)
-    def page_not_found(_):
-        return '404 error', 404
 
+@app.route('/running/')
+def running():
+    return 'True'
+
+
+@app.route('/instance/')
+def instance():
+    global daemon_command
+    for k, v in active_windows.items():  # Opens up GUI
+        if v:
+            if k == 'main':
+                main_window.bring_to_front()
+            elif k == 'settings':
+                settings_window.bring_to_front()
+            elif k == 'timer':
+                timer_window.bring_to_front()
+            elif k == 'create_playlist_selector':
+                pl_selector_window.bring_to_front()
+            elif k == 'create_playlist_editor':
+                pl_editor_window.bring_to_front()
+            return 'True'
+    daemon_command = '__ACTIVATED__'
+    return 'True'
+
+
+@app.route('/file/', methods=['GET'])
+def get_file():
+    if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:
+        _file_or_dir = request.args['path']
+        if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):  # security reasons
+            return send_file(_file_or_dir, cache_timeout=0, conditional=True)
+    return '404'
+
+
+@app.errorhandler(404)
+def page_not_found(_):
+    return redirect('/')
+
+
+try:
     def chromecast_callback(chromecast):
         global update_devices, cast, chromecasts
         previous_device = settings['previous_device']
@@ -505,8 +541,7 @@ try:
         if not device_names: device_names.append(f'✓ Local device')
         refresh_tray()
 
-    shortcut_path = f'{winshell.startup()}\\Music Caster.lnk'
-    create_shortcut(shortcut_path)
+
     # Access startup folder by entering "Startup" in Explorer address bar
     
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
@@ -534,7 +569,6 @@ try:
     os.chdir(os.getcwd()[:3])  # set root as the working dir. # TODO: remove
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-    server = None
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.1)
         while True:
@@ -569,6 +603,7 @@ try:
                        'Exit']]
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
+    init_pygame_thread.join()
     if settings.get('notifications') and show_pygame_error:
         tray.ShowMessage('Music Caster Error', 'No local audio device found')
     if settings['update_message'] != UPDATE_MESSAGE:
@@ -618,7 +653,7 @@ try:
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position,\
-            thumbs_dir, cast_last_checked, music_queue, app, server
+            thumbs_dir, cast_last_checked, music_queue
         while not os.path.exists(file_path):
             music_queue.remove(file_path)
             if music_queue: file_path = music_queue[0]
@@ -633,7 +668,7 @@ try:
             _artist = EasyID3(file_path).get('artist', ['Unknown'])
             _artist = ', '.join(_artist)
             album = EasyID3(file_path).get('album', 'Unknown')[0]
-        except mutagen.id3.ID3NoHeaderError:
+        except ID3NoHeaderError:
             tags = mutagen.File(file_path)
             tags.add_tags()
             tags.save()
@@ -643,7 +678,7 @@ try:
         #                               'album_cover_data': album_cover_data}
         pict = None
         try: tags = mutagen.id3.ID3(file_path)
-        except mutagen.id3.ID3NoHeaderError:
+        except ID3NoHeaderError:
             tags = mutagen.File(file_path)
             tags.add_tags()
             tags.save()
@@ -903,9 +938,8 @@ try:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play_file(file_or_dir)
         elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
-    if settings.get('DEBUG', False): print('Running in tray')
-
-    print('STARTUP TIME:', time.time() - __start)
+    if settings.get('DEBUG', False):
+        print('Running in tray')
     while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
         if tray_item == 'Refresh Devices':
@@ -1377,7 +1411,7 @@ try:
             elif settings_event in {'auto_update', 'discord_rpc', 'notifications', 'run_on_startup',
                                     'shuffle_playlists', 'save_window_positions'}:
                 change_settings(settings_event, settings_value)
-                if settings_event == 'run_on_startup': create_shortcut(shortcut_path)
+                if settings_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
                 elif settings_event == 'discord_rpc':
                     with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
