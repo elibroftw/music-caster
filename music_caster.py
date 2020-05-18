@@ -550,8 +550,6 @@ try:
         change_settings('timer_sleep_computer', False)
 
     thumbs_dir = starting_dir + '/images'
-    cc_music_dir = starting_dir + '/music files'
-    if not os.path.exists(cc_music_dir): os.mkdir(cc_music_dir)
     if not os.path.exists(thumbs_dir): os.mkdir(thumbs_dir)
     if not os.path.exists(f'{thumbs_dir}/default.png'):  # in case the user decided to delete the default image
         if os.path.exists('resources/default.png'):  # running from source code
@@ -562,7 +560,7 @@ try:
                 response = requests.get(default_img, stream=True)
                 with open(f'{thumbs_dir}/default.png', 'wb') as handle:
                     for data in response.iter_content(): handle.write(data)
-    for file in glob(f'{cc_music_dir}/*.*') + glob(f'{thumbs_dir}/*.*'):
+    for file in glob(f'{thumbs_dir}/*.*'):
         if not file.endswith('default.png'): os.remove(file)
     with open(f'{thumbs_dir}/default.png', 'rb') as f:
         DEFAULT_IMG_DATA = base64.b64encode(f.read())
