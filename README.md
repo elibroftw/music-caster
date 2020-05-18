@@ -13,7 +13,7 @@ Click the image below for a video demo.
 
 [![demo link](https://i3.ytimg.com/vi/y0fWPyhNSB0/maxresdefault.jpg)](https://www.youtube.com/watch?v=y0fWPyhNSB0)
 
-## [Screenshots (from v4.25.0)](http://www.elopez.me/music-caster/)
+## [Click Here For Screenshots](http://www.elopez.me/music-caster/)
 
 ## Usage
 **TL;DR**:
