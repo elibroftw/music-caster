@@ -32,7 +32,8 @@ Music Caster supports media keys.
 There is a web GUI accessible through the settings window (click or scan the QR code)
 
 ## Limitations and Known Issues
-- Only supports MP3 files (for now)
+- The local playback only supports MP3 files (for now)
+- You can play other file types on your devices though
 - [Roadmap](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy

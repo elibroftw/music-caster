@@ -25,9 +25,9 @@ import urllib.parse
 import webbrowser
 import zipfile
 # helper files
-from helpers import fix_path, get_ipv4, get_mac, create_qr_code, is_already_running, valid_music_file,\
-    find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer, create_playlist_editor, \
-    create_playlist_selector, bg, BUTTON_COLOR, timing
+from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, MUSIC_FILE_TYPES,\
+    is_already_running, find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer,\
+    create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, timing
 import helpers
 from b64_images import *
 # 3rd party imports
@@ -37,6 +37,8 @@ import mutagen
 import mutagen.id3
 import mutagen.mp3
 from mutagen.easyid3 import EasyID3
+from mutagen.aac import AACError
+from mutagen.easymp4 import EasyMP4
 from mutagen import MutagenError
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
@@ -75,6 +77,7 @@ chromecasts, device_names = [], ['✓ Local device']
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
+variable_exception_sent = False
 
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '',
@@ -104,7 +107,7 @@ pl_selector_window: Sg.Window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
 stop_discovery = None  # function
 mouse_hover = ''
-MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
+# MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'create_playlist_selector': False,
@@ -649,6 +652,35 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
+    def get_metadata(file_path: str) -> list:  # [title, artist, album]
+        global variable_exception_sent
+        file_path = file_path.lower()
+        add_tags = False
+        try:
+            if file_path.endswith('.mp3'):
+                audio = EasyID3(file_path)
+            elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
+                audio = EasyMP4(file_path)
+            else:
+                audio = mutagen.File(file_path)
+            _title = audio.get('title', ['Unknown Title'])[0]
+            _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
+            _album = audio.get('album', ['Unknown Albumm'])[0]
+        except ID3NoHeaderError:
+            add_tags = True
+        except Exception as _e:
+            if variable_exception_sent:
+                handle_exception(_e)
+                variable_exception_sent = True
+            add_tags = True
+        if add_tags:
+            _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+            with suppress(AACError):
+                tags = mutagen.File(file_path)
+                tags.add_tags()
+                tags.save()
+        return _title, _artist, _album
+
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position,\
             thumbs_dir, cast_last_checked, music_queue
@@ -661,25 +693,12 @@ try:
         audio_info = mutagen.File(file_path).info
         song_length = audio_info.length
         _volume = 0 if settings['muted'] else settings['volume'] / 100
-        try:
-            _title = EasyID3(file_path).get('title', ['Unknown'])[0]
-            _artist = EasyID3(file_path).get('artist', ['Unknown'])
-            _artist = ', '.join(_artist)
-            album = EasyID3(file_path).get('album', 'Unknown')[0]
-        except ID3NoHeaderError:
-            tags = mutagen.File(file_path)
-            tags.add_tags()
-            tags.save()
-            _title = _artist = album = 'Unknown'
+        _title, _artist, album = get_metadata(file_path)
         # thumb, album_cover_data = get_album_cover(file_path)
         # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': song_length,
         #                               'album_cover_data': album_cover_data}
         pict = None
-        try: tags = mutagen.id3.ID3(file_path)
-        except ID3NoHeaderError:
-            tags = mutagen.File(file_path)
-            tags.add_tags()
-            tags.save()
+        tags = mutagen.File(file_path)
         for tag in tags.keys():
             if 'APIC' in tag:
                 pict = tags[tag].data
@@ -689,6 +708,10 @@ try:
                                           'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
         else: music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
+            if file_path.lower()[-3:] not in {'mp3', 'oog', 'wav'}:
+                done_queue.append(music_queue.pop())
+                play_file(music_queue[0])
+                return
             mc = None
             sample_rate = audio_info.sample_rate
             if local_music_player.get_init() is None or local_music_player.get_init()[0] != sample_rate:
@@ -1302,7 +1325,7 @@ try:
                 if not music_queue: start_playing = True
                 else: start_playing = False
                 fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR,
-                                   wildcard='Audio File (*.mp3)|*mp3', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                                   wildcard=MUSIC_FILE_TYPES, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
                 if fd.ShowModal() != wx.ID_CANCEL:
                     path_to_file = fd.GetPath()
                     music_queue.append(path_to_file)

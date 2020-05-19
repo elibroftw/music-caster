@@ -91,9 +91,17 @@ def is_already_running():
 #     return chr(int.from_bytes(encoded[:2], 'little')) + chr(int.from_bytes(encoded[2:], 'little'))
 # def with_surrogates(text):
 #     return _nonbmp.sub(_surrogate_pair, text)
+MUSIC_FILE_TYPES = 'Audio File (*.mp3,*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav)|' \
+                   '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus*.wav'
 
 
-def valid_music_file(file_path): return file_path.endswith('.mp3')  # or file_path.endswith('.flac')
+def valid_music_file(file_path):
+    file_path = file_path.lower()
+    # NOTE: pygame only supports (mp3, oog, and wav)
+    return (file_path.endswith('.mp3') or file_path.endswith('.flac')
+            or file_path.endswith('.m4a') or file_path.endswith('.mp4') or file_path.endswith('.aac')
+            or file_path.endswith('.ogg') or file_path.endswith('.opus')
+            or file_path.endswith('.wav'))
 
 
 def find_chromecasts(timeout=0.3, callback=None):
