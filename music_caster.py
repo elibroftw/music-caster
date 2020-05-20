@@ -64,7 +64,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.41.1'
+VERSION = '4.41.2'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -357,8 +357,7 @@ if is_already_running():  # ~0.8 seconds
     while PORT <= 2005 and not r_text:
         with suppress(requests.exceptions.InvalidSchema):
             if len(sys.argv) > 1:  # music file was opened with MC
-                args = urllib.parse.urlencode({'filename': sys.argv[1]})
-                r_text = requests.get(f'http://127.0.0.1:{PORT}/play?{args}').text
+                r_text = requests.post(f'http://127.0.0.1:{PORT}/play/', data={'path': sys.argv[1]}).text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
 load_settings_thread.join()
@@ -457,16 +456,17 @@ def home():  # web GUI
                            metadata=_metadata, list_of_songs=list_of_songs)
 
 
-@app.route('/play/')
-def play_file_page():  # TODO: make into POST method?
+@app.route('/play/', methods=['GET', 'POST'])
+def play_file_page():
     global music_queue, playing_status
-    if 'path' in request.args:
-        _file_or_dir = request.args['path']
+    args = request.args if request.method == 'GET' else request.form
+    if 'path' in args:
+        _file_or_dir = args['path']
         if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
             play_all(_file_or_dir)
         elif os.path.isdir(_file_or_dir):
             play_folder(_file_or_dir)
-    return 'True'
+    return redirect('/') if request.method == 'GET' else 'True'
 
 
 @app.route('/metadata/')
