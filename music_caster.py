@@ -462,7 +462,7 @@ def play_file_page():
             play_all(_file_or_dir)
         elif os.path.isdir(_file_or_dir):
             play_folder(_file_or_dir)
-    return redirect('/')
+    return 'True'
 
 
 @app.route('/metadata/')
@@ -709,6 +709,9 @@ try:
         else: music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
             if file_path.lower()[-3:] not in {'mp3', 'oog', 'wav'}:
+                if settings['notifications']:
+                    file_format = file_path.split('.')[-1]
+                    tray.ShowMessage('Music Caster', f'File format {file_format} not supported')
                 done_queue.append(music_queue.pop())
                 play_file(music_queue[0])
                 return
