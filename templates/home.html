@@ -87,7 +87,9 @@
     function showModal(option) {
         modals[option].style.display = 'block';
         if (option == 'files') {
-            searchBar.focus();
+            if (getComputedStyle(document.getElementById('wrapper')).marginTop == '0px') {
+                searchBar.focus();
+            }
             filterTracks();
             var temp = searchBar.value;
             searchBar.value = '';

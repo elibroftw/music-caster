@@ -12,7 +12,7 @@ a {
 }
 
 .player__container {
-	margin-top: 2rem;
+	margin-top: 4rem;
 	margin-right: auto;
 	margin-left: auto;
 	max-width: 30rem;
@@ -326,5 +326,9 @@ h2 {
 
 	#wrapper {
 		margin-top: 17.1%;
+	}
+
+	.player__container {
+		margin-top: 2em;
 	}
 }
