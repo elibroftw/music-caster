@@ -1,8 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 4.41.0
-- [Feature] Added support for {*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav}
-- Note that only MP3 files are supported for local playback (for now)
+- [Feature] Added support for {*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav} (for non-local devices)
 
 4.40.0
 - [Optimization] Reduced startup time by ~2 seconds
