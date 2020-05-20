@@ -1148,7 +1148,7 @@ try:
             tray.Hide()
             with suppress(UnsupportedNamespace):
                 stop()
-                if cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
+                if cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING': cast.quit_app()
             with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                 rich_presence.close()
                 # Commented because I am unsure if it is effective
