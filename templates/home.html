@@ -4,7 +4,7 @@
     href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png">
 <link rel="shortcut icon"
     href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/music%20caster.ico">
-<link rel="stylesheet" id="stylesheet" href="/{{starting_dir}}/static/style.css">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 <!-- <meta http-equiv="refresh" content="30"> -->
@@ -40,12 +40,9 @@
             <ul class="list list--footer">
                 <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>
                 <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
-                <li><a href="?repeat" class="list__link {{repeat}}">
-                        <i class="fa fa-undo {{repeat}}"></i>
-                        <!--                    <svg class="{{repeat}}" style="width:24px;height:24px" viewBox="0 0 24 24">-->
-                        <!--                        <path fill="currentColor" d="M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z" />-->
-                        <!--                    </svg>-->
-                        <!--                    https://materialdesignicons.com/-->
+                <li><a href="?repeat" class="list__link {{repeat_color}}">
+                        <span class="red">{{1 if repeat_option else ''}}</span>
+                        <i class="fa fa-undo {{repeat_color}}"></i>
                     </a></li>
                 <!-- <li><a onclick="showModal('queue')" href="/#music-queue" class="list__link">
                     <svg>
@@ -55,7 +52,7 @@
                 <!-- <i class="fa fa-ellipsis-h"></i> -->
                 <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file"></i></a>
                 </li>
-                <!-- <li><a onclick=/"showModal('settings')" href="/#settings" class="list__link"><i class="fa fa-sliders-h"></i></a></li> -->
+                <!-- <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fa fa-sliders-h"></i></a></li> -->
             </ul>
         </div>
     </div>

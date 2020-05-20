@@ -75,6 +75,7 @@ MC_SECRET = str(uuid4())
 show_pygame_error, update_devices, cast = False, False, None
 chromecasts, device_names = [], ['✓ Local device']
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+os.chdir(starting_dir)
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 variable_exception_sent = False
@@ -407,29 +408,31 @@ helpers.bg = settings['background_color']
 helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
 Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
               text_element_background_color=bg)
-app = Flask(__name__, static_folder='/', static_url_path='/')
+app = Flask(__name__)
+
+
+def cycle_repeat():
+    global settings
+    if settings['repeat'] is None: _repeat_setting = False  # Repeat All
+    elif settings['repeat']: _repeat_setting = None  # Repeat OFF
+    else: _repeat_setting = True  # Repeat One
+    return change_settings('repeat', _repeat_setting)
 
 
 # use socket io?
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def home():  # web GUI
-    global music_queue, playing_status, all_songs
+    global music_queue, playing_status, all_songs, daemon_command
     if request.args:
         if 'play' in request.args:
-            if playing_status == 'PAUSED':
-                resume()
-            elif music_queue:
-                play_file(music_queue[0])
-            else:
-                play_all()
-        elif 'pause' in request.args and playing_status == 'PLAYING':
-            pause()
-        elif 'next' in request.args:
-            next_song()
-        elif 'prev' in request.args:
-            prev_song()
+            if playing_status == 'PAUSED': resume()
+            elif music_queue: play_file(music_queue[0])
+            else: play_all()
+        elif 'pause' in request.args and playing_status == 'PLAYING': pause()
+        elif 'next' in request.args: daemon_command = 'Next Song'
+        elif 'prev' in request.args: daemon_command = 'Previous Song'
         elif 'repeat' in request.args:
-            change_settings('repeat', not settings['repeat'])  # TODO
+            cycle_repeat()
         elif 'shuffle' in request.args:
             change_settings('shuffle', not settings['shuffle'])
         return redirect('/')
@@ -438,8 +441,9 @@ def home():  # web GUI
         _metadata = music_meta_data[file_path]
     else:
         _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-    art = _metadata.get('art', Path(f'{thumbs_dir}/default.png').as_uri()[11:])
-    repeat_option = 'red' if settings['repeat'] else ''
+    art = _metadata.get('art', DEFAULT_IMG_DATA)
+    repeat_option = settings['repeat']
+    repeat_color = 'red' if settings['repeat'] is not None else ''
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
     list_of_songs = ''  #
     # sort by the formatted title
@@ -449,12 +453,12 @@ def home():  # web GUI
         el = f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
     return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
-                           repeat=repeat_option, shuffle=shuffle_option, art=art, metadata=_metadata,
-                           starting_dir=Path(starting_dir).as_uri()[11:], list_of_songs=list_of_songs)
+                           repeat_color=repeat_color, repeat_option=repeat_option, shuffle=shuffle_option, art=art,
+                           metadata=_metadata, list_of_songs=list_of_songs)
 
 
 @app.route('/play/')
-def play_file_page():
+def play_file_page():  # TODO: make into POST method?
     global music_queue, playing_status
     if 'path' in request.args:
         _file_or_dir = request.args['path']
@@ -500,11 +504,11 @@ def instance():
     return 'True'
 
 
-@app.route('/file/', methods=['GET'])
+@app.route('/file/')
 def get_file():
-    if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:
+    if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:  # security reasons
         _file_or_dir = request.args['path']
-        if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):  # security reasons
+        if os.path.isfile(_file_or_dir):
             return send_file(_file_or_dir, cache_timeout=0, conditional=True)
     return '404'
 
@@ -552,7 +556,7 @@ try:
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
 
-    thumbs_dir = starting_dir + '/images'
+    thumbs_dir =  f'{starting_dir}/images'
     if not os.path.exists(thumbs_dir): os.mkdir(thumbs_dir)
     if not os.path.exists(f'{thumbs_dir}/default.png'):  # in case the user decided to delete the default image
         if os.path.exists('resources/default.png'):  # running from source code
@@ -561,13 +565,13 @@ try:
             with suppress(requests.ConnectionError):
                 default_img = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
                 response = requests.get(default_img, stream=True)
-                with open(f'{thumbs_dir}/default.png', 'wb') as handle:
-                    for data in response.iter_content(): handle.write(data)
+                with open(f'{thumbs_dir}/default.png', 'wb') as f: copyfileobj(response.raw, f)
     for file in glob(f'{thumbs_dir}/*.*'):
         if not file.endswith('default.png'): os.remove(file)
     with open(f'{thumbs_dir}/default.png', 'rb') as f:
         DEFAULT_IMG_DATA = base64.b64encode(f.read())
-    os.chdir(os.getcwd()[:3])  # set root as the working dir. # TODO: remove
+        DEFAULT_IMG_DATA = f'data:image/png;base64,{DEFAULT_IMG_DATA.decode()}'
+    # os.chdir(os.getcwd()[:3])  # set root as the working dir. # TODO: remove
     logging.getLogger('werkzeug').disabled = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -736,7 +740,8 @@ try:
                     thumb = thumbs_dir + f'/{file_path_obj.stem}.png'
                     with open(thumb, 'wb') as _f: _f.write(pict)
                 else: thumb = f'{thumbs_dir}/default.png'
-                thumb = f'http://{ipv4_address}:{PORT}/{Path(thumb).as_uri()[11:]}'
+                url_args = urllib.parse.urlencode({'path': thumb, 'secret': MC_SECRET})
+                thumb = f'http://{ipv4_address}:{PORT}/file?{url_args}'
                 cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(_volume)
                 mc = cast.media_controller
@@ -948,11 +953,11 @@ try:
         global last_press, daemon_command
         if str(key) not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
         if str(key) == '<179>':
-            if playing_status == 'PLAYING': daemon_command = 'Pause'
-            elif playing_status == 'PAUSED': daemon_command = 'Resume'
+            if playing_status == 'PLAYING': pause()
+            elif playing_status == 'PAUSED': resume()
         elif str(key) == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Song'
         elif str(key) == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Song'
-        elif str(key) == '<178>': daemon_command = 'Stop'
+        elif str(key) == '<178>': stop()
         last_press = time.time()
 
     last_press = time.time()
@@ -1205,11 +1210,7 @@ try:
             elif main_event == 'shuffle':
                 # TODO: just shuffle music queue
                 pass
-            elif main_event == 'repeat':
-                if settings['repeat'] is None: repeat_setting = False  # Repeat All
-                elif settings['repeat']: repeat_setting = None  # Repeat OFF
-                else: repeat_setting = True  # Repeat One
-                change_settings('repeat', repeat_setting)
+            elif main_event == 'repeat': cycle_repeat()
             elif main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit():
                 delta = 0
                 if main_event.isdigit():
