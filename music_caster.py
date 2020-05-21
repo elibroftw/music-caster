@@ -64,11 +64,12 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.41.2'
+VERSION = '4.41.3'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-Added support for more file types on non-local devices
+[Feature] Added support for more file types on non-local devices
+[Bug fix] Music Queue double click to play 
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -1245,15 +1246,15 @@ try:
                         main_window['music_queue'].Update(set_to_index=new_i, scroll_to_index=new_i)
             elif main_event == 'music_queue' and main_values['music_queue']:
                 song_to_play = main_values['music_queue'][0]
-                index = int(song_to_play.split('.', 1)[0])
-                if index < 0:
-                    if next_queue:
-                        while next_queue:  # design decision to empty next queue
-                            music_queue.insert(1, next_queue.pop(0))
-                    for i in range(-index):
+                index = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
+                if done_queue and index < len(done_queue):
+                    while next_queue:  # design decision to empty next queue
+                        music_queue.insert(1, next_queue.pop())
+                    for i in range(len(done_queue) - index):
                         music_queue.insert(0, done_queue.pop())
                 else:
-                    for i in range(index):
+                    for i in range(index - len(done_queue)):
+                        if not music_queue: break
                         done_queue.append(music_queue.pop(0))
                         if next_queue:
                             music_queue.insert(0, next_queue.pop(0))
