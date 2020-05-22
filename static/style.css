@@ -388,7 +388,7 @@ input:checked+.slider:before {
     border-radius: 50%;
 }
 
-#search-bar {
+#searchBar {
     color: whitesmoke;
     background-color: #121212b2;
     /* background-image: url('https://www.w3schools.com/css/searchicon.png'); */
@@ -400,7 +400,7 @@ input:checked+.slider:before {
     width: -moz-available;
     width: -webkit-fill-available;
     width: stretch;
-    padding: 12px 20px 12px 40px;
+    padding: 1em 20px 1em 40px;
     margin-bottom: 12px;
     border: 1px solid black;
     border-radius: 2em;

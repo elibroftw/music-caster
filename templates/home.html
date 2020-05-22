@@ -65,7 +65,7 @@
 <div id="files-modal" class="modal">
     <div id="tracks-list" class="modal-content">
         <h2>File Selection</h2>
-        <input type="text" id="search-bar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
+        <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
         placeholder="Search for music..." title="Type in artist/tracks">
         {{ list_of_songs|safe }}
     </div>
@@ -115,7 +115,7 @@
     modals['files'] = document.getElementById('files-modal');
     modals['settings'] = document.getElementById('settings-modal');
 
-    var searchBar = document.getElementById('search-bar');
+    var searchBar = document.getElementById('searchBar');
 
     function showModal(option) {
         modals[option].style.display = 'block';
