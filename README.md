@@ -5,7 +5,8 @@ Music Caster</h1>
 [![GitHub Releases](https://img.shields.io/github/downloads/elibroftw/music-caster/latest/total?color=blue&label=github%20downloads%40latest&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases/latest)
 [![Source Forge](https://img.shields.io/sourceforge/dt/music-caster?color=orange&label=SourceForge%20downloads&style=for-the-badge)](https://sourceforge.net/projects/music-caster/)
 
-Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc.)
+Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc.).
+If you enjoyed this product a lot feel free to donate at http://elopez.me/contact.
 
 ## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases/latest)
 
@@ -32,8 +33,7 @@ Music Caster supports media keys.
 There is a web GUI accessible through the settings window (click or scan the QR code)
 
 ## Limitations and Known Issues
-- The local playback only supports MP3 files (for now)
-- You can play other file types on your devices though
+- For now, the local playback only supports MP3 files (you can still play other file types on your Google devices)
 - [Roadmap](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy
