@@ -52,7 +52,7 @@
                 <!-- <i class="fa fa-ellipsis-h"></i> -->
                 <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file"></i></a>
                 </li>
-                <!-- <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fa fa-sliders-h"></i></a></li> -->
+                <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
             </ul>
         </div>
     </div>
@@ -72,11 +72,44 @@
 </div>
 <div id="settings-modal" class="modal">
     <div class="modal-content">
-        <!-- TODO -->
+        <h2>Settings</h2>
+        <li data-key='auto_update' title="Auto Update" class="setting" onclick="toggleSetting(this)">
+            Auto Update
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider round"></span>
+            </label></li>
+        <li data-key='notifications' title="Notifications" class="setting" onclick="toggleSetting(this)">
+            Notiications
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider round"></span>
+            </label></li>
+        <li data-key='discord_rpc' title="Discord Prescence" class="setting" onclick="toggleSetting(this)">
+            Discord Prescence
+            <label class="switch">
+                <input type="checkbox">
+                
+                <span class="slider round"></span>
+            </label></li>
+        <li data-key='run_on_startup' title="Run on Startup" class="setting" onclick="toggleSetting(this)">
+            Run on Startup
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider round"></span>
+            </label></li>
+        <li data-key='save_window_positions' title="Save Window Positions" class="setting" onclick="toggleSetting(this)">
+            Save Window Positions
+            <label class="switch">
+                <input type="checkbox">
+                <span class="slider round"></span>
+            </label></li>
     </div>
 </div>
 <script>
-    var modals = {}
+    var modals = {};
+    var settingToggles = document.getElementsByClassName('setting');
+    var settingsFromServer = {{settings | tojson}};
 
     modals['queue'] = document.getElementById('queue-modal');
     modals['files'] = document.getElementById('files-modal');
@@ -86,7 +119,7 @@
 
     function showModal(option) {
         modals[option].style.display = 'block';
-        if (option == 'files') {
+        if (option === 'files') {
             if (getComputedStyle(document.getElementById('wrapper')).marginTop == '0px') {
                 searchBar.focus();
             }
@@ -142,7 +175,14 @@
         catch (err) { return ''; }
     }
 
-    window.onload = () => { try { showModal(getHash()); } catch (TypeError) {} };
+    window.onload = () => { 
+        try { showModal(getHash()); } catch (TypeError) {} 
+
+        for (const settingEl of settingToggles) {
+            checkBox = settingEl.getElementsByTagName('input')[0];
+            checkBox.checked = settingsFromServer[settingEl.dataset.key];
+        }
+        };
 
     function filterTracks() {        
         var filter = searchBar.value.toUpperCase();
@@ -156,6 +196,19 @@
                 a.style.display = 'none';
             }
         }
+    }
+
+    function toggleSetting(settingEl) {
+        var settingName = settingEl.dataset.key;
+        var checkBox = settingEl.getElementsByTagName('input')[0];
+        checkBox.checked = !checkBox.checked;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/change-setting/', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+            setting_name: settingName,
+            value: checkBox.checked
+        }));
     }
 
     setTimeout(() => {location.reload()}, 30000);

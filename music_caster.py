@@ -64,12 +64,11 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.41.3'
+VERSION = '4.42.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-[Feature] Added support for more file types on non-local devices
-[Bug fix] Music Queue double click to play 
+[Feature] Added setting UI to Web GUI
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -450,11 +449,11 @@ def home():  # web GUI
     sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
     for formatted_track, filename in sorted_songs:
         filename = urllib.parse.urlencode({'path': filename})
-        el = f'<a title="{formatted_track}" class="track" href="/play/?{filename}">{formatted_track}</a>\n'
+        el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
     return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
                            repeat_color=repeat_color, repeat_option=repeat_option, shuffle=shuffle_option, art=art,
-                           metadata=_metadata, list_of_songs=list_of_songs)
+                           metadata=_metadata, list_of_songs=list_of_songs, settings=settings)
 
 
 @app.route('/play/', methods=['GET', 'POST'])
@@ -467,7 +466,7 @@ def play_file_page():
             play_all(_file_or_dir)
         elif os.path.isdir(_file_or_dir):
             play_folder(_file_or_dir)
-    return redirect('/') if request.method == 'GET' else 'True'
+    return redirect('/') if request.method == 'GET' else 'true'
 
 
 @app.route('/metadata/')
@@ -482,7 +481,17 @@ def metadata():
 
 @app.route('/running/')
 def running():
-    return 'True'
+    return 'true'
+
+
+@app.route('/change-setting/', methods=['POST'])
+def change_settings_web():
+    with suppress(KeyError):
+        setting_key = request.json['setting_name']
+        if setting_key in settings:
+            change_settings(setting_key, request.json['value'])
+        return 'true'
+    return 'false'
 
 
 @app.route('/instance/')
@@ -502,7 +511,7 @@ def instance():
                 pl_editor_window.bring_to_front()
             return 'True'
     daemon_command = '__ACTIVATED__'
-    return 'True'
+    return 'true'
 
 
 @app.route('/file/')
