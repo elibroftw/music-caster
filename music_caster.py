@@ -455,7 +455,6 @@ def home():  # web GUI
                            repeat_color=repeat_color, repeat_option=repeat_option, shuffle=shuffle_option, art=art,
                            metadata=_metadata, list_of_songs=list_of_songs, settings=settings)
 
-
 @app.route('/play/', methods=['GET', 'POST'])
 def play_file_page():
     global music_queue, playing_status
@@ -518,8 +517,9 @@ def instance():
 def get_file():
     if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:  # security reasons
         _file_or_dir = request.args['path']
+        
         if os.path.isfile(_file_or_dir):
-            return send_file(_file_or_dir, cache_timeout=0, conditional=True)
+            return send_file(_file_or_dir, conditional=True, as_attachment=True, cache_timeout=360000)
     return '404'
 
 
@@ -589,7 +589,7 @@ try:
         while True:
             if not s.connect_ex(('localhost', PORT)) == 0:  # if port is not occupied
                 try:  # start server with the unoccupied PORT
-                    threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT}).start()
+                    threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'threaded': True}).start()
                     break
                 except OSError: PORT += 1
             else: PORT += 1

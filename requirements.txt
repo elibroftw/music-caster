@@ -1,5 +1,5 @@
 beautifulsoup4~=4.8
-flask==1.1.1
+flask==1.1.2
 mutagen==1.43.0
 Pillow~=6.2.2
 pychromecast~=4.2.3
