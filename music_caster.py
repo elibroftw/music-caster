@@ -24,6 +24,7 @@ import traceback
 import urllib.parse
 import webbrowser
 import zipfile
+import pythoncom
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, MUSIC_FILE_TYPES,\
     is_already_running, find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer,\
@@ -64,11 +65,12 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.42.0'
+VERSION = '4.42.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
 [Feature] Added setting UI to Web GUI
+[Bug fix] Shortcut creation
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -225,9 +227,9 @@ def handle_exception(exception, restart_program=False):
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
     mac = get_mac()
-    payload = {'TIME': _current_time, 'VERSION': VERSION, 'OS': platform.platform(),
-               'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
-               'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac}
+    payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE NUMBER': exc_tb.tb_lineno,
+               'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program,
+               'OS': platform.platform(), 'TIME': _current_time}
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     try:
@@ -309,6 +311,7 @@ def create_shortcut(_shortcut_path):
             run_on_startup = settings['run_on_startup']
             shortcut_exists = os.path.exists(_shortcut_path)
             if run_on_startup and not shortcut_exists:
+                pythoncom.CoInitialize()
                 shell = win32com.client.Dispatch('WScript.Shell')
                 shortcut = shell.CreateShortCut(_shortcut_path)
                 if getattr(sys, 'frozen', False):  # Running in as an executable
