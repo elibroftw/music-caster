@@ -65,7 +65,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.42.1'
+VERSION = '4.42.2'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -85,7 +85,7 @@ variable_exception_sent = False
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '',
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
-    'discord_rpc': True, 'save_window_positions': True, 'default_file_handler': True,
+    'discord_rpc': False, 'save_window_positions': True, 'default_file_handler': True,
     'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000', 'background_color': '#121212',
     'volume': 100, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'volume_delta': 5, 'muted': False, 'scrubbing_delta': 5, 'music_directories': [home_music_dir], 'playlists': {}}
@@ -454,7 +454,7 @@ def home():  # web GUI
         filename = urllib.parse.urlencode({'path': filename})
         el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
-    return render_template('home.html', main_button='pause' if playing_status == 'PLAYING' else 'play',
+    return render_template('home.html', device_name=platform.node(), main_button='pause' if playing_status == 'PLAYING' else 'play',
                            repeat_color=repeat_color, repeat_option=repeat_option, shuffle=shuffle_option, art=art,
                            metadata=_metadata, list_of_songs=list_of_songs, settings=settings)
 
