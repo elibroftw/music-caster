@@ -456,6 +456,7 @@ input:checked+.slider:before {
     cursor: pointer;
     -webkit-appearance: none;
     margin-top: -5.8px;
+}
 
 #volRange:focus::-webkit-slider-runnable-track {
   background: #f5f6f6;
