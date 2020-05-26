@@ -331,7 +331,7 @@ def create_shortcut(_shortcut_path):
                 os.remove(_shortcut_path)
         except Exception as _e:
             handle_exception(_e)
-    if not settings.get('DEBUG', False): threading.Thread(target=_threaded).start()
+    if not settings.get('DEBUG', False): threading.Thread(target=_threaded, daemon=True).start()
 
 
 def send_info():
@@ -1172,8 +1172,7 @@ try:
             with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                 rich_presence.close()
                 # Commented because I am unsure if it is effective
-            break
-
+            sys.exit()
         # MAIN WINDOW
         if active_windows['main']:
             main_event, main_values = main_window.Read(timeout=10)
