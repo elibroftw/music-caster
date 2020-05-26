@@ -372,7 +372,7 @@ try:
             soup = BeautifulSoup(requests.get(releases_url).text, features='html.parser')
             release_entries = soup.find_all('div', class_='release-entry')
             for entry in release_entries:
-                latest_ver = entry.find('a', class_='muted-link css-truncate')['title']
+                latest_ver = entry.find('a', class_='muted-link css-truncate')['title'][1:]
                 release_type = entry.find('span').text.strip()
                 if release_type == 'Latest release' or settings.get('EXPERIMENTAL', False): break
             major, minor, patch = (int(x) for x in VERSION.split('.'))
@@ -404,7 +404,7 @@ try:
 except Exception as e:
     handle_exception(e)
     change_settings('auto_update', False)
-    
+
 if not settings.get('DEBUG', False):
     threading.Thread(target=send_info, daemon=True).start()
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
