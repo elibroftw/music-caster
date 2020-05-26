@@ -415,7 +415,7 @@ input:checked+.slider:before {
 }
 
 #volRange {
-    width: 90%;
+    width: 80%;
     -webkit-appearance: none;
 }
 
@@ -434,7 +434,7 @@ input:checked+.slider:before {
 }
 
 #volRange::-webkit-slider-runnable-track {
-    width: 100%;
+    width: 80%;
     height: 8.4px;
     cursor: pointer;
     box-shadow: 1.7px 1.7px 1px rgba(0, 0, 0, 0.2), 0px 0px 1.7px rgba(13, 13, 13, 0.2);

@@ -65,7 +65,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.43.1'
+VERSION = '4.43.2'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -499,6 +499,10 @@ def change_settings_web():
         setting_key = request.json['setting_name']
         if setting_key in settings:
             change_settings(setting_key, request.json['value'])
+        if setting_key == 'volume':
+            _volume = 0 if settings['muted'] else settings['volume'] / 100
+            if cast is None: local_music_player.music.set_volume(_volume)
+            else: cast.set_volume(_volume)
         return 'true'
     return 'false'
 
