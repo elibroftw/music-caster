@@ -65,7 +65,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.43.0'
+VERSION = '4.43.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -365,41 +365,46 @@ if is_already_running():  # ~0.8 seconds
         PORT += 1
 load_settings_thread.join()
 if exit_program and not settings.get('DEBUG', False): sys.exit()
-if settings['auto_update']:
-    with suppress(requests.ConnectionError):
-        releases_url = 'https://github.com/elibroftw/music-caster/releases'
-        soup = BeautifulSoup(requests.get(releases_url).text, features='html.parser')
-        release_entries = soup.find_all('div', class_='release-entry')
-        for entry in release_entries:
-            latest_ver = entry.find('a', class_='muted-link css-truncate')['title'][1:]
-            release_type = entry.find('span').text.strip()
-            if release_type == 'Latest release' or settings.get('EXPERIMENTAL', False): break
-        major, minor, patch = (int(x) for x in VERSION.split('.'))
-        latest_major, latest_minor, latest_patch = (int(x) for x in latest_ver.split('.'))
-        if (latest_major > major or latest_major == major and latest_minor > minor
-                or latest_major == major and latest_minor == minor and latest_patch > patch):
-            details = entry.find('details',
-                                 class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
-            download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
-            setup_download_link = f'https://github.com{download_links[0]}'
-            os.chdir(starting_dir)
-            tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
-            if settings.get('DEBUG'):
-                print('Installer Link:', setup_download_link)
-            elif getattr(sys, 'frozen', False) and os.path.exists('unins000.exe') or os.path.exists('Updater.exe'):
-                tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
-                tray.Update(tooltip=f'Downloading update v{latest_ver}')
-                if os.path.exists('unis000.exe'):
-                    download(setup_download_link, 'MC_Installer.exe')
-                    Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
-                else:
-                    os.startfile('Updater.exe')
-                    time.sleep(2)
-                tray.Hide()
-                sys.exit()
-            tray.ShowMessage('Music Caster', f'Update v{latest_ver} Available')
-            time.sleep(2)
-            tray.Close()
+try:
+    if settings['auto_update']:
+        with suppress(requests.ConnectionError):
+            releases_url = 'https://github.com/elibroftw/music-caster/releases'
+            soup = BeautifulSoup(requests.get(releases_url).text, features='html.parser')
+            release_entries = soup.find_all('div', class_='release-entry')
+            for entry in release_entries:
+                latest_ver = entry.find('a', class_='muted-link css-truncate')['title']
+                release_type = entry.find('span').text.strip()
+                if release_type == 'Latest release' or settings.get('EXPERIMENTAL', False): break
+            major, minor, patch = (int(x) for x in VERSION.split('.'))
+            latest_major, latest_minor, latest_patch = (int(x) for x in latest_ver.split('.'))
+            if (latest_major > major or latest_major == major and latest_minor > minor
+                    or latest_major == major and latest_minor == minor and latest_patch > patch):
+                details = entry.find('details',
+                                    class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+                download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
+                setup_download_link = f'https://github.com{download_links[0]}'
+                os.chdir(starting_dir)
+                tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
+                if settings.get('DEBUG'):
+                    print('Installer Link:', setup_download_link)
+                elif getattr(sys, 'frozen', False) and os.path.exists('unins000.exe') or os.path.exists('Updater.exe'):
+                    tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
+                    tray.Update(tooltip=f'Downloading update v{latest_ver}')
+                    if os.path.exists('unis000.exe'):
+                        download(setup_download_link, 'MC_Installer.exe')
+                        Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
+                    else:
+                        os.startfile('Updater.exe')
+                        time.sleep(2)
+                    tray.Hide()
+                    sys.exit()
+                tray.ShowMessage('Music Caster', f'Update v{latest_ver} Available')
+                time.sleep(2)
+                tray.Close()
+except Exception as e:
+    handle_exception(e)
+    change_settings('auto_update', False)
+    
 if not settings.get('DEBUG', False):
     threading.Thread(target=send_info, daemon=True).start()
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'

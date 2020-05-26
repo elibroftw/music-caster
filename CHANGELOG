@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.43.1
+- [Bug fix] Fixed auto update
+
 4.43.0
 - [Feature] Added View queue to Web GUI
 - [Feature] Added Volume Control to Web GUI
