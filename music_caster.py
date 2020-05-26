@@ -65,12 +65,12 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.42.2'
+VERSION = '4.43.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-[Feature] Added setting UI to Web GUI
-[Bug fix] Shortcut creation
+[Feature] Added View queue to Web GUI
+[Feature] Added Volume Control to Web GUI
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -454,9 +454,11 @@ def home():  # web GUI
         filename = urllib.parse.urlencode({'path': filename})
         el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
-    return render_template('home.html', device_name=platform.node(), main_button='pause' if playing_status == 'PLAYING' else 'play',
-                           repeat_color=repeat_color, repeat_option=repeat_option, shuffle=shuffle_option, art=art,
-                           metadata=_metadata, list_of_songs=list_of_songs, settings=settings)
+    _queue = create_songs_list(music_queue, done_queue, next_queue)[0]
+    return render_template('home.html', device_name=platform.node(), shuffle=shuffle_option, settings=settings, art=art,
+                           main_button='pause' if playing_status == 'PLAYING' else 'play', repeat_color=repeat_color,
+                           repeat_option=repeat_option,queue=_queue, metadata=_metadata, list_of_songs=list_of_songs)
+
 
 @app.route('/play/', methods=['GET', 'POST'])
 def play_file_page():

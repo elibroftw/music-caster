@@ -1,8 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+4.43.0
+- [Feature] Added View queue to Web GUI
+- [Feature] Added Volume Control to Web GUI
+
 4.42.2
-- [Minor Feature] Changed default setting for discord RPC to false
-- [Minor Feature] Web GUI title now includes the PC's name
+- [Feature] Changed default setting for discord RPC to false
+- [Feature] Web GUI title now includes the PC's name
 
 4.42.1
 - [Bug fix] Shortcut creation
