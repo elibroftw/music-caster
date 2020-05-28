@@ -10,7 +10,7 @@ If you enjoyed this product a lot feel free to donate at http://elopez.me/donate
 
 ## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases/latest)
 
-Click the image below for a video demo.
+## Demo
 
 [![Watch the demo](https://img.youtube.com/vi/y0fWPyhNSB0/maxresdefault.jpg)](https://youtu.be/y0fWPyhNSB0)
 
