@@ -69,8 +69,7 @@ VERSION = '4.44.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-[Feature] Added View queue to Web GUI
-[Feature] Added Volume Control to Web GUI
+[Feature] Added support for WAV files
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
