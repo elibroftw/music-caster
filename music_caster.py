@@ -37,10 +37,9 @@ from flask import Flask, jsonify, render_template, request, redirect, send_file
 import mutagen
 import mutagen.id3
 import mutagen.mp3
+import mutagen.mp4
 from mutagen.easyid3 import EasyID3
-from mutagen.aac import AACError
 from mutagen.easymp4 import EasyMP4
-from mutagen import MutagenError
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
@@ -50,7 +49,7 @@ import PySimpleGUI as Sg
 import PySimpleGUIWx as SgWx
 import wx
 import pychromecast.controllers.media
-from pychromecast.error import UnsupportedNamespace
+from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
 import pychromecast
 from pygame import mixer as local_music_player
@@ -60,12 +59,13 @@ import pynput.keyboard
 import pypresence
 import requests
 from uuid import uuid4
+from wavinfo import WavInfoReader  # until mutagen supports .wav
 import win32com.client
 import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.43.3'
+VERSION = '4.44.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -175,27 +175,29 @@ def update_volume(new_vol):
     else: cast.set_volume(new_vol)
 
 
-def get_file_info(_file, on_error='FILENAME'):
-    global file_info_exceptions
+def get_metadata(file_path: str) -> tuple:  # title, artist, album
+    global variable_exception_sent
+    file_path = file_path.lower()
+    _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
     try:
-        _title = EasyID3(_file).get('title', ['Unknown'])[0]
-        _artist = ', '.join(EasyID3(_file).get('artist', ['Unknown']))
-        return _artist, _title
-    except (ID3NoHeaderError, HeaderNotFoundError, MutagenError):
-        try:
-            _tags = mutagen.File(_file)
-            _tags.add_tags()
-            _tags.save()
-            return get_file_info(_file)
-        except MutagenError:
-            return 'Unknown', 'Unknown'
-    except Exception as _e:  # NOTE: might be able to remove this
-        if settings.get('DEBUG') or not file_info_exceptions:
+        if file_path.endswith('.mp3'):
+            audio = EasyID3(file_path)
+        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
+            audio = EasyMP4(file_path)
+        elif file_path.endswith('.wav'):
+            a = WavInfoReader(file_path).info.to_dict()
+            audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
+        else:
+            audio = mutagen.File(file_path)
+        _title = audio.get('title', ['Unknown Title'])[0]
+        _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
+        _album = audio.get('album', ['Unknown Album'])[0]
+    except (ID3NoHeaderError, HeaderNotFoundError): pass
+    except Exception as _e:
+        if variable_exception_sent:
             handle_exception(_e)
-            file_info_exceptions += 1
-        if on_error == 'FILENAME':
-            return os.path.splitext(_file)[0]
-        return 'Unknown', 'Unknown'
+            variable_exception_sent = True
+    return _title, _artist, _album
 
 
 def compile_all_songs(update_global=True, ignore_file='') -> dict:
@@ -207,16 +209,15 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
     if not update_global:
         temp_songs = all_songs.copy()
         if ignore_file:
-            file_info = get_file_info(ignore_file)
-            temp_songs.pop(' - '.join(file_info) if type(file_info) == tuple else file_info, None)
+            file_info = get_metadata(ignore_file)[:2]
+            temp_songs.pop(' - '.join(file_info), None)
         return temp_songs
     all_songs.clear()
     for directory in music_directories:
         for _file in glob(f'{directory}/**/*.*', recursive=True):
             _file = _file.replace('\\', '/')
             if _file != ignore_file and valid_music_file(_file):
-                file_info = get_file_info(_file)
-                if type(file_info) == tuple: file_info = ' - '.join(file_info)
+                file_info = ' - '.join(get_metadata(_file)[:2])
                 all_songs[file_info] = _file
     return all_songs
 
@@ -680,35 +681,6 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
-    def get_metadata(file_path: str) -> list:  # [title, artist, album]
-        global variable_exception_sent
-        file_path = file_path.lower()
-        add_tags = False
-        try:
-            if file_path.endswith('.mp3'):
-                audio = EasyID3(file_path)
-            elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
-                audio = EasyMP4(file_path)
-            else:
-                audio = mutagen.File(file_path)
-            _title = audio.get('title', ['Unknown Title'])[0]
-            _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
-            _album = audio.get('album', ['Unknown Albumm'])[0]
-        except ID3NoHeaderError:
-            add_tags = True
-        except Exception as _e:
-            if variable_exception_sent:
-                handle_exception(_e)
-                variable_exception_sent = True
-            add_tags = True
-        if add_tags:
-            _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
-            with suppress(AACError):
-                tags = mutagen.File(file_path)
-                tags.add_tags()
-                tags.save()
-        return _title, _artist, _album
-
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position,\
             thumbs_dir, cast_last_checked, music_queue
@@ -718,8 +690,14 @@ try:
             else: return
             position = 0
         song_position = position
-        audio_info = mutagen.File(file_path).info
-        song_length = audio_info.length
+        # named_tuple
+        if file_path.lower().endswith('.wav'):
+            a = WavInfoReader(file_path)
+            sample_rate = a.fmt.sample_rate
+            song_length = a.data.frame_count / sample_rate
+        else:
+            audio_info = mutagen.File(file_path).info
+            song_length, sample_rate = audio_info.length, audio_info.sample_rate
         _volume = 0 if settings['muted'] else settings['volume'] / 100
         _title, _artist, album = get_metadata(file_path)
         # thumb, album_cover_data = get_album_cover(file_path)
@@ -727,24 +705,25 @@ try:
         #                               'album_cover_data': album_cover_data}
         pict = None
         tags = mutagen.File(file_path)
-        for tag in tags.keys():
-            if 'APIC' in tag:
-                pict = tags[tag].data
-                break
+        if tags is not None:
+            for tag in tags.keys():
+                if 'APIC' in tag:
+                    pict = tags[tag].data
+                    break
         if pict:
             music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
                                           'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
         else: music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
         if cast is None:  # play locally
-            if file_path.lower()[-3:] not in {'mp3', 'oog', 'wav'}:
+            if file_path.lower()[-3:] not in {'mp3', 'ogg', 'wav'}:
                 if settings['notifications']:
                     file_format = file_path.split('.')[-1]
                     tray.ShowMessage('Music Caster', f'File format {file_format} not supported')
-                done_queue.append(music_queue.pop())
-                play_file(music_queue[0])
+                music_queue.pop(0)
+                if music_queue:
+                    play_file(music_queue[0])
                 return
             mc = None
-            sample_rate = audio_info.sample_rate
             if local_music_player.get_init() is None or local_music_player.get_init()[0] != sample_rate:
                 local_music_player.quit()
                 local_music_player.init(sample_rate, -16, 2, 2048)
@@ -850,7 +829,7 @@ try:
                 try:
                     mc.update_status()
                     song_position = mc.status.adjusted_current_time
-                except UnsupportedNamespace: song_position = time.time() - song_start
+                except (UnsupportedNamespace, NotConnected): song_position = time.time() - song_start
         elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
 
@@ -867,7 +846,7 @@ try:
                 song_position = time.time() - song_start
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
-            _artist, _title = get_file_info(music_queue[0])
+            _artist, _title = get_metadata(music_queue[0])[:2]
             if settings['discord_rpc']:
                 with suppress(AttributeError, pypresence.InvalidID):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
@@ -889,7 +868,7 @@ try:
             song_start = time.time() - song_position
             song_end = song_start + song_length
             playing_status = 'PLAYING'
-            _artist, _title = get_file_info(music_queue[0])
+            _artist, _title = get_metadata(music_queue[0])[:2]
             if settings['discord_rpc']:
                 with suppress(AttributeError, pypresence.InvalidID):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
@@ -1464,7 +1443,7 @@ try:
                 elif settings_event == 'discord_rpc':
                     with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                         if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
-                            artist, title = get_file_info(music_queue[0])
+                            artist, title = get_metadata(music_queue[0])[:2]
                             rich_presence.connect()
                             rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                                  large_text='Listening', small_image='logo', small_text='Music Caster')

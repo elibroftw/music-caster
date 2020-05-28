@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.44.0
+- Added support for .wav
+- Better metadata logic
+
 4.43.3
 - Web GUI style fix
 

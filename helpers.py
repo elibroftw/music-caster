@@ -91,8 +91,8 @@ def is_already_running():
 #     return chr(int.from_bytes(encoded[:2], 'little')) + chr(int.from_bytes(encoded[2:], 'little'))
 # def with_surrogates(text):
 #     return _nonbmp.sub(_surrogate_pair, text)
-MUSIC_FILE_TYPES = 'Audio File (*.mp3,*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav)|' \
-                   '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus*.wav'
+MUSIC_FILE_TYPES = 'Audio File (.mp3, .flac, .m4a, .mp4, .aac, .ogg, .opus, .wav)|' \
+                   '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus;*.wav'
 
 
 def valid_music_file(file_path):
