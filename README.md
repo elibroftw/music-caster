@@ -12,7 +12,7 @@ If you enjoyed this product a lot feel free to donate at http://elopez.me/donate
 
 Click the image below for a video demo.
 
-[![demo link](https://i3.ytimg.com/vi/y0fWPyhNSB0/maxresdefault.jpg)](https://www.youtube.com/watch?v=y0fWPyhNSB0)
+[![Watch the demo](https://img.youtube.com/vi/y0fWPyhNSB0/maxresdefault.jpg)](https://youtu.be/y0fWPyhNSB0)
 
 ## [Click Here For Screenshots](http://www.elopez.me/music-caster/)
 
