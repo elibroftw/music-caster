@@ -122,16 +122,16 @@
     </div>
 </div>
 <script>
-    var modals = {};
-    var settingToggles = document.getElementsByClassName('setting');
-    var settingsFromServer = {{settings | tojson}};
+    // Flask sends the settings (dict)
+    const settingsFromServer = {{settings | tojson}};
+    const modals = {};
+    const settingToggles = document.getElementsByClassName('setting');
+    const searchBar = document.getElementById('searchBar');
 
     modals['queue'] = document.getElementById('queue-modal');
     modals['playlists'] = document.getElementById('playlists-modal');
     modals['files'] = document.getElementById('files-modal');
     modals['settings'] = document.getElementById('settings-modal');
-
-    var searchBar = document.getElementById('searchBar');
 
     function showModal(option) {
         modals[option].style.display = 'block';
@@ -140,9 +140,20 @@
                 searchBar.focus();
             }
             filterTracks();
-            var temp = searchBar.value;
+            let temp = searchBar.value;
             searchBar.value = '';
             searchBar.value = temp;
+        } else if (option === 'queue') {
+            const queueTracks = modals['queue'].getElementsByTagName('a');
+            let scrollAmount = 0;
+            let playingTrack = document.getElementsByClassName('track')[0];
+            for (const track of queueTracks) {
+                if (track.text.trim().startsWith('0.')) {
+                    playingTrack = track;
+                    break;
+                }
+            }
+            playingTrack.scrollIntoView();
         }
         document.getElementById('wrapper').style.filter = 'blur(6px)'
     }
@@ -191,8 +202,8 @@
         catch (err) { return ''; }
     }
 
-    window.onload = () => { 
-        try { showModal(getHash()); } catch (TypeError) {} 
+    window.onload = () => {
+        try { showModal(getHash()); } catch (TypeError) {}
 
         for (const settingEl of settingToggles) {
             checkBox = settingEl.getElementsByTagName('input')[0];
@@ -200,13 +211,12 @@
         }
         };
 
-    function filterTracks() {        
-        var filter = searchBar.value.toUpperCase();
-        var tracksList = document.getElementById('tracks-list');
-        var aTags = tracksList.getElementsByTagName('a');
+    function filterTracks() {
+        const filter = searchBar.value.toUpperCase();
+        const aTags = document.getElementById('tracks-list').getElementsByTagName('a');
         for (const a of aTags) {
-            let txtValue = a.textContent || a.innerText
-            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            const txtValue = (a.textContent || a.innerText).toUpperCase();
+            if (txtValue.indexOf(filter) > -1) {
                 a.style.display = '';
             } else {
                 a.style.display = 'none';
@@ -215,8 +225,8 @@
     }
 
     function toggleSetting(settingEl) {
-        var settingName = settingEl.dataset.key;
-        var checkBox = settingEl.getElementsByTagName('input')[0];
+        const settingName = settingEl.dataset.key;
+        const checkBox = settingEl.getElementsByTagName('input')[0];
         checkBox.checked = !checkBox.checked;
         fetch('/change-setting/', {
                 method: 'POST',

@@ -65,7 +65,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.44.0'
+VERSION = '4.45.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -443,11 +443,10 @@ def home():  # web GUI
         elif 'shuffle' in request.args:
             change_settings('shuffle', not settings['shuffle'])
         return redirect('/')
-    if music_queue and playing_status in {'PLAYING', 'PAUSED'}:
-        file_path = music_queue[0]
-        _metadata = music_meta_data[file_path]
-    else:
-        _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+    _metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+    if playing_status in {'PLAYING', 'PAUSED'}:
+        with suppress(KeyError, IndexError):
+            _metadata = music_meta_data[music_queue[0]]
     art = _metadata.get('art', DEFAULT_IMG_DATA)
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
@@ -531,7 +530,7 @@ def instance():
 def get_file():
     if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:  # security reasons
         _file_or_dir = request.args['path']
-        
+
         if os.path.isfile(_file_or_dir):
             return send_file(_file_or_dir, conditional=True, as_attachment=True, cache_timeout=360000)
     return '404'
@@ -574,7 +573,7 @@ try:
 
 
     # Access startup folder by entering "Startup" in Explorer address bar
-    
+
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:  # Only one of the below can be True
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
