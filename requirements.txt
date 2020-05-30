@@ -17,3 +17,4 @@ wxpython~=4.0
 winshell~=0.6
 wavinfo==1.5
 requests~=2.22.0
+pytube3~=9.6.4

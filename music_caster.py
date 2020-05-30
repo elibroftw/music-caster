@@ -25,10 +25,12 @@ import urllib.parse
 import webbrowser
 import zipfile
 import pythoncom
+# noinspection PyPackageRequirements
+from pytube import YouTube
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, MUSIC_FILE_TYPES,\
     is_already_running, find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer,\
-    create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, timing
+    create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, timing
 import helpers
 from b64_images import *
 # 3rd party imports
@@ -51,6 +53,7 @@ import wx
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
+from pychromecast.controllers.youtube import YouTubeController
 import pychromecast
 from pygame import mixer as local_music_player
 # noinspection PyPep8Naming
@@ -65,14 +68,16 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.45.0'
+VERSION = '4.45.1'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
 [Feature] Added support for WAV files
+[Optimization] Settings file loading
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
+SETTINGS_LAST_MODIFIED = 0
 show_pygame_error, update_devices, cast = False, False, None
 chromecasts, device_names = [], ['✓ Local device']
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -678,6 +683,19 @@ try:
     #     im = im.resize((new_w, new_h), Image.ANTIALIAS)
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
+    # def play_url(url):
+    #     global cast, mc
+    #     if cast is not None:
+    #         video_id = get_youtube_id(url)  # check if youtube video
+    #         if video_id is not None:  # Youtube Video
+    #             yt = YouTube(f'https://www.youtube.com/watch?v={video_id}')
+    #             stream = yt.streams.filter(progressive=True).order_by('resolution').first()
+    #             cast.wait()
+    #             mc = cast.media_controller
+    #             mc.play_media(stream.url, stream.mime_type)
+    #             mc.block_until_active()
+    #             # Set tray tooltip to f'Youtube: {mc.title}'
+
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
         global mc, song_start, song_end, playing_status, song_length, song_position,\
@@ -914,10 +932,14 @@ try:
             elif music_queue: play_file(music_queue[0])
 
     def background_tasks():
-        global mc, cast, cast_last_checked, song_start, song_end, song_position, daemon_command
+        global mc, cast, cast_last_checked, song_start, song_end, song_position, daemon_command, SETTINGS_LAST_MODIFIED
 
         while True:
             load_settings()  # NOTE: might need a lock
+            # SETTINGS_LAST_MODIFIED
+            if os.path.getmtime(settings_file) != SETTINGS_LAST_MODIFIED:
+                SETTINGS_LAST_MODIFIED = os.path.getmtime(settings_file)
+                load_settings()
             refresh_tray()
             if mc is not None:
                 with suppress(UnsupportedNamespace):

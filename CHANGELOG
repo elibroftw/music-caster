@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.45.1
+- [Optimization] Settings file loading
+
 4.45.0
 - [Feature] Scroll to the playing song for Web GUI music queue
 

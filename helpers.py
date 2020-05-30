@@ -5,9 +5,10 @@ import pyqrcode
 import PySimpleGUI as Sg
 import socket
 import time
+from urllib.parse import urlparse, parse_qs
 import uuid
 from b64_images import *
-from subprocess import Popen, PIPE, DEVNULL
+from subprocess import PIPE, DEVNULL
 import subprocess
 import threading
 import re
@@ -149,6 +150,17 @@ def find_chromecasts(timeout=0.3, callback=None):
                 else: chromecasts.append(cc)
         return chromecasts
     return _stop_discovery
+
+
+def get_youtube_id(url):
+    query = urlparse(url)
+    if query.hostname == 'youtu.be': return query.path[1:]
+    if query.hostname in ('www.youtube.com', 'youtube.com'):
+        if query.path == '/watch': return parse_qs(query.query)['v'][0]
+        if query.path[:7] == '/embed/': return query.path.split('/')[2]
+        if query.path[:3] == '/v/': return query.path.split('/')[2]
+    # fail?
+    return None
 
 
 # GUI RELATED FUNCTIONS
