@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 4.45.0
-- [Feature] Scroll to playing song for Web GUI music queue
+- [Feature] Scroll to the playing song for Web GUI music queue
 
 4.44.0
 - [Feature] Added support for .wav
