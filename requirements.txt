@@ -4,7 +4,7 @@ mutagen~=1.44
 Pillow~=6.2.2
 pychromecast~=4.2.3
 pygame~=1.9.6
-PyInstaller~=3.6
+PyInstaller==3.5
 pynput~=1.4.5
 pyperclip~=1.7.0
 pyqrcode~=1.2.1

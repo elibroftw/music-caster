@@ -9,6 +9,7 @@ import sys
 from contextlib import suppress
 
 start_time = time.time()
+# https://stackoverflow.com/questions/418896/how-to-redirect-output-to-a-file-and-stdout
 shutil.rmtree('dist/Music Caster', True)
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
