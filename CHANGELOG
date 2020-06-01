@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.46.0
+- [Feature] Play Youtube links (EXPERIMENTAL)
+- Does not support pause, skip, or any repeating
+
 4.45.1
 - [Optimization] Settings file loading
 

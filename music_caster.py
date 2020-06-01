@@ -26,7 +26,7 @@ import webbrowser
 import zipfile
 import pythoncom
 # noinspection PyPackageRequirements
-from pytube import YouTube
+from youtube_dl import YoutubeDL
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, MUSIC_FILE_TYPES,\
     is_already_running, find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer,\
@@ -68,7 +68,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.45.1'
+VERSION = '4.46.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -87,7 +87,7 @@ file_info_exceptions = 0
 variable_exception_sent = False
 
 settings = {  # default settings
-    'previous_device': None, 'window_locations': {}, 'update_message': '',
+    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'default_file_handler': True,
     'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000', 'background_color': '#121212',
@@ -616,24 +616,45 @@ try:
     repeat_menu = ['Repeat All ✓' if repeat_setting is False else 'Repeat All',
                    'Repeat One ✓' if repeat_setting else 'Repeat One',
                    'Repeat Off ✓' if repeat_setting is None else 'Repeat Off']
-    # NOTE: update change_settings if you change any menu_def
-    menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+    
+    if settings['EXPERIMENTAL']:    
+        menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                        ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
+        menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
-
-    menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
                         'Play All'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
                        'Exit']]
 
-    menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+        menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
                         'Play All'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
                        'Exit']]
+
+    else:
+
+        menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
+
+        menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                            'Play All'], 'Controls',
+                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
+                        'Exit']]
+
+        menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
+                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                            'Play All'], 'Controls',
+                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
+                        'Exit']]
+
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     init_pygame_thread.join()
@@ -654,6 +675,7 @@ try:
     song_end = song_length = song_start = 0  # seconds but using time()
     progress_bar_last_update = song_position = 0  # also seconds but relative to length of song
     mc, playing_status, time_left = None, 'NOT PLAYING', 0
+    playing_url = False
     settings_last_loaded = cast_last_checked = time.time()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
@@ -683,18 +705,44 @@ try:
     #     im = im.resize((new_w, new_h), Image.ANTIALIAS)
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
-    # def play_url(url):
-    #     global cast, mc
-    #     if cast is not None:
-    #         video_id = get_youtube_id(url)  # check if youtube video
-    #         if video_id is not None:  # Youtube Video
-    #             yt = YouTube(f'https://www.youtube.com/watch?v={video_id}')
-    #             stream = yt.streams.filter(progressive=True).order_by('resolution').first()
-    #             cast.wait()
-    #             mc = cast.media_controller
-    #             mc.play_media(stream.url, stream.mime_type)
-    #             mc.block_until_active()
-    #             # Set tray tooltip to f'Youtube: {mc.title}'
+
+    def play_url(url):
+        global cast, mc, playing_url, playing_status
+        if cast is not None:
+            video_id = get_youtube_id(url)  # check if youtube video
+            if video_id is not None:  # Youtube Video
+                ydl = YoutubeDL()
+                r = ydl.extract_info(url, download=False)
+                formats = [f for f in r['formats'] if f['acodec'] != 'none' and f['vcodec'] != 'none']
+                try:
+                    formats.sort(key=lambda f: f['width'])
+                    cast.wait()
+                    mc = cast.media_controller
+                    format = formats[0]
+                    mc.play_media(format['url'], f'video/{format["ext"]}')
+                    mc.block_until_active()
+                    playing_url = True
+                    playing_status = 'PLAYING'
+                    if r['track'] and r['artist']:
+                        _title, _artits = r['track'], r['artist'].split(', ', 1)[0]                        
+                        playing_text = f'{artist} - {title}'
+                    else:
+                        _title, _artist = r['title'], r['uploader']
+                        playing_text = f'{artist} - {title}'
+                    if notifications_enabled:
+                        tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
+                    # tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
+                    # TODO: song_length, song_end, song_start
+
+                    if settings['discord_rpc']:
+                        with suppress(AttributeError, pypresence.InvalidID):
+                            rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
+                                                large_text='Listening', small_image='logo', small_text='Music Caster')
+                    # Set tray tooltip to f'Youtube: {mc.title}'
+                except StopIteration as e:
+                    tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
+                    if settings.get('DEBUG', False): raise e
+                
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
@@ -780,7 +828,7 @@ try:
                 with suppress(pychromecast.error.UnsupportedNamespace): stop()
                 return
         playing_text = f"{_artist.split(', ')[0]} - {_title}"
-        if notifications_enabled and not settings['repeat'] and not switching_device:
+        if notifications_enabled and not switching_device:
             tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
         if autoplay:
             playing_status = 'PLAYING'
@@ -1116,6 +1164,10 @@ try:
                     path_to_folder = dlg.GetPath()
                     play_folder(path_to_folder)
             else: play_folder(music_directories[tray_folders.index(tray_item) - 1])
+        elif 'URL' in {tray_item}:
+            # TODO: custom GUI
+            input_url = Sg.PopupGetText('Enter url.\nSupports: YouTube', 'Music Caster - Play URL', text_color=helpers.fg)
+            play_url(input_url)
         elif tray_item == 'Set Timer':
             if not active_windows['timer']:
                 active_windows['timer'], timer_layout = True, create_timer(settings)
