@@ -232,7 +232,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
                                       tooltip='scroll your mousewheel'),
                             # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
                             Sg.Text('00:00', font=font_normal, text_color=fg, key='time_left')]]
-    
+
     # Now Playing layout
     tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, key='now_playing',
                             size=(55, 0))],
@@ -270,7 +270,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
     # Sg.Tab('Library', tab3_layout, background_color=bg, key='tab3')]])]]
-    
+
     return layout
 
 
@@ -327,7 +327,7 @@ def create_timer(settings):
                   key='sleep', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
         [Sg.Text('Enter minutes or HH:MM',  tooltip='press enter once done', text_color=fg, font=font_normal)],
-        [Sg.Input(key='minutes'), Sg.Submit(font=font_normal)]]
+        [Sg.Input(key='minutes', font=font_normal), Sg.Submit(font=font_normal)]]
     return layout
 
 
@@ -363,6 +363,12 @@ def create_playlist_editor(initial_folder, playlists, playlist_name=''):
              [Sg.Button('Move up', key='move_up', tooltip='Ctrl + U', font=font_normal, enable_events=True)],
              [Sg.Button('Move down ', key='move_down', tooltip='Ctrl + D', font=font_normal, enable_events=True)]
          ], background_color=bg, border_width=0)]]
+    return layout
+
+
+def create_play_url_window():
+    layout = [[Sg.Text('Enter url.\nSupports: YouTube', text_color=fg, font=font_normal)],
+              [Sg.Input(key='url', font=font_normal), Sg.Submit(font=font_normal)]]
     return layout
 
 

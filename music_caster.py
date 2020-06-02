@@ -28,9 +28,9 @@ import pythoncom
 # noinspection PyPackageRequirements
 from youtube_dl import YoutubeDL
 # helper files
-from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, MUSIC_FILE_TYPES,\
+from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, create_play_url_window,\
     is_already_running, find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer,\
-    create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, timing
+    create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, timing, MUSIC_FILE_TYPES
 import helpers
 from b64_images import *
 # 3rd party imports
@@ -78,6 +78,7 @@ UPDATE_MESSAGE = """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
 SETTINGS_LAST_MODIFIED = 0
+IS_FROZEN = getattr(sys, 'frozen', False)
 show_pygame_error, update_devices, cast = False, False, None
 chromecasts, device_names = [], ['✓ Local device']
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -111,14 +112,16 @@ timer_window: Sg.Window = None
 pl_editor_window: Sg.Window = None
 # noinspection PyTypeChecker
 pl_selector_window: Sg.Window = None
+# noinspection PyTypeChecker
+play_url_window: Sg.Window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
 stop_discovery = None  # function
 mouse_hover = ''
 # MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
-active_windows = {'main': False, 'settings': False, 'timer': False, 'create_playlist_selector': False,
-                  'create_playlist_editor': False}
+active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
+                  'playlist_editor': False, 'play_url': False}
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
 
@@ -227,7 +230,7 @@ def compile_all_songs(update_global=True, ignore_file='') -> dict:
 
 
 def handle_exception(exception, restart_program=False):
-    if settings.get('DEBUG', False) and not getattr(sys, 'frozen', False): raise exception
+    if settings.get('DEBUG', False) and not IS_FROZEN: raise exception
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
@@ -251,7 +254,7 @@ def handle_exception(exception, restart_program=False):
         time.sleep(5)
         stop()
         os.chdir(starting_dir)
-        if getattr(sys, 'frozen', False): os.startfile('Music Caster.exe')
+        if IS_FROZEN: os.startfile('Music Caster.exe')
         sys.exit()
 
 
@@ -319,7 +322,7 @@ def create_shortcut(_shortcut_path):
                 pythoncom.CoInitialize()
                 shell = win32com.client.Dispatch('WScript.Shell')
                 shortcut = shell.CreateShortCut(_shortcut_path)
-                if getattr(sys, 'frozen', False):  # Running in as an executable
+                if IS_FROZEN:
                     target = f'{starting_dir}\\Music Caster.exe'
                 else:
                     bat_file = f'{starting_dir}\\music_caster.bat'
@@ -392,7 +395,7 @@ try:
                 tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
                 if settings.get('DEBUG'):
                     print('Installer Link:', setup_download_link)
-                elif getattr(sys, 'frozen', False) and os.path.exists('unins000.exe') or os.path.exists('Updater.exe'):
+                elif IS_FROZEN and os.path.exists('unins000.exe') or os.path.exists('Updater.exe'):
                     tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
                     tray.Update(tooltip=f'Downloading update v{latest_ver}')
                     if os.path.exists('unis000.exe'):
@@ -516,17 +519,13 @@ def instance():
     global daemon_command
     for k, v in active_windows.items():  # Opens up GUI
         if v:
-            if k == 'main':
-                main_window.bring_to_front()
-            elif k == 'settings':
-                settings_window.bring_to_front()
-            elif k == 'timer':
-                timer_window.bring_to_front()
-            elif k == 'create_playlist_selector':
-                pl_selector_window.bring_to_front()
-            elif k == 'create_playlist_editor':
-                pl_editor_window.bring_to_front()
-            return 'True'
+            {'main': main_window,
+             'settings': settings_window,
+             'timer': timer_window,
+             'playlist_selector': pl_selector_window,
+             'playlist_editor': pl_editor_window,
+             'play_url': play_url_window}[k].bring_to_front()
+            return 'true'
     daemon_command = '__ACTIVATED__'
     return 'true'
 
@@ -616,8 +615,8 @@ try:
     repeat_menu = ['Repeat All ✓' if repeat_setting is False else 'Repeat All',
                    'Repeat One ✓' if repeat_setting else 'Repeat One',
                    'Repeat Off ✓' if repeat_setting is None else 'Repeat Off']
-    
-    if settings['EXPERIMENTAL']:    
+
+    if settings['EXPERIMENTAL']:
         menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                         'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
                         ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
@@ -724,11 +723,11 @@ try:
                     playing_url = True
                     playing_status = 'PLAYING'
                     if r['track'] and r['artist']:
-                        _title, _artits = r['track'], r['artist'].split(', ', 1)[0]                        
-                        playing_text = f'{artist} - {title}'
+                        _title, _artist = r['track'], r['artist'].split(', ', 1)[0]
+                        playing_text = f'{_artist} - {_title}'
                     else:
                         _title, _artist = r['title'], r['uploader']
-                        playing_text = f'{artist} - {title}'
+                        playing_text = f'{_artist} - {_title}'
                     if notifications_enabled:
                         tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
                     # tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
@@ -742,7 +741,7 @@ try:
                 except StopIteration as e:
                     tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
                     if settings.get('DEBUG', False): raise e
-                
+
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
@@ -1131,20 +1130,20 @@ try:
             settings_window.TKroot.focus_force()
             settings_window.Normal()
         elif tray_item == 'Create/Edit a Playlist':
-            if active_windows['create_playlist_editor']:
+            if active_windows['playlist_editor']:
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
                 continue
-            elif not active_windows['create_playlist_selector']:
-                active_windows['create_playlist_selector'] = True
+            elif not active_windows['playlist_selector']:
+                active_windows['playlist_selector'] = True
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('create_playlist_selector', (None, None))
+                    window_location = window_locations.get('playlist_selector', (None, None))
                 else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
                                                background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
                                                location=window_location)
                 pl_selector_window.Finalize()
-                set_save_position_callback(pl_selector_window, 'create_playlist_selector')
+                set_save_position_callback(pl_selector_window, 'playlist_selector')
             pl_selector_window.TKroot.focus_force()
             pl_selector_window.Normal()
         elif tray_item.startswith('PL: '):  # playlist
@@ -1165,15 +1164,23 @@ try:
                     play_folder(path_to_folder)
             else: play_folder(music_directories[tray_folders.index(tray_item) - 1])
         elif 'URL' in {tray_item}:
-            # TODO: custom GUI
-            input_url = Sg.PopupGetText('Enter url.\nSupports: YouTube', 'Music Caster - Play URL', text_color=helpers.fg)
-            play_url(input_url)
+            if not active_windows['play_url']:
+                active_windows['play_url'], play_url_layout = True, create_play_url_window()
+                if settings['save_window_positions']: window_location = window_locations.get('play_url', (None, None))
+                else: window_location = (None, None)
+                play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
+                                            return_keyboard_events=True, location=window_location)
+                play_url_window.Finalize()
+                set_save_position_callback(play_url_window, 'play_url')
+            play_url_window.TKroot.focus_force()
+            play_url_window.Normal()
+            play_url_window['url'].SetFocus()
         elif tray_item == 'Set Timer':
             if not active_windows['timer']:
                 active_windows['timer'], timer_layout = True, create_timer(settings)
                 if settings['save_window_positions']: window_location = window_locations.get('timer', (None, None))
                 else: window_location = (None, None)
-                timer_window = Sg.Window('Music Caster Set Timer', timer_layout, background_color=bg, icon=WINDOW_ICON,
+                timer_window = Sg.Window('Music Caster - Timer', timer_layout, icon=WINDOW_ICON,
                                          return_keyboard_events=True, grab_anywhere=True, location=window_location)
                 timer_window.Finalize()
                 set_save_position_callback(timer_window, 'timer')
@@ -1539,10 +1546,10 @@ try:
                 try: os.startfile(settings_file)
                 except OSError: Popen(f'explorer /select,"{fix_path(settings_file)}"')
             settings_last_event = settings_event
-        if active_windows['create_playlist_selector']:
+        if active_windows['playlist_selector']:
             pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=10)
             if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
-                active_windows['create_playlist_selector'] = False
+                active_windows['playlist_selector'] = False
                 pl_selector_window.Close()
                 continue
             if pl_selector_event in {'del_pl', 'Delete:46'}:
@@ -1550,7 +1557,7 @@ try:
                 if pl_name in playlists: del playlists[pl_name]
                 pl_selector_window.Close()
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('create_playlist_selector', (None, None))
+                    window_location = window_locations.get('playlist_selector', (None, None))
                 else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
                                                background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
@@ -1570,7 +1577,7 @@ try:
                 else: pl_name = ''
                 # https://github.com/PySimpleGUI/PySimpleGUI/issues/845#issuecomment-443862047
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('create_playlist_editor', (None, None))
+                    window_location = window_locations.get('playlist_editor', (None, None))
                 else: window_location = (None, None)
                 pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(DEFAULT_DIR, playlists, pl_name),
                                              background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
@@ -1580,16 +1587,16 @@ try:
                 pl_editor_window.Finalize()
                 pl_editor_window.TKroot.focus_force()
                 pl_editor_window.Normal()
-                set_save_position_callback(pl_editor_window, 'create_playlist_editor')
+                set_save_position_callback(pl_editor_window, 'playlist_editor')
                 if pl_selector_event == 'create_pl': pl_editor_window['playlist_name'].SetFocus()
                 else:
                     pl_editor_window['songs'].SetFocus()
                     pl_editor_window['songs'].Update(set_to_index=0)
-                active_windows['create_playlist_editor'], active_windows['create_playlist_selector'] = True, False
-        if active_windows['create_playlist_editor']:
+                active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
+        if active_windows['playlist_editor']:
             pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=10)
             if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
-                active_windows['create_playlist_editor'] = False
+                active_windows['playlist_editor'] = False
                 pl_editor_window.Close()
                 open_pl_selector = True
             elif pl_editor_event in {'Save', 's:83'}:
@@ -1600,7 +1607,7 @@ try:
                     pl_name = new_name
                 playlists[pl_name] = pl_files
                 save_json()
-                active_windows['create_playlist_editor'] = False
+                active_windows['playlist_editor'] = False
                 pl_editor_window.Close()
                 open_pl_selector = True
                 tray_playlists.clear()
@@ -1651,9 +1658,9 @@ try:
                 pl_editor_window['songs'].Update(set_to_index=new_i, scroll_to_index=new_i)
             if open_pl_selector:
                 open_pl_selector = False
-                active_windows['create_playlist_selector'] = True
+                active_windows['playlist_selector'] = True
                 if settings['save_window_positions']:
-                    window_location = window_locations.get('create_playlist_selector', (None, None))
+                    window_location = window_locations.get('playlist_selector', (None, None))
                 else: window_location = (None, None)
                 pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
                                                background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
@@ -1661,7 +1668,7 @@ try:
                 pl_selector_window.Finalize()
                 pl_selector_window.TKroot.focus_force()
                 pl_selector_window.Normal()
-                set_save_position_callback(pl_selector_window, 'create_playlist_selector')
+                set_save_position_callback(pl_selector_window, 'playlist_selector')
             pl_editor_last_event = pl_editor_event
         if active_windows['timer']:
             timer_event, timer_values = timer_window.Read(timeout=10)
@@ -1696,32 +1703,15 @@ try:
                 change_settings('timer_hibernate_computer', timer_values['hibernate'])
                 change_settings('timer_sleep_computer', timer_values['sleep'])
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])
+        if active_windows['play_url']:
+            play_url_event, play_url_values = play_url_window.Read(timeout=10)
+            if play_url_event in {None, 'Escape:27', 'q', 'Q'}:
+                active_windows['play_url'] = False
+                play_url_window.Close()
+            if play_url_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
+                active_windows['play_url'] = False
+                play_url_window.Close()
+                play_url(play_url_values['url'])
         daemon_command = None
-        # if mc is not None and time.time() - cast_last_checked > 5:
-        #     # MAKE THIS IT's own thread
-        #     with suppress(UnsupportedNamespace):
-        #         if cast is not None:
-        #             if cast.app_id == APP_MEDIA_RECEIVER:
-        #                 mc.update_status()
-        #                 is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-        #                 new_song_position = mc.status.adjusted_current_time
-        #                 volume = settings['volume']
-        #                 cast_volume = cast.status.volume_level * 100
-        #                 song_start = time.time() - new_song_position  # if music was scrubbed on the home app
-        #                 song_end = time.time() + song_length - new_song_position
-        #                 song_position = new_song_position
-        #                 if is_paused and playing_status != 'PAUSED': pause()
-        #                 elif is_playing and playing_status != 'PLAYING': resume()
-        #                 elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING': stop()
-        #                 if volume != cast_volume:
-        #                     if cast_volume or cast_volume == 0 and not settings['muted']:
-        #                         volume = change_settings('volume', cast_volume)
-        #                         if volume and settings['muted']: change_settings('muted', not settings['muted'])
-        #                         if active_windows['main']:
-        #                             if volume and settings['muted']:
-        #                                 main_window['mute'].Update(data=VOLUME_IMG)
-        #                             main_window['volume_slider'].Update(volume)
-        #             elif playing_status in {'PAUSED', 'PLAYING'}: stop()
-        #     cast_last_checked = time.time()
 except Exception as e:
     handle_exception(e, True)
