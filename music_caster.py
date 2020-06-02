@@ -86,6 +86,7 @@ os.chdir(starting_dir)
 home_music_dir = str(Path.home()) + '/Music'
 file_info_exceptions = 0
 variable_exception_sent = False
+last_press = time.time()
 
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
@@ -982,7 +983,6 @@ try:
         global mc, cast, cast_last_checked, song_start, song_end, song_position, daemon_command, SETTINGS_LAST_MODIFIED
 
         while True:
-            load_settings()  # NOTE: might need a lock
             # SETTINGS_LAST_MODIFIED
             if os.path.getmtime(settings_file) != SETTINGS_LAST_MODIFIED:
                 SETTINGS_LAST_MODIFIED = os.path.getmtime(settings_file)
@@ -1023,14 +1023,13 @@ try:
         global last_press, daemon_command
         if str(key) not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
         if str(key) == '<179>':
-            if playing_status == 'PLAYING': pause()
-            elif playing_status == 'PAUSED': resume()
+            if playing_status == 'PLAYING': daemon_command = 'Pause'
+            elif playing_status == 'PAUSED': daemon_command = 'Resume'
         elif str(key) == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Song'
         elif str(key) == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Song'
         elif str(key) == '<178>': stop()
         last_press = time.time()
 
-    last_press = time.time()
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     threading.Thread(target=background_tasks, daemon=True).start()
     if len(sys.argv) > 1:
