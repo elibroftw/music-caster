@@ -1436,7 +1436,9 @@ try:
                 next_queue.clear()
                 done_queue.clear()
                 main_window['music_queue'].Update(values=[])
-            elif main_event == 'play_next': play_next()
+            elif main_event == 'play_next':
+                play_next()
+                main_window.TKroot.focus_force()
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
             elif main_event == 'library': play_all(all_songs[main_values['library']])
             if main_event == 'progressbar':
