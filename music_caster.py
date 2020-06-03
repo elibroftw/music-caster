@@ -619,41 +619,37 @@ try:
 
     if settings['EXPERIMENTAL']:
         menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                        ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
+                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'],
+                           'Exit']]
         menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
-                        'Play All'], 'Controls',
-                       ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
-                       'Exit']]
-
+                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                            'Play All'], 'Controls',
+                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
+                            'Pause'], 'Exit']]
         menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
-                        'Play All'], 'Controls',
-                       ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
-                       'Exit']]
-
+                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                            'Play All'], 'Controls',
+                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
+                            'Resume'], 'Exit']]
     else:
-
         menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
-
+                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
         menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
                             'Play All'], 'Controls',
-                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Pause'],
-                        'Exit']]
-
+                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
+                            'Pause'], 'Exit']]
         menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
                             'Play All'], 'Controls',
-                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song', 'Resume'],
-                        'Exit']]
+                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
+                            'Resume'], 'Exit']]
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
