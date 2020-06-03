@@ -607,7 +607,8 @@ try:
         while True:
             if not s.connect_ex(('localhost', PORT)) == 0:  # if port is not occupied
                 try:  # start server with the unoccupied PORT
-                    threading.Thread(target=app.run, daemon=True, kwargs={'host': '0.0.0.0', 'port': PORT, 'threaded': True}).start()
+                    server_kwargs = {'host': '0.0.0.0', 'port': PORT, 'threaded': True}
+                    threading.Thread(target=app.run, daemon=True, kwargs=server_kwargs).start()
                     break
                 except OSError: PORT += 1
             else: PORT += 1
@@ -733,12 +734,11 @@ try:
                     if settings['discord_rpc']:
                         with suppress(AttributeError, pypresence.InvalidID):
                             rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
-                                                large_text='Listening', small_image='logo', small_text='Music Caster')
+                                                 large_text='Listening', small_image='logo', small_text='Music Caster')
                     # Set tray tooltip to f'Youtube: {mc.title}'
                 except StopIteration as e:
                     tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
                     if settings.get('DEBUG', False): raise e
-
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
