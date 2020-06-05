@@ -64,7 +64,7 @@ def get_running_processes():
     p = subprocess.run('tasklist', shell=True, stderr=PIPE, stdin=DEVNULL, stdout=PIPE)
     tasks = p.stdout.decode().splitlines()
     for task in tasks:
-        m = re.match('(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
+        m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
             process = {'name': m.group(1),  # Image name
                        'pid': m.group(2),
@@ -250,7 +250,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
         [Sg.Button('❌', key='remove', pad=(0, 5), tooltip='remove song from the queue')],
         [Sg.Button('▼', key='move_down', pad=(2, 5), tooltip='move song down the queue')]]
     q_controls1 = [
-        [Sg.Button('Queue File...', font=font_normal, key='queue_file', pad=(0, 5))],
+        [Sg.Button('Queue File(s)...', font=font_normal, key='queue_file', pad=(0, 5))],
         [Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(0, 5))],
         [Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(0, 5))]]
     q_controls2 = [

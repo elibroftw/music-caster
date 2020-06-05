@@ -72,8 +72,8 @@ VERSION = '4.46.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-[Feature] Added support for WAV files
-[Optimization] Settings file loading
+- [Feature] Queue file now supports multiple files
+- [Optimization] Settings file loading
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -138,10 +138,7 @@ def refresh_folders():
     tray_folders.append('PF: Select Folder')
     for music_dir in music_directories:
         music_dir = music_dir.replace('\\', '/').split('/')
-        if len(music_dir) > 2:
-            music_dir = f'PF: .../{"/".join(music_dir[-2:])}'
-        else:
-            music_dir = 'PF: ' + '/'.join(music_dir)
+        music_dir = f'PF: .../{"/".join(music_dir[-2:])}' if len(music_dir) > 2 else 'PF: ' + '/'.join(music_dir)
         tray_folders.append(music_dir)
 
 
@@ -188,15 +185,12 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
     file_path = file_path.lower()
     _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
     try:
-        if file_path.endswith('.mp3'):
-            audio = EasyID3(file_path)
-        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
-            audio = EasyMP4(file_path)
+        if file_path.endswith('.mp3'): audio = EasyID3(file_path)
+        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'): audio = EasyMP4(file_path)
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
-        else:
-            audio = mutagen.File(file_path)
+        else: audio = mutagen.File(file_path)
         _title = audio.get('title', ['Unknown Title'])[0]
         _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
         _album = audio.get('album', ['Unknown Album'])[0]
@@ -320,6 +314,7 @@ def create_shortcut(_shortcut_path):
             run_on_startup = settings['run_on_startup']
             shortcut_exists = os.path.exists(_shortcut_path)
             if run_on_startup and not shortcut_exists:
+                # noinspection PyUnresolvedReferences
                 pythoncom.CoInitialize()
                 shell = win32com.client.Dispatch('WScript.Shell')
                 shortcut = shell.CreateShortCut(_shortcut_path)
@@ -389,7 +384,7 @@ try:
             if (latest_major > major or latest_major == major and latest_minor > minor
                     or latest_major == major and latest_minor == minor and latest_patch > patch):
                 details = entry.find('details',
-                                    class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+                                     class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
                 download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
                 setup_download_link = f'https://github.com{download_links[0]}'
                 os.chdir(starting_dir)
@@ -470,7 +465,7 @@ def home():  # web GUI
     _queue = create_songs_list(music_queue, done_queue, next_queue)[0]
     return render_template('home.html', device_name=platform.node(), shuffle=shuffle_option, settings=settings, art=art,
                            main_button='pause' if playing_status == 'PLAYING' else 'play', repeat_color=repeat_color,
-                           repeat_option=repeat_option,queue=_queue, metadata=_metadata, list_of_songs=list_of_songs)
+                           repeat_option=repeat_option, queue=_queue, metadata=_metadata, list_of_songs=list_of_songs)
 
 
 @app.route('/play/', methods=['GET', 'POST'])
@@ -584,7 +579,7 @@ try:
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
 
-    thumbs_dir =  f'{starting_dir}/images'
+    thumbs_dir = f'{starting_dir}/images'
     if not os.path.exists(thumbs_dir): os.mkdir(thumbs_dir)
     if not os.path.exists(f'{thumbs_dir}/default.png'):  # in case the user decided to delete the default image
         if os.path.exists('resources/default.png'):  # running from source code
@@ -710,13 +705,13 @@ try:
             if video_id is not None:  # Youtube Video
                 ydl = YoutubeDL()
                 r = ydl.extract_info(url, download=False)
-                formats = [f for f in r['formats'] if f['acodec'] != 'none' and f['vcodec'] != 'none']
+                formats = [frmt for frmt in r['formats'] if frmt['acodec'] != 'none' and frmt['vcodec'] != 'none']
                 try:
-                    formats.sort(key=lambda f: f['width'])
+                    formats.sort(key=lambda frmt: frmt['width'])
                     cast.wait()
                     mc = cast.media_controller
-                    format = formats[0]
-                    mc.play_media(format['url'], f'video/{format["ext"]}')
+                    frmt = formats[0]
+                    mc.play_media(frmt['url'], f'video/{frmt["ext"]}')
                     mc.block_until_active()
                     playing_url = True
                     playing_status = 'PLAYING'
@@ -736,9 +731,9 @@ try:
                             rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                                  large_text='Listening', small_image='logo', small_text='Music Caster')
                     # Set tray tooltip to f'Youtube: {mc.title}'
-                except StopIteration as e:
+                except StopIteration as _e:
                     tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
-                    if settings.get('DEBUG', False): raise e
+                    if settings.get('DEBUG', False): raise _e
 
 
     def play_file(file_path, position=0, autoplay=True, switching_device=False):
@@ -1225,7 +1220,8 @@ try:
             tray.Hide()
             with suppress(UnsupportedNamespace):
                 stop()
-                if cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING': cast.quit_app()
+                if cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING':
+                    cast.quit_app()
             with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                 rich_presence.close()
                 # Commented because I am unsure if it is effective
@@ -1402,25 +1398,21 @@ try:
             elif main_event == 'queue_file':
                 if music_directories: DEFAULT_DIR = music_directories[0]
                 else: DEFAULT_DIR = home_music_dir
-                if not music_queue: start_playing = True
-                else: start_playing = False
-                fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR,
-                                   wildcard=MUSIC_FILE_TYPES, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+                fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR,
+                                   wildcard=MUSIC_FILE_TYPES, style=wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST)
                 if fd.ShowModal() != wx.ID_CANCEL:
-                    path_to_file = fd.GetPath()
-                    music_queue.append(path_to_file)
-                    if start_playing and music_queue: play_file(path_to_file)
+                    start_playing = not music_queue
+                    music_queue.extend(fd.GetPaths())
+                    if start_playing and music_queue: play_file(music_queue[0])
                 main_window.TKroot.focus_force()
             elif main_event == 'queue_folder':
                 path_to_folder = Sg.PopupGetFolder('Select Folder', default_path=DEFAULT_DIR, no_window=True)
-                if not music_queue: start_playing = True
-                else: start_playing = False
-
                 if os.path.exists(path_to_folder):
                     temp_queue = []
                     for file in glob(f'{path_to_folder}/**/*.*', recursive=True):
                         if valid_music_file(file): temp_queue.append(file)
                     if settings['shuffle_playlists']: shuffle(temp_queue)
+                    start_playing = not music_queue
                     for file in temp_queue: music_queue.append(file)
                     updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
                     main_window['music_queue'].Update(values=updated_list)
