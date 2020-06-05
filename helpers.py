@@ -236,13 +236,13 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     # Now Playing layout
     tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, key='now_playing',
                             size=(55, 0))],
-                   [Sg.Image(filename=album_cover_data, pad=(0, 0), size=(50, 50),
+                   [Sg.Image(data=album_cover_data, pad=(0, 0), size=(50, 50),
                              key='album_cover')] if album_cover_data else [],
                    # [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover'),
                    #  Sg.Slider((range(0, 100)))] if album_cover_data else [Sg.Slider((range(0, 100)))],
                    # Maybe make volume on its own tab or horizontal?
-                   [Sg.Column(music_controls, justification='center')],
-                   [Sg.Column(progress_bar_layout, justification='center')]]
+                   [Sg.Column(music_controls, justification='center', pad=((5, 5), (20, 0)))],
+                   [Sg.Column(progress_bar_layout, justification='center', pad=((5, 5), (20, 0)))]]
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     mq_controls = [
@@ -250,18 +250,16 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
         [Sg.Button('❌', key='remove', pad=(0, 5), tooltip='remove song from the queue')],
         [Sg.Button('▼', key='move_down', pad=(2, 5), tooltip='move song down the queue')]]
     q_controls1 = [
-        [Sg.Button('Queue File(s)...', font=font_normal, key='queue_file', pad=(0, 5))],
-        [Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(0, 5))],
-        [Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(0, 5))]]
-    q_controls2 = [
-        [Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(0, 5))],
-        [Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(0, 5),
-                   tooltip='show selected file in explorer')]
-    ]
-    tab2_layout = [[
-        Sg.Listbox(songs, default_values=selected_value, size=(45, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        Sg.Button('Queue File(s)...', font=font_normal, key='queue_file', pad=(5, 5)),
+        Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(5, 5)),
+        Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(5, 5)),
+        Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(5, 5)),
+        Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(5, 5),
+                  tooltip='show selected file in explorer')]
+    tab2_layout = [q_controls1, [
+        Sg.Listbox(songs, default_values=selected_value, size=(58, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, bind_return_key=True),
-        Sg.Column(mq_controls, pad=(0, 5)), Sg.Column(q_controls1, pad=(0, 5)), Sg.Column(q_controls2, pad=(0, 5))]]
+        Sg.Column(mq_controls, pad=(0, 5))]]
     # song_lib = sorted(all_songs.keys())
     # tab3_layout = [[
     #     Sg.Listbox(song_lib, size=(80, 30), default_values=song_lib[0] if song_lib else '', text_color=fg,
@@ -270,7 +268,6 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
     # Sg.Tab('Library', tab3_layout, background_color=bg, key='tab3')]])]]
-
     return layout
 
 
