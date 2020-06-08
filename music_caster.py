@@ -1148,7 +1148,7 @@ try:
         elif tray_item.startswith('PF: '):  # play folder  # TODO
             if tray_item == 'PF: Select Folder':
                 dlg = wx.DirDialog(None, 'Choose music directory', DEFAULT_DIR,
-                                   wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+                                   wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST | wx.FD_MULTIPLE)
                 if dlg.ShowModal() != wx.ID_CANCEL:
                     path_to_folder = dlg.GetPath()
                     play_folder(path_to_folder)
