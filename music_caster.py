@@ -38,18 +38,20 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect, send_file
 import mutagen
 import mutagen.id3
-import mutagen.mp3
-import mutagen.mp4
-from mutagen.easyid3 import EasyID3
-from mutagen.easymp4 import EasyMP4
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
 from mutagen.mp3 import HeaderNotFoundError
+import mutagen.mp3
+import mutagen.mp4
+from mutagen.easyid3 import EasyID3
+from mutagen.easymp4 import EasyMP4
+from mutagen.aac import AAC
 # from PIL import Image
 import PySimpleGUI as Sg
 import PySimpleGUIWx as SgWx
 import wx
+import wx.lib.agw.multidirdialog as MDD
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
@@ -72,8 +74,8 @@ VERSION = '4.46.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-- [Feature] Queue file now supports multiple files
-- [Optimization] Settings file loading
+- [Feature] Reorganized Main Window Tab 2
+- [Feature] Added support for .wma files (cast only)
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -99,7 +101,7 @@ settings_file = f'{starting_dir}/settings.json'
 playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
 music_directories, notifications_enabled, window_locations = [], True, {}
 all_songs = {}
-all_folders = ['PF: Select Folder']
+all_folders = ['PF: Select Folder(s)']
 pl_name, pl_files = '', []
 # noinspection PyTypeChecker
 daemon_command = None
@@ -118,7 +120,6 @@ play_url_window: Sg.Window = None
 main_last_event = settings_last_event = pl_editor_last_event = None
 stop_discovery = None  # function
 mouse_hover = ''
-# MUSIC_FILE_TYPES = 'Audio File (*.mp3)|*mp3'  # https://stackoverflow.com/a/8833014/7732434
 open_pl_selector = update_progress_text = False
 new_playing_text, timer = 'Nothing Playing', 0
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
@@ -135,7 +136,7 @@ def save_json():
 
 def refresh_folders():
     tray_folders.clear()
-    tray_folders.append('PF: Select Folder')
+    tray_folders.append('PF: Select Folder(s)')
     for music_dir in music_directories:
         music_dir = music_dir.replace('\\', '/').split('/')
         music_dir = f'PF: .../{"/".join(music_dir[-2:])}' if len(music_dir) > 2 else 'PF: ' + '/'.join(music_dir)
@@ -190,6 +191,7 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
+        elif file_path.endswith('.wma'): audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
         else: audio = mutagen.File(file_path)
         _title = audio.get('title', ['Unknown Title'])[0]
         _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
@@ -202,23 +204,25 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
     return _title, _artist, _album
 
 
-def compile_all_songs(update_global=True, ignore_file='') -> dict:
+def compile_all_songs(update_global=True, ignore_files: list = None) -> dict:
     # TODO: instead of calling this function, thread it and
     #  call .join() if you need to use all_songs
     #  and use a lock
     # song_compilation_lock = threading.Lock()
     global all_songs
+    if ignore_files is None: ignore_files = []
     if not update_global:
         temp_songs = all_songs.copy()
-        if ignore_file:
-            file_info = get_metadata(ignore_file)[:2]
-            temp_songs.pop(' - '.join(file_info), None)
+        if ignore_files:
+            for _file in ignore_files:
+                file_info = get_metadata(_file)[:2]
+                temp_songs.pop(' - '.join(file_info), None)
         return temp_songs
     all_songs.clear()
     for directory in music_directories:
         for _file in glob(f'{directory}/**/*.*', recursive=True):
             _file = _file.replace('\\', '/')
-            if _file != ignore_file and valid_music_file(_file):
+            if _file not in ignore_files and valid_music_file(_file):
                 file_info = ' - '.join(get_metadata(_file)[:2])
                 all_songs[file_info] = _file
     return all_songs
@@ -475,9 +479,9 @@ def play_file_page():
     if 'path' in args:
         _file_or_dir = args['path']
         if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
-            play_all(_file_or_dir)
+            play_all({_file_or_dir})
         elif os.path.isdir(_file_or_dir):
-            play_folder(_file_or_dir)
+            play_folder([_file_or_dir])
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -616,33 +620,33 @@ try:
     if settings['EXPERIMENTAL']:
         menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'],
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'],
                            'Exit']]
         menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                             'Play All'], 'Controls',
                            ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                             'Pause'], 'Exit']]
         menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                             'Play All'], 'Controls',
                            ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                             'Resume'], 'Exit']]
     else:
         menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play All'], 'Exit']]
+                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
         menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                             'Play All'], 'Controls',
                            ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                             'Pause'], 'Exit']]
         menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File', 'Play File Next',
+                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                             'Play All'], 'Controls',
                            ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                             'Resume'], 'Exit']]
@@ -750,6 +754,9 @@ try:
             a = WavInfoReader(file_path)
             sample_rate = a.fmt.sample_rate
             song_length = a.data.frame_count / sample_rate
+        elif file_path.lower().endswith('.wma'):
+            audio_info = AAC(file_path).info
+            song_length, sample_rate = audio_info.length, audio_info.sample_rate
         else:
             audio_info = mutagen.File(file_path).info
             song_length, sample_rate = audio_info.length, audio_info.sample_rate
@@ -830,15 +837,18 @@ try:
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Listening', small_image='logo', small_text='Music Caster')
 
-    def play_all(starting_file=''):
+    def play_all(starting_files: list = None):
         global playing_status
-        starting_file = starting_file.replace('\\', '/')
         music_queue.clear()
         done_queue.clear()
-        if starting_file: music_queue.extend(compile_all_songs(False, starting_file).values())
+        if starting_files is None: starting_files = []
+        starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
+        if starting_files: music_queue.extend(compile_all_songs(False, starting_files).values())
         else: music_queue.extend(all_songs.values())
         if music_queue: shuffle(music_queue)
-        if starting_file: music_queue.insert(0, starting_file)
+        if starting_files:
+            for j, _f in enumerate(starting_files):
+                music_queue.insert(j, _f)
         if music_queue:
             play_file(music_queue[0])
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
@@ -846,12 +856,13 @@ try:
             playing_status = 'PLAYING'
             next_song()
 
-    def play_folder(_folder):
+    def play_folder(folders):
         global playing_status
         music_queue.clear()
         done_queue.clear()
-        for _file in glob(f'{_folder}/**/*.*', recursive=True):
-            if valid_music_file(_file): music_queue.append(_file)
+        for _folder in folders:
+            for _file in glob(f'{_folder}/**/*.*', recursive=True):
+                if valid_music_file(_file): music_queue.append(_file)
         if settings['shuffle_playlists']: shuffle(music_queue)
         if music_queue:
             play_file(music_queue[0])
@@ -864,13 +875,11 @@ try:
         global music_directories, DEFAULT_DIR, playing_status
         if music_directories: DEFAULT_DIR = music_directories[0]
         else: DEFAULT_DIR = home_music_dir
-        # path_to_file = Sg.PopupGetFile('Select Music File', no_window=True, icon=WINDOW_ICON,
-        #                                initial_folder=DEFAULT_DIR)  # TODO: when file types becomes a parameter
-        _fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
-                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        _fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
         if _fd.ShowModal() != wx.ID_CANCEL:
-            file_path = _fd.GetPath()
-            next_queue.append(file_path)
+            file_paths = _fd.GetPaths()
+            next_queue.extend([file_path for file_path in file_paths if valid_music_file(file_path)])
             if playing_status == 'NOT PLAYING':
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
@@ -1026,7 +1035,7 @@ try:
     if len(sys.argv) > 1:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play_file(file_or_dir)
-        elif os.path.isdir(file_or_dir): play_folder(file_or_dir)
+        elif os.path.isdir(file_or_dir): play_folder([file_or_dir])
     if settings.get('DEBUG', False):
         print('Running in tray')
     while True:
@@ -1146,13 +1155,12 @@ try:
                 play_file(music_queue[0])
                 tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif tray_item.startswith('PF: '):  # play folder  # TODO
-            if tray_item == 'PF: Select Folder':
-                dlg = wx.DirDialog(None, 'Choose music directory', DEFAULT_DIR,
-                                   wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST | wx.FD_MULTIPLE)
+            if tray_item == 'PF: Select Folder(s)':
+                dlg = wx.FileDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
                 if dlg.ShowModal() != wx.ID_CANCEL:
                     path_to_folder = dlg.GetPath()
-                    play_folder(path_to_folder)
-            else: play_folder(music_directories[tray_folders.index(tray_item) - 1])
+                    play_folder([path_to_folder])
+            else: play_folder([music_directories[tray_folders.index(tray_item) - 1]])
         elif 'URL' in {tray_item}:
             if not active_windows['play_url']:
                 active_windows['play_url'], play_url_layout = True, create_play_url_window()
@@ -1181,14 +1189,14 @@ try:
             # TODO: cancel timer should not be an option if no timer is active
             timer = 0
             if notifications_enabled: tray.ShowMessage('Music Caster', 'Timer stopped')
-        elif tray_item == 'Play File':
+        elif tray_item == 'Play File(s)':
             if music_directories: DEFAULT_DIR = music_directories[0]
             else: DEFAULT_DIR = home_music_dir
-            fd = wx.FileDialog(None, 'Select Music File', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
-                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+            fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
             if fd.ShowModal() != wx.ID_CANCEL:
-                play_all(fd.GetPath())
-        elif daemon_command == 'Play File':
+                play_all(fd.GetPaths())
+        elif daemon_command == 'Play File(s)':
             # TODO
             pass
         elif tray_item == 'Play All': play_all()
@@ -1402,7 +1410,7 @@ try:
                                    wildcard=MUSIC_FILE_TYPES, style=wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST)
                 if fd.ShowModal() != wx.ID_CANCEL:
                     start_playing = not music_queue
-                    music_queue.extend(fd.GetPaths())
+                    music_queue.extend([_f for _f in fd.GetPaths() if valid_music_file(_f)])
                     if start_playing and music_queue: play_file(music_queue[0])
                 main_window.TKroot.focus_force()
             elif main_event == 'queue_folder':
@@ -1428,7 +1436,7 @@ try:
                 play_next()
                 main_window.TKroot.focus_force()
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
-            elif main_event == 'library': play_all(all_songs[main_values['library']])
+            elif main_event == 'library': play_all({all_songs[main_values['library']]})
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     main_window['progressbar'].Update(disabled=True)
@@ -1438,6 +1446,7 @@ try:
                 song_position = new_position
                 if cast is not None:
                     cast.media_controller.seek(new_position)
+                    playing_status = 'PLAYING'
                 else:
                     local_music_player.music.rewind()
                     local_music_player.music.set_pos(new_position)

@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.47.0
 - [Feature] Reorganized Main Window Tab 2
+- [Feature] Added support for .wma files (cast only)
 
 4.46.0
 - [Feature] Queue file now supports multiple files

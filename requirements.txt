@@ -13,7 +13,7 @@ PySimpleGUIWx~=0.14.0
 pypiwin32==223
 pypresence~=4.0.0
 pypng~=0.0.20
-wxpython~=4.0
+wxpython~=4.1
 winshell~=0.6
 wavinfo==1.5
 requests~=2.22.0
