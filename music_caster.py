@@ -70,12 +70,11 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.47.1'
+VERSION = '4.48.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-- [Feature] Reorganized Main Window Tab 2
-- [Feature] Added support for .wma files (cast only)
+- [Feature] High-res Icon
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
