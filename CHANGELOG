@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.47.1
+= [Bug fix] Forgot to update version
+
 4.47.0
 - [Feature] Reorganized Main Window Tab 2
 - [Feature] Added support for .wma files (cast only)
