@@ -15,7 +15,7 @@ MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuil
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 print('Installing dependencies...')
-subprocess.check_call('pip install -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 # subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" -t:restore')
 
 s1 = subprocess.Popen('pyinstaller mc_portable.spec')
