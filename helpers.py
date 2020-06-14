@@ -313,15 +313,22 @@ def create_settings(version, music_directories, settings, qr_code_data):
 
 
 def create_timer(settings):
+    shut_off = settings['timer_shut_off_computer']
+    hibernate = settings['timer_hibernate_computer']
+    sleep = settings['timer_sleep_computer']
+    do_nothing = not (shut_off or hibernate or sleep)
     layout = [
-        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=settings['timer_shut_off_computer'],
+        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=shut_off,
                   key='shut_off', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
-        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=settings['timer_hibernate_computer'],
+        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate,
                   key='hibernate', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
-        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=settings['timer_sleep_computer'],
+        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep,
                   key='sleep', text_color=fg, background_color=bg, font=font_normal,
+                  enable_events=True)],
+        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing,
+                  key='do_nothing', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
         [Sg.Text('Enter minutes or HH:MM',  tooltip='press enter once done', text_color=fg, font=font_normal)],
         [Sg.Input(key='minutes', font=font_normal), Sg.Submit(font=font_normal)]]

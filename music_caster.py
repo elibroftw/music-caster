@@ -70,11 +70,11 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.48.1'
+VERSION = '4.49.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-- [Feature] High-res Icon
+[Feature] Added do nothing to timer
 """
 PORT, WAIT_TIMEOUT = 2001, 10
 MC_SECRET = str(uuid4())
@@ -756,6 +756,9 @@ try:
         elif file_path.lower().endswith('.wma'):
             audio_info = AAC(file_path).info
             song_length, sample_rate = audio_info.length, audio_info.sample_rate
+        elif file_path.lower().endswith('.opus'):
+            audio_info = mutagen.File(file_path).info
+            song_length, sample_rate = audio_info.length, 48000
         else:
             audio_info = mutagen.File(file_path).info
             song_length, sample_rate = audio_info.length, audio_info.sample_rate
@@ -1696,7 +1699,7 @@ try:
                     timer_window.Close()
                 except ValueError:
                     Sg.PopupOK('Input a number!')
-            elif timer_event in {'shut_off', 'hibernate', 'sleep'}:
+            elif timer_event in {'shut_off', 'hibernate', 'sleep', 'do_nothing'}:
                 change_settings('timer_hibernate_computer', timer_values['hibernate'])
                 change_settings('timer_sleep_computer', timer_values['sleep'])
                 change_settings('timer_shut_off_computer', timer_values['shut_off'])

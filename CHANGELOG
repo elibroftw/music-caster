@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.49.0
+- [Feature] Added do nothing to timer
+- [Fix] .opus files
+
 4.48.1
 - [Fix] Icon Quality
 
