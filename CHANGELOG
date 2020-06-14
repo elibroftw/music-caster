@@ -11,7 +11,7 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Improved Quality of Icon
 
 4.47.1
-- [Bug fix] Forgot to update version
+- [Fix] Forgot to update version
 
 4.47.0
 - [Feature] Reorganized Main Window Tab 2
@@ -28,16 +28,16 @@ Music Caster by Elijah Lopez Changelog
 
 4.44.0
 - [Feature] Added support for .wav
-- [Bug fix] Better metadata logic
+- [Fix] Better metadata logic
 
 4.43.3
-- [Bug fix] Web GUI style fix
+- [Fix] Web GUI style fix
 
 4.43.2
-- [Bug fix] Volume control actually works now
+- [Fix] Volume control actually works now
 
 4.43.1
-- [Bug fix] Auto-update will be disabled if something goes wrong while updating
+- [Fix] Auto-update will be disabled if something goes wrong while updating
 
 4.43.0
 - [Feature] Added View queue to Web GUI
@@ -48,16 +48,16 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Web GUI title now includes the PC's name
 
 4.42.1
-- [Bug fix] Shortcut creation
+- [Fix] Shortcut creation
 
 4.42.0
 - [Feature] Added setting UI to Web GUI
 
 4.41.3
-- [Bug fix] Music Queue double click to play
+- [Fix] Music Queue double click to play
 
 4.41.2
-- [Bug fix] Web GUI
+- [Fix] Web GUI
 
 4.41.1
 - [Feature] Web GUI on mobile doesn't make the keyboard come up
@@ -68,47 +68,47 @@ Music Caster by Elijah Lopez Changelog
 4.40.0
 - [Optimization] Reduced startup time by ~2 seconds
 - [Optimization] No more copying files from different drives, the solution was so simple but took ~10 months to find!
-- [Bug Fix] Stopped Music Caster collisions between two devices on the same network
+- [Fix] Stopped Music Caster collisions between two devices on the same network
 - [Security] Server will only serve music files and only if the correct UUID is passed
 
 4.39.5
 - [Optimization] Optimized the instance checker, startup time reduce by ~9 seconds!
-- [Bug fix] Reverted how keyboard commands work
+- [Fix] Reverted how keyboard commands work
 
 4.39.4
-- [Bug fix] Music queue remove
+- [Fix] Music queue remove
 
 4.39.3
-- [Bug fix] Music queue
+- [Fix] Music queue
 
 4.39.2
-- [Bug fix] Music queue
-- [Bug fix] Better email hyperlink
+- [Fix] Music queue
+- [Fix] Better email hyperlink
 
 4.39.1
-- [Bug fix] Web GUI
+- [Fix] Web GUI
 
 4.39.0
 - [Feature] Added search to web GUI
 - [Feature] Better mobile web GUI
 
 4.38.1
-- [Bug fix] Handled more metadata errors
-- [Bug fix] Installer installs all files now
+- [Fix] Handled more metadata errors
+- [Fix] Installer installs all files now
 
 4.38.0
 - [Feature] Can now play files from the web GUI
-- [Bug fix] Removed duplicate code
-- [Bug fix] Better Chromecast detection
+- [Fix] Removed duplicate code
+- [Fix] Better Chromecast detection
 
 4.37.0
 - [Feature] Added notification if MC was updated
 - [Feature] Double click a song in the music queue to play the song
 - [Feature] Locate File moved to second tab
-- [Bug fix] Opening Music Caster a second time
+- [Fix] Opening Music Caster a second time
 
 4.36.1
-- [Bug fix] Handled HeaderNotFoundError
+- [Fix] Handled HeaderNotFoundError
 
 4.36.0
 - [Optimization] Embedded Updater (+ updating notification)
@@ -116,14 +116,14 @@ Music Caster by Elijah Lopez Changelog
 
 4.35.0
 - [Feature] Main GUI volume image acts like mute/unmute button
-- [Bug fix] Settings window error
+- [Fix] Settings window error
 - [Optimization] Optimized image assets
 
 4.34.2
-- [Bug fix] Add folder works with save window positions
+- [Fix] Add folder works with save window positions
 
 4.34.1
-- [Bug fix] Errors are actually sent to me now
+- [Fix] Errors are actually sent to me now
 
 4.34.0
 - [Feature] Added repeat off option (click repeat button 2x)
@@ -133,24 +133,24 @@ Music Caster by Elijah Lopez Changelog
 - [Optimization] More threading
 
 4.33.3
-- [Bug fix] lag caused by Discord RPC
+- [Fix] lag caused by Discord RPC
 
 4.33.2
 - [Feature] Added tooltips for the QR Code and web GUI link
 - Removed "Email:" text and added tooltip to the email link
 
 4.33.1
-- [Bug fix] Discord RPC bug when using web GUI
+- [Fix] Discord RPC bug when using web GUI
 
 4.33.0
 - [Feature] Added QR Code to settings for quick access to the web GUI
-- [Bug fix] Error when handling exception
-- [Bug fix] Web GUI when no file is playing
+- [Fix] Error when handling exception
+- [Fix] Web GUI when no file is playing
 
 4.32.3
-- [Bug fix] Updater.exe AGAIN
+- [Fix] Updater.exe AGAIN
 - [Feature] Added basic optional Discord RPC integration
-- [Bug fix] playlist editor window (window position is not saved for now)
+- [Fix] playlist editor window (window position is not saved for now)
 
 4.31.0
 - Optimized executable (smaller size + faster startup)
@@ -159,17 +159,17 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Added some tooltips
 - Clarified what the repeat item does in the tray
 - Refactored main GUI code
-- [Bug fix] tray menu updates again if repeat is pressed
+- [Fix] tray menu updates again if repeat is pressed
 
 4.30.4
-- [Bug fix] Main GUI and shortcut creation
+- [Fix] Main GUI and shortcut creation
 
 4.30.3
-- [Bug fix] Playlist editor arrow key handler
+- [Fix] Playlist editor arrow key handler
 
 4.30.2
 - [Feature] Beefed up error messages that are sent to me
-- [Bug fix] Better temp music folder handling
+- [Fix] Better temp music folder handling
 
 4.30.1
 - [Feature] You can now open a file with Music Caster
@@ -178,7 +178,7 @@ Music Caster by Elijah Lopez Changelog
 4.29.0
 - [Feature] Added "Queue Folder" to the main GUI (Tab 2)
 - [Feature] Added "Clear Queue" to main GUI (Tab 2)
-- [Bug fix] Handled ID3 error when playing files
+- [Fix] Handled ID3 error when playing files
 - Reordered tray play menu
 
 4.28.0
@@ -186,23 +186,23 @@ Music Caster by Elijah Lopez Changelog
 - Moved Playlists to Play tray menu
 
 4.27.4
-- [Bug fix] Fixed Web GUI album art
+- [Fix] Fixed Web GUI album art
 
 4.27.3
-- [Bug fix] Volume scrolling on main window popup
+- [Fix] Volume scrolling on main window popup
 - [Error handling] Updater raises fewer errors
-- [Bug fix] Error handling bug
+- [Fix] Error handling bug
 
 4.27.2
-- [Bug fix] Better handling of errors
-- [Bug fix] Play file works even without any folders
+- [Fix] Better handling of errors
+- [Fix] Play file works even without any folders
 
 4.27.1
 - Better duplicate detection
 - Fixed compile all songs bugs
 
 4.27.0
-- Select device no devices bug fix
+- Select device no devices Fix
 - WEB GUI fix
 - Better Auto-update
 
@@ -241,7 +241,7 @@ Music Caster by Elijah Lopez Changelog
 - Scrolling in the  settings or main window by default changes volume
 
 4.24.1
-- Bug fixes
+- Fixes
 
 4.24.0
 - Web GUI fully functional
