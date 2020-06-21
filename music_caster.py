@@ -70,7 +70,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.49.2'
+VERSION = '4.49.3'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -160,12 +160,18 @@ def change_settings(settings_key, new_value):
         repeat_menu[2] = 'Repeat Off ✓' if new_value is None else 'Repeat Off'
         refresh_tray()
         if active_windows['main']:
-            if new_value is None: repeat_img = REPEAT_OFF_IMG
-            elif new_value: repeat_img = REPEAT_ONE_IMG
-            else: repeat_img = REPEAT_ALL_IMG
+            if new_value is None:
+                repeat_img = REPEAT_OFF_IMG
+                new_tooltip = 'Repeat'
+            elif new_value:
+                repeat_img = REPEAT_ONE_IMG
+                new_tooltip = "Don't repeat"
+            else:
+                repeat_img = REPEAT_ALL_IMG
+                new_tooltip = "Repeat track"
             main_window['repeat'].is_repeating = repeat_setting
             main_window['repeat'].Update(image_data=repeat_img)
-            main_window['repeat'].SetTooltip('repeat all tracks in music queue' if new_value else 'repeat current song')
+            main_window['repeat'].SetTooltip(new_tooltip)
         if settings['notifications']:
             if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off')
             elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One')
@@ -478,7 +484,7 @@ def play_file_page():
     if 'path' in args:
         _file_or_dir = args['path']
         if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
-            play_all({_file_or_dir})
+            play_all([_file_or_dir])
         elif os.path.isdir(_file_or_dir):
             play_folder([_file_or_dir])
     return redirect('/') if request.method == 'GET' else 'true'
@@ -623,14 +629,14 @@ try:
                            'Exit']]
         menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                            'Play All'], 'Controls',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
+                            'Play File Next', 'Play All'], 'Controls',
                            ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                             'Pause'], 'Exit']]
         menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
                            'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                            'Play All'], 'Controls',
+                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
+                            'Play File Next', 'Play All'], 'Controls',
                            ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                             'Resume'], 'Exit']]
     else:
@@ -1438,7 +1444,7 @@ try:
                 play_next()
                 main_window.TKroot.focus_force()
             elif main_event == 'locate_file': Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
-            elif main_event == 'library': play_all({all_songs[main_values['library']]})
+            elif main_event == 'library': play_all([all_songs[main_values['library']]])
             if main_event == 'progressbar':
                 if playing_status == 'NOT PLAYING':
                     main_window['progressbar'].Update(disabled=True)

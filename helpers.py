@@ -209,27 +209,27 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     # Sg.Button('Shuffle', key='Shuffle'),
     if repeating_song is None:
         repeat_img = REPEAT_OFF_IMG
-        repeat_btn_tooltip = 'click to repeat all, click again to repeat one'
+        repeat_btn_tooltip = 'Repeat'
     elif repeating_song:
         repeat_img = REPEAT_ONE_IMG
-        repeat_btn_tooltip = 'click to turn repeat off, click again to repeat all'
+        repeat_btn_tooltip = "Don't repeat"
     else:
         repeat_img = REPEAT_ALL_IMG
-        repeat_btn_tooltip = 'click to turn repeat one, click again to turn repeat off'
+        repeat_btn_tooltip = 'Repeat track'
     music_controls = [[Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG),
                        # border_width=0, first add border to images
                        Sg.Button(key='pause/resume', image_data=pause_resume_img),
                        Sg.Button(key='next', image_data=NEXT_BUTTON_IMG),
                        Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_btn_tooltip),
-                       Sg.Image(data=v_slider_img, tooltip='press to mute/unmute', key='mute', enable_events=True),
+                       Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
-                                 text_color='#000000', size=(10, 10), tooltip='scroll your mousewheel')]]
+                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]]
     progress_bar_layout = [[Sg.Text('00:00', font=font_normal, text_color=fg, key='time_elapsed'),
                             Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
                                       enable_events=True, relief=Sg.RELIEF_FLAT, background_color=ACCENT_COLOR,
                                       disable_number_display=True, disabled=now_playing_text == 'Nothing Playing',
-                                      tooltip='scroll your mousewheel'),
+                                      tooltip='Scroll mousewheel'),
                             # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
                             Sg.Text('00:00', font=font_normal, text_color=fg, key='time_left')]]
 
@@ -246,16 +246,16 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     mq_controls = [
-        [Sg.Button('▲', key='move_up', pad=(2, 5), tooltip='move song up the queue')],
-        [Sg.Button('❌', key='remove', pad=(0, 5), tooltip='remove song from the queue')],
-        [Sg.Button('▼', key='move_down', pad=(2, 5), tooltip='move song down the queue')]]
+        [Sg.Button('▲', key='move_up', pad=(2, 5), tooltip='Move song up the queue')],
+        [Sg.Button('❌', key='remove', pad=(0, 5), tooltip='Remove song from the queue')],
+        [Sg.Button('▼', key='move_down', pad=(2, 5), tooltip='Move song down the queue')]]
     q_controls1 = [
         Sg.Button('Queue File(s)...', font=font_normal, key='queue_file', pad=(5, 5)),
         Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(5, 5)),
         Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(5, 5)),
         Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(5, 5)),
         Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(5, 5),
-                  tooltip='show selected file in explorer')]
+                  tooltip='Show selected file in explorer')]
     tab2_layout = [q_controls1, [
         Sg.Listbox(songs, default_values=selected_value, size=(58, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                    key='music_queue', background_color=bg, font=font_normal, bind_return_key=True),
@@ -330,7 +330,7 @@ def create_timer(settings):
         [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing,
                   key='do_nothing', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
-        [Sg.Text('Enter minutes or HH:MM',  tooltip='press enter once done', text_color=fg, font=font_normal)],
+        [Sg.Text('Enter minutes or HH:MM',  tooltip='Press enter once done', text_color=fg, font=font_normal)],
         [Sg.Input(key='minutes', font=font_normal), Sg.Submit(font=font_normal)]]
     return layout
 
