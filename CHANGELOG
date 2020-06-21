@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.49.2
+- [Fix] Discord rich presence bug
+
 4.49.0
 - [Feature] Added do nothing to timer
 - [Fix] .opus files

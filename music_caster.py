@@ -70,7 +70,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.49.0'
+VERSION = '4.49.2'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -912,7 +912,7 @@ try:
                 song_position = time.time() - song_start
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
-            _artist, _title = get_metadata(music_queue[0])[:2]
+            _title, _artist = get_metadata(music_queue[0])[:2]
             if settings['discord_rpc']:
                 with suppress(AttributeError, pypresence.InvalidID):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
@@ -934,7 +934,7 @@ try:
             song_start = time.time() - song_position
             song_end = song_start + song_length
             playing_status = 'PLAYING'
-            _artist, _title = get_metadata(music_queue[0])[:2]
+            _title, _artist = get_metadata(music_queue[0])[:2]
             if settings['discord_rpc']:
                 with suppress(AttributeError, pypresence.InvalidID):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
@@ -1522,7 +1522,7 @@ try:
                 elif settings_event == 'discord_rpc':
                     with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                         if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
-                            artist, title = get_metadata(music_queue[0])[:2]
+                            title, artist = get_metadata(music_queue[0])[:2]
                             rich_presence.connect()
                             rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                                  large_text='Listening', small_image='logo', small_text='Music Caster')
