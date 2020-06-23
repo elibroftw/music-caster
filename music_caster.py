@@ -70,7 +70,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.49.3'
+VERSION = '4.49.4'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -1247,7 +1247,8 @@ try:
             # MAIN WINDOW
             if active_windows['main']:
                 main_event, main_values = main_window.Read(timeout=10)
-                if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and main_last_event != 'queue_folder':
+                not_file_pick = main_last_event not in {'queue_folder', 'play_next', 'queue_file'}
+                if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and not_file_pick:
                     active_windows['main'] = False
                     main_window.Close()
                     continue
