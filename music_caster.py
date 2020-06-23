@@ -918,11 +918,12 @@ try:
                 song_position = time.time() - song_start
                 local_music_player.music.pause()
             playing_status = 'PAUSED'
-            _title, _artist = get_metadata(music_queue[0])[:2]
-            if settings['discord_rpc']:
-                with suppress(AttributeError, pypresence.InvalidID):
-                    rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
-                                         large_text='Paused', small_image='logo', small_text='Music Caster')
+            if music_queue:
+                _title, _artist = get_metadata(music_queue[0])[:2]
+                if settings['discord_rpc']:
+                    with suppress(AttributeError, pypresence.InvalidID):
+                        rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
+                                             large_text='Paused', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             stop()
 
