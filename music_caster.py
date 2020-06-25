@@ -70,7 +70,7 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.49.4'
+VERSION = '4.49.5'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
@@ -407,8 +407,11 @@ try:
                         download(setup_download_link, 'MC_Installer.exe')
                         Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
                     else:
-                        os.startfile('Updater.exe')
-                        time.sleep(2)
+                        try:
+                            os.startfile('Updater.exe')
+                            time.sleep(2)
+                        except FileNotFoundError:
+                            change_settings('auto_update', False)
                     tray.Hide()
                     sys.exit()
                 tray.ShowMessage('Music Caster', f'Update v{latest_ver} Available')
@@ -416,7 +419,7 @@ try:
                 tray.Close()
 except Exception as e:
     handle_exception(e)
-    change_settings('auto_update', False)
+
 
 if not settings.get('DEBUG', False):
     threading.Thread(target=send_info, daemon=True).start()
