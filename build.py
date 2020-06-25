@@ -7,7 +7,6 @@ import glob
 import zipfile
 import sys
 from contextlib import suppress
-from music_caster import VERSION
 
 start_time = time.time()
 # https://stackoverflow.com/questions/418896/how-to-redirect-output-to-a-file-and-stdout
