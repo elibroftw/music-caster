@@ -127,7 +127,7 @@ def refresh_folders():
     tray_folders.append('PF: Select Folder(s)')
     for music_dir in music_directories:
         music_dir = music_dir.replace('\\', '/').split('/')
-        music_dir = f'PF: .../{"/".join(music_dir[-2:])}' if len(music_dir) > 2 else 'PF: ' + '/'.join(music_dir)
+        music_dir = f'PF: ../{"/".join(music_dir[-2:])}' if len(music_dir) > 2 else 'PF: ' + '/'.join(music_dir)
         tray_folders.append(music_dir)
 
 
