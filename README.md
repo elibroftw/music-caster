@@ -41,17 +41,18 @@ What is sent to me when an error is encountered?
 ```JS
 // As seen in handle_exception(exception)
 'TIME': current_time,
-'VERSION': VERSION,                   // Music Caster version
-'OS': platform.platform(),            // operating system
+'VERSION': VERSION,
+'OS': platform.platform(),
 'EXCEPTION TYPE': exc_type.__name__,  // error name
-'LINE NUMBER': exc_tb.tb_lineno,      // error location
+'LINE': exc_tb.tb_lineno,             // error location
+'FATAL': restart_program,             // if the error crashed the program
 'TRACEBACK': trace_back_msg,          // error message
 'MAC': MAC                            // error unqiueness
 ```
-In addition, MAC and IP are sent to me on every startup
-- MAC so that I know how many users
+In addition, I collect MAC and IP addresses in a Google Excel Sheet.
+Only I have access to this data, I will NEVER give it to anyone else.
+- MAC so that I know how many users (450+)
 - IP because I plan on plotting points on a map (for my curiosity)
-- Only I have access to this data, I will never give it anyone else.
 
 ## UI Keyboard Shortcuts
 There exists keyboard shortcuts. I will finish this table later.
@@ -75,12 +76,10 @@ Note that the progress bar and the volume slider can be controlled via scrolling
 
 ## Build Instructions
 1. Have Python 3.6.x installed
-2. Have Visual Studio 2019 Installed
-3. `pip install -r requirements.txt`
-4. Make sure Python scripts folder is on PATH
-5. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH
-6. You may need to install the dependencies for `Music Caster Updater`
-7. run `build` or `build.py`
+2. `pip install -r requirements.txt`
+3. Make sure Python scripts folder is on PATH
+4. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH
+5. run `build` or `build.py`
 
 ## Credits
 - default album art made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
