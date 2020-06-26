@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.50.1
 - [Optimization] Threaded file selection windows
+- [Fix] Play Folder
 
 4.50.0
 - [Feature] Music library will build in the background

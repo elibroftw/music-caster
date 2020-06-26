@@ -858,7 +858,7 @@ try:
             next_song()
 
     def select_and_play_folder():
-        dlg = wx.FileDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() != wx.ID_CANCEL:
             path_to_folder = dlg.GetPath()
             play_folder([path_to_folder])
