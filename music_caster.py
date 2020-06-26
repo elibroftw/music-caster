@@ -1,10 +1,10 @@
-VERSION = '4.50.1'
+VERSION = '4.50.2'
 UPDATE_MESSAGE = """
 [Feature] Music Library Built in Background
 [Feature] Added "Refresh Library" to tray
 [Optimization] Threaded file selection windows
 """
-if __name__ != '__main__': raise RuntimeError(VERSION)  # dirty hack :)
+if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 
 import base64
 import os
@@ -364,7 +364,6 @@ load_settings_thread.start()
 init_pygame_thread = threading.Thread(target=init_pygame, daemon=True)
 init_pygame_thread.start()
 exit_program = False
-DEBUG = settings.get('DEBUG', False)
 if is_already_running():  # ~0.8 seconds
     r_text, exit_program = '', True
     while PORT <= 2005 and not r_text:
@@ -374,6 +373,7 @@ if is_already_running():  # ~0.8 seconds
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
 load_settings_thread.join()
+DEBUG = settings.get('DEBUG', False)
 if exit_program and not DEBUG: sys.exit()
 try:
     if settings['auto_update']:
@@ -1063,13 +1063,9 @@ try:
         elif os.path.isdir(file_or_dir): play_folder([file_or_dir])
     if settings.get('DEBUG', False):
         print('Running in tray')
-    while __name__ == '__main__':
+    while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
-        if tray_item == 'Refresh Library':
-            compile_all_songs()
-        elif tray_item == 'Refresh Devices':
-            threading.Thread(target=start_chromecast_discovery, daemon=True).start()
-        elif '__ACTIVATED__' in {tray_item, daemon_command}:
+        if '__ACTIVATED__' in {tray_item, daemon_command}:
             if not active_windows['main']:
                 active_windows['main'] = True
                 repeat_setting = settings['repeat']
@@ -1103,6 +1099,8 @@ try:
                 set_save_position_callback(main_window, 'main')
             main_window.TKroot.focus_force()
             main_window.Normal()
+        elif tray_item == 'Refresh Library': compile_all_songs()
+        elif tray_item == 'Refresh Devices': threading.Thread(target=start_chromecast_discovery, daemon=True).start()
         elif tray_item.split('.')[0].isdigit():  # if user selected a different device
             i = device_names.index(tray_item)
             if i == 0: new_cast = None

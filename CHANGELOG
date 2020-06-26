@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.50.2
+- [Fix] Startup error
+
 4.50.1
 - [Optimization] Threaded file selection windows
 - [Fix] Play Folder
