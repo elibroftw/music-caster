@@ -1,3 +1,11 @@
+VERSION = '4.50.1'
+UPDATE_MESSAGE = """
+[Feature] Music Library Built in Background
+[Feature] Added "Refresh Library" to tray
+[Optimization] Threaded file selection windows
+"""
+if __name__ != '__main__': raise RuntimeError(VERSION)  # dirty hack :)
+
 import base64
 import os
 import platform
@@ -68,14 +76,8 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.50.1'
-MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
-UPDATE_MESSAGE = """
-[Feature] Music Library Built in Background
-[Feature] Added "Refresh Library" to tray
-[Optimization] Threaded file selection windows
-"""
+MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid4())
 show_pygame_error = variable_exception_sent = update_devices = open_pl_selector = update_progress_text = False
@@ -362,6 +364,7 @@ load_settings_thread.start()
 init_pygame_thread = threading.Thread(target=init_pygame, daemon=True)
 init_pygame_thread.start()
 exit_program = False
+DEBUG = settings.get('DEBUG', False)
 if is_already_running():  # ~0.8 seconds
     r_text, exit_program = '', True
     while PORT <= 2005 and not r_text:
@@ -371,7 +374,7 @@ if is_already_running():  # ~0.8 seconds
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
         PORT += 1
 load_settings_thread.join()
-if exit_program and not settings.get('DEBUG', False): sys.exit()
+if exit_program and not DEBUG: sys.exit()
 try:
     if settings['auto_update']:
         with suppress(requests.ConnectionError):
@@ -381,19 +384,18 @@ try:
             for entry in release_entries:
                 latest_ver = entry.find('a', class_='muted-link css-truncate')['title'][1:]
                 release_type = entry.find('span').text.strip()
-                if release_type == 'Latest release' or settings.get('EXPERIMENTAL', False): break
+                if release_type == 'Latest release' or settings['EXPERIMENTAL']: break
             major, minor, patch = (int(x) for x in VERSION.split('.'))
             latest_major, latest_minor, latest_patch = (int(x) for x in latest_ver.split('.'))
-            if (latest_major > major or latest_major == major and latest_minor > minor
+            if (DEBUG or latest_major > major or latest_major == major and latest_minor > minor
                     or latest_major == major and latest_minor == minor and latest_patch > patch):
-                details = entry.find('details',
-                                     class_='details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4')
+                DETAILS_CLASS = 'details-reset Details-element border-top pt-3 mt-4 mb-2 mb-md-4'
+                details = entry.find('details', class_=DETAILS_CLASS)
                 download_links = [link['href'] for link in details.find_all('a') if link.get('href')]
                 setup_download_link = f'https://github.com{download_links[0]}'
                 os.chdir(starting_dir)
                 tray = SgWx.SystemTray(menu=['File', []], data_base64=UNFILLED_ICON, tooltip='Music Caster')
-                if settings.get('DEBUG'):
-                    print('Installer Link:', setup_download_link)
+                if DEBUG: print('Installer Link:', setup_download_link)
                 elif IS_FROZEN and os.path.exists('unins000.exe') or os.path.exists('Updater.exe'):
                     tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
                     tray.Update(tooltip=f'Downloading update v{latest_ver}')
@@ -410,8 +412,9 @@ try:
                             exit_program = False
                     tray.Hide()
                     if exit_program: sys.exit()
-                tray.ShowMessage('Music Caster', f'Update v{latest_ver} Available')
-                time.sleep(2)
+                if not DEBUG:
+                    tray.ShowMessage('Music Caster', f'Update v{latest_ver} Available')
+                    time.sleep(2)
                 tray.Close()
 except Exception as e:
     handle_exception(e)
@@ -603,7 +606,6 @@ try:
                     break
                 except OSError: PORT += 1
             else: PORT += 1
-
     repeat_setting = settings['repeat']
     repeat_menu = ['Repeat All ✓' if repeat_setting is False else 'Repeat All',
                    'Repeat One ✓' if repeat_setting else 'Repeat One',
@@ -903,7 +905,6 @@ try:
             if start_playing and music_queue: play(music_queue[0])
         if main_window is not None: main_window.TKroot.focus_force()
 
-
     def update_song_position():
         global tray, song_position, cast, mc
         if cast is not None:
@@ -1056,7 +1057,7 @@ try:
         elif os.path.isdir(file_or_dir): play_folder([file_or_dir])
     if settings.get('DEBUG', False):
         print('Running in tray')
-    while True:
+    while __name__ == '__main__':
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
         if tray_item == 'Refresh Library':
             compile_all_songs()
