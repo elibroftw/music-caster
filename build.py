@@ -16,8 +16,8 @@ YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster x64 Setup'
 # https://stackoverflow.com/questions/418896/how-to-redirect-output-to-a-file-and-stdout
 shutil.rmtree('dist/Music Caster', True)
-os.remove('dist/Music Caster.exe')
-os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
+with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
+with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
