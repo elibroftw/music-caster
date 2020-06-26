@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.51.1
+- [Fix] Main window closing after canceling queue file
+
 4.51.0
 - [Feature] Populate queue on startup
 - [Feature] Save queue between sessions

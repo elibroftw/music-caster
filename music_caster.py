@@ -1,4 +1,4 @@
-VERSION = '4.51.0'
+VERSION = '4.51.1'
 UPDATE_MESSAGE = """
 [Feature] Populate queue on startup
 [Feature] Save queue between sessions
@@ -1519,7 +1519,7 @@ try:
             if update_text or update_lb_mq:
                 lb_music_queue_songs = create_songs_list(music_queue, done_queue, next_queue)[0]
                 lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
-
+            main_last_event = main_event
         # SETTINGS WINDOW
         if active_windows['settings']:
             settings_event, settings_values = settings_window.Read(timeout=10)
