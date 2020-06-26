@@ -1,8 +1,7 @@
-VERSION = '4.50.2'
+VERSION = '4.51.0'
 UPDATE_MESSAGE = """
-[Feature] Music Library Built in Background
-[Feature] Added "Refresh Library" to tray
-[Optimization] Threaded file selection windows
+[Feature] Populate queue on startup
+[Feature] Save queue between sessions
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 
@@ -80,7 +79,7 @@ EMAIL = 'elijahllopezz@gmail.com'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid4())
-show_pygame_error = variable_exception_sent = update_devices = open_pl_selector = update_progress_text = False
+show_pygame_error = variable_exception_sent = update_devices = open_pl_selector = update_progress_text = settings_file_in_use = False
 settings_last_modified, last_press = 0, time.time()
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
@@ -101,20 +100,26 @@ settings_file = f'{starting_dir}/settings.json'
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
-    'discord_rpc': False, 'save_window_positions': True, 'default_file_handler': True,
+    'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
+    'default_file_handler': True, 'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
     'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000', 'background_color': '#121212',
-    'volume': 100, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-    'volume_delta': 5, 'muted': False, 'scrubbing_delta': 5, 'music_directories': [home_music_dir], 'playlists': {}}
+    'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+    'music_directories': [home_music_dir], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
 # noinspection PyTypeChecker
 compiling_songs_thread: threading.Thread = None
+# noinspection PyTypeChecker
+save_queue_thread: threading.Thread = None
 
 
-def save_json():
-    global settings, settings_file
-    with open(settings_file, 'w') as outfile:
-        json.dump(settings, outfile, indent=4)
+def save_settings():
+    global settings, settings_file, settings_file_in_use
+    if not settings_file_in_use:
+        settings_file_in_use = True
+        with open(settings_file, 'w') as outfile:
+            json.dump(settings, outfile, indent=4)
+        settings_file_in_use = False
 
 
 def refresh_folders():
@@ -137,7 +142,7 @@ def change_settings(settings_key, new_value):
     global settings, active_windows, tray
     if settings[settings_key] == new_value: return new_value
     settings[settings_key] = new_value
-    save_json()
+    save_settings()
     if settings_key == 'repeat':
         repeat_menu[0] = 'Repeat All ✓' if new_value is False else 'Repeat All'
         repeat_menu[1] = 'Repeat One ✓' if new_value else 'Repeat One'
@@ -161,6 +166,20 @@ def change_settings(settings_key, new_value):
             elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One')
             else: tray.ShowMessage('Music Caster', 'Repeat set to All')
     return new_value
+
+
+def save_queues():
+    global save_queue_thread, settings
+
+    def _save_queue():
+        settings['queues']['done'] = done_queue
+        settings['queues']['music'] = music_queue
+        settings['queues']['next'] = next_queue
+        save_settings()
+
+    if save_queue_thread is None or not save_queue_thread.isAlive():
+        save_queue_thread = threading.Thread(target=_save_queue)
+        save_queue_thread.start()
 
 
 def update_volume(new_vol):
@@ -278,15 +297,17 @@ def set_save_position_callback(window: Sg.Window, _key):
     def save_window_position(event):
         if event.widget is window.TKroot:
             window_locations[_key] = window.CurrentLocation()
-            save_json()
+            save_settings()
     window.TKroot.bind('<Destroy>', save_window_position)
 
 
 def load_settings():
     """load (and fix if needed) the settings file"""
     global settings, playlists, notifications_enabled, music_directories,\
-        DEFAULT_DIR, settings_last_loaded, window_locations
-    if os.path.exists(settings_file):
+        DEFAULT_DIR, settings_last_loaded, window_locations, settings_file_in_use
+    if settings_file_in_use: return
+    elif os.path.exists(settings_file):
+        settings_file_in_use = True
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
             except json.decoder.JSONDecodeError: loaded_settings = {}
@@ -311,8 +332,9 @@ def load_settings():
                 compile_all_songs()
                 refresh_folders()
             DEFAULT_DIR = music_directories[0]
-        if save_settings: save_json()
-    else: save_json()
+        settings_file_in_use = False
+        if save_settings: save_settings()
+    else: save_settings()
     settings_last_loaded = time.time()
 
 
@@ -431,7 +453,7 @@ app = Flask(__name__)
 
 # use socket io?
 @app.route('/')
-def home():  # web GUI
+def index():  # web GUI
     global music_queue, playing_status, all_songs, daemon_command
     if request.args:
         if 'play' in request.args:
@@ -462,7 +484,7 @@ def home():  # web GUI
         el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
     _queue = create_songs_list(music_queue, done_queue, next_queue)[0]
-    return render_template('home.html', device_name=platform.node(), shuffle=shuffle_option, settings=settings, art=art,
+    return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, settings=settings, art=art,
                            main_button='pause' if playing_status == 'PLAYING' else 'play', repeat_color=repeat_color,
                            repeat_option=repeat_option, queue=_queue, metadata=_metadata, list_of_songs=list_of_songs)
 
@@ -814,13 +836,15 @@ try:
         if autoplay:
             playing_status = 'PLAYING'
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
+        else: tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
         cast_last_checked = time.time()
+        if settings['save_queue_sessions']: save_queues()
         if settings['discord_rpc']:
             with suppress(AttributeError, pypresence.InvalidID):
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Listening', small_image='logo', small_text='Music Caster')
 
-    def play_all(starting_files: list = None):
+    def play_all(starting_files: list = None, autoplay=True):
         global playing_status, compiling_songs_thread
         music_queue.clear()
         done_queue.clear()
@@ -836,8 +860,7 @@ try:
             for j, _f in enumerate(starting_files):
                 music_queue.insert(j, _f)
         if music_queue:
-            play(music_queue[0])
-            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+            play(music_queue[0], autoplay=autoplay)
         elif next_queue:
             playing_status = 'PLAYING'
             next_song()
@@ -850,9 +873,7 @@ try:
             for _file in glob(f'{_folder}/**/*.*', recursive=True):
                 if valid_music_file(_file): music_queue.append(_file)
         if settings['shuffle_playlists']: shuffle(music_queue)
-        if music_queue:
-            play(music_queue[0])
-            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+        if music_queue: play(music_queue[0])
         elif next_queue:
             playing_status = 'PLAYING'
             next_song()
@@ -1061,8 +1082,16 @@ try:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play(file_or_dir)
         elif os.path.isdir(file_or_dir): play_folder([file_or_dir])
-    if settings.get('DEBUG', False):
-        print('Running in tray')
+    elif settings['save_queue_sessions']:
+        queues = settings['queues']
+        done_queue.extend(queues.get('done', []))
+        music_queue.extend(queues.get('music', []))
+        next_queue.extend(queues.get('next', []))
+    elif settings['populate_queue_startup']:
+        compiling_songs_thread.join()
+        play_all(autoplay=False)
+    if settings.get('DEBUG', False): print('Running in tray')
+
     while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
         if '__ACTIVATED__' in {tray_item, daemon_command}:
@@ -1176,7 +1205,6 @@ try:
                 done_queue.clear()
                 if settings['shuffle_playlists']: shuffle(music_queue)
                 play(music_queue[0])
-                tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         elif tray_item.startswith('PF: '):  # play folder
             if tray_item == 'PF: Select Folder(s)': threading.Thread(target=select_and_play_folder).start()
             else: play_folder([music_directories[tray_folders.index(tray_item) - 1]])
@@ -1504,12 +1532,15 @@ try:
             if settings_event == 'email':
                 webbrowser.open(f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}')
             if settings_event == 'web_gui':
-                webbrowser.open(f'http://{get_ipv4()}:{PORT}')
-            elif settings_event in {'auto_update', 'discord_rpc', 'notifications', 'run_on_startup',
-                                    'shuffle_playlists', 'save_window_positions'}:
+                webbrowser.open(f'http://{socket.gethostname()}:{PORT}')
+            elif settings_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
+                                    'shuffle_playlists', 'save_window_positions', 'populate_queue_startup', 'save_queue_sessions'}:
                 change_settings(settings_event, settings_value)
                 if settings_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
                 elif settings_event == 'notifications': notifications_enabled = settings_value
+                elif settings_event == 'save_queue_sessions':
+                    if settings_value: save_queues()
+                    else: change_settings('queues', {'done': [], 'music': [], 'next': []})
                 elif settings_event == 'discord_rpc':
                     with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                         if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
@@ -1524,14 +1555,14 @@ try:
                     music_directories.remove(selected_item)
                     settings_window['music_dirs'].Update(music_directories)
                     refresh_tray()
-                    save_json()
+                    save_settings()
                     compile_all_songs()
             elif settings_event == 'add_folder':
                 if settings_value not in music_directories and os.path.exists(settings_value):
                     music_directories.append(settings_value)
                     settings_window['music_dirs'].Update(music_directories)
                     refresh_tray()
-                    save_json()
+                    save_settings()
                     compile_all_songs()
             elif settings_event == 'settings_file':
                 try: os.startfile(settings_file)
@@ -1556,13 +1587,13 @@ try:
                 pl_selector_window.Read(timeout=10)
                 pl_selector_window.TKroot.focus_force()
                 pl_selector_window.Normal()
-                save_json()
+                save_settings()
                 tray_playlists.clear()
                 tray_playlists.append('Create/Edit a Playlist')
                 tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-                if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-                elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-                else: tray.Update(menu=menu_def_1)
+                # if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+                # elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+                # else: tray.Update(menu=menu_def_1)
             elif pl_selector_event in {'edit_pl', 'create_pl', 'e', 'n', 'e:69', 'n:78'}:
                 if pl_selector_event in {'edit_pl', 'e', 'e:69'}: pl_name = pl_selector_values.get('pl_selector', '')
                 else: pl_name = ''
@@ -1597,16 +1628,16 @@ try:
                     if pl_name in playlists: del playlists[pl_name]
                     pl_name = new_name
                 playlists[pl_name] = pl_files
-                save_json()
+                save_settings()
                 active_windows['playlist_editor'] = False
                 pl_editor_window.Close()
                 open_pl_selector = True
                 tray_playlists.clear()
                 tray_playlists.append('Create/Edit a Playlist')
                 tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-                if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-                elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-                else: tray.Update(menu=menu_def_1)
+                # if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
+                # elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
+                # else: tray.Update(menu=menu_def_1)
             elif pl_editor_event in {'move_up', 'u:85'}:  # u:85 is Ctrl + U
                 if pl_editor_values['songs']:
                     to_move = pl_editor_window['songs'].GetListValues().index(pl_editor_values['songs'][0])

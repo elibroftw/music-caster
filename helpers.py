@@ -13,6 +13,13 @@ import subprocess
 import threading
 import re
 import pychromecast
+import mutagen
+# noinspection PyProtectedMember
+from mutagen.id3 import ID3NoHeaderError
+# noinspection PyProtectedMember
+from mutagen.mp3 import HeaderNotFoundError
+from mutagen.easyid3 import EasyID3
+from wavinfo import WavInfoReader  # until mutagen supports .wav
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 # FUTURE: C++ JPG TO PNG
@@ -35,6 +42,24 @@ def timing(f):
         print(f'{f.__name__} ELAPSED TIME:', time.time() - _start)
         return result
     return wrapper
+
+
+def _get_metadata(file_path: str) -> tuple:  # title, artist, album
+    file_path = file_path.lower()
+    _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+    try:
+        if file_path.endswith('.mp3'): audio = EasyID3(file_path)
+        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'): audio = EasyMP4(file_path)
+        elif file_path.endswith('.wav'):
+            a = WavInfoReader(file_path).info.to_dict()
+            audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
+        elif file_path.endswith('.wma'): audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
+        else: audio = mutagen.File(file_path)
+        _title = audio.get('title', ['Unknown Title'])[0]
+        _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
+        _album = audio.get('album', ['Unknown Album'])[0]
+    except (ID3NoHeaderError, HeaderNotFoundError): pass
+    return _title, _artist, _album
 
 
 def fix_path(path, by_os=True):
@@ -246,13 +271,13 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     # Music Queue layout
     songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     mq_controls = [
-        [Sg.Button('▲', key='move_up', pad=(2, 5), tooltip='Move song up the queue')],
-        [Sg.Button('❌', key='remove', pad=(0, 5), tooltip='Remove song from the queue')],
-        [Sg.Button('▼', key='move_down', pad=(2, 5), tooltip='Move song down the queue')]]
+        [Sg.Button('▲', key='move_up', tooltip='Move song up the queue', size=(3, 1))],
+        [Sg.Button('❌', key='remove', tooltip='Remove song from the queue', size=(3, 1))],
+        [Sg.Button('▼', key='move_down', tooltip='Move song down the queue', size=(3, 1))]]
     q_controls1 = [
-        Sg.Button('Queue File(s)...', font=font_normal, key='queue_file', pad=(5, 5)),
-        Sg.Button('Queue Folder...', font=font_normal, key='queue_folder', pad=(5, 5)),
-        Sg.Button('Play Next...', font=font_normal, key='play_next', pad=(5, 5)),
+        Sg.Button('Queue File(s)', font=font_normal, key='queue_file', pad=(5, 5)),
+        Sg.Button('Queue Folder', font=font_normal, key='queue_folder', pad=(5, 5)),
+        Sg.Button('Play Next', font=font_normal, key='play_next', pad=(5, 5)),
         Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(5, 5)),
         Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(5, 5),
                   tooltip='Show selected file in explorer')]
@@ -274,22 +299,28 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
 def create_settings(version, music_directories, settings, qr_code_data):
     checkbox_col = Sg.Column([
         [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', text_color=fg,
-                     background_color=bg, font=font_normal, enable_events=True, size=(17, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(20, None),
                      pad=((0, 5), (5, 5))),
          Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(13, None),
                      pad=((0, 5), (5, 5)))],
         [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications',
-                     text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(17, None),
+                     text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(20, None),
                      pad=((0, 5), (5, 5))),
          Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup', text_color=fg,
                      background_color=bg, font=font_normal, enable_events=True, size=(13, None),
                      pad=((0, 5), (5, 5)))],
         [Sg.Checkbox('Save Window Positions', default=settings['save_window_positions'],
-                     key='save_window_positions', size=(17, None), text_color=fg, background_color=bg, font=font_normal,
+                     key='save_window_positions', size=(20, None), text_color=fg, background_color=bg, font=font_normal,
                      enable_events=True, pad=((0, 5), (5, 5))),
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
                      text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     pad=((0, 5), (5, 5)))],
+        [Sg.Checkbox('Populate Queue on Startup', default=settings['populate_queue_startup'], tooltip='Populates Queue From Folders on Startup',
+                     key='populate_queue_startup', size=(20, None), text_color=fg, background_color=bg, font=font_normal,
+                     enable_events=True, pad=((0, 5), (5, 5))),
+         Sg.Checkbox('Save Queue Between Sessions', default=settings['save_queue_sessions'], key='save_queue_sessions',
+                     text_color=fg, background_color=bg, font=font_normal, enable_events=True, size=(23, None),
                      pad=((0, 5), (5, 5)))]
         ], pad=((0, 0), (5, 0)))
     qr_code_col = Sg.Column([
@@ -302,13 +333,13 @@ def create_settings(version, music_directories, settings, qr_code_data):
         [checkbox_col, qr_code_col],
         # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
         #            enable_events=True, background_color=ACCENT_COLOR, text_color='#000000', size=(49, 15))],
-        [Sg.Listbox(music_directories, size=(40, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        [Sg.Listbox(music_directories, size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
          Sg.Frame('', [
-             [Sg.Button('Remove Folder', key='remove_folder', enable_events=True, font=font_normal)],
-             [Sg.FolderBrowse('Add Music Folder', font=font_normal, enable_events=True, key='add_folder')],
-             [Sg.Button('Open settings.json', key='settings_file', font=font_normal,
-                        enable_events=True)]], background_color=bg, border_width=0)]]
+             [Sg.Button('Remove Folder', key='remove_folder', enable_events=True, font=font_normal, size=(15, 1))],
+             [Sg.FolderBrowse('Add Music Folder', font=font_normal, enable_events=True, key='add_folder', size=(15, 1))],
+             [Sg.Button('Open settings.json', key='settings_file', font=font_normal, enable_events=True, size=(15, 1))]],
+              background_color=bg, border_width=0)]]
     return layout
 
 

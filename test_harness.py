@@ -1,10 +1,12 @@
 from helpers import *
 import base64
 from mutagen.easyid3 import EasyID3
+from contextlib import suppress
 import mutagen.id3
-from music_caster import get_metadata
+from helpers import _get_metadata
 
-MUSIC_FILE_WITH_ALBUM_ART = r'C:\Users\maste\OneDrive\Music\deadmau5 - Faxing Berlin (Radio Edit).mp'
+# TODO
+MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
 # MUSIC_FILE_WITHOUT_ALBUM_ART = r''
 SAMPLE_MUSIC_FILES = [
     r"C:\Users\maste\OneDrive\Music\Dreamville, J. Cole, Lute, DaBaby - Under The Sun.mp3",
@@ -33,12 +35,13 @@ SAMPLE_MUSIC_FILES = [
     r"C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3"]
 
 for file in SAMPLE_MUSIC_FILES:
-    assert len(get_metadata(file)) == 3
+    with suppress(mutagen.MutagenError):
+        assert len(_get_metadata(file)) == 3
 
 file_path = MUSIC_FILE_WITH_ALBUM_ART
 audio_info = mutagen.File(file_path).info
 song_length = audio_info.length
-_title, _artist, _album = get_metadata(file_path)
+_title, _artist, _album = _get_metadata(file_path)
 pict = None
 try:
     tags = mutagen.id3.ID3(file_path)
@@ -53,26 +56,26 @@ for tag in tags.keys():
 music_meta_data = {}
 
 if pict:
-    music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
-                                  'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
+    music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': _album, 'length': song_length,
+                                  'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 else:
     music_meta_data[file_path] = {
-        'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
-music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
-                                              'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
+        'artist': _artist, 'title': _title, 'album': _album, 'length': song_length}
+music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {'artist': _artist, 'title': _title, 'album': _album, 'length': song_length,
+                                              'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 metadata = music_meta_data[file_path]
 artist, title = metadata['artist'].split(', ')[0], metadata['title']
-new_playing_text = f'{artist} - {title}'
-album_cover_data = metadata.get('album_cover_data', None)
+now_playing_text = f'{artist} - {title}'
+album_cover_data = metadata.get('art', None)
 done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]
 music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
+s = {'muted': False, 'volume': 50, 'repeat': False}
 playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'PLAYING',
-                                 47, False, {}, new_playing_text,
-                                 album_cover_data=album_cover_data)
+                                 s, now_playing_text, album_cover_data)
 #
-not_playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'NOT PLAYING',
-                                     47, True, {})
+not_playing_layout = create_main_gui(music_queue, done_queue, next_queue, 'PLAYING',
+                                 s, now_playing_text)
 # Sg.Window('Main GUI', playing_layout)
 main_window1 = Sg.Window('Music Caster', playing_layout, background_color=bg, icon=WINDOW_ICON,
                          return_keyboard_events=True, use_default_focus=False)

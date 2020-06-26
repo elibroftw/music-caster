@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.51.0
+- [Feature] Populate queue on startup
+- [Feature] Save queue between sessions
+
 4.50.2
 - [Fix] Startup error
 
