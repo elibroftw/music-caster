@@ -69,7 +69,7 @@ except FileNotFoundError: s4 = None
 s1.wait()
 
 
-files = ['images/default.png', 'static/style.css', 'templates/home.html']
+files = ['images/default.png', 'static/style.css', 'templates/index.html']
 for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(_dir)
 
@@ -80,7 +80,7 @@ with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Music Caster.exe', 'Music Caster.exe')
     zf.write('dist/Updater.exe', 'Updater.exe')
     zf.write('resources/default.png', 'images/default.png')
-    zf.write('templates/home.html')
+    zf.write('templates/index.html')
     zf.write('static/style.css')
     zf.write('CHANGELOG', 'CHANGELOG.txt')
     # for f in glob.glob(r'Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1\*.*'):
@@ -95,7 +95,7 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('updater.py')
     zf.write('resources/Music Caster.ico', 'icon.ico')
     zf.write('resources/default.png', 'images/default.png')
-    zf.write('templates/home.html')
+    zf.write('templates/index.html')
     zf.write('static/style.css')
     zf.write('requirements.txt')
     zf.write('settings.json')
