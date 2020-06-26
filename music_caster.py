@@ -68,11 +68,11 @@ import winshell
 
 
 # TODO: Refactoring. Move all constants and functions to before the try-except
-VERSION = '4.49.5'
+VERSION = '4.50.0'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 UPDATE_MESSAGE = """
-[Feature] Added do nothing to timer
+[Feature] Music Library Built in Background
 """
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid4())
@@ -103,6 +103,8 @@ settings = {  # default settings
     'volume_delta': 5, 'muted': False, 'scrubbing_delta': 5, 'music_directories': [home_music_dir], 'playlists': {}}
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
+# noinspection PyTypeChecker
+compiling_songs_thread: threading.Thread = None
 
 
 def save_json():
@@ -224,28 +226,37 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
     return _title, _artist, _album
 
 
-def compile_all_songs(update_global=True, ignore_files: list = None) -> dict:
-    # TODO: instead of calling this function, thread it and
-    #  call .join() if you need to use all_songs
-    #  and use a lock
-    # song_compilation_lock = threading.Lock()
-    global all_songs
+def compile_all_songs(update_global=True, ignore_files: list = None):
+    # returns the music library dict or starts building the library
+    global compiling_songs_thread, all_songs
     if ignore_files is None: ignore_files = []
+
+    def _compile_songs():
+        global all_songs
+        use_temp = not not all_songs
+        all_songs_temp = {}
+        for directory in music_directories:
+            for _file in glob(f'{directory}/**/*.*', recursive=True):
+                _file = _file.replace('\\', '/')
+                if _file not in ignore_files and valid_music_file(_file):
+                    _file_info = ' - '.join(get_metadata(_file)[:2])
+                    if use_temp: all_songs_temp[_file_info] = _file
+                    else: all_songs[_file_info] = _file
+        if use_temp: all_songs = all_songs_temp.copy()
+
     if not update_global:
         temp_songs = all_songs.copy()
         if ignore_files:
-            for _file in ignore_files:
-                file_info = get_metadata(_file)[:2]
+            for ignore_file in ignore_files:
+                file_info = get_metadata(ignore_file)[:2]
                 temp_songs.pop(' - '.join(file_info), None)
         return temp_songs
-    all_songs.clear()
-    for directory in music_directories:
-        for _file in glob(f'{directory}/**/*.*', recursive=True):
-            _file = _file.replace('\\', '/')
-            if _file not in ignore_files and valid_music_file(_file):
-                file_info = ' - '.join(get_metadata(_file)[:2])
-                all_songs[file_info] = _file
-    return all_songs
+    if compiling_songs_thread is None:
+        compiling_songs_thread = threading.Thread(target=_compile_songs, daemon=True)
+        compiling_songs_thread.start()
+    elif not compiling_songs_thread.is_alive():
+        compiling_songs_thread = threading.Thread(target=_compile_songs, daemon=True)
+        compiling_songs_thread.start()
 
 
 def download(url, outfile):
@@ -596,39 +607,25 @@ try:
                    'Repeat One ✓' if repeat_setting else 'Repeat One',
                    'Repeat Off ✓' if repeat_setting is None else 'Repeat Off']
 
+    menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
+    menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
+                        'Play All'], 'Controls',
+                       ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
+                        'Pause'], 'Exit']]
+    menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
+                        'Play All'], 'Controls',
+                       ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
+                        'Resume'], 'Exit']]
     if settings['EXPERIMENTAL']:
-        menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'],
-                           'Exit']]
-        menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
-                            'Play File Next', 'Play All'], 'Controls',
-                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
-                            'Pause'], 'Exit']]
-        menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
-                            'Play File Next', 'Play All'], 'Controls',
-                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
-                            'Resume'], 'Exit']]
-    else:
-        menu_def_1 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
-        menu_def_2 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                            'Play All'], 'Controls',
-                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
-                            'Pause'], 'Exit']]
-        menu_def_3 = ['', ['Settings', 'Refresh Devices', 'Select Device', device_names,
-                           'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                           ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                            'Play All'], 'Controls',
-                           ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
-                            'Resume'], 'Exit']]
+        menu_def_1[1][8].insert(0, 'URL')
+        menu_def_2[1][8].insert(0, 'URL')
+        menu_def_3[1][8].insert(0, 'URL')
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
@@ -820,11 +817,14 @@ try:
                                      large_text='Listening', small_image='logo', small_text='Music Caster')
 
     def play_all(starting_files: list = None):
-        global playing_status
+        global playing_status, compiling_songs_thread
         music_queue.clear()
         done_queue.clear()
         if starting_files is None: starting_files = []
         starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
+        if compiling_songs_thread is not None and compiling_songs_thread.is_alive():
+            if settings['notifications']:
+                tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built')
         if starting_files: music_queue.extend(compile_all_songs(False, starting_files).values())
         else: music_queue.extend(all_songs.values())
         if music_queue: shuffle(music_queue)
@@ -1021,9 +1021,11 @@ try:
         print('Running in tray')
     while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
-        if tray_item == 'Refresh Devices':
+        if tray_item == 'Refresh Library':
+            compile_all_songs()
+        elif tray_item == 'Refresh Devices':
             threading.Thread(target=start_chromecast_discovery, daemon=True).start()
-        if '__ACTIVATED__' in {tray_item, daemon_command}:
+        elif '__ACTIVATED__' in {tray_item, daemon_command}:
             if not active_windows['main']:
                 active_windows['main'] = True
                 repeat_setting = settings['repeat']

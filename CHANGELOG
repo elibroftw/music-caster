@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.50.0
+- [Feature] Music Library Built in Background
+- [Feature] Added "Refresh Library" to tray
+
 4.49.5
 - [Fix] Better update error handling
 
