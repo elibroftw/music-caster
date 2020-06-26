@@ -331,7 +331,8 @@ def create_timer(settings):
                   key='do_nothing', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
         [Sg.Text('Enter minutes or HH:MM',  tooltip='Press enter once done', text_color=fg, font=font_normal)],
-        [Sg.Input(key='minutes', font=font_normal), Sg.Submit(font=font_normal)]]
+        [Sg.Input(key='minutes', font=font_normal), Sg.Submit(font=font_normal)],
+        [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=font_normal, visible=False, key='error')]]
     return layout
 
 
