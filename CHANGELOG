@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.51.2
+- [Fix] Settings loading
+
 4.51.1
 - [Fix] Main window closing after canceling queue file
 
