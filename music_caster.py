@@ -1,4 +1,4 @@
-VERSION = '4.51.1'
+VERSION = '4.51.2'
 UPDATE_MESSAGE = """
 [Feature] Populate queue on startup
 [Feature] Save queue between sessions
@@ -311,13 +311,13 @@ def load_settings():
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
             except json.decoder.JSONDecodeError: loaded_settings = {}
-            save_settings = False
+            overwrite_settings = False
             for setting_name, setting_value in tuple(loaded_settings.items()):
                 loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
             for setting_name, setting_value in settings.items():
                 if setting_name not in loaded_settings:
                     loaded_settings[setting_name] = setting_value
-                    save_settings = True
+                    overwrite_settings = True
             settings = loaded_settings
             playlists = settings['playlists']
             tray_playlists.clear()  # global variable
@@ -333,7 +333,7 @@ def load_settings():
                 refresh_folders()
             DEFAULT_DIR = music_directories[0]
         settings_file_in_use = False
-        if save_settings: save_settings()
+        if overwrite_settings: save_settings()
     else: save_settings()
     settings_last_loaded = time.time()
 
@@ -1532,7 +1532,7 @@ try:
             if settings_event == 'email':
                 webbrowser.open(f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}')
             if settings_event == 'web_gui':
-                webbrowser.open(f'http://{socket.gethostname()}:{PORT}')
+                webbrowser.open(f'http://{get_ipv4()}:{PORT}')
             elif settings_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
                                     'shuffle_playlists', 'save_window_positions', 'populate_queue_startup', 'save_queue_sessions'}:
                 change_settings(settings_event, settings_value)
