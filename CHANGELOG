@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.51.3
 - [Optimization] Mainly Tray Optimizations
+- [UI] Swapped "Controls" and "Play" in the tray menu
 
 4.51.2
 - [Fix] Settings loading

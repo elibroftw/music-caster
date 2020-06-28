@@ -626,21 +626,21 @@ try:
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                        'Play All'], 'Controls',
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
-                        'Pause'], 'Exit']]
+                        'Pause'], 'Play',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
+                        'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                        'Play All'], 'Controls',
+                       'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
-                        'Resume'], 'Exit']]
+                        'Resume'], 'Play',
+                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
+                        'Play All'], 'Exit']]
     if settings['EXPERIMENTAL']:
         menu_def_1[1][8].insert(0, 'URL')
-        menu_def_2[1][8].insert(0, 'URL')
-        menu_def_3[1][8].insert(0, 'URL')
+        menu_def_2[1][10].insert(0, 'URL')
+        menu_def_3[1][10].insert(0, 'URL')
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
