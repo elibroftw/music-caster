@@ -12,6 +12,7 @@ except RuntimeError as e: VERSION = str(e)
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
+parser.add_argument('--nostart', default=False, action='store_true', help='Disable auto launch of MC after building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -22,6 +23,22 @@ with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+
+def update_spec_files(debug_option):
+    with open('mc_portable.spec', 'r+') as f:
+        new_spec = f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
+        f.seek(0)
+        f.write(new_spec)
+        f.truncate()
+    with open('mc_onedir.spec', 'r+') as f:
+        new_spec = f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
+        f.seek(0)
+        f.write(new_spec)
+        f.truncate()
+
 
 # UPDATE VERSIONS OF version file and installer script
 with open('mc_version_info.txt', 'r+') as f:
@@ -56,17 +73,7 @@ with open('setup_script.iss', 'r+') as f:
     f.writelines(lines)
     f.truncate()
 
-if args.debug:
-    with open('mc_portable.spec', 'r+') as f:
-        new_spec = f.read().replace('debug=False', 'debug=True').replace('console=False', 'console=True')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
-    with open('mc_onedir.spec', 'r+') as f:
-        new_spec = f.read().replace('debug=False', 'debug=True').replace('console=False', 'console=True')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
+if args.debug: update_spec_files(True)
 
 
 print('Installing dependencies...')
@@ -117,19 +124,10 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
-if s4 is not None: s4.wait()
-else: print('ERROR: could not create an installer: iscc not on path')
+if s4 is not None: s4.wait()  # Wait for inno script to finish
+else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
+if args.debug: update_spec_files(False)
 print('Build Time:', time.time() - start_time, 'seconds')
-print('Launching Music Caster.exe')
-subprocess.Popen(r'"dist\Music Caster.exe"')
-if args.debug:
-    with open('mc_portable.spec', 'r+') as f:
-        new_spec = f.read().replace('debug=True', 'debug=False').replace('console=True', 'console=False')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
-    with open('mc_onedir.spec', 'r+') as f:
-        new_spec = f.read().replace('debug=True', 'debug=False').replace('console=True', 'console=False')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
+if not args.nostart:
+    print('Launching Music Caster.exe')
+    subprocess.Popen(r'"dist\Music Caster.exe"')
