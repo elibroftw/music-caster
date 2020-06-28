@@ -29,6 +29,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 # Styling
 fg, bg = '#aaaaaa', '#121212'
 font_normal = 'SourceSans', 11
+font_playing_text = 'Helvetica', 14
 font_link = 'SourceSans', 11, 'underline'
 LINK_COLOR, ACCENT_COLOR = '#3ea6ff', '#00bfff'
 BUTTON_COLOR = ('#000000', ACCENT_COLOR)
@@ -227,7 +228,6 @@ def create_songs_list(music_queue, done_queue, next_queue):
 def create_main_gui(music_queue, done_queue, next_queue, playing_status, settings,
                     now_playing_text='Nothing Playing', album_cover_data=None):
     # TODO: Music Library Tab
-    # TODO: Play Folder option
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
@@ -261,8 +261,8 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
                             Sg.Text('00:00', font=font_normal, text_color=fg, key='time_left')]]
 
     # Now Playing layout
-    tab1_layout = [[Sg.Text(now_playing_text, font=font_normal, text_color=fg, key='now_playing',
-                            size=(55, 0))],
+    tab1_layout = [[Sg.Text(now_playing_text, font=font_playing_text, text_color=fg, key='now_playing',
+                            size=(55, 0), pad=((5, 5), (20, 0)))],
                    [Sg.Image(data=album_cover_data, pad=(0, 0), size=(50, 50),
                              key='album_cover')] if album_cover_data else [],
                    # [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover'),
@@ -283,9 +283,14 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
         Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(5, 5)),
         Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(5, 5),
                   tooltip='Show selected file in explorer')]
+    if settings['EXPERIMENTAL']:
+        q_controls1.insert(2, Sg.Button('Queue URL', font=font_normal, key='queue_url', pad=(5, 5)))
+        listbox_size = (64, 5)
+    else: listbox_size = (58, 5)
+
     tab2_layout = [q_controls1, [
-        Sg.Listbox(songs, default_values=selected_value, size=(58, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                   key='music_queue', background_color=bg, font=font_normal, bind_return_key=True),
+        Sg.Listbox(songs, default_values=selected_value, size=listbox_size, select_mode=Sg.SELECT_MODE_SINGLE,
+                   text_color=fg, key='music_queue', background_color=bg, font=font_normal, bind_return_key=True),
         Sg.Column(mq_controls, pad=(0, 5))]]
     # song_lib = sorted(all_songs.keys())
     # tab3_layout = [[

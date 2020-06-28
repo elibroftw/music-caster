@@ -226,7 +226,11 @@ def handle_exception(exception, restart_program=False):
 def get_metadata(file_path: str) -> tuple:  # title, artist, album
     global variable_exception_sent
     try:
-        return _get_metadata(file_path)
+        try:
+            return _get_metadata(file_path)
+        except mutagen.MutagenError:
+            metadata = music_metadata[file_path]
+            return metadata['title'], metadata['artist'], metadata['album']
     except Exception as _e:
         _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
         if not variable_exception_sent:
@@ -378,7 +382,7 @@ exit_program = False
 if is_already_running():  # ~0.8 seconds
     r_text, exit_program = '', True
     while PORT <= 2005 and not r_text:
-        with suppress(requests.exceptions.InvalidSchema):
+        with suppress(requests.exceptions.InvalidSchema, requests.exceptions.ConnectionError):
             if len(sys.argv) > 1:  # music file was opened with MC
                 r_text = requests.post(f'http://127.0.0.1:{PORT}/play/', data={'path': sys.argv[1]}).text
             else: r_text = requests.get(f'http://127.0.0.1:{PORT}/instance/').text
@@ -638,9 +642,9 @@ try:
                        ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                         'Play All'], 'Exit']]
     if settings['EXPERIMENTAL']:
-        menu_def_1[1][8].insert(0, 'URL')
-        menu_def_2[1][10].insert(0, 'URL')
-        menu_def_3[1][10].insert(0, 'URL')
+        menu_def_1[1][8].insert(0, 'Play URL')
+        menu_def_2[1][10].insert(0, 'Play URL')
+        menu_def_3[1][10].insert(0, 'Play URL')
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
@@ -693,7 +697,7 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
-    def play_url(url):
+    def play_url(url, position=0):
         global cast, playing_url, playing_status, song_length, song_start, song_end
         if cast is None:
             tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
@@ -715,7 +719,8 @@ try:
                 music_metadata[url] = {'title': _title, 'artist': _artist, 'album': r['album'],
                                        'length': song_length, 'art': r['thumbnail']}
                 metadata = {'metadataType': 3, 'albumName': r['album'], 'title': _title, 'artist': _artist}
-                mc.play_media(_f['url'], f'video/{_f["ext"]}', metadata=metadata, thumb=r['thumbnail'])
+                mc.play_media(_f['url'], f'video/{_f["ext"]}', metadata=metadata, thumb=r['thumbnail'],
+                              current_time=position)
                 mc.block_until_active()
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
                 song_start = time.time()
@@ -738,12 +743,14 @@ try:
     def play(file_path, position=0, autoplay=True, switching_device=False):
         global song_start, song_end, playing_status, song_length, song_position,\
             thumbs_dir, cast_last_checked, music_queue
+        song_position = position
         while not os.path.exists(file_path):
+            # TODO: check play_url() first
+            if play_url(file_path, position=song_position): return
             music_queue.remove(file_path)
             if music_queue: file_path = music_queue[0]
             else: return
-            position = 0
-        song_position = position
+            song_position = 0
         # named_tuple
         if file_path.lower().endswith('.wav'):
             a = WavInfoReader(file_path)
@@ -1070,7 +1077,6 @@ try:
         elif str(key) == '<178>': stop()
         last_press = time.time()
 
-
     def activate_main_window():
         global active_windows, main_window
         if not active_windows['main']:
@@ -1103,7 +1109,6 @@ try:
         main_window.TKroot.focus_force()
         main_window.Normal()
 
-
     def activate_settings():
         global settings_window
         if not active_windows['settings']:
@@ -1120,7 +1125,6 @@ try:
             set_save_position_callback(settings_window, 'settings')
         settings_window.TKroot.focus_force()
         settings_window.Normal()
-
 
     def create_edit_playlists():
         global active_windows, pl_selector_window
@@ -1139,7 +1143,6 @@ try:
         pl_selector_window.TKroot.focus_force()
         pl_selector_window.Normal()
 
-
     def activate_play_url():
         global play_url_window
         if not active_windows['play_url']:
@@ -1152,7 +1155,6 @@ try:
         play_url_window.TKroot.focus_force()
         play_url_window.Normal()
         play_url_window['url'].SetFocus()
-
 
     def activate_timer_window():
         global timer_window
@@ -1167,12 +1169,10 @@ try:
         timer_window.Normal()
         timer_window['minutes'].SetFocus()
 
-
     def cancel_timer():
         global timer
         timer = 0
         if settings['notifications']: tray.ShowMessage('Music Caster', 'Timer stopped')
-
 
     def locate_file():
         if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
@@ -1186,7 +1186,6 @@ try:
         with suppress(AttributeError, RuntimeError, pypresence.InvalidID):
             rich_presence.close()
         sys.exit()
-
 
     def other_tray_item(_tray_item):
         global timer, cast
@@ -1737,7 +1736,10 @@ try:
         elif play_url_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
             active_windows['play_url'] = False
             play_url_window.Close()
-            play_url(play_url_values['url'])
+            url_to_play = play_url_values['url']
+            music_queue.insert(0, url_to_play)
+            play(url_to_play)
+            # play_url(play_url_values['url'])
 
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     threading.Thread(target=background_tasks, daemon=True).start()
@@ -1755,10 +1757,7 @@ try:
         play_all(autoplay=False)
     if settings.get('DEBUG', False): print('Running in tray')
 
-    def not_playing_play():
-        if music_queue: play(music_queue[0])
-
-    pause_resume = {'PAUSED': resume, 'PLAYING': pause, 'NOT PLAYING': not_playing_play}
+    pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
         'Refresh Library': compile_all_songs,
@@ -1769,7 +1768,7 @@ try:
         # PL should be an if statement
         'Set Timer': activate_timer_window,
         'Cancel Timer': cancel_timer,
-        'URL': activate_play_url,
+        'Play URL': activate_play_url,
         'Play File(s)': lambda: threading.Thread(target=play_file).start(),
         'Play All': play_all,
         'Play File Next': lambda: threading.Thread(target=play_next).start(),
