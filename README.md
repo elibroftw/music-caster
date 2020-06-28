@@ -74,12 +74,13 @@ Note that the progress bar and the volume slider can be controlled via scrolling
 - The playlist setting follows the convention `{'PLAYLIST NAME': ['list of paths to files']}`
 - Some settings are there for the future and have no effect
 
-## Build Instructions
-1. Have Python 3.6.x installed
+## Development Guide
+1. Have Python >=3.6.8 installed
 2. `pip install -r requirements.txt`
 3. Make sure Python scripts folder is on PATH
 4. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH
 5. run `build` or `build.py`
+[Detailed guide](https://github.com/elibroftw/music-caster/wiki/Development-Guide)
 
 ## Credits
 - default album art made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)

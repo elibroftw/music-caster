@@ -91,7 +91,6 @@ try: s4 = subprocess.Popen('iscc setup_script.iss')
 except FileNotFoundError: s4 = None
 s1.wait()
 
-
 files = ['images/default.png', 'static/style.css', 'templates/index.html']
 for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(_dir)
@@ -121,7 +120,7 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('templates/index.html')
     zf.write('static/style.css')
     zf.write('requirements.txt')
-    zf.write('settings.json')
+    with suppress(FileNotFoundError): zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
 if s4 is not None: s4.wait()  # Wait for inno script to finish
