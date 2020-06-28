@@ -7,6 +7,7 @@ import socket
 import time
 from urllib.parse import urlparse, parse_qs
 import uuid
+
 from b64_images import *
 from subprocess import PIPE, DEVNULL
 import subprocess
@@ -19,6 +20,7 @@ from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
 from mutagen.mp3 import HeaderNotFoundError
 from mutagen.easyid3 import EasyID3
+from mutagen.easymp4 import EasyMP4
 from wavinfo import WavInfoReader  # until mutagen supports .wav
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
@@ -124,8 +126,8 @@ MUSIC_FILE_TYPES = 'Audio File (.mp3, .flac, .m4a, .mp4, .aac, .ogg, .opus, .wma
 def valid_music_file(file_path):
     file_path = file_path.lower()
     # NOTE: pygame only supports (mp3, oog, and wav)
-    return (file_path.endswith('.mp3') or file_path.endswith('.flac')
-            or file_path.endswith('.m4a') or file_path.endswith('.mp4') or file_path.endswith('.aac')
+    return (file_path.endswith('.mp3') or file_path.endswith('.flac') or file_path.endswith('.m4a')
+            or file_path.endswith('.mp4') or file_path.endswith('.aac')
             or file_path.endswith('.ogg') or file_path.endswith('.opus')
             or file_path.endswith('.wma') or file_path.endswith('.wav'))
 
