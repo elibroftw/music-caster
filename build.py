@@ -6,11 +6,13 @@ import zipfile
 import sys
 from contextlib import suppress
 from datetime import datetime
-try:
-    from music_caster import VERSION
-except RuntimeError as e:
-    VERSION = str(e)
+import argparse
+try: from music_caster import VERSION
+except RuntimeError as e: VERSION = str(e)
 
+parser = argparse.ArgumentParser(description='Music Caster Build Script')
+parser.add_argument('--debug', default=False, action='store_true')
+args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster x64 Setup'
@@ -20,10 +22,6 @@ with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-print('Installing dependencies...')
-subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-# subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" -t:restore')
 
 # UPDATE VERSIONS OF version file and installer script
 with open('mc_version_info.txt', 'r+') as f:
@@ -57,6 +55,24 @@ with open('setup_script.iss', 'r+') as f:
     f.seek(0)
     f.writelines(lines)
     f.truncate()
+
+if args.debug:
+    with open('mc_portable.spec', 'r+') as f:
+        new_spec = f.read().replace('debug=False', 'debug=True').replace('console=False', 'console=True')
+        f.seek(0)
+        f.write(new_spec)
+        f.truncate()
+    with open('mc_onedir.spec', 'r+') as f:
+        new_spec = f.read().replace('debug=False', 'debug=True').replace('console=False', 'console=True')
+        f.seek(0)
+        f.write(new_spec)
+        f.truncate()
+
+
+print('Installing dependencies...')
+subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+print(f'building executables with debug={args.debug}')
+# subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" -t:restore')
 
 s1 = subprocess.Popen('pyinstaller mc_portable.spec')
 # shutil.rmtree(r'Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1')
@@ -106,3 +122,14 @@ else: print('ERROR: could not create an installer: iscc not on path')
 print('Build Time:', time.time() - start_time, 'seconds')
 print('Launching Music Caster.exe')
 subprocess.Popen(r'"dist\Music Caster.exe"')
+if args.debug:
+    with open('mc_portable.spec', 'r+') as f:
+        new_spec = f.read().replace('debug=True', 'debug=False').replace('console=True', 'console=False')
+        f.seek(0)
+        f.write(new_spec)
+        f.truncate()
+    with open('mc_onedir.spec', 'r+') as f:
+        new_spec = f.read().replace('debug=True', 'debug=False').replace('console=True', 'console=False')
+        f.seek(0)
+        f.write(new_spec)
+        f.truncate()
