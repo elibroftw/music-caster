@@ -74,18 +74,16 @@ with open('setup_script.iss', 'r+') as f:
     f.truncate()
 
 if args.debug: update_spec_files(True)
-
-
 print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 print(f'building executables with debug={args.debug}')
-# subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" -t:restore')
-
-s1 = subprocess.Popen('pyinstaller mc_portable.spec')
-# shutil.rmtree(r'Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1')
-# subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build /p:Configuration=Release')
-s2 = subprocess.Popen('pyinstaller updater.spec')
-s3 = subprocess.check_call('pyinstaller mc_onedir.spec')
+py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
+try: s1 = subprocess.Popen('pyinstaller mc_portable.spec')
+except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" mc_portable.spec')
+try: s2 = subprocess.Popen('pyinstaller updater.spec')
+except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" updater.spec')
+try: subprocess.check_call('pyinstaller mc_onedir.spec')
+except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" mc_onedir.spec')
 s2.wait()
 try: s4 = subprocess.Popen('iscc setup_script.iss')
 except FileNotFoundError: s4 = None
