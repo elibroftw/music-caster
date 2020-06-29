@@ -1327,10 +1327,8 @@ try:
         elif main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit():
             delta = 0
             if main_event.isdigit():
-                update_slider = True
                 new_volume = int(main_event) * 10
             else:
-                update_slider = False
                 if main_event == 'a': delta = -5
                 elif main_event == 'd': delta = 5
                 new_volume = main_values['volume_slider'] + delta
