@@ -82,6 +82,7 @@ cast: pychromecast.Chromecast = None
 stop_discovery = None  # function
 playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
 music_directories, window_locations = [], {}
+read_values = {}
 all_songs, all_folders, pl_name, pl_files = {}, ['PF: Select Folder(s)'], '', []
 mouse_hover = ''
 daemon_command = None
@@ -116,7 +117,7 @@ def save_settings():
         settings_file_in_use = False
 
 
-def do_nothing(): return
+def do_nothing(): pass
 
 
 def refresh_folders():
@@ -181,9 +182,10 @@ def save_queues():
 
 def update_volume(new_vol):
     """new_vol: float[0, 100]"""
+    if main_window.Title != '': main_window['volume_slider'].Update(value=new_vol)
     new_vol = new_vol / 100
-    if cast is None:  local_music_player.music.set_volume(new_vol)
-    else: cast.set_volume(new_vol)
+    local_music_player.music.set_volume(new_vol)
+    if cast is not None: cast.set_volume(new_vol)
 
 
 def cycle_repeat():
@@ -697,7 +699,7 @@ try:
     #     im.save(raw, optimize=True, format='PNG')
     #     return thumb, raw.getvalue()
 
-    def play_url(url, position=0):
+    def play_url(url, position=0, autoplay=True):
         global cast, playing_url, playing_status, song_length, song_start, song_end
         if cast is None:
             tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
@@ -720,7 +722,7 @@ try:
                                        'length': song_length, 'art': r['thumbnail']}
                 metadata = {'metadataType': 3, 'albumName': r['album'], 'title': _title, 'artist': _artist}
                 mc.play_media(_f['url'], f'video/{_f["ext"]}', metadata=metadata, thumb=r['thumbnail'],
-                              current_time=position)
+                              current_time=position, autoplay=autoplay)
                 mc.block_until_active()
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
                 song_start = time.time()
@@ -745,8 +747,7 @@ try:
             thumbs_dir, cast_last_checked, music_queue
         song_position = position
         while not os.path.exists(file_path):
-            # TODO: check play_url() first
-            if play_url(file_path, position=song_position): return
+            if play_url(file_path, position=song_position, autoplay=autoplay): return
             music_queue.remove(file_path)
             if music_queue: file_path = music_queue[0]
             else: return
@@ -1188,38 +1189,39 @@ try:
         sys.exit()
 
     def other_tray_item(_tray_item):
-        global timer, cast
-        if _tray_item.split('.')[0].isdigit():  # if user selected a different device
+        global timer, cast, cast_last_checked
+        if _tray_item == '__TIMEOUT__': pass
+        elif _tray_item.split('.')[0].isdigit():  # if user selected a different device
             selected_index = device_names.index(tray_item)
-            if selected_index == 0: new_cast = None
+            if selected_index == 0: new_device = None
             else:
-                try: new_cast = chromecasts[selected_index - 1]
-                except IndexError: new_cast = None
+                try: new_device = chromecasts[selected_index - 1]
+                except IndexError: new_device = None
             device_names.clear()
             for device_index, cc in enumerate(['Local device'] + chromecasts):
                 cc: pychromecast.Chromecast = cc if device_index == 0 else cc.name
                 if device_index == selected_index: device_names.append(f'✓ {cc}')
                 else: device_names.append(f'{device_index + 1}. {cc}')
             refresh_tray()
-            if cast != new_cast:
-                cast = new_cast
-                volume = 0 if settings['muted'] else settings['volume']
-                if cast is None: change_settings('previous_device', None)
-                else:
-                    change_settings('previous_device', str(cast.uuid))
-                    cast.wait(timeout=WAIT_TIMEOUT)  # TODO: fix Chromecast is connection error
-                update_volume(volume)
+            if cast != new_device:
                 current_pos = 0
-                if local_music_player.music.get_busy():
-                    if playing_status == 'PLAYING': current_pos = time.time() - song_start
-                    else: current_pos = song_position
-                    local_music_player.music.stop()
-                elif cast is not None:
+                if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller
                     with suppress(UnsupportedNamespace):
                         mc.update_status()  # Switch device without playback loss
                         current_pos = mc.status.adjusted_current_time
                         if mc.is_playing or mc.is_paused: mc.stop()
+                    cast.quit_app()
+                elif cast is None and local_music_player.music.get_busy():
+                    if playing_status == 'PLAYING': current_pos = time.time() - song_start
+                    else: current_pos = song_position
+                    local_music_player.music.stop()
+                cast = new_device
+                volume = 0 if settings['muted'] else settings['volume']
+                change_settings('previous_device', None if cast is None else str(cast.uuid))
+                # TODO: fix Chromecast is connection error
+                with suppress(AttributeError): cast.wait(timeout=WAIT_TIMEOUT)
+                update_volume(volume)
                 if playing_status in {'PAUSED', 'PLAYING'}:
                     do_autoplay = False if playing_status == 'PAUSED' else True
                     play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
@@ -1256,6 +1258,16 @@ try:
     def previous_song():
         if playing_status != 'NOT PLAYING': prev_song()
 
+    def reset_mouse_hover():
+        global mouse_hover
+        mouse_hover = ''
+
+    main_actions = {
+        'progressbar_mouse_leave': reset_mouse_hover,
+        'tab2_mouse_leave': reset_mouse_hover,
+        'tab3_mouse_leave': reset_mouse_hover
+    }
+
     def read_main_window():
         global main_last_event, mouse_hover, playing_status, song_position, progress_bar_last_update,\
             song_start, song_end
@@ -1272,8 +1284,8 @@ try:
         now_playing: Sg.Text = main_window['now_playing']
         now_playing_text = now_playing.DisplayText
         time_left = None
-
-        if main_event.startswith('MouseWheel'):
+        if main_event == '__TIMEOUT__': pass
+        elif main_event.startswith('MouseWheel'):
             main_event = main_event.split(':', 1)[1]
             delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
             if mouse_hover == 'progressbar':
@@ -1284,12 +1296,11 @@ try:
                     main_window['progressbar'].Update(value=new_position)
                     main_values['progressbar'] = new_position
             elif mouse_hover in {'', 'volume_slider'}:  # not in another tab
-                main_event = 'volume_slider'
                 new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
-                main_window['volume_slider'].Update(value=new_volume)
-                main_values['volume_slider'] = new_volume
+                change_settings('volume', new_volume)
+                update_volume(new_volume)
             main_window.Refresh()
-        if main_event.endswith('mouse_enter'):
+        elif main_event.endswith('mouse_enter'):
             mouse_hover = '_'.join(main_event.split('_')[:-2])
         elif main_event in {'progressbar_mouse_leave', 'tab2_mouse_leave', 'tab3_mouse_leave'}:
             mouse_hover = ''
@@ -1320,21 +1331,16 @@ try:
                 new_volume = int(main_event) * 10
             else:
                 update_slider = False
-                if main_event == 'a':
-                    delta = -5
-                elif main_event == 'd':
-                    delta = 5
+                if main_event == 'a': delta = -5
+                elif main_event == 'd': delta = 5
                 new_volume = main_values['volume_slider'] + delta
             change_settings('volume', new_volume)
-            if update_slider or delta != 0: main_window['volume_slider'].Update(value=new_volume)
             update_volume(new_volume)
         elif main_event == 'mute':
             muted = change_settings('muted', not settings['muted'])
             if muted:
                 main_window['mute'].Update(data=VOLUME_MUTED_IMG)
-                main_window['volume_slider'].Update(0)
-                local_music_player.music.set_volume(0)
-                if cast is not None: cast.set_volume(0)
+                update_volume(0)
             else:
                 main_window['mute'].Update(data=VOLUME_IMG)
                 main_window['volume_slider'].Update(settings['volume'])
@@ -1434,10 +1440,8 @@ try:
             updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
             new_i = min(len(updated_list), index_to_remove)
             main_window['music_queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
-        elif main_event == 'queue_file':
-            threading.Thread(target=queue_file).start()
-        elif main_event == 'queue_folder':
-            threading.Thread(target=queue_folder).start()
+        elif main_event == 'queue_file': threading.Thread(target=queue_file).start()
+        elif main_event == 'queue_folder': threading.Thread(target=queue_folder).start()
         elif main_event == 'clear_queue':
             if playing_status in {'PLAYING', 'PAUSED'}: stop()
             music_queue.clear()
@@ -1451,7 +1455,7 @@ try:
             Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif main_event == 'library':
             play_all([all_songs[main_values['library']]])
-        if main_event == 'progressbar':
+        elif main_event == 'progressbar':
             if playing_status == 'NOT PLAYING':
                 main_window['progressbar'].Update(disabled=True)
                 # maybe even make it invisible?
