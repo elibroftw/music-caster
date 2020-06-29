@@ -1209,7 +1209,7 @@ try:
                 else:
                     pass
 
-    def other_tray_item(_tray_item):
+    def other_tray_actions(_tray_item):
         global cast, cast_last_checked
         if _tray_item.split('.')[0].isdigit():  # if user selected a different device
             selected_index = device_names.index(tray_item)
@@ -1801,7 +1801,7 @@ try:
         if daemon_command is not None:
             tray_actions.get(daemon_command, do_nothing)()
             daemon_command = None
-        tray_actions.get(tray_item, lambda: other_tray_item(tray_item))()
+        tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         if active_windows['main']: read_main_window()
         if active_windows['settings']: read_settings_window()
         if active_windows['playlist_selector']: read_playlist_selector_window()
