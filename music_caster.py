@@ -1188,10 +1188,30 @@ try:
             rich_presence.close()
         sys.exit()
 
+    def check_timer():
+        global timer
+        if timer and time.time() > timer:
+            stop()
+            timer = 0
+            if settings['timer_shut_off_computer']:
+                if platform.system() == 'Windows':
+                    os.system('shutdown /p /f')
+                else:
+                    os.system('shutdown -h now')
+            elif settings['timer_hibernate_computer']:
+                if platform.system() == 'Windows':
+                    os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
+                else:
+                    pass
+            elif settings['timer_sleep_computer']:
+                if platform.system() == 'Windows':
+                    os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+                else:
+                    pass
+
     def other_tray_item(_tray_item):
-        global timer, cast, cast_last_checked
-        if _tray_item == '__TIMEOUT__': pass
-        elif _tray_item.split('.')[0].isdigit():  # if user selected a different device
+        global cast, cast_last_checked
+        if _tray_item.split('.')[0].isdigit():  # if user selected a different device
             selected_index = device_names.index(tray_item)
             if selected_index == 0: new_device = None
             else:
@@ -1239,18 +1259,6 @@ try:
                 play_folder([music_directories[tray_folders.index(tray_item) - 1]])
         elif playing_status == 'PLAYING' and time.time() > song_end:
             next_song(from_timeout=time.time() > song_end)
-        elif timer and time.time() > timer:
-            stop()
-            timer = 0
-            if settings['timer_shut_off_computer']:
-                if platform.system() == 'Windows': os.system('shutdown /p /f')
-                else: os.system('shutdown -h now')
-            elif settings['timer_hibernate_computer']:
-                if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-                else: pass
-            elif settings['timer_sleep_computer']:
-                if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
-                else: pass
 
     def next_song_command():
         if playing_status != 'NOT PLAYING': next_song()
@@ -1761,6 +1769,7 @@ try:
 
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
+        '__TIMEOUT__': check_timer,
         '__ACTIVATED__': activate_main_window,
         'Refresh Library': compile_all_songs,
         'Refresh Devices': lambda: threading.Thread(target=start_chromecast_discovery, daemon=True),
