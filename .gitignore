@@ -1,12 +1,12 @@
 .idea/
 .vscode/
-build/
-dist/
 __pycache__/
 venv/
+build/
+dist/
+music_caster.build/
+music_caster.dist/
 images/
-music files/
-Memory Leak/
 settings.json
 PySimpleGUI.py
 PySimpleGUIWx.py
