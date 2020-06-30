@@ -3,6 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.51.3
 - [Optimization] Mainly Tray Optimizations
 - [UI] Swapped "Controls" and "Play" in the tray menu
+- [UI] New text color #d7d7d7 (either delete settings.json or enter it manually)
 - [Fix] Startup error if MC is already running
 - [Fix] Population/Save queue will load queue now
 

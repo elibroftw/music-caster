@@ -97,7 +97,7 @@ settings = {  # default settings
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'default_file_handler': True, 'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
-    'accent_color': '#00bfff', 'text_color': '#aaaaaa', 'button_text_color': '#000000', 'background_color': '#121212',
+    'accent_color': '#00bfff', 'text_color': '#d7d7d7', 'button_text_color': '#000000', 'background_color': '#121212',
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'music_directories': [home_music_dir], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
@@ -442,7 +442,7 @@ helpers.ACCENT_COLOR, helpers.fg = settings['accent_color'], settings['text_colo
 helpers.bg = settings['background_color']
 helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
 Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
-              text_element_background_color=bg)
+              text_element_background_color=bg, text_color=settings['text_color'])
 ydl = YoutubeDL()
 app = Flask(__name__)
 
@@ -744,7 +744,7 @@ try:
 
     def play(file_path, position=0, autoplay=True, switching_device=False):
         global song_start, song_end, playing_status, song_length, song_position,\
-            thumbs_dir, cast_last_checked, music_queue
+            thumbs_dir, cast_last_checked, music_queue, progress_bar_last_update
         song_position = position
         while not os.path.exists(file_path):
             if play_url(file_path, position=song_position, autoplay=autoplay): return
@@ -782,6 +782,7 @@ try:
             music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length,
                                          'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
         else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
+
         if cast is None:  # play locally
             if file_path.lower()[-3:] not in {'mp3', 'ogg', 'wav'}:
                 if settings['notifications']:
@@ -821,8 +822,19 @@ try:
                 metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
                 mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                               metadata=metadata, thumb=thumb, autoplay=autoplay)
+                if active_windows['main']:
+                    time_left = song_length - song_position
+                    mins_elapsed, mins_left = floor(song_position / 60), floor(time_left / 60)
+                    secs_elapsed, secs_left = floor(song_position % 60), floor(time_left % 60)
+                    if secs_left < 10: secs_left = f'0{secs_left}'
+                    if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
+                    main_window['progressbar'].Update(value=song_position/song_length)
+                    main_window['time_elapsed'].Update(value=f'{mins_elapsed}:{secs_elapsed}')
+                    main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
+                    main_window.Read(1)
                 mc.block_until_active()
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
+                progress_bar_last_update = time.time()
                 song_start = time.time() - song_position
                 song_end = song_start + song_length
             except (pychromecast.error.NotConnected, OSError) as _e:
@@ -859,7 +871,7 @@ try:
         if starting_files:
             for j, _f in enumerate(starting_files):
                 music_queue.insert(j, _f)
-        if queue_only:
+        if not queue_only:
             if music_queue:
                 play(music_queue[0])
             elif next_queue:
@@ -940,7 +952,8 @@ try:
                 mc = cast.media_controller
                 mc.update_status()
                 song_position = mc.status.adjusted_current_time
-            except (UnsupportedNamespace, NotConnected): song_position = time.time() - song_start
+            except (UnsupportedNamespace, NotConnected):
+                song_position = time.time() - song_start
         elif playing_status == 'PLAYING': song_position = time.time() - song_start
         return song_position
 
@@ -1280,7 +1293,12 @@ try:
             main_last_event = main_event
         p_r_button = main_window['pause/resume']
         now_playing: Sg.Text = main_window['now_playing']
-        now_playing_text = now_playing.DisplayText
+        if music_queue:
+            metadata = music_metadata[music_queue[0]]
+            artist, title = metadata['artist'].split(', ')[0], metadata['title']
+            now_playing_text = f'{artist} - {title}'
+        else:
+            now_playing_text = ''
         time_left = None
         if main_event == '__TIMEOUT__': pass
         elif main_event.startswith('MouseWheel'):
@@ -1318,9 +1336,9 @@ try:
                 if music_queue: play(music_queue[0])
                 else: play_all()
         elif main_event == 'next' and playing_status != 'NOT PLAYING':
-            next_song(); progress_bar_last_update = 0
+            next_song()
         elif main_event == 'prev' and playing_status != 'NOT PLAYING':
-            prev_song(); progress_bar_last_update = 0
+            prev_song()
         elif main_event == 'shuffle':
             # TODO: just shuffle music queue
             pass
@@ -1475,16 +1493,12 @@ try:
                 song_end = time.time() + time_left
                 song_start = song_end - song_length
         if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
-            # TODO: progressbar visible if playing?
             if music_queue:
-                metadata = music_metadata[music_queue[0]]
-                artist, title = metadata['artist'].split(', ')[0], metadata['title']
-                now_playing_text = f'{artist} - {title}'
                 progress_bar = main_window['progressbar']
                 update_song_position()
                 progress_bar.Update(song_position / song_length * 100, disabled=False)
                 time_left = song_length - song_position
-                progress_bar_last_update = time.time()
+                progress_bar_last_update = time.time() - song_position + int(song_position)
             else:
                 playing_status = 'NOT PLAYING'
         if time_left is not None:
@@ -1510,7 +1524,7 @@ try:
             main_window.playing_status, now_playing_text = 'NOT PLAYING', 'Nothing Playing'
             main_window['time_elapsed'].Update(value='00:00')
             main_window['time_left'].Update(value='00:00')
-        if now_playing_text != now_playing.DisplayText:
+        if now_playing_text not in {'', now_playing.DisplayText}:
             now_playing.Update(value=now_playing_text)
             update_lb_mq = True
         if update_lb_mq:
