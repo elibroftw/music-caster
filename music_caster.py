@@ -844,7 +844,7 @@ try:
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Listening', small_image='logo', small_text='Music Caster')
 
-    def play_all(starting_files: list = None, autoplay=True):
+    def play_all(starting_files: list = None, queue_only=False):
         global playing_status, compiling_songs_thread
         music_queue.clear()
         done_queue.clear()
@@ -859,7 +859,7 @@ try:
         if starting_files:
             for j, _f in enumerate(starting_files):
                 music_queue.insert(j, _f)
-        if autoplay:
+        if queue_only:
             if music_queue:
                 play(music_queue[0])
             elif next_queue:
@@ -1312,7 +1312,11 @@ try:
                 elif 0 < selected_file_index <= len(next_queue):
                     Popen(f'explorer /select,"{fix_path(next_queue[selected_file_index - 1])}"')
         elif main_event == 'pause/resume':
-            pause_resume.get(playing_status, play_all)()
+            try:
+                pause_resume[playing_status]()
+            except KeyError:
+                if music_queue: play(music_queue[0])
+                else: play_all()
         elif main_event == 'next' and playing_status != 'NOT PLAYING':
             next_song(); progress_bar_last_update = 0
         elif main_event == 'prev' and playing_status != 'NOT PLAYING':
@@ -1754,7 +1758,7 @@ try:
         next_queue.extend(queues.get('next', []))
     elif settings['populate_queue_startup']:
         compiling_songs_thread.join()
-        play_all(autoplay=False)
+        play_all(queue_only=True)
     if settings.get('DEBUG', False): print('Running in tray')
 
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}

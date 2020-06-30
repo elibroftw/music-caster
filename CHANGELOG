@@ -4,6 +4,7 @@ Music Caster by Elijah Lopez Changelog
 - [Optimization] Mainly Tray Optimizations
 - [UI] Swapped "Controls" and "Play" in the tray menu
 - [Fix] Startup error if MC is already running
+- [Fix] Population/Save queue will load queue now
 
 4.51.2
 - [Fix] Settings loading
