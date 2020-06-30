@@ -4,9 +4,8 @@ __pycache__/
 venv/
 build/
 dist/
-music_caster.build/
-music_caster.dist/
 images/
+test_files/
 settings.json
 PySimpleGUI.py
 PySimpleGUIWx.py
@@ -38,3 +37,4 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+

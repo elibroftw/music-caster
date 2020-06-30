@@ -18,3 +18,7 @@ winshell~=0.6
 wavinfo==1.5
 requests~=2.22
 youtube_dl
+PyAudio~=0.2.11
+SoundFile~=0.10.3
+pydub~=0.24.1
+numpy~=1.17.2

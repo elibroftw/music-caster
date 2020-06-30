@@ -1,7 +1,6 @@
-VERSION = '4.51.3'
+VERSION = '4.70.0'
 UPDATE_MESSAGE = """
-[Feature] Populate queue on startup
-[Feature] Save queue between sessions
+[Feature] Ability to play any file locally
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 
@@ -57,6 +56,7 @@ from pychromecast.config import APP_MEDIA_RECEIVER
 import pychromecast
 from pygame import mixer as local_music_player
 from pygame import error as pygame_error
+from audio_player import AudioPlayer, NoDeviceFoundError
 import pynput.keyboard
 import pypresence
 import requests
@@ -71,7 +71,8 @@ EMAIL = 'elijahllopezz@gmail.com'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid4())
-show_pygame_error = variable_exception_sent = update_devices = settings_file_in_use = False
+output_device_error = variable_exception_sent = update_devices = settings_file_in_use = False
+audio_player: AudioPlayer
 settings_last_modified, last_press = 0, time.time()
 active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
@@ -184,7 +185,8 @@ def update_volume(new_vol):
     """new_vol: float[0, 100]"""
     if main_window.Title != '': main_window['volume_slider'].Update(value=new_vol)
     new_vol = new_vol / 100
-    local_music_player.music.set_volume(new_vol)
+    # local_music_player.music.set_volume(new_vol)
+    audio_player.set_volume(new_vol)
     if cast is not None: cast.set_volume(new_vol)
 
 
@@ -370,16 +372,18 @@ def send_info():
                       json={'MAC': get_mac(), 'VERSION': VERSION, 'TIME': current_time})
 
 
-def init_pygame():
-    global show_pygame_error
-    try: local_music_player.init(44100, -16, 2, 2048)
-    except pygame_error: show_pygame_error = True
+def init_audio_player():
+    global output_device_error, audio_player
+    try:
+        audio_player = AudioPlayer()
+    except NoDeviceFoundError:
+        output_device_error = True
 
 
 load_settings_thread = threading.Thread(target=load_settings, daemon=True)
 load_settings_thread.start()
-init_pygame_thread = threading.Thread(target=init_pygame, daemon=True)
-init_pygame_thread.start()
+init_player_thread = threading.Thread(target=init_audio_player, daemon=True)
+init_player_thread.start()
 exit_program = False
 if is_already_running():  # ~0.8 seconds
     r_text, exit_program = '', True
@@ -650,8 +654,8 @@ try:
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
-    init_pygame_thread.join()
-    if settings.get('notifications') and show_pygame_error:
+    init_player_thread.join()
+    if settings.get('notifications') and output_device_error:
         tray.ShowMessage('Music Caster Error', 'No local audio device found')
     if settings['update_message'] != UPDATE_MESSAGE:
         if settings['notifications']:
@@ -741,7 +745,6 @@ try:
                 if settings.get('DEBUG', False): raise _e
         return False
 
-
     def play(file_path, position=0, autoplay=True, switching_device=False):
         global song_start, song_end, playing_status, song_length, song_position,\
             thumbs_dir, cast_last_checked, music_queue
@@ -791,13 +794,7 @@ try:
                 if music_queue:
                     play(music_queue[0])
                 return
-            if local_music_player.get_init() is None or local_music_player.get_init()[0] != sample_rate:
-                local_music_player.quit()
-                local_music_player.init(sample_rate, -16, 2, 2048)
-            local_music_player.music.load(file_path)
-            local_music_player.music.set_volume(_volume)
-            local_music_player.music.play(start=song_position)
-            if not autoplay: local_music_player.music.pause()
+            audio_player.play(file_path, start_playing=autoplay, start_from=song_position, volume=_volume)
             song_start = time.time() - song_position
             song_end = song_start + song_length
         else:
@@ -859,11 +856,12 @@ try:
         if starting_files:
             for j, _f in enumerate(starting_files):
                 music_queue.insert(j, _f)
-        if music_queue:
-            play(music_queue[0], autoplay=autoplay)
-        elif next_queue:
-            playing_status = 'PLAYING'
-            next_song()
+        if autoplay:
+            if music_queue:
+                play(music_queue[0])
+            elif next_queue:
+                playing_status = 'PLAYING'
+                next_song()
 
     def play_folder(folders):
         global playing_status
@@ -933,14 +931,17 @@ try:
         if main_window is not None: main_window.TKroot.focus_force()
 
     def update_song_position():
-        global tray, song_position, cast
-        if cast is not None:
-            try:
-                mc = cast.media_controller
-                mc.update_status()
-                song_position = mc.status.adjusted_current_time
-            except (UnsupportedNamespace, NotConnected): song_position = time.time() - song_start
-        elif playing_status == 'PLAYING': song_position = time.time() - song_start
+        global tray, song_position, song_end, cast
+        if playing_status in {'PLAYING', 'PAUSED'}:
+            if cast is None:
+                song_position = audio_player.get_pos()
+            else:
+                try:
+                    mc = cast.media_controller
+                    mc.update_status()
+                    song_position = mc.status.adjusted_current_time
+                except (UnsupportedNamespace, NotConnected): song_position = time.time() - song_start
+            song_end = song_length - song_position + time.time()
         return song_position
 
     def pause():
@@ -948,8 +949,8 @@ try:
         tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
         try:
             if cast is None:
-                song_position = time.time() - song_start
-                local_music_player.music.pause()
+                audio_player.pause()
+                song_position = audio_player.get_pos()
             else:
                 mc = cast.media_controller
                 mc.update_status()
@@ -970,7 +971,7 @@ try:
         global tray, playing_status, song_end, song_position, song_start
         tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
         try:
-            if cast is None: local_music_player.music.unpause()
+            if cast is None: audio_player.resume()
             else:
                 mc = cast.media_controller
                 mc.update_status()
@@ -998,9 +999,7 @@ try:
             mc = cast.media_controller
             mc.stop()
             while mc.is_playing or mc.is_paused: time.sleep(0.1)
-        elif local_music_player.music.get_busy():
-            local_music_player.music.stop()
-            # local_music_player.music.unload()  # only in 2.0
+        elif not audio_player.is_idle(): audio_player.stop()
         tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 
     def next_song(from_timeout=False):
@@ -1015,7 +1014,8 @@ try:
                 if not music_queue and settings['repeat'] is False and done_queue:
                     music_queue.extend(done_queue)
                     done_queue.clear()
-            if music_queue: play(music_queue[0])
+            if music_queue:
+                play(music_queue[0])
             else: stop()  # repeat is off / no songs in queue
 
     def prev_song():
@@ -1188,29 +1188,8 @@ try:
             rich_presence.close()
         sys.exit()
 
-    def check_timer():
-        global timer
-        if timer and time.time() > timer:
-            stop()
-            timer = 0
-            if settings['timer_shut_off_computer']:
-                if platform.system() == 'Windows':
-                    os.system('shutdown /p /f')
-                else:
-                    os.system('shutdown -h now')
-            elif settings['timer_hibernate_computer']:
-                if platform.system() == 'Windows':
-                    os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-                else:
-                    pass
-            elif settings['timer_sleep_computer']:
-                if platform.system() == 'Windows':
-                    os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
-                else:
-                    pass
-
     def other_tray_actions(_tray_item):
-        global cast, cast_last_checked
+        global cast, cast_last_checked, timer
         if _tray_item.split('.')[0].isdigit():  # if user selected a different device
             selected_index = device_names.index(tray_item)
             if selected_index == 0: new_device = None
@@ -1232,10 +1211,8 @@ try:
                         current_pos = mc.status.adjusted_current_time
                         if mc.is_playing or mc.is_paused: mc.stop()
                     cast.quit_app()
-                elif cast is None and local_music_player.music.get_busy():
-                    if playing_status == 'PLAYING': current_pos = time.time() - song_start
-                    else: current_pos = song_position
-                    local_music_player.music.stop()
+                elif cast is None and not audio_player.is_idle():
+                    current_pos = audio_player.stop()
                 cast = new_device
                 volume = 0 if settings['muted'] else settings['volume']
                 change_settings('previous_device', None if cast is None else str(cast.uuid))
@@ -1259,6 +1236,24 @@ try:
                 play_folder([music_directories[tray_folders.index(tray_item) - 1]])
         elif playing_status == 'PLAYING' and time.time() > song_end:
             next_song(from_timeout=time.time() > song_end)
+        elif timer and time.time() > timer:
+            stop()
+            timer = 0
+            if settings['timer_shut_off_computer']:
+                if platform.system() == 'Windows':
+                    os.system('shutdown /p /f')
+                else:
+                    os.system('shutdown -h now')
+            elif settings['timer_hibernate_computer']:
+                if platform.system() == 'Windows':
+                    os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
+                else:
+                    pass
+            elif settings['timer_sleep_computer']:
+                if platform.system() == 'Windows':
+                    os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+                else:
+                    pass
 
     def next_song_command():
         if playing_status != 'NOT PLAYING': next_song()
@@ -1350,8 +1345,9 @@ try:
             else:
                 main_window['mute'].Update(data=VOLUME_IMG)
                 main_window['volume_slider'].Update(settings['volume'])
-                local_music_player.music.set_volume(settings['volume'] / 100)
-                if cast is not None: cast.set_volume(settings['volume'] / 100)
+                _vol = settings['volume'] / 100
+                audio_player.set_volume(_vol)
+                if cast is not None: cast.set_volume(_vol)
         elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
             with suppress(AttributeError, IndexError):
                 if main_window.FindElementWithFocus() == main_window['music_queue']:
@@ -1472,14 +1468,9 @@ try:
                 if cast is not None:
                     cast.media_controller.seek(new_position)
                     playing_status = 'PLAYING'
-                else:
-                    local_music_player.music.rewind()
-                    local_music_player.music.set_pos(new_position)
-                    # local_music_player.music.set_pos(new_position - song_position)
-                    # song_position = new_position
-                time_left = song_length - song_position
-                song_end = time.time() + time_left
-                song_start = song_end - song_length
+                else: audio_player.set_pos(new_position)
+                song_start = time.time() - song_position
+                song_end = song_start + song_length
         if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
             # TODO: progressbar visible if playing?
             if music_queue:
@@ -1763,13 +1754,11 @@ try:
         music_queue.extend(queues.get('music', []))
         next_queue.extend(queues.get('next', []))
     elif settings['populate_queue_startup']:
-        compiling_songs_thread.join()
         play_all(autoplay=False)
     if settings.get('DEBUG', False): print('Running in tray')
 
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
-        '__TIMEOUT__': check_timer,
         '__ACTIVATED__': activate_main_window,
         'Refresh Library': compile_all_songs,
         'Refresh Devices': lambda: threading.Thread(target=start_chromecast_discovery, daemon=True),
