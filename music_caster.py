@@ -859,11 +859,12 @@ try:
         if starting_files:
             for j, _f in enumerate(starting_files):
                 music_queue.insert(j, _f)
-        if music_queue:
-            play(music_queue[0], autoplay=autoplay)
-        elif next_queue:
-            playing_status = 'PLAYING'
-            next_song()
+        if autoplay:
+            if music_queue:
+                play(music_queue[0])
+            elif next_queue:
+                playing_status = 'PLAYING'
+                next_song()
 
     def play_folder(folders):
         global playing_status
