@@ -191,42 +191,11 @@ def get_youtube_id(url):
     return None
 
 
-# GUI RELATED FUNCTIONS
-def create_songs_list(music_queue, done_queue, next_queue):
-    # TODO: use metadata and song names or just one artist name
-    """:returns the formatted song queue, and the selected value (currently playing)"""
-    songs = []
-    dq_len = len(done_queue)
-    mq_start = len(next_queue) + 1
-    selected_value = None
-    # format: Index. Artists - Song Name
-    for i, path in enumerate(done_queue):
-        base = os.path.basename(path)
-        base = os.path.splitext(base)[0]
-        formatted_item = f'-{dq_len - i}. {base}'
-        songs.append(formatted_item)
-    if music_queue:
-        base = os.path.basename(music_queue[0])
-        base = os.path.splitext(base)[0]
-        formatted_item = f' {0}. {base}'
-        songs.append(formatted_item)
-        selected_value = formatted_item
-    for i, path in enumerate(next_queue):
-        base = os.path.basename(path)
-        base = os.path.splitext(base)[0]
-        formatted_item = f' {i + 1}. {base}'
-        songs.append(formatted_item)
-    for i, path in enumerate(music_queue[1:]):
-        base = os.path.basename(path)
-        base = os.path.splitext(base)[0]
-        formatted_item = f' {i + mq_start}. {base}'
-        songs.append(formatted_item)
-    return songs, selected_value
-
-
 # GUI LAYOUTS
-def create_main_gui(music_queue, done_queue, next_queue, playing_status, settings,
+def create_main_gui(songs, listbox_selected, playing_status, settings,
                     now_playing_text='Nothing Playing', album_cover_data=None):
+    # note that songs is the formatted list using create_songs_list found in music_caster.py
+    # listbox_selected is allowed to be None
     # TODO: Music Library Tab
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
@@ -271,7 +240,6 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
                    [Sg.Column(music_controls, justification='center', pad=((5, 5), (20, 0)))],
                    [Sg.Column(progress_bar_layout, justification='center', pad=((5, 5), (20, 0)))]]
     # Music Queue layout
-    songs, selected_value = create_songs_list(music_queue, done_queue, next_queue)
     mq_controls = [
         [Sg.Button('▲', key='move_up', tooltip='Move song up the queue', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove song from the queue', size=(3, 1))],
@@ -289,7 +257,7 @@ def create_main_gui(music_queue, done_queue, next_queue, playing_status, setting
     else: listbox_size = (58, 5)
 
     tab2_layout = [q_controls1, [
-        Sg.Listbox(songs, default_values=selected_value, size=listbox_size, select_mode=Sg.SELECT_MODE_SINGLE,
+        Sg.Listbox(songs, default_values=listbox_selected, size=listbox_size, select_mode=Sg.SELECT_MODE_SINGLE,
                    text_color=fg, key='music_queue', background_color=bg, font=font_normal, bind_return_key=True),
         Sg.Column(mq_controls, pad=(0, 5))]]
     # song_lib = sorted(all_songs.keys())

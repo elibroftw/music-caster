@@ -1,4 +1,4 @@
-VERSION = '4.51.3'
+VERSION = '4.51.4'
 UPDATE_MESSAGE = """
 [Feature] Populate queue on startup
 [Feature] Save queue between sessions
@@ -35,7 +35,7 @@ import pythoncom
 from youtube_dl import YoutubeDL
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, create_play_url_window,\
-    is_already_running, find_chromecasts, create_songs_list, create_main_gui, create_settings, create_timer,\
+    is_already_running, find_chromecasts, create_main_gui, create_settings, create_timer,\
     _get_metadata, create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, MUSIC_FILE_TYPES
 import helpers
 from b64_images import *
@@ -80,14 +80,18 @@ main_last_event = settings_last_event = pl_editor_last_event = None
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 stop_discovery = None  # function
-playlists, tray_playlists, tray_folders = {}, ['Create/Edit a Playlist'], []
+playlists, all_songs, music_metadata = {}, {}, {}
+# playlist_name: [], formatted_name: file path, file: {artist: str, title: str}
+tray_playlists, tray_folders = ['Create/Edit a Playlist'], []
+all_folders, pl_name, pl_files = ['PF: Select Folder(s)'], '', []
+chromecasts, device_names = [], ['✓ Local device']
 music_directories, window_locations = [], {}
-read_values = {}
-all_songs, all_folders, pl_name, pl_files = {}, ['PF: Select Folder(s)'], '', []
+music_queue, done_queue, next_queue = [], [], []
 mouse_hover = ''
 daemon_command = None
-timer = 0
-chromecasts, device_names = [], ['✓ Local device']
+progress_bar_last_update = song_position = timer = song_end = song_length = song_start = 0  # seconds but using time()
+playing_status = 'NOT PLAYING'
+playing_url = False
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
 home_music_dir = f'{Path.home()}/Music'
@@ -254,7 +258,10 @@ def compile_all_songs(update_global=True, ignore_files: list = None):
             for _file in glob(f'{directory}/**/*.*', recursive=True):
                 _file = _file.replace('\\', '/')
                 if _file not in ignore_files and valid_music_file(_file):
-                    _file_info = ' - '.join(get_metadata(_file)[:2])
+                    title, artist, album = get_metadata(_file)
+                    _file_info = f'{title} - {artist}'
+                    if _file not in music_metadata:
+                        music_metadata[_file] = {'title': title, 'artist': artist, 'album': album}
                     if use_temp: all_songs_temp[_file_info] = _file
                     else: all_songs[_file_info] = _file
         if use_temp: all_songs = all_songs_temp.copy()
@@ -479,7 +486,7 @@ def index():  # web GUI
         filename = urllib.parse.urlencode({'path': filename})
         el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
-    _queue = create_songs_list(music_queue, done_queue, next_queue)[0]
+    _queue = create_songs_list()[0]
     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_songs=list_of_songs, repeat_option=repeat_option, queue=_queue)
@@ -587,6 +594,46 @@ def start_chromecast_discovery():
     refresh_tray()
 
 
+def format_file(path: str):
+    try:
+        metadata = music_metadata[path]
+        artist, title = metadata['artist'], metadata['title']
+        if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
+        return f'{artist} - {title}'
+    except KeyError:
+        if path.startswith('http'): return path
+        base = os.path.basename(path)
+        return os.path.splitext(base)[0]
+
+
+def create_songs_list():
+    # TODO: use metadata and song names or just one artist name
+    """:returns the formatted song queue, and the selected value (currently playing)"""
+    songs = []
+    dq_len = len(done_queue)
+    mq_start = len(next_queue) + 1
+    selected_value = None
+    # format: Index. Artists - Song Name
+    for i, path in enumerate(done_queue):
+        formatted_track = format_file(path)
+        formatted_item = f'-{dq_len - i}. {formatted_track}'
+        songs.append(formatted_item)
+    if music_queue:
+        formatted_track = format_file(music_queue[0])
+        formatted_item = f' {0}. {formatted_track}'
+        songs.append(formatted_item)
+        selected_value = formatted_item
+    for i, path in enumerate(next_queue):
+        formatted_track = format_file(path)
+        formatted_item = f' {i + 1}. {formatted_track}'
+        songs.append(formatted_item)
+    for i, path in enumerate(music_queue[1:]):
+        formatted_track = format_file(path)
+        formatted_item = f' {i + mq_start}. {formatted_track}'
+        songs.append(formatted_item)
+    return songs, selected_value
+
+
 try:
     if not settings.get('DEBUG', False): threading.Thread(target=send_info, daemon=True).start()
     # Access startup folder by entering "Startup" in Explorer address bar
@@ -663,12 +710,6 @@ try:
         music_directories = change_settings('music_directories', [home_music_dir])
         compile_all_songs()
     DEFAULT_DIR = music_directories[0]
-    music_queue, done_queue, next_queue = [], [], []
-    music_metadata = {}  # file: {artist: str, title: str}
-    song_end = song_length = song_start = 0  # seconds but using time()
-    progress_bar_last_update = song_position = 0  # also seconds but relative to length of song
-    playing_status = 'NOT PLAYING'
-    playing_url = False
     settings_last_loaded = cast_last_checked = time.time()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
@@ -940,7 +981,7 @@ try:
             if settings['shuffle_playlists']: shuffle(temp_queue)
             start_playing = not music_queue
             for _f in temp_queue: music_queue.append(_f)
-            gui_queue = create_songs_list(music_queue, done_queue, next_queue)[0]
+            gui_queue = create_songs_list()[0]
             if main_window is not None: main_window['music_queue'].Update(values=gui_queue)
             if start_playing and music_queue: play(music_queue[0])
         if main_window is not None: main_window.TKroot.focus_force()
@@ -1097,17 +1138,17 @@ try:
         if not active_windows['main']:
             active_windows['main'] = True
             window_location = get_window_location('main')
+            songs_list, selected_value = create_songs_list()
             if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
                 current_song = music_queue[0]
                 metadata = music_metadata[current_song]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
                 now_playing_text = f'{artist} - {title}'
                 album_cover_data = metadata.get('album_cover_data', None)
-                main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                  settings, now_playing_text, album_cover_data=album_cover_data)
+                main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings,
+                                                  now_playing_text, album_cover_data=album_cover_data)
             else:
-                main_gui_layout = create_main_gui(music_queue, done_queue, next_queue, playing_status,
-                                                  settings)
+                main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings)
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False, location=window_location)
             main_window.Finalize()
@@ -1386,7 +1427,7 @@ try:
                     if next_queue:
                         music_queue.insert(0, next_queue.pop(0))
             play(music_queue[0])
-            updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+            updated_list = create_songs_list()[0]
             dq_len = len(done_queue)
             main_window['music_queue'].Update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
         elif main_event == 'move_up' and main_values['music_queue']:
@@ -1415,7 +1456,7 @@ try:
             else:  # moving within mq
                 mq_i = new_i - dq_len - nq_len
                 music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
-            updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+            updated_list = create_songs_list()[0]
             main_window['music_queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
         elif main_event == 'move_down' and main_values['music_queue']:
             index_to_move = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
@@ -1442,7 +1483,7 @@ try:
                 else:  # within music_queue
                     mq_i = new_i - dq_len - nq_len
                     music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
-                updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+                updated_list = create_songs_list()[0]
                 main_window['music_queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
         elif main_event == 'remove' and main_values['music_queue']:
             index_to_remove = main_window['music_queue'].GetListValues().index(main_values['music_queue'][0])
@@ -1456,7 +1497,7 @@ try:
                 next_queue.pop(index_to_remove - dq_len - 1)
             elif index_to_remove < nq_len + mq_len + dq_len:
                 music_queue.pop(index_to_remove - dq_len - nq_len)
-            updated_list = create_songs_list(music_queue, done_queue, next_queue)[0]
+            updated_list = create_songs_list()[0]
             new_i = min(len(updated_list), index_to_remove)
             main_window['music_queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
         elif main_event == 'queue_file': threading.Thread(target=queue_file).start()
@@ -1529,7 +1570,7 @@ try:
             now_playing.Update(value=now_playing_text)
             update_lb_mq = True
         if update_lb_mq:
-            lb_music_queue_songs = create_songs_list(music_queue, done_queue, next_queue)[0]
+            lb_music_queue_songs = create_songs_list()[0]
             lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
         main_last_event = main_event
         return True
