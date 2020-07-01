@@ -38,6 +38,9 @@ Source: "{#SourcePath}dist\Music Caster\*"; DestDir: "{app}"; Flags: ignoreversi
 Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
+[InstallDelete]
+Type: files; Name: {app}\*.dll
+
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
