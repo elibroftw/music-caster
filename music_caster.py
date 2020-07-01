@@ -1,7 +1,6 @@
-VERSION = '4.51.4'
+VERSION = '4.52.0'
 UPDATE_MESSAGE = """
-[Feature] Populate queue on startup
-[Feature] Save queue between sessions
+[Feature] Play url for youtube
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 
@@ -677,23 +676,19 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
+                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                         'Pause'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
+                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                         'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                         'Resume'], 'Play',
-                       ['Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
+                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
                         'Play All'], 'Exit']]
-    if settings['EXPERIMENTAL']:
-        menu_def_1[1][8].insert(0, 'Play URL')
-        menu_def_2[1][10].insert(0, 'Play URL')
-        menu_def_3[1][10].insert(0, 'Play URL')
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)

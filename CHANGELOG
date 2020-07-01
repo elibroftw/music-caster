@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.52.0
+- [Feature] Play URL works alright now (youtube only)
+- [Fix] Web shortcut icons
+
 4.51.3
 - [Optimization] Mainly Tray Optimizations
 - [UI] Swapped "Controls" and "Play" in the tray menu
