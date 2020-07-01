@@ -1204,8 +1204,9 @@ try:
 
     def other_tray_actions(_tray_item):
         global cast, cast_last_checked, timer
-        if _tray_item.split('.')[0].isdigit():  # if user selected a different device
-            selected_index = device_names.index(tray_item)
+        if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
+            try: selected_index = device_names.index(tray_item)
+            except ValueError: return
             if selected_index == 0: new_device = None
             else:
                 try: new_device = chromecasts[selected_index - 1]
