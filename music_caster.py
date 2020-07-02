@@ -35,12 +35,11 @@ import pythoncom
 from youtube_dl import YoutubeDL
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, create_play_url_window,\
-    is_already_running, find_chromecasts, create_main_gui_v2, create_settings, create_timer,\
+    is_already_running, find_chromecasts, create_main_gui_v2, create_timer,\
     _get_metadata, create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, MUSIC_FILE_TYPES
 import helpers
 from b64_images import *
 # 3rd party imports
-from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request, redirect, send_file
 import mutagen
 import mutagen.id3
@@ -75,10 +74,10 @@ PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid4())
 show_pygame_error = variable_exception_sent = update_devices = settings_file_in_use = False
 settings_last_modified, last_press = 0, time.time()
-active_windows = {'main': False, 'settings': False, 'timer': False, 'playlist_selector': False,
+active_windows = {'main': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
 main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
-main_last_event = settings_last_event = pl_editor_last_event = None
+main_last_event = pl_editor_last_event = None
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 stop_discovery = None  # function
@@ -373,7 +372,6 @@ def create_shortcut(_shortcut_path):
     if not settings.get('DEBUG', False): threading.Thread(target=_threaded, daemon=True).start()
 
 
-@timing
 def auto_update():
     try:
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
@@ -449,7 +447,7 @@ if settings['auto_update']:
 helpers.ACCENT_COLOR, helpers.fg = settings['accent_color'], settings['text_color']
 helpers.bg = settings['background_color']
 helpers.BUTTON_COLOR = (settings['button_text_color'], helpers.ACCENT_COLOR)
-Sg.SetOptions(button_color=BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
+Sg.SetOptions(button_color=helpers.BUTTON_COLOR, scrollbar_color=bg, background_color=bg, element_background_color=bg,
               text_element_background_color=bg, text_color=settings['text_color'])
 ydl = YoutubeDL()
 app = Flask(__name__)
@@ -539,7 +537,6 @@ def instance():
     for k, v in active_windows.items():  # Opens up GUI
         if v:
             {'main': main_window,
-             'settings': settings_window,
              'timer': timer_window,
              'playlist_selector': pl_selector_window,
              'playlist_editor': pl_editor_window,
@@ -1168,25 +1165,6 @@ try:
         main_window.TKroot.focus_force()
         main_window.Normal()
 
-    def activate_settings():
-        activate_main_window('tab_settings')
-        # global settings_window, IPV4, QR_CODE
-        # if not active_windows['main']:
-        #     active_windows['main'] = True
-        #     # RELIEFS: RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
-        #     if get_ipv4() != IPV4:
-        #         QR_CODE = create_qr_code(PORT)
-        #         IPV4 = get_ipv4()
-        #     settings_layout = create_settings(VERSION, settings, QR_CODE)
-        #     window_location = get_window_location('settings')
-        #     settings_window = Sg.Window('Music Caster Settings', settings_layout, background_color=bg,
-        #                                 icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False,
-        #                                 location=window_location)
-        #     settings_window.Finalize()
-        #     set_save_position_callback(settings_window, 'settings')
-        # settings_window.TKroot.focus_force()
-        # settings_window.Normal()
-
     def create_edit_playlists():
         global active_windows, pl_selector_window
         if active_windows['playlist_editor']:
@@ -1325,6 +1303,7 @@ try:
             song_start, song_end
         # make if statements into dict mapping
         main_event, main_values = main_window.Read(timeout=10)
+        main_value = main_values.get(main_event)
         not_file_pick = main_last_event not in {'queue_folder', 'play_next', 'queue_file', 'add_folder'}
         if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and not_file_pick:
             active_windows['main'] = False
@@ -1409,8 +1388,8 @@ try:
                     new_i = main_window['queue'].GetListValues().index(main_values['queue'][0]) + move
                     new_i = min(max(new_i, 0), len(music_queue) - 1)
                     main_window['queue'].Update(set_to_index=new_i, scroll_to_index=new_i)
-        elif main_event == 'queue' and main_values['queue']:
-            selected_file_index = main_window['queue'].GetListValues().index(main_values['queue'][0])
+        elif main_event == 'queue' and main_value:
+            selected_file_index = main_window['queue'].GetListValues().index(main_value[0])
             if done_queue and selected_file_index < len(done_queue):
                 while next_queue:  # design decision to empty next queue
                     music_queue.insert(1, next_queue.pop())
@@ -1510,7 +1489,7 @@ try:
         elif main_event == 'locate_file':
             Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
         elif main_event == 'library':
-            play_all([all_songs[main_values['library']]])
+            play_all([all_songs[main_value]])
         elif main_event == 'progressbar':
             if playing_status == 'NOT PLAYING':
                 main_window['progressbar'].Update(disabled=True)
@@ -1525,13 +1504,51 @@ try:
                 else:
                     local_music_player.music.rewind()
                     local_music_player.music.set_pos(new_position)
-                    # local_music_player.music.set_pos(new_position - song_position)
-                    # song_position = new_position
                 time_left = song_length - song_position
                 song_end = time.time() + time_left
                 song_start = song_end - song_length
-        else:
-            read_settings_window(main_event, main_values)
+        # settings
+        elif main_event == 'email': threading.Thread(target=webbrowser.open, args=[MAIL_URL]).start()
+        elif main_event == 'web_gui':
+            threading.Thread(target=webbrowser.open, args=[f'http://{get_ipv4()}:{PORT}']).start()
+        elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
+                            'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
+                            'save_queue_sessions'}:
+            change_settings(main_event, main_value)
+            if main_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
+            elif main_event == 'save_queue_sessions':
+                if main_value: save_queues()
+                else: change_settings('queues', {'done': [], 'music': [], 'next': []})
+            elif main_event == 'discord_rpc':
+                with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
+                    if main_value and playing_status in {'PAUSED', 'PLAYING'}:
+                        title, artist = get_metadata(music_queue[0])[:2]
+                        rich_presence.connect()
+                        rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
+                                             large_text='Listening', small_image='logo', small_text='Music Caster')
+                    elif not main_value: rich_presence.clear()
+        elif main_event == 'remove_folder' and main_values['music_dirs']:
+            selected_item = main_values['music_dirs'][0]
+            if selected_item in music_directories:
+                music_directories.remove(selected_item)
+                settings_window['music_dirs'].Update(music_directories)
+                refresh_tray()
+                save_settings()
+                compile_all_songs()
+        elif main_event == 'add_folder':
+            if main_value not in music_directories and os.path.exists(main_value):
+                music_directories.append(main_value)
+                settings_window['music_dirs'].Update(music_directories)
+                refresh_tray()
+                save_settings()
+                compile_all_songs()
+        elif main_event == 'settings_file':
+            try: os.startfile(settings_file)
+            except OSError: Popen(f'explorer /select,"{fix_path(settings_file)}"')
+        elif main_event == 'music_dirs':
+            with suppress(IndexError):
+                Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
+
         if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
             if music_queue:
                 progress_bar = main_window['progressbar']
@@ -1574,59 +1591,6 @@ try:
         main_last_event = main_event
         return True
 
-    def read_settings_window(settings_event, settings_values):
-        global settings_last_event
-        # settings_event, settings_values = settings_window.Read(timeout=10)
-        # if (settings_event in {None, 'q', 'Q'} or settings_event == 'Escape:27'
-        #         and settings_last_event != 'add_folder'):
-        #     active_windows['settings'] = False
-        #     settings_window.Close()
-        #     return
-        settings_value = settings_values.get(settings_event)
-        if settings_event == 'email':
-            threading.Thread(target=webbrowser.open, args=[MAIL_URL]).start()
-        if settings_event == 'web_gui':
-            threading.Thread(target=webbrowser.open, args=[f'http://{get_ipv4()}:{PORT}']).start()
-        elif settings_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
-                                'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
-                                'save_queue_sessions'}:
-            change_settings(settings_event, settings_value)
-            if settings_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
-            elif settings_event == 'save_queue_sessions':
-                if settings_value: save_queues()
-                else: change_settings('queues', {'done': [], 'music': [], 'next': []})
-            elif settings_event == 'discord_rpc':
-                with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
-                    if settings_value and playing_status in {'PAUSED', 'PLAYING'}:
-                        title, artist = get_metadata(music_queue[0])[:2]
-                        rich_presence.connect()
-                        rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
-                                             large_text='Listening', small_image='logo', small_text='Music Caster')
-                    elif not settings_value: rich_presence.clear()
-        elif settings_event == 'remove_folder' and settings_values['music_dirs']:
-            selected_item = settings_values['music_dirs'][0]
-            if selected_item in music_directories:
-                music_directories.remove(selected_item)
-                settings_window['music_dirs'].Update(music_directories)
-                refresh_tray()
-                save_settings()
-                compile_all_songs()
-        elif settings_event == 'add_folder':
-            if settings_value not in music_directories and os.path.exists(settings_value):
-                music_directories.append(settings_value)
-                settings_window['music_dirs'].Update(music_directories)
-                refresh_tray()
-                save_settings()
-                compile_all_songs()
-        elif settings_event == 'settings_file':
-            try:
-                os.startfile(settings_file)
-            except OSError:
-                Popen(f'explorer /select,"{fix_path(settings_file)}"')
-        elif settings_event == 'music_dirs':
-            with suppress(IndexError):
-                Popen(f'explorer "{fix_path(settings_values["music_dirs"][0])}"')
-        settings_last_event = settings_event
 
     def read_playlist_selector_window():
         global pl_selector_window, tray_playlists, pl_files, pl_name, pl_editor_window
@@ -1825,7 +1789,7 @@ try:
         'Refresh Library': compile_all_songs,
         'Refresh Devices': lambda: threading.Thread(target=start_chromecast_discovery, daemon=True),
         # isdigit should be an if statement
-        'Settings': activate_settings,
+        'Settings': lambda: activate_main_window('tab_settings'),
         'Create/Edit a Playlist': create_edit_playlists,
         # PL should be an if statement
         'Set Timer': activate_timer_window,
@@ -1844,7 +1808,7 @@ try:
         'Repeat All': lambda: change_settings('repeat', False),
         'Repeat Off': lambda: change_settings('repeat', None),
         'Locate File': locate_file,
-        'Exit': exit_app,
+        'Exit': exit_program,
     }
 
     while True:
@@ -1854,7 +1818,6 @@ try:
             daemon_command = None
         tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         if active_windows['main']: read_main_window()
-        # if active_windows['settings']: read_settings_window()
         if active_windows['playlist_selector']: read_playlist_selector_window()
         if active_windows['playlist_editor']: read_playlist_editor_window()
         if active_windows['timer']: read_timer_window()

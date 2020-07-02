@@ -267,7 +267,7 @@ def create_main_gui_v2(songs, listbox_selected, playing_status, settings, versio
     settings_layout = create_settings(version, settings, qr_code)
     settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
     tabs_side = Sg.TabGroup([[queue_tab, settings_tab]], key='tab_group', title_color=fg, tab_background_color=bg,
-                            selected_title_color='#000', selected_background_color=BUTTON_COLOR[1])
+                            selected_title_color=BUTTON_COLOR[0], selected_background_color=BUTTON_COLOR[1])
 
     return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
 
@@ -419,24 +419,23 @@ def create_playlist_selector(playlists):
 
 def create_playlist_editor(initial_folder, playlists, playlist_name=''):
     paths = playlists.get(playlist_name, [])
-    songs = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
-    # TODO: remove .mp3
+    songs = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
     layout = [[
-        Sg.Text('Playlist name', font=font_normal),
-        Sg.Input(playlist_name, key='playlist_name'),
-        Sg.Submit('Save & quit', key='Save', tooltip='Ctrl + S', font=font_normal, pad=(('11px', '11px'), (0, 0))),
-        Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=font_normal, enable_events=True)],
+        Sg.Text('Playlist name', font=font_normal, size=(12, 1), justification='center'),
+        Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=font_normal),
+        Sg.Submit('Save', key='Save', tooltip='Ctrl + S', font=font_normal, size=(6, 1), pad=((14, 5), (5, 5))),
+        Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=font_normal, enable_events=True, size=(3, 1))],
         [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),),
-                                       pad=(('21px', 0), (5, 5)), initial_folder=initial_folder, font=font_normal,
+                                       size=(11, 1), initial_folder=initial_folder, font=font_normal,
                                        enable_events=True)],
                        [Sg.Button('Remove song', key='Remove song', tooltip='Ctrl + R', font=font_normal,
-                                  enable_events=True)]],
+                                  enable_events=True, size=(11, 1))]],
                   background_color=bg, border_width=0),
-         Sg.Listbox(songs, size=(41, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+         Sg.Listbox(songs, size=(37, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=font_normal, enable_events=True),
          Sg.Frame('', [
-             [Sg.Button('Move up', key='move_up', tooltip='Ctrl + U', font=font_normal, enable_events=True)],
-             [Sg.Button('Move down ', key='move_down', tooltip='Ctrl + D', font=font_normal, enable_events=True)]
+             [Sg.Button('Move up', size=(11, 1), key='move_up', tooltip='Ctrl + U', font=font_normal, enable_events=True)],
+             [Sg.Button('Move down', size=(11, 1), key='move_down', tooltip='Ctrl + D', font=font_normal, enable_events=True)]
          ], background_color=bg, border_width=0)]]
     return layout
 
@@ -462,5 +461,3 @@ def create_play_url_window():
 #         path_to_exe = f'{starting_dir}\\Music Caster.exe'
 #         wr.SetValueEx(key, '', 0, wr.REG_SZ, f'"{path_to_exe}"' + '\\"%1"\\')
 #         wr.CloseKey(key)
-
-if __name__ == '__main__': import test_harness

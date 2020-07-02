@@ -40,6 +40,7 @@ def update_spec_files(debug_option):
         f.truncate()
 
 
+print('Updating versions of build files')
 # UPDATE VERSIONS OF version file and installer script
 with open('mc_version_info.txt', 'r+') as f:
     lines = f.readlines()

@@ -158,9 +158,21 @@ for main_window in {main_window1}:
 
 # Sg.Window('Main GUI', playing_layout)
 
-
 # Settings GUI
 
 # Timer GUI
 
 # Playlists GUI
+
+pl_editor_layout = create_playlist_editor('C:/', {'test': SAMPLE_MUSIC_FILES}, 'test')
+pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, background_color=bg, return_keyboard_events=True)
+
+
+pl_editor_window.Finalize()
+pl_editor_window.TKroot.focus_force()
+window_active = True
+while window_active:
+    pl_editor_event, pl_editor_values = pl_editor_window.Read()
+    if pl_editor_event is None or pl_editor_event == 'Escape:27':
+        pl_editor_window.Close()
+        window_active = False

@@ -6,6 +6,7 @@ Music Caster by Elijah Lopez Changelog
 - [UI] Merged Settings with Main Window
 - [Optimization] Optimized Settings Window
 - [Optimization] Faster update checking
+- [Optimization] Better Portable Updater
 
 4.52.0
 - [Feature] Play URL works alright now (youtube only)
