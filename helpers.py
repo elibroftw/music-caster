@@ -214,9 +214,6 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_song)
     # main side for album cover, track title, track artist, and music controls
-    # album_cover = [Sg.Image(data=album_cover_data, pad=(0, 0), size=(50, 50),
-    #                         key='album_cover')] if album_cover_data else []
-    # use album_cover once I get a resizing lib
     music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
                       Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0),
@@ -232,6 +229,10 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
                                      disable_number_display=True, disabled=artist == '',
                                      tooltip='Scroll mousewheel', pad=((5, 5), (10, 0))),
                            Sg.Text('00:00', font=font_normal, key='time_left', pad=((5, 5), (10, 0)))]
+    # album_cover = [Sg.Image(data=album_cover_data, pad=(0, 0), size=(255, 255),
+    #                         key='album_cover')] if album_cover_data else []
+    # album_cover = [Sg.Image(data=WINDOW_ICON, pad=(0, 0), size=(255, 255), key='album_cover')]
+    # use album_cover once I get a resizing lib
     main_side = Sg.Column([  # album_cover,
         [Sg.Text(title, font=font_title, key='title', pad=((5, 5), (100, 0)), size=(30, 0), justification='center')],
         [Sg.Text(artist, font=font_artist, key='artist', pad=((5, 5), (0, 10)), size=(30, 0), justification='center')],
