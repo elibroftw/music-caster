@@ -130,7 +130,7 @@ playing_layout = create_main_gui(songs_list, selected_value, 'PLAYING', sample_s
                                  album_cover_data)
 
 QR_CODE = create_qr_code(2001)
-other_main_layout = create_main_gui_v2(songs_list, selected_value, 'PLAYING', sample_settings, 'TEST', QR_CODE, 'Hello',
+other_main_layout = create_main_gui(songs_list, selected_value, 'PLAYING', sample_settings, 'TEST', QR_CODE, 'Hello',
                                        'Martin')
 
 main_window1 = Sg.Window('Music Caster - Main Window V2 Test', other_main_layout, background_color=bg, icon=WINDOW_ICON,

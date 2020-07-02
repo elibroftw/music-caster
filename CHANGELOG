@@ -8,6 +8,7 @@ Music Caster by Elijah Lopez Changelog
 - [Optimization] Faster update checking
 - [Optimization] Better Portable Updater
 - [Fix] Queue file
+- [Fix] Save window positions
 
 4.52.0
 - [Feature] Play URL works alright now (youtube only)

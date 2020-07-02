@@ -5,7 +5,6 @@ pychromecast~=4.2.3
 pygame~=1.9.6
 PyInstaller~=3.6
 pynput~=1.4.5
-pyperclip~=1.7.0
 pyqrcode~=1.2.1
 PySimpleGUI~=4.22.0
 PySimpleGUIWx~=0.14

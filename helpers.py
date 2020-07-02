@@ -205,8 +205,8 @@ def get_repeat_img_et_tooltip(repeat_setting):
 
 
 # GUI LAYOUTS
-def create_main_gui_v2(songs, listbox_selected, playing_status, settings, version, qr_code,
-                       title='Nothing Playing', artist='', album_cover_data=None):
+def create_main_gui(songs, listbox_selected, playing_status, settings, version, qr_code,
+                    title='Nothing Playing', artist='', album_cover_data=None):
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
@@ -267,69 +267,9 @@ def create_main_gui_v2(songs, listbox_selected, playing_status, settings, versio
     settings_layout = create_settings(version, settings, qr_code)
     settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
     tabs_side = Sg.TabGroup([[queue_tab, settings_tab]], key='tab_group', title_color=fg, tab_background_color=bg,
-                            selected_title_color=BUTTON_COLOR[0], selected_background_color=BUTTON_COLOR[1])
+                            selected_title_color=BUTTON_COLOR[0], selected_background_color=BUTTON_COLOR[1], border_width=0)
 
     return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
-
-
-def create_main_gui(songs, listbox_selected, playing_status, settings,
-                    now_playing_text='Nothing Playing', album_cover_data=None):
-    # note that songs is the formatted list using create_songs_list found in music_caster.py
-    # listbox_selected is allowed to be None
-    # TODO: Music Library Tab
-    is_muted = settings['muted']
-    volume = 0 if is_muted else settings['volume']
-    v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
-    repeating_song = settings['repeat']
-    pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
-    # Sg.Button('Shuffle', key='Shuffle'),
-    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_song)
-    music_controls = [[Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
-                       Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
-                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0),
-                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
-                       Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
-                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
-                                 disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
-                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]]
-    progress_bar_layout = [[Sg.Text('00:00', font=font_normal, key='time_elapsed'),
-                            Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
-                                      enable_events=True, relief=Sg.RELIEF_FLAT, background_color=ACCENT_COLOR,
-                                      disable_number_display=True, disabled=now_playing_text == 'Nothing Playing',
-                                      tooltip='Scroll mousewheel'),
-                            # Sg.ProgressBar(100, orientation='h', size=(30, 20), key='progressbar', style='clam'),
-                            Sg.Text('00:00', font=font_normal, key='time_left')]]
-
-    # Now Playing layout
-    tab1_layout = [[Sg.Text(now_playing_text, font=font_playing_text, key='now_playing',
-                            size=(55, 0), pad=((5, 5), (20, 0)))],
-                   [Sg.Column(music_controls, justification='center', pad=((5, 5), (20, 0)))],
-                   [Sg.Column(progress_bar_layout, justification='center', pad=((5, 5), (20, 0)))]]
-    # Music Queue layout
-    mq_controls = [
-        [Sg.Button('▲', key='move_up', tooltip='Move song up the queue', size=(3, 1))],
-        [Sg.Button('❌', key='remove', tooltip='Remove song from the queue', size=(3, 1))],
-        [Sg.Button('▼', key='move_down', tooltip='Move song down the queue', size=(3, 1))]]
-    q_controls1 = [
-        Sg.Button('Queue File(s)', font=font_normal, key='queue_file', pad=(5, 5)),
-        Sg.Button('Queue Folder', font=font_normal, key='queue_folder', pad=(5, 5)),
-        Sg.Button('Play Next', font=font_normal, key='play_next', pad=(5, 5)),
-        Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(5, 5)),
-        Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(5, 5),
-                  tooltip='Show selected file in explorer')]
-    if settings['EXPERIMENTAL']:
-        q_controls1.insert(2, Sg.Button('Queue URL', font=font_normal, key='queue_url', pad=(5, 5)))
-        listbox_size = (64, 5)
-    else:
-        listbox_size = (58, 5)
-
-    tab2_layout = [q_controls1, [
-        Sg.Listbox(songs, default_values=listbox_selected, size=listbox_size, select_mode=Sg.SELECT_MODE_SINGLE,
-                   text_color=fg, key='queue', background_color=bg, font=font_normal, bind_return_key=True),
-        Sg.Column(mq_controls, pad=(0, 5))]]
-    layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
-                             Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
-    return layout
 
 
 def create_settings(version, settings, qr_code):

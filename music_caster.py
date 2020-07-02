@@ -1,7 +1,7 @@
 VERSION = '4.53.0'
 UPDATE_MESSAGE = """
-[UI] Removed ugly border from buttons
-[UI] Merged Main GUI Tabs
+[UI] More Robust
+[Optimization] Faster updating
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 
@@ -35,7 +35,7 @@ import pythoncom
 from youtube_dl import YoutubeDL
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, create_play_url_window,\
-    is_already_running, find_chromecasts, create_main_gui_v2, create_timer,\
+    is_already_running, find_chromecasts, create_main_gui, create_timer,\
     _get_metadata, create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, MUSIC_FILE_TYPES
 import helpers
 from b64_images import *
@@ -303,7 +303,7 @@ def set_save_position_callback(window: Sg.Window, _key):
 
 
 def get_window_location(window_key):
-    if settings['save_window_positions']: window_key = 'DEFAULT'
+    if not settings['save_window_positions']: window_key = 'DEFAULT'
     return window_locations.get(window_key, (None, None))
 
 
@@ -1144,11 +1144,11 @@ try:
                 if get_ipv4() != IPV4:
                     QR_CODE = create_qr_code(PORT)
                     IPV4 = get_ipv4()
-                main_gui_layout = create_main_gui_v2(songs_list, selected_value, playing_status, settings,
-                                                     VERSION, QR_CODE, title, artist, album_cover_data=album_cover_data)
+                main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings,
+                                                  VERSION, QR_CODE, title, artist, album_cover_data=album_cover_data)
             else:
-                main_gui_layout = create_main_gui_v2(songs_list, selected_value, playing_status, settings,
-                                                     VERSION, QR_CODE)
+                main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings,
+                                                  VERSION, QR_CODE)
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False, location=window_location)
             main_window.playing_status = playing_status  # TODO: use p_r_button.metadata

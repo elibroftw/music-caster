@@ -11,11 +11,8 @@ import sys
 
 import requests
 
-
-try:
-    run_after_install = bool(sys.argv[1])
-except IndexError:
-    run_after_install = True
+try: run_after_install = int(sys.argv[1])
+except IndexError: run_after_install = True
 
 
 def download(url, outfile):
