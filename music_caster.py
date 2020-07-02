@@ -1,7 +1,7 @@
 VERSION = '4.53.0'
 UPDATE_MESSAGE = """
 [UI] More Robust
-[Optimization] Faster updating
+[Optimization] Faster Update Checking
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 
@@ -35,8 +35,8 @@ import pythoncom
 from youtube_dl import YoutubeDL
 # helper files
 from helpers import fix_path, get_ipv4, get_mac, create_qr_code, valid_music_file, create_play_url_window,\
-    is_already_running, find_chromecasts, create_main_gui, create_timer,\
-    _get_metadata, create_playlist_editor, create_playlist_selector, bg, BUTTON_COLOR, get_youtube_id, MUSIC_FILE_TYPES
+    is_already_running, find_chromecasts, create_main_gui, create_timer, _get_metadata, create_playlist_editor,\
+    create_playlist_selector, bg, get_youtube_id, MUSIC_FILE_TYPES
 import helpers
 from b64_images import *
 # 3rd party imports
@@ -94,6 +94,7 @@ progress_bar_last_update = song_position = timer = song_end = song_length = song
 playing_status = 'NOT PLAYING'
 playing_url = False
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+# if music caster was launched in some other folder, play all or queue all that folder?
 os.chdir(starting_dir)
 home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
@@ -604,7 +605,6 @@ def format_file(path: str):
 
 
 def create_songs_list():
-    # TODO: use metadata and song names or just one artist name
     """:returns the formatted song queue, and the selected value (currently playing)"""
     songs = []
     dq_len = len(done_queue)
@@ -673,19 +673,20 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
+                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                        'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                         'Pause'], 'Play',
-                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                        'Play All'], 'Exit']]
+                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
+                        'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Song', 'Next Song',
                         'Resume'], 'Play',
-                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)', 'Play File Next',
-                        'Play All'], 'Exit']]
+                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
+                        'Play File Next', 'Play All'], 'Exit']]
 
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
@@ -1138,7 +1139,6 @@ try:
                 current_song = music_queue[0]
                 metadata = music_metadata[current_song]
                 artist, title = metadata['artist'].split(', ')[0], metadata['title']
-                now_playing_text = f'{artist} - {title}'
                 album_cover_data = metadata.get('album_cover_data', None)
                 # album_cover_data = DEFAULT_IMG_DATA
                 if get_ipv4() != IPV4:
@@ -1151,7 +1151,6 @@ try:
                                                   VERSION, QR_CODE)
             main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
                                     return_keyboard_events=True, use_default_focus=False, location=window_location)
-            main_window.playing_status = playing_status  # TODO: use p_r_button.metadata
             main_window.Finalize()
             main_window['queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
             main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
@@ -1315,8 +1314,9 @@ try:
         time_left = None
         artist, title = '', 'Nothing Playing'
         with suppress(KeyError, IndexError):
-            metadata = music_metadata[music_queue[0]]
-            artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
+            if playing_status in {'PAUSED', 'PLAYING'}:
+                metadata = music_metadata[music_queue[0]]
+                artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
         if main_event.startswith('MouseWheel'):
             main_event = main_event.split(':', 1)[1]
             delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
@@ -1570,17 +1570,15 @@ try:
         lb_music_queue: Sg.Listbox = main_window['queue']
         dq_len = len(done_queue)
         update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
-        if playing_status == 'PLAYING' and main_window.playing_status != 'PLAYING':
-            main_window.playing_status = 'PLAYING'
+        if playing_status == 'PLAYING' and p_r_button.metadata != 'PLAYING':
             p_r_button.Update(image_data=PAUSE_BUTTON_IMG)
-        elif playing_status == 'PAUSED' and main_window.playing_status != 'PAUSED':
-            main_window.playing_status = 'PAUSED'
+        elif playing_status == 'PAUSED' and p_r_button.metadata != 'PAUSED':
             p_r_button.Update(image_data=PLAY_BUTTON_IMG)
-        elif playing_status == 'NOT PLAYING' and main_window.playing_status != 'NOT PLAYING':
-            if main_window.playing_status == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
-            main_window.playing_status = 'NOT PLAYING'
+        elif playing_status == 'NOT PLAYING' and p_r_button.metadata != 'NOT PLAYING':
+            if p_r_button.metadata == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
             main_window['time_elapsed'].Update(value='00:00')
             main_window['time_left'].Update(value='00:00')
+        p_r_button.metadata = playing_status
         if gui_title != title:
             main_window['title'].Update(value=title)
             main_window['artist'].Update(value=artist)
@@ -1614,9 +1612,6 @@ try:
             tray_playlists.clear()
             tray_playlists.append('Create/Edit a Playlist')
             tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-            # if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-            # elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-            # else: tray.Update(menu=menu_def_1)
         elif pl_selector_event in {'edit_pl', 'create_pl', 'e', 'n', 'e:69', 'n:78'}:
             if pl_selector_event in {'edit_pl', 'e', 'e:69'}:
                 pl_name = pl_selector_values.get('pl_selector', '')
@@ -1765,7 +1760,6 @@ try:
             url_to_play = play_url_values['url']
             music_queue.insert(0, url_to_play)
             play(url_to_play)
-            # play_url(play_url_values['url'])
 
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     threading.Thread(target=background_tasks, daemon=True).start()

@@ -216,7 +216,7 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
     # main side for album cover, track title, track artist, and music controls
     music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
                       Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
-                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0),
+                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0, metadata=playing_status),
                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
                       # TODO: modify tooltip
                       Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
@@ -234,8 +234,8 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
     # album_cover = [Sg.Image(data=WINDOW_ICON, pad=(0, 0), size=(255, 255), key='album_cover')]
     # use album_cover once I get a resizing lib
     main_side = Sg.Column([  # album_cover,
-        [Sg.Text(title, font=font_title, key='title', pad=((5, 5), (100, 0)), size=(30, 0), justification='center')],
-        [Sg.Text(artist, font=font_artist, key='artist', pad=((5, 5), (0, 10)), size=(30, 0), justification='center')],
+        [Sg.Text(title, font=font_title, key='title', pad=((0, 0), (100, 0)), size=(35, 0), justification='center')],
+        [Sg.Text(artist, font=font_artist, key='artist', pad=((0, 0), (0, 10)), size=(35, 0), justification='center')],
         music_controls, progress_bar_layout], element_justification='center', pad=((5, 5), (5, 5)))
 
     # tabs side is for music queue, queue controls, and later, the music library
