@@ -40,6 +40,8 @@ Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; F
 
 [InstallDelete]
 Type: files; Name: {app}\*.dll
+Type: files; Name: {app}\*.pyd
+Type: files; Name: {app}\*.exe
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
