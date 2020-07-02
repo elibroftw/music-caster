@@ -5,7 +5,6 @@ import json
 import os
 from shutil import rmtree
 from subprocess import Popen
-import time
 import zipfile
 import sys
 
@@ -41,7 +40,6 @@ for asset in release['assets']:
         setup_dl_link = asset['browser_download_url']
     elif 'portable' in asset['name'].lower():
         portable_dl_link = asset['browser_download_url']
-start = time.time()
 if DEBUG:
     print('Bundle:', portable_dl_link)
     print('Installer:', setup_dl_link)
