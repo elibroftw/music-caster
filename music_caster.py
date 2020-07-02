@@ -76,7 +76,7 @@ show_pygame_error = variable_exception_sent = update_devices = settings_file_in_
 settings_last_modified, last_press = 0, time.time()
 active_windows = {'main': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
-main_window = settings_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
+main_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
 main_last_event = pl_editor_last_event = None
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
@@ -1303,20 +1303,20 @@ try:
             song_start, song_end
         # make if statements into dict mapping
         main_event, main_values = main_window.Read(timeout=10)
-        main_value = main_values.get(main_event)
         not_file_pick = main_last_event not in {'queue_folder', 'play_next', 'queue_file', 'add_folder'}
         if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and not_file_pick:
             active_windows['main'] = False
             main_window.Close()
             return False
+        main_value = main_values.get(main_event)
         if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event: main_last_event = main_event
         p_r_button = main_window['pause/resume']
         gui_title = main_window['title'].DisplayText
         time_left = None
-        if music_queue:
+        artist, title = '', 'Nothing Playing'
+        with suppress(KeyError, IndexError):
             metadata = music_metadata[music_queue[0]]
             artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
-        else: artist, title = '', 'Nothing Playing'
         if main_event.startswith('MouseWheel'):
             main_event = main_event.split(':', 1)[1]
             delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
@@ -1531,14 +1531,14 @@ try:
             selected_item = main_values['music_dirs'][0]
             if selected_item in music_directories:
                 music_directories.remove(selected_item)
-                settings_window['music_dirs'].Update(music_directories)
+                main_window['music_dirs'].Update(music_directories)
                 refresh_tray()
                 save_settings()
                 compile_all_songs()
         elif main_event == 'add_folder':
             if main_value not in music_directories and os.path.exists(main_value):
                 music_directories.append(main_value)
-                settings_window['music_dirs'].Update(music_directories)
+                main_window['music_dirs'].Update(music_directories)
                 refresh_tray()
                 save_settings()
                 compile_all_songs()
