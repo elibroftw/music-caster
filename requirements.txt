@@ -8,7 +8,7 @@ PyInstaller~=3.6
 pynput~=1.4.5
 pyperclip~=1.7.0
 pyqrcode~=1.2.1
-PySimpleGUI~=4.16.0
+PySimpleGUI~=4.22.0
 PySimpleGUIWx~=0.14
 pypiwin32==223
 pypresence~=4.0.0

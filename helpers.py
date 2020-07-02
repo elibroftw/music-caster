@@ -30,10 +30,14 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 fg, bg = '#aaaaaa', '#121212'
 font_normal = 'SourceSans', 11
 font_playing_text = 'Helvetica', 14
+font_title = 'Helvetica', 14
+font_artist = 'Helvetica', 12
 font_link = 'SourceSans', 11, 'underline'
 LINK_COLOR, ACCENT_COLOR = '#3ea6ff', '#00bfff'
 BUTTON_COLOR = ('#000000', ACCENT_COLOR)
 Sg.change_look_and_feel('SystemDefault')
+
+
 # TODO: add right click menus for list boxes
 
 
@@ -44,6 +48,7 @@ def timing(f):
         result = f(*args, **kwargs)
         print(f'{f.__name__} ELAPSED TIME:', time.time() - _start)
         return result
+
     return wrapper
 
 
@@ -51,23 +56,30 @@ def _get_metadata(file_path: str) -> tuple:  # title, artist, album
     file_path = file_path.lower()
     _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
     try:
-        if file_path.endswith('.mp3'): audio = EasyID3(file_path)
-        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'): audio = EasyMP4(file_path)
+        if file_path.endswith('.mp3'):
+            audio = EasyID3(file_path)
+        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
+            audio = EasyMP4(file_path)
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
-        elif file_path.endswith('.wma'): audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
-        else: audio = mutagen.File(file_path)
+        elif file_path.endswith('.wma'):
+            audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
+        else:
+            audio = mutagen.File(file_path)
         _title = audio.get('title', ['Unknown Title'])[0]
         _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
         _album = audio.get('album', ['Unknown Album'])[0]
-    except (ID3NoHeaderError, HeaderNotFoundError): pass
+    except (ID3NoHeaderError, HeaderNotFoundError):
+        pass
     return _title, _artist, _album
 
 
 def fix_path(path, by_os=True):
-    if by_os and platform.system() == 'Windows': return path.replace('/', '\\')
-    else: return path.replace('\\', '/')
+    if by_os and platform.system() == 'Windows':
+        return path.replace('/', '\\')
+    else:
+        return path.replace('\\', '/')
 
 
 def get_ipv4() -> str:
@@ -140,35 +152,31 @@ def find_chromecasts(timeout=0.3, callback=None):
     base = '.'.join(ipv4_address.split('.')[:-1])
     thread_results = []
     threads = []
-    chromecasts = []
     stop_discovery = False
 
     def _stop_discovery():
         nonlocal stop_discovery
         stop_discovery = True
 
-    def _connect_to_chromecast(ip, port=8009, thread_index=None):
+    def _connect_to_chromecast(ip, thread_index: int, port=8009):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         port_alive = sock.connect_ex((ip, port))
         sock.close()
         if not stop_discovery and port_alive == 0:
-            if callback is not None:
-                callback(pychromecast.Chromecast(ip))
-            elif thread_results:
-                assert isinstance(thread_index, int)
-                thread_results[thread_index] = ip
+            if callback is not None: callback(pychromecast.Chromecast(ip))
+            else: thread_results[thread_index] = ip
         return port_alive == 0
 
     for i in range(_RANGE):
         possible_ip = f'{base}.{i}'
-        kwargs = {'thread_index': i}
-        t = threading.Thread(target=_connect_to_chromecast, args=[possible_ip], kwargs=kwargs, daemon=True)
+        t = threading.Thread(target=_connect_to_chromecast, args=[possible_ip, i], daemon=True)
         threads.append(t)
         thread_results.append(False)
         t.start()
 
     if callback is None:
+        chromecasts = []
         for i, t in enumerate(threads):
             t.join()
             result = thread_results[i]  # ip address or False
@@ -187,11 +195,83 @@ def get_youtube_id(url):
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
         if query.path[:3] == '/v/': return query.path.split('/')[2]
-    # fail?
-    return None
+    return None  # invalid url or YouTube url
+
+
+def get_repeat_img_et_tooltip(repeat_setting):
+    if repeat_setting is None: return REPEAT_OFF_IMG, 'Repeat'
+    elif repeat_setting: return REPEAT_ONE_IMG, "Don't repeat"
+    else: return REPEAT_ALL_IMG, 'Repeat track'
 
 
 # GUI LAYOUTS
+def create_main_gui_v2(songs, listbox_selected, playing_status, settings, version, qr_code,
+                       title='Nothing Playing', artist='', album_cover_data=None):
+    is_muted = settings['muted']
+    volume = 0 if is_muted else settings['volume']
+    v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
+    repeating_song = settings['repeat']
+    pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
+    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_song)
+    # main side for album cover, track title, track artist, and music controls
+    # album_cover = [Sg.Image(data=album_cover_data, pad=(0, 0), size=(50, 50),
+    #                         key='album_cover')] if album_cover_data else []
+    # use album_cover once I get a resizing lib
+    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
+                      Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
+                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0),
+                      Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
+                      # TODO: modify tooltip
+                      Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
+                      Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
+                                disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
+                                text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
+    progress_bar_layout = [Sg.Text('00:00', font=font_normal, key='time_elapsed', pad=((5, 5), (10, 0))),
+                           Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
+                                     enable_events=True, relief=Sg.RELIEF_FLAT, background_color=ACCENT_COLOR,
+                                     disable_number_display=True, disabled=artist == '',
+                                     tooltip='Scroll mousewheel', pad=((5, 5), (10, 0))),
+                           Sg.Text('00:00', font=font_normal, key='time_left', pad=((5, 5), (10, 0)))]
+    main_side = Sg.Column([  # album_cover,
+        [Sg.Text(title, font=font_title, key='title', pad=((5, 5), (100, 0)), size=(30, 0), justification='center')],
+        [Sg.Text(artist, font=font_artist, key='artist', pad=((5, 5), (0, 10)), size=(30, 0), justification='center')],
+        music_controls, progress_bar_layout], element_justification='center', pad=((5, 5), (5, 5)))
+
+    # tabs side is for music queue, queue controls, and later, the music library
+    # tab 1 is the queue, tab 2 will be the library
+    queue_controls = [
+        Sg.Button('Queue File(s)', font=font_normal, key='queue_file', pad=(5, 5)),
+        Sg.Button('Queue Folder', font=font_normal, key='queue_folder', pad=(5, 5)),
+        Sg.Button('Play Next', font=font_normal, key='play_next', pad=(5, 5)),
+        Sg.Button('Clear Queue', font=font_normal, key='clear_queue', pad=(5, 5)),
+        Sg.Button('Locate File', font=font_normal, key='locate_file', pad=(5, 5),
+                  tooltip='Show selected file in explorer')]
+    listbox_controls = [
+        [Sg.Button('▲', key='move_up', tooltip='Move song up the queue', size=(3, 1))],
+        [Sg.Button('❌', key='remove', tooltip='Remove song from the queue', size=(3, 1))],
+        [Sg.Button('▼', key='move_down', tooltip='Move song down the queue', size=(3, 1))]]
+    if settings['EXPERIMENTAL']:
+        queue_controls.insert(2, Sg.Button('Queue URL', font=font_normal, key='queue_url', pad=(5, 5)))
+        listbox_size = (64, 13)
+    else:
+        listbox_size = (58, 13)
+    queue_tab_layout = [queue_controls, [
+        Sg.Listbox(songs, default_values=listbox_selected, size=listbox_size,
+                   select_mode=Sg.SELECT_MODE_SINGLE,
+                   text_color=fg, key='queue', background_color=bg, font=font_normal,
+                   bind_return_key=True),
+        Sg.Column(listbox_controls, pad=(0, 5))]]
+    queue_tab = Sg.Tab('Queue', queue_tab_layout, background_color=bg, key='tab_queue')
+    # TODO: library tab
+    # library_tab = Sg.Tab()
+    settings_layout = create_settings(version, settings, qr_code)
+    settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
+    tabs_side = Sg.TabGroup([[queue_tab, settings_tab]], key='tab_group', title_color=fg, tab_background_color=bg,
+                            selected_title_color='#000', selected_background_color=BUTTON_COLOR[1])
+
+    return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
+
+
 def create_main_gui(songs, listbox_selected, playing_status, settings,
                     now_playing_text='Nothing Playing', album_cover_data=None):
     # note that songs is the formatted list using create_songs_list found in music_caster.py
@@ -203,20 +283,11 @@ def create_main_gui(songs, listbox_selected, playing_status, settings,
     repeating_song = settings['repeat']
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     # Sg.Button('Shuffle', key='Shuffle'),
-    if repeating_song is None:
-        repeat_img = REPEAT_OFF_IMG
-        repeat_btn_tooltip = 'Repeat'
-    elif repeating_song:
-        repeat_img = REPEAT_ONE_IMG
-        repeat_btn_tooltip = "Don't repeat"
-    else:
-        repeat_img = REPEAT_ALL_IMG
-        repeat_btn_tooltip = 'Repeat track'
-    music_controls = [[Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG),
-                       # border_width=0, first add border to images
-                       Sg.Button(key='pause/resume', image_data=pause_resume_img),
-                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG),
-                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_btn_tooltip),
+    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_song)
+    music_controls = [[Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
+                       Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
+                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0),
+                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
                        Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
                        Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                  disable_number_display=True, enable_events=True, background_color=ACCENT_COLOR,
@@ -232,11 +303,6 @@ def create_main_gui(songs, listbox_selected, playing_status, settings,
     # Now Playing layout
     tab1_layout = [[Sg.Text(now_playing_text, font=font_playing_text, key='now_playing',
                             size=(55, 0), pad=((5, 5), (20, 0)))],
-                   [Sg.Image(data=album_cover_data, pad=(0, 0), size=(50, 50),
-                             key='album_cover')] if album_cover_data else [],
-                   # [Sg.Image(data=album_cover_data, pad=(0, 0), size=(0, 150), key='album_cover'),
-                   #  Sg.Slider((range(0, 100)))] if album_cover_data else [Sg.Slider((range(0, 100)))],
-                   # Maybe make volume on its own tab or horizontal?
                    [Sg.Column(music_controls, justification='center', pad=((5, 5), (20, 0)))],
                    [Sg.Column(progress_bar_layout, justification='center', pad=((5, 5), (20, 0)))]]
     # Music Queue layout
@@ -254,52 +320,48 @@ def create_main_gui(songs, listbox_selected, playing_status, settings,
     if settings['EXPERIMENTAL']:
         q_controls1.insert(2, Sg.Button('Queue URL', font=font_normal, key='queue_url', pad=(5, 5)))
         listbox_size = (64, 5)
-    else: listbox_size = (58, 5)
+    else:
+        listbox_size = (58, 5)
 
     tab2_layout = [q_controls1, [
         Sg.Listbox(songs, default_values=listbox_selected, size=listbox_size, select_mode=Sg.SELECT_MODE_SINGLE,
-                   text_color=fg, key='music_queue', background_color=bg, font=font_normal, bind_return_key=True),
+                   text_color=fg, key='queue', background_color=bg, font=font_normal, bind_return_key=True),
         Sg.Column(mq_controls, pad=(0, 5))]]
-    # song_lib = sorted(all_songs.keys())
-    # tab3_layout = [[
-    #     Sg.Listbox(song_lib, size=(80, 30), default_values=song_lib[0] if song_lib else '', text_color=fg,
-    #                background_color=bg, font=font_normal, key='library')
-    # ]]
     layout = [[Sg.TabGroup([[Sg.Tab('Now Playing', tab1_layout, background_color=bg, key='tab1'),
                              Sg.Tab('Music Queue', tab2_layout, background_color=bg, key='tab2')]])]]
-    # Sg.Tab('Library', tab3_layout, background_color=bg, key='tab3')]])]]
     return layout
 
 
-def create_settings(version, music_directories, settings, qr_code_data):
+def create_settings(version, settings, qr_code):
     checkbox_col = Sg.Column([
         [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update',
-                     background_color=bg, font=font_normal, enable_events=True, size=(20, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(20, 5),
                      pad=((0, 5), (5, 5))),
          Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc',
-                     background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(13, 5),
                      pad=((0, 5), (5, 5)))],
         [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications',
-                     background_color=bg, font=font_normal, enable_events=True, size=(20, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(20, 5),
                      pad=((0, 5), (5, 5))),
          Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup',
-                     background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(13, 5),
                      pad=((0, 5), (5, 5)))],
         [Sg.Checkbox('Save Window Positions', default=settings['save_window_positions'],
-                     key='save_window_positions', size=(20, None), background_color=bg, font=font_normal,
+                     key='save_window_positions', size=(20, 5), background_color=bg, font=font_normal,
                      enable_events=True, pad=((0, 5), (5, 5))),
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
-                     background_color=bg, font=font_normal, enable_events=True, size=(13, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(13, 5),
                      pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Populate Queue on Startup', default=settings['populate_queue_startup'], tooltip='Populates Queue From Folders on Startup',
-                     key='populate_queue_startup', size=(20, None), background_color=bg, font=font_normal,
+        [Sg.Checkbox('Populate Queue on Startup', default=settings['populate_queue_startup'],
+                     tooltip='Populates Queue From Folders on Startup',
+                     key='populate_queue_startup', size=(20, 5), background_color=bg, font=font_normal,
                      enable_events=True, pad=((0, 5), (5, 5))),
          Sg.Checkbox('Save Queue Between Sessions', default=settings['save_queue_sessions'], key='save_queue_sessions',
-                     background_color=bg, font=font_normal, enable_events=True, size=(23, None),
+                     background_color=bg, font=font_normal, enable_events=True, size=(23, 5),
                      pad=((0, 5), (5, 5)))]
-        ], pad=((0, 0), (5, 0)))
+    ], pad=((0, 0), (5, 0)))
     qr_code_col = Sg.Column([
-        [Sg.Button(image_data=qr_code_data, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]],
+        [Sg.Button(image_data=qr_code, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]],
         pad=(0, 0))
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', font=font_normal),
@@ -308,13 +370,15 @@ def create_settings(version, music_directories, settings, qr_code_data):
         [checkbox_col, qr_code_col],
         # [Sg.Slider((0, 100), default_value=settings['volume'], orientation='h', key='volume', tick_interval=5,
         #            enable_events=True, background_color=ACCENT_COLOR, text_color='#000000', size=(49, 15))],
-        [Sg.Listbox(music_directories, size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                    key='music_dirs', background_color=bg, font=font_normal, enable_events=True, no_scrollbar=True),
+        [Sg.Listbox(settings['music_directories'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+                    key='music_dirs', background_color=bg, font=font_normal, bind_return_key=True, no_scrollbar=True),
          Sg.Frame('', [
              [Sg.Button('Remove Folder', key='remove_folder', enable_events=True, font=font_normal, size=(15, 1))],
-             [Sg.FolderBrowse('Add Music Folder', font=font_normal, enable_events=True, key='add_folder', size=(15, 1))],
-             [Sg.Button('Open settings.json', key='settings_file', font=font_normal, enable_events=True, size=(15, 1))]],
-              background_color=bg, border_width=0)]]
+             [Sg.FolderBrowse('Add Music Folder', font=font_normal, enable_events=True, key='add_folder',
+                              size=(15, 1))],
+             [Sg.Button('Open settings.json', key='settings_file', font=font_normal, enable_events=True,
+                        size=(15, 1))]],
+                  background_color=bg, border_width=0)]]
     return layout
 
 
@@ -336,7 +400,7 @@ def create_timer(settings):
         [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing,
                   key='do_nothing', text_color=fg, background_color=bg, font=font_normal,
                   enable_events=True)],
-        [Sg.Text('Enter minutes or HH:MM',  tooltip='Press enter once done', font=font_normal)],
+        [Sg.Text('Enter minutes or HH:MM', tooltip='Press enter once done', font=font_normal)],
         [Sg.Input(key='minutes', font=font_normal), Sg.Submit(font=font_normal)],
         [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=font_normal, visible=False, key='error')]]
     return layout
@@ -355,7 +419,7 @@ def create_playlist_selector(playlists):
 
 def create_playlist_editor(initial_folder, playlists, playlist_name=''):
     paths = playlists.get(playlist_name, [])
-    songs = [f'{i+1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
+    songs = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(paths)]
     # TODO: remove .mp3
     layout = [[
         Sg.Text('Playlist name', font=font_normal),
@@ -398,3 +462,5 @@ def create_play_url_window():
 #         path_to_exe = f'{starting_dir}\\Music Caster.exe'
 #         wr.SetValueEx(key, '', 0, wr.REG_SZ, f'"{path_to_exe}"' + '\\"%1"\\')
 #         wr.CloseKey(key)
+
+if __name__ == '__main__': import test_harness
