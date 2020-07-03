@@ -26,18 +26,18 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
 def update_spec_files(debug_option):
-    with open('mc_portable.spec', 'r+') as f:
-        new_spec = f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+    with open('mc_portable.spec', 'r+') as _f:
+        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
-    with open('mc_onedir.spec', 'r+') as f:
-        new_spec = f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+        _f.seek(0)
+        _f.write(new_spec)
+        _f.truncate()
+    with open('mc_onedir.spec', 'r+') as _f:
+        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
+        _f.seek(0)
+        _f.write(new_spec)
+        _f.truncate()
 
 
 print('Updating versions of build files')
@@ -89,6 +89,7 @@ s2.wait()
 try: s4 = subprocess.Popen('iscc setup_script.iss')
 except FileNotFoundError: s4 = None
 s1.wait()
+if args.debug: update_spec_files(False)
 
 files = ['images/default.png', 'static/style.css', 'templates/index.html']
 for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
@@ -122,10 +123,9 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     with suppress(FileNotFoundError): zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
-if s4 is not None: s4.wait()  # Wait for inno script to finish
-else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
-if args.debug: update_spec_files(False)
-print('Build Time:', time.time() - start_time, 'seconds')
 if not args.nostart:
     print('Launching Music Caster.exe')
     subprocess.Popen(r'"dist\Music Caster.exe"')
+if s4 is not None: s4.wait()  # Wait for inno script to finish
+else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
+print('Build Time:', time.time() - start_time, 'seconds')

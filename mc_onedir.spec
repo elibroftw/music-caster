@@ -1,14 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 block_cipher = None
-
+data_files = [('resources/default.png', 'images'),
+              ('templates/index.html', 'templates'),
+              ('static/style.css', 'static')]
 
 a = Analysis(['music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
-             datas=[('resources/default.png', 'images'),
-                    ('templates/index.html', 'templates'),
-                    ('static/style.css', 'static')],
+             datas=data_files,
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -21,9 +21,6 @@ pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
-          a.binaries,
-          a.zipfiles,
-          a.datas,
           [],
           name='Music Caster',
           debug=False,
@@ -36,7 +33,6 @@ exe = EXE(pyz,
           console=False,
           icon='resources/Music Caster.ico',
           version='mc_version_info.txt')
-
 coll = COLLECT(
     exe,
     a.binaries,

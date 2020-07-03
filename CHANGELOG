@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.53.1
+- [Optimization] Faster startup time
+- [Fix] Auto update
+
 4.53.0
 - [UI] Removed ugly border from buttons
 - [UI] Merged Tab's 1 and 2 for Main Window
