@@ -1661,9 +1661,7 @@ def auto_update():
 
 def send_info():
     with suppress(requests.exceptions.ConnectionError):
-        current_time = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
-        requests.post('https://en3ay96poz86qa9.m.pipedream.net',
-                      json={'MAC': get_mac(), 'VERSION': VERSION, 'TIME': current_time})
+        requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION})
 
 
 def init_youtube_dl():  # 1 - 1.4 seconds

@@ -8,6 +8,7 @@ from helpers import get_metadata
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(), time.time() - timer)
+print('get_mac():', get_mac())
 
 
 def format_file(path: str):
