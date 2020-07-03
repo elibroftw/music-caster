@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 4.53.1
-- [Optimization] Faster startup time
+- [Optimization] Faster startup time (-70%)
 - [Fix] Auto update
 
 4.53.0

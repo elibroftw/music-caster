@@ -326,8 +326,8 @@ def get_window_location(window_key):
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
-    global settings, playlists, music_directories,\
-        DEFAULT_DIR, settings_last_loaded, window_locations, settings_file_in_use
+    global settings, playlists, music_directories, settings_last_modified, \
+        DEFAULT_DIR, window_locations, settings_file_in_use
     if settings_file_in_use: return
     elif os.path.exists(settings_file):
         settings_file_in_use = True
@@ -357,7 +357,7 @@ def load_settings():  # up to 0.4 seconds
         settings_file_in_use = False
         if overwrite_settings: save_settings()
     else: save_settings()
-    settings_last_loaded = time.time()
+    settings_last_modified = os.path.getmtime(settings_file)
 
 
 # use socket io?
@@ -897,9 +897,7 @@ def background_tasks():
 
     while True:
         # SETTINGS_LAST_MODIFIED
-        if os.path.getmtime(settings_file) != settings_last_modified:
-            settings_last_modified = os.path.getmtime(settings_file)
-            load_settings()
+        if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # updates last modified
         refresh_tray()
         if cast is not None and time.time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
@@ -928,7 +926,7 @@ def background_tasks():
                                 main_window['volume_slider'].Update(_volume)
                 elif playing_status in {'PAUSED', 'PLAYING'}: daemon_command = 'Stop'
             cast_last_checked = time.time()
-        time.sleep(10)
+        time.sleep(5)
 
 
 def on_press(key):
@@ -1760,34 +1758,31 @@ try:
                         'Resume'], 'Play',
                        ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
                         'Play File Next', 'Play All'], 'Exit']]
-    tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
-    tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
-    settings_last_loaded = cast_last_checked = time.time()
     IPV4 = get_ipv4()
     QR_CODE = create_qr_code(PORT)
+    rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
+    with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
+    pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
+    init_pygame_thread.join()
+    tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
+    tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
         compile_all_songs()
     DEFAULT_DIR = music_directories[0]
-    init_pygame_thread.join()
     if settings['notifications']:
         if show_pygame_error:
             tray.ShowMessage('Music Caster Error', 'No local audio device found')
         if settings['update_message'] != UPDATE_MESSAGE:
             tray.ShowMessage('Music Caster Updated', UPDATE_MESSAGE)
-        else:
-            tray.ShowMessage('Music Caster', f'Running in the tray. Startup={round(time.time() - start, 2)}s')
     change_settings('update_message', UPDATE_MESSAGE)
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:  # Only one of the below can be True
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
-
-    rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
-    with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
-    Thread(target=start_chromecast_discovery, daemon=True).start()
-    pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
+    cast_last_checked = time.time()
     Thread(target=background_tasks, daemon=True).start()
+    Thread(target=start_chromecast_discovery, daemon=True).start()
     if len(sys.argv) > 1:
         file_or_dir = sys.argv[1]
         if os.path.isfile(file_or_dir): play(file_or_dir)
@@ -1801,7 +1796,6 @@ try:
         compiling_songs_thread.join()
         play_all(queue_only=True)
     if settings.get('DEBUG', False): print('Running in tray')
-
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
@@ -1829,7 +1823,6 @@ try:
         'Locate File': locate_file,
         'Exit': exit_program,
     }
-
     while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
         if daemon_command is not None:
