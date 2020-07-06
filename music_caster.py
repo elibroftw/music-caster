@@ -1,7 +1,6 @@
-VERSION = '4.53.1'
+VERSION = '4.54.0'
 UPDATE_MESSAGE = """
-[UI] More Robust
-[Optimization] Faster Update Checking
+[Feature] Change device via web GUI
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -404,9 +403,16 @@ def index():  # web GUI
         el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_songs += el
     _queue = create_songs_list()[0]
+    device_index = 0
+    for i, device_name in enumerate(device_names):
+        if device_name.startswith('✓'):
+            device_index = i
+            break
+    formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
-                           settings=settings, list_of_songs=list_of_songs, repeat_option=repeat_option, queue=_queue)
+                           settings=settings, list_of_songs=list_of_songs, repeat_option=repeat_option, queue=_queue,
+                           device_index=device_index, devices=formatted_devices)
 
 
 @app.route('/play/', methods=['GET', 'POST'])
@@ -445,6 +451,14 @@ def change_settings_web():
             change_settings(setting_key, request.json['value'])
         if setting_key == 'volume':
             update_volume(0 if settings['muted'] else settings['volume'])
+        return 'true'
+    return 'false'
+
+
+@app.route('/change-device/', methods=['POST'])
+def change_device_web():
+    with suppress(KeyError):
+        change_device(int(request.json['device_index']))
         return 'true'
     return 'false'
 
@@ -492,6 +506,42 @@ def start_chromecast_discovery():
     stop_discovery()
     if not device_names: device_names.append(f'✓ Local device')
     refresh_tray()
+
+
+def change_device(selected_index):
+    global cast
+    if selected_index == 0: new_device = None
+    else:
+        try: new_device = chromecasts[selected_index - 1]
+        except IndexError: new_device = None
+    device_names.clear()
+    for device_index, cc in enumerate(['Local device'] + chromecasts):
+        cc: pychromecast.Chromecast = cc if device_index == 0 else cc.name
+        if device_index == selected_index: device_names.append(f'✓ {cc}')
+        else: device_names.append(f'{device_index + 1}. {cc}')
+    refresh_tray()
+    if cast != new_device:
+        current_pos = 0
+        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
+            mc = cast.media_controller
+            with suppress(UnsupportedNamespace):
+                mc.update_status()  # Switch device without playback loss
+                current_pos = mc.status.adjusted_current_time
+                if mc.is_playing or mc.is_paused: mc.stop()
+            cast.quit_app()
+        elif cast is None and local_music_player.music.get_busy():
+            if playing_status == 'PLAYING': current_pos = time.time() - song_start
+            else: current_pos = song_position
+            local_music_player.music.stop()
+        cast = new_device
+        volume = 0 if settings['muted'] else settings['volume']
+        change_settings('previous_device', None if cast is None else str(cast.uuid))
+        # TODO: fix Chromecast is connection error
+        with suppress(AttributeError): cast.wait(timeout=WAIT_TIMEOUT)
+        update_volume(volume)
+        if playing_status in {'PAUSED', 'PLAYING'}:
+            do_autoplay = False if playing_status == 'PAUSED' else True
+            play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
 
 
 def format_file(path: str):
@@ -1048,40 +1098,8 @@ def exit_program():
 def other_tray_actions(_tray_item):
     global cast, cast_last_checked, timer
     if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
-        try: selected_index = device_names.index(tray_item)
-        except ValueError: return
-        if selected_index == 0: new_device = None
-        else:
-            try: new_device = chromecasts[selected_index - 1]
-            except IndexError: new_device = None
-        device_names.clear()
-        for device_index, cc in enumerate(['Local device'] + chromecasts):
-            cc: pychromecast.Chromecast = cc if device_index == 0 else cc.name
-            if device_index == selected_index: device_names.append(f'✓ {cc}')
-            else: device_names.append(f'{device_index + 1}. {cc}')
-        refresh_tray()
-        if cast != new_device:
-            current_pos = 0
-            if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
-                mc = cast.media_controller
-                with suppress(UnsupportedNamespace):
-                    mc.update_status()  # Switch device without playback loss
-                    current_pos = mc.status.adjusted_current_time
-                    if mc.is_playing or mc.is_paused: mc.stop()
-                cast.quit_app()
-            elif cast is None and local_music_player.music.get_busy():
-                if playing_status == 'PLAYING': current_pos = time.time() - song_start
-                else: current_pos = song_position
-                local_music_player.music.stop()
-            cast = new_device
-            volume = 0 if settings['muted'] else settings['volume']
-            change_settings('previous_device', None if cast is None else str(cast.uuid))
-            # TODO: fix Chromecast is connection error
-            with suppress(AttributeError): cast.wait(timeout=WAIT_TIMEOUT)
-            update_volume(volume)
-            if playing_status in {'PAUSED', 'PLAYING'}:
-                do_autoplay = False if playing_status == 'PAUSED' else True
-                play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
+        with suppress(ValueError):
+            change_device(device_names.index(tray_item))
     elif _tray_item.startswith('PL: '):  # playlist
         music_queue.clear()
         music_queue.extend(playlists.get(tray_item[4:], []))
