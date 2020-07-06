@@ -49,7 +49,7 @@ import winshell
 from youtube_dl import YoutubeDL
 # CONSTANTS
 EMAIL = 'elijahllopezz@gmail.com'
-MAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
+EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid.uuid4())
@@ -98,10 +98,6 @@ save_queue_thread: Thread = None
 tray: SgWx.SystemTray = None
 # noinspection PyTypeChecker
 ydl: YoutubeDL = None
-bg = settings['background_color']
-button_color = settings['button_text_color'], settings['accent_color']
-Sg.SetOptions(button_color=button_color, scrollbar_color=bg, background_color=bg, element_background_color=bg,
-              text_element_background_color=bg, text_color=settings['text_color'])
 app = Flask(__name__)
 logging.getLogger('werkzeug').disabled = True
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
@@ -353,9 +349,16 @@ def load_settings():  # up to 0.4 seconds
                 compile_all_songs()
                 refresh_folders()
             DEFAULT_DIR = music_directories[0]
+            bg = settings['background_color']
+            button_color = settings['button_text_color'], settings['accent_color']
+            Sg.SetOptions(button_color=button_color, scrollbar_color=bg, background_color=bg,
+                          element_background_color=bg,
+                          text_element_background_color=bg, text_color=settings['text_color'])
         settings_file_in_use = False
         if overwrite_settings: save_settings()
-    else: save_settings()
+    else:
+        save_settings()
+        load_settings()
     settings_last_modified = os.path.getmtime(settings_file)
 
 
@@ -1012,8 +1015,9 @@ def activate_main_window(selected_tab='tab_queue'):
         else:
             main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings,
                                               VERSION, QR_CODE)
-        main_window = Sg.Window('Music Caster', main_gui_layout, background_color=bg, icon=WINDOW_ICON,
-                                return_keyboard_events=True, use_default_focus=False, location=window_location)
+        main_window = Sg.Window('Music Caster', main_gui_layout, background_color=settings['background_color'],
+                                icon=WINDOW_ICON, return_keyboard_events=True,
+                                use_default_focus=False, location=window_location)
         main_window.Finalize()
         main_window['queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
@@ -1038,8 +1042,8 @@ def create_edit_playlists():
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')
         pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings),
-                                       background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
-                                       location=window_location)
+                                       background_color=settings['background_color'],
+                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
         pl_selector_window.Finalize()
         set_save_position_callback(pl_selector_window, 'playlist_selector')
     pl_selector_window.TKroot.focus_force()
@@ -1350,7 +1354,7 @@ def read_main_window():
             song_end = time.time() + time_left
             song_start = song_end - song_length
     # settings
-    elif main_event == 'email': Thread(target=webbrowser.open, args=[MAIL_URL]).start()
+    elif main_event == 'email': Thread(target=webbrowser.open, args=[EMAIL_URL]).start()
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
@@ -1445,8 +1449,8 @@ def read_playlist_selector_window():
         pl_selector_window.Close()
         window_location = get_window_location('playlist_selector')
         pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
-                                       background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
-                                       location=window_location)
+                                       background_color=settings['background_color'],
+                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
         pl_selector_window.Read(timeout=10)
         pl_selector_window.TKroot.focus_force()
         pl_selector_window.Normal()
@@ -1461,8 +1465,8 @@ def read_playlist_selector_window():
             pl_name = ''
         window_location = get_window_location('playlist_editor')
         pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(DEFAULT_DIR, settings, pl_name),
-                                     background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
-                                     location=window_location)
+                                     background_color=settings['background_color'], icon=WINDOW_ICON,
+                                     return_keyboard_events=True, location=window_location)
         pl_files = playlists.get(pl_name, [])
         pl_selector_window.Close()
         pl_editor_window.Finalize()
@@ -1543,8 +1547,8 @@ def read_playlist_editor_window():
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')
         pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings),
-                                       background_color=bg, icon=WINDOW_ICON, return_keyboard_events=True,
-                                       location=window_location)
+                                       background_color=settings['background_color'], icon=WINDOW_ICON,
+                                       return_keyboard_events=True, location=window_location)
         pl_selector_window.Finalize()
         pl_selector_window.TKroot.focus_force()
         pl_selector_window.Normal()
