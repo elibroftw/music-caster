@@ -12,6 +12,7 @@ except RuntimeError as e: VERSION = str(e)
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
+parser.add_argument('--versioning', default=False, action='store_true')
 parser.add_argument('--nostart', default=False, action='store_true', help='Disable auto launch of MC after building')
 args = parser.parse_args()
 start_time = time.time()
@@ -73,7 +74,7 @@ with open('setup_script.iss', 'r+') as f:
     f.seek(0)
     f.writelines(lines)
     f.truncate()
-
+if args.versioning: sys.exit()
 if args.debug: update_spec_files(True)
 print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
