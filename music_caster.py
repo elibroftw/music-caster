@@ -1116,8 +1116,9 @@ def locate_file():
 def exit_program():
     tray.Hide()
     with suppress(UnsupportedNamespace):
-        stop()
-        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING':
+        if cast is None:
+            stop()
+        elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING':
             cast.quit_app()
     with suppress(AttributeError, RuntimeError, pypresence.InvalidID):
         rich_presence.close()
