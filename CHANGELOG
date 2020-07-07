@@ -1,5 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+4.54.1
+- [Fix] Auto-update
+- [Feature] Better url support
+
+4.54.0
+- [Feature] Change device via web GUI
+
 4.53.1
 - [Optimization] Faster startup time (-70%)
 - [Fix] Auto update

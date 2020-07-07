@@ -1,6 +1,7 @@
-VERSION = '4.54.0'
+VERSION = '4.54.1'
 UPDATE_MESSAGE = """
 [Feature] Change device via web GUI
+[Feature] Better play url support
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -25,6 +26,7 @@ import sys
 import shutil
 import traceback
 import urllib.parse
+from urllib.parse import urlsplit
 import webbrowser  # takes 0.05 seconds
 import zipfile
 # 3rd party imports
@@ -94,8 +96,6 @@ settings = {  # default settings
 compiling_songs_thread: Thread = None
 # noinspection PyTypeChecker
 save_queue_thread: Thread = None
-# noinspection PyTypeChecker
-tray: SgWx.SystemTray = None
 # noinspection PyTypeChecker
 ydl: YoutubeDL = None
 app = Flask(__name__)
@@ -587,10 +587,35 @@ def create_songs_list():
 
 
 def play_url(url, position=0, autoplay=True):
-    global cast, playing_url, playing_status, song_length, song_start, song_end
+    global cast, playing_url, playing_status, song_length, song_start, song_end, cast_last_checked
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
         return False
+    elif valid_music_file(url):
+        ext = url[::-1].split('.', 1)[0][::-1]
+        url_frags = urlsplit(url)
+        _title = url_frags.path.split('/')[-1]
+        _artist = url_frags.netloc
+        metadata = {'title': _title, 'artist': _artist, 'length': 0, 'album': url_frags.path[1:]}
+        music_metadata[url] = metadata
+        cast.wait()
+        mc = cast.media_controller
+        mc.play_media(url, f'audio/{ext}', metadata=metadata, current_time=position, autoplay=autoplay)
+        mc.block_until_active()
+        while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
+        song_start = time.time() - position
+        song_end = time.time() * 2
+        song_length = 999
+        playing_url, playing_status = True, 'PLAYING'
+        if settings['notifications']:
+            tray.ShowMessage('Music Caster', f'Playing: {url}', time=500)
+        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=f'Playing from {url_frags.netloc}')
+        if settings['discord_rpc']:
+            with suppress(AttributeError, pypresence.InvalidID):
+                rich_presence.update(state=_artist, details=url_frags.path, large_image='default',
+                                     large_text='Listening', small_image='logo', small_text='Music Caster')
+        cast_last_checked = time.time() + 30
+        return True
     elif get_youtube_id(url) is not None:
         init_ydl_thread.join()
         r = ydl.extract_info(url, download=False)
@@ -602,18 +627,18 @@ def play_url(url, position=0, autoplay=True):
             else: _artist = r['uploader']
             playing_text = f'{_artist} - {_title}'
             formats.sort(key=lambda _f: _f['width'])
-            cast.wait()
-            mc = cast.media_controller
             _f = formats[0]
             song_length = r['duration']
             music_metadata[url] = {'title': _title, 'artist': _artist, 'album': r['album'],
                                    'length': song_length, 'art': r['thumbnail']}
             metadata = {'metadataType': 3, 'albumName': r['album'], 'title': _title, 'artist': _artist}
+            cast.wait()
+            mc = cast.media_controller
             mc.play_media(_f['url'], f'video/{_f["ext"]}', metadata=metadata, thumb=r['thumbnail'],
                           current_time=position, autoplay=autoplay)
             mc.block_until_active()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
-            song_start = time.time()
+            song_start = time.time() - position
             song_end = song_start + song_length
             playing_url, playing_status = True, 'PLAYING'
             if settings['notifications']:
@@ -1398,8 +1423,9 @@ def read_main_window():
     if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
         if music_queue:
             progress_bar = main_window['progressbar']
-            update_song_position()
-            progress_bar.Update(song_position / song_length * 100, disabled=False)
+            with suppress(ZeroDivisionError):
+                update_song_position()
+                progress_bar.Update(song_position / song_length * 100, disabled=False)
             time_left = song_length - song_position
             progress_bar_last_update = time.time() - song_position + int(song_position)
         else:
@@ -1641,7 +1667,7 @@ def create_shortcut(_shortcut_path):
 
 
 def auto_update():
-    if not settings['auto_update']: return
+    if not settings['auto_update'] and not settings.get('DEBUG', False): return
     try:
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
         release = requests.get(releases_url).json()
@@ -1656,27 +1682,24 @@ def auto_update():
                     break
             if setup_dl_link == '': return
             if settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
+            temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
             if IS_FROZEN and (os.path.exists('unins000.exe') or os.path.exists('Updater.exe')):
                 quit_if_running_thread.join()
-                if os.path.exists('unis000.exe'):
-                    Thread(target=download, args=[setup_dl_link, 'MC_Installer.exe']).start()
-                    while tray is None: time.sleep(0.1)
-                    tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
-                    tray.Update(tooltip=f'Downloading update v{latest_ver}')
-                    file_not_downloaded = True
-                    while file_not_downloaded:
-                        with suppress(FileNotFoundError):
-                            Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
-                            file_not_downloaded = False
+                if os.path.exists('unins000.exe'):
+                    latest_ver = '.'.join(latest_ver)
+                    temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
+                    temp_tray.Update(tooltip=f'Downloading update v{latest_ver}')
+                    download(setup_dl_link, 'MC_Installer.exe')
+                    Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
                 else:
                     os.startfile('Updater.exe')
                     time.sleep(2)
                 with suppress(AttributeError):
-                    tray.Hide()
-                    tray.Close()
+                    temp_tray.Hide()
+                    temp_tray.Close()
                 sys.exit()
             else:
-                tray.ShowMessage('Music Caster', f'Update v{latest_ver} is available')
+                temp_tray.ShowMessage('Music Caster', f'Update v{latest_ver} is available')
     except requests.ConnectionError: pass
     except Exception as _e: handle_exception(_e)
 

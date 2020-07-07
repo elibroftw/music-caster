@@ -107,7 +107,7 @@ def get_running_processes():
 
 
 def is_already_running():
-    threshold = 0 if os.path.exists('unis000.exe') else 1
+    threshold = 1
     for process in get_running_processes():
         process_name = process['name']
         if process_name == 'Music Caster.exe':
