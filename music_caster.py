@@ -1,7 +1,8 @@
-VERSION = '4.54.2'
+VERSION = '4.54.3'
 UPDATE_MESSAGE = """
 [Feature] Change device via web GUI
 [Feature] Better play url support
+[Fix] Cast groups now detected
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time

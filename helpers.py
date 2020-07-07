@@ -130,40 +130,35 @@ def find_chromecasts(timeout=0.3, callback=None):
     _RANGE = 256
     ipv4_address = get_ipv4()
     base = '.'.join(ipv4_address.split('.')[:-1])
-    thread_results = []
     threads = []
     stop_discovery = False
+    chromecasts = []
 
     def _stop_discovery():
         nonlocal stop_discovery
         stop_discovery = True
 
-    def _connect_to_chromecast(ip, thread_index: int, port=8009):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        port_alive = sock.connect_ex((ip, port))
-        sock.close()
-        if not stop_discovery and port_alive == 0:
-            if callback is not None: callback(pychromecast.Chromecast(ip))
-            else: thread_results[thread_index] = ip
-        return port_alive == 0
+    def _connect_to_chromecast(ip, thread_index: int, ports=(8009, 42236)):
+        # 42236 is for groups
+        for port in ports:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            port_alive = sock.connect_ex((ip, port))
+            sock.close()
+            if not stop_discovery and port_alive == 0:
+                cc = pychromecast.Chromecast(ip, port=port)
+                if callback is not None: callback(cc)
+                else: chromecasts.append(cc)
 
     for i in range(_RANGE):
         possible_ip = f'{base}.{i}'
         t = Thread(target=_connect_to_chromecast, args=[possible_ip, i], daemon=True)
         threads.append(t)
-        thread_results.append(False)
         t.start()
 
     if callback is None:
-        chromecasts = []
-        for i, t in enumerate(threads):
+        for t in threads:
             t.join()
-            result = thread_results[i]  # ip address or False
-            if result:
-                cc = pychromecast.Chromecast(result)
-                if callback: callback(cc)
-                else: chromecasts.append(cc)
         return chromecasts
     return _stop_discovery
 

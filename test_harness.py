@@ -5,6 +5,7 @@ from contextlib import suppress
 import mutagen.id3
 from helpers import get_metadata
 
+print(find_chromecasts())
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(), time.time() - timer)
