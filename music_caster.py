@@ -1,4 +1,4 @@
-VERSION = '4.54.3'
+VERSION = '4.54.4'
 UPDATE_MESSAGE = """
 [Feature] Change device via web GUI
 [Feature] Better play url support
@@ -701,7 +701,7 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
     else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
 
     if cast is None:  # play locally
-        if file_path.lower()[-3:] not in {'mp3', 'ogg', 'wav'}:
+        if file_path.lower()[-3:] not in {'mp3', 'ogg'}:
             if settings['notifications']:
                 file_format = file_path.split('.')[-1]
                 tray.ShowMessage('Music Caster', f'File format {file_format} not supported')

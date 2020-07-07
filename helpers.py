@@ -1,4 +1,5 @@
 import time
+from contextlib import suppress
 from functools import wraps
 import os
 import platform
@@ -47,14 +48,16 @@ def timing(f):
 def get_metadata(file_path: str) -> tuple:  # title, artist, album
     file_path = file_path.lower()
     _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
-    try:
+    with suppress(ID3NoHeaderError, HeaderNotFoundError):
         if file_path.endswith('.mp3'):
             audio = EasyID3(file_path)
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
             audio = EasyMP4(file_path)
         elif file_path.endswith('.wav'):
-            a = WavInfoReader(file_path).info.to_dict()
-            audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
+            try:
+                a = WavInfoReader(file_path).info.to_dict()
+                audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
+            except AttributeError: raise HeaderNotFoundError
         elif file_path.endswith('.wma'):
             audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
         else:
@@ -62,8 +65,6 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
         _title = audio.get('title', ['Unknown Title'])[0]
         _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
         _album = audio.get('album', ['Unknown Album'])[0]
-    except (ID3NoHeaderError, HeaderNotFoundError):
-        pass
     return _title, _artist, _album
 
 
