@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.54.1"
+#define MyAppVersion "4.54.2"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -39,9 +39,7 @@ Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; F
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [InstallDelete]
-Type: files; Name: {app}\*.dll
 Type: files; Name: {app}\*.pyd
-Type: files; Name: {app}\*.exe
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

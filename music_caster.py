@@ -1,4 +1,4 @@
-VERSION = '4.54.1'
+VERSION = '4.54.2'
 UPDATE_MESSAGE = """
 [Feature] Change device via web GUI
 [Feature] Better play url support
@@ -53,9 +53,11 @@ from youtube_dl import YoutubeDL
 EMAIL = 'elijahllopezz@gmail.com'
 EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
+UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid.uuid4())
 show_pygame_error = variable_exception_sent = update_devices = settings_file_in_use = False
+update_available = False
 settings_last_modified, last_press = 0, time.time()
 active_windows = {'main': False, 'timer': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
@@ -83,6 +85,7 @@ SHORTCUT_PATH = ''
 os.chdir(starting_dir)
 home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
+
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
@@ -1668,39 +1671,38 @@ def create_shortcut(_shortcut_path):
 
 
 def auto_update():
+    global update_available
     if not settings['auto_update'] and not settings.get('DEBUG', False): return
     try:
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
         release = requests.get(releases_url).json()
         latest_ver = release['tag_name'][1:]
         _version = [int(x) for x in VERSION.split('.')]
-        latest_ver = [int(x) for x in latest_ver.split('.')]
-        if latest_ver > _version or settings.get('DEBUG', False):
+        compare_ver = [int(x) for x in latest_ver.split('.')]
+        if compare_ver > _version or settings.get('DEBUG', False):
             setup_dl_link = ''
             for asset in release['assets']:
                 if 'exe' in asset['name']:
                     setup_dl_link = asset['browser_download_url']
                     break
             if setup_dl_link == '': return
-            if settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
-            temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
-            if IS_FROZEN and (os.path.exists('unins000.exe') or os.path.exists('Updater.exe')):
+            elif settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
+            if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 quit_if_running_thread.join()
-                if os.path.exists('unins000.exe'):
-                    latest_ver = '.'.join(latest_ver)
+                if os.path.exists(UNINSTALLER):
+                    temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                     temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
                     temp_tray.Update(tooltip=f'Downloading update v{latest_ver}')
                     download(setup_dl_link, 'MC_Installer.exe')
+                    temp_tray.Hide()
+                    temp_tray.Close()
                     Popen(f'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
                 else:
                     os.startfile('Updater.exe')
                     time.sleep(2)
-                with suppress(AttributeError):
-                    temp_tray.Hide()
-                    temp_tray.Close()
                 sys.exit()
             else:
-                temp_tray.ShowMessage('Music Caster', f'Update v{latest_ver} is available')
+                update_available = f'Update v{latest_ver} is available'
     except requests.ConnectionError: pass
     except Exception as _e: handle_exception(_e)
 
@@ -1819,6 +1821,8 @@ try:
             tray.ShowMessage('Music Caster Error', 'No local audio device found')
         if settings['update_message'] != UPDATE_MESSAGE:
             tray.ShowMessage('Music Caster Updated', UPDATE_MESSAGE)
+    if update_available:
+        tray.ShowMessage('Music Caster', update_available)
     change_settings('update_message', UPDATE_MESSAGE)
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:  # Only one of the below can be True
