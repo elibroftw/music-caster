@@ -1,4 +1,4 @@
-VERSION = '4.54.6'
+VERSION = '4.54.7'
 UPDATE_MESSAGE = """
 [Feature] Chromecast Groups
 """
@@ -12,6 +12,7 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 # noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
+from functools import cmp_to_key
 import io
 from glob import glob
 import json
@@ -482,6 +483,17 @@ def page_not_found(_):
     return redirect('/')
 
 
+@cmp_to_key
+def chromecast_sorter(cc1: pychromecast.Chromecast, cc2: pychromecast.Chromecast):
+    # sort by groups, then by name, then by UUID
+    if cc1.device.cast_type == 'group' and cc2.device.cast_type != 'group': return -1
+    if cc1.device.cast_type != 'group' and cc2.device.cast_type == 'group': return 1
+    if cc1.name < cc2.name: return -1
+    if cc1.name > cc2.name: return 1
+    if str(cc1.uuid) > str(cc2.uuid): return 1
+    return -1
+
+
 def chromecast_callback(chromecast):
     global update_devices, cast, chromecasts
     previous_device = settings['previous_device']
@@ -490,7 +502,8 @@ def chromecast_callback(chromecast):
         cast.wait(timeout=WAIT_TIMEOUT)
     if chromecast.uuid not in [_cc.uuid for _cc in chromecasts]:
         chromecasts.append(chromecast)
-        chromecasts.sort(key=lambda _cc: (_cc.name, _cc.uuid))
+        # chromecasts.sort(key=lambda _cc: (_cc.device.model_name, type, _cc.name, _cc.uuid))
+        chromecasts.sort(key=chromecast_sorter)
         device_names.clear()
         for _i, _cc in enumerate(['Local device'] + chromecasts):
             _cc: pychromecast.Chromecast

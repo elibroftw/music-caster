@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.54.7
+- [UI] Sort cast devices by groups first
+
 4.54.6
 - [Fix] Cast groups detection (zeroconf == 0.24.5)
 
