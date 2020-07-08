@@ -15,4 +15,5 @@ wxpython~=4.1
 winshell~=0.6
 wavinfo==1.5
 requests~=2.22
+zeroconf==0.24.5
 youtube_dl
