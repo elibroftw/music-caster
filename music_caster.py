@@ -1688,7 +1688,7 @@ def auto_update():
             elif settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 quit_if_running_thread.join()
-                if os.path.exists(UNINSTALLER):
+                if os.path.exists(UNINSTALLER) and not exit_app:
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                     temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
                     temp_tray.Update(tooltip=f'Downloading update v{latest_ver}')
