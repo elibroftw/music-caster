@@ -1,7 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
-4.53.4
-- [Fix] no metadata wav files
+4.54.5
+- [Fix] Exit after downloading update
+
+4.54.4
+- [Fix] No metadata WAV files
 
 4.54.3
 - [Fix] Cast groups now detected

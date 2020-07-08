@@ -1,4 +1,4 @@
-VERSION = '4.54.4'
+VERSION = '4.54.5'
 UPDATE_MESSAGE = """
 [Feature] Change device via web GUI
 [Feature] Better play url support
@@ -1672,7 +1672,7 @@ def create_shortcut(_shortcut_path):
 
 
 def auto_update():
-    global update_available
+    global update_available, exit_app
     if not settings['auto_update'] and not settings.get('DEBUG', False): return
     try:
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
@@ -1701,7 +1701,7 @@ def auto_update():
                 else:
                     os.startfile('Updater.exe')
                     time.sleep(2)
-                sys.exit()
+                exit_app = True
             else:
                 update_available = f'Update v{latest_ver} is available'
     except requests.ConnectionError: pass
