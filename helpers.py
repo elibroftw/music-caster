@@ -127,6 +127,7 @@ def valid_music_file(file_path):
 
 
 def find_chromecasts(timeout=0.3, callback=None):
+    # OLD CODE
     # assuming subnet mask is 255.255.255.0
     _RANGE = 256
     ipv4_address = get_ipv4()
@@ -139,17 +140,15 @@ def find_chromecasts(timeout=0.3, callback=None):
         nonlocal stop_discovery
         stop_discovery = True
 
-    def _connect_to_chromecast(ip, thread_index: int, ports=(8009, 42236)):
-        # 42236 is for groups
-        for port in ports:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(timeout)
-            port_alive = sock.connect_ex((ip, port))
-            sock.close()
-            if not stop_discovery and port_alive == 0:
-                cc = pychromecast.Chromecast(ip, port=port)
-                if callback is not None: callback(cc)
-                else: chromecasts.append(cc)
+    def _connect_to_chromecast(ip, thread_index: int, port=8009):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        port_alive = sock.connect_ex((ip, port))
+        sock.close()
+        if not stop_discovery and port_alive == 0:
+            cc = pychromecast.Chromecast(ip, port=port)
+            if callback is not None: callback(cc)
+            else: chromecasts.append(cc)
 
     for i in range(_RANGE):
         possible_ip = f'{base}.{i}'

@@ -1,8 +1,6 @@
-VERSION = '4.54.5'
+VERSION = '4.54.6'
 UPDATE_MESSAGE = """
-[Feature] Change device via web GUI
-[Feature] Better play url support
-[Fix] Cast groups now detected
+[Feature] Chromecast Groups
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -507,8 +505,8 @@ def start_chromecast_discovery():
     global stop_discovery
     if stop_discovery is not None: stop_discovery()
     chromecasts.clear()
-    stop_discovery = find_chromecasts(callback=chromecast_callback)
-    # stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
+    # stop_discovery = find_chromecasts(callback=chromecast_callback)
+    stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     time.sleep(10.1)
     stop_discovery()
     if not device_names: device_names.append(f'✓ Local device')

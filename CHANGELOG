@@ -1,13 +1,13 @@
 Music Caster by Elijah Lopez Changelog
 
+4.54.6
+- [Fix] Cast groups detection (zeroconf == 0.24.5)
+
 4.54.5
 - [Fix] Exit after downloading update
 
 4.54.4
 - [Fix] No metadata WAV files
-
-4.54.3
-- [Fix] Cast groups now detected
 
 4.54.2
 - [Fix] Auto-update
