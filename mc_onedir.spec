@@ -34,5 +34,6 @@ coll = COLLECT(exe,
                a.zipfiles,
                a.datas,
                strip=False,
-               upx=False,
+               upx=True,
+               upx_exclude=['vcruntime140.dll', 'msvcp140.dll', 'python36.dll'],
                name='Music Caster')

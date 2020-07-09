@@ -1,4 +1,4 @@
-VERSION = '4.54.8'
+VERSION = '4.55.0'
 UPDATE_MESSAGE = """
 [Feature] Chromecast Groups
 """
