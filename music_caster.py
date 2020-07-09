@@ -194,7 +194,7 @@ def cycle_repeat():
 
 
 def handle_exception(exception, restart_program=False):
-    # if settings.get('DEBUG', False) and not IS_FROZEN: raise exception
+    if settings.get('DEBUG', False) and not IS_FROZEN: raise exception
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
