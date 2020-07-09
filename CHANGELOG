@@ -1,7 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
 4.55.0
-- [Optimization] Decrease installation size
+- [Optimization] Reduced installation size
+- [Fix] Error handling
+- [Fix] Resume playback after long time
 
 4.54.8
 - [Fix] Auto-updating

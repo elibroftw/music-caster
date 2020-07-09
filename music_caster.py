@@ -194,7 +194,7 @@ def cycle_repeat():
 
 
 def handle_exception(exception, restart_program=False):
-    if settings.get('DEBUG', False) and not IS_FROZEN: raise exception
+    # if settings.get('DEBUG', False) and not IS_FROZEN: raise exception
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
@@ -206,7 +206,7 @@ def handle_exception(exception, restart_program=False):
         requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     try:
         with open(f'{starting_dir}/error.log', 'r') as _f:
-            content = f.read()
+            content = _f.read()
     except (FileNotFoundError, ValueError):
         content = ''
     with open(f'{starting_dir}/error.log', 'w') as _f:
@@ -214,9 +214,11 @@ def handle_exception(exception, restart_program=False):
         _f.write('\n')
         _f.write(content)
     if restart_program:
-        tray.ShowMessage('Music Caster Error', 'An error has occurred, restarting now')
-        time.sleep(5)
-        stop()
+        with suppress(NameError):
+            tray.ShowMessage('Music Caster Error', 'An error has occurred, restarting now')
+            time.sleep(5)
+        with suppress(Exception):
+            stop()
         if IS_FROZEN: os.startfile('Music Caster.exe')
         sys.exit()
 
@@ -937,7 +939,7 @@ def resume():
             with suppress(AttributeError, pypresence.InvalidID):
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Playing', small_image='logo', small_text='Music Caster')
-    except UnsupportedNamespace:
+    except (UnsupportedNamespace, NotConnected):
         play(music_queue[0], position=song_position)
 
 
