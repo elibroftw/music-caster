@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.54.7"
+#define MyAppVersion "4.54.8"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -40,6 +40,7 @@ Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; F
 
 [InstallDelete]
 Type: files; Name: {app}\*.pyd
+Type: files; Name: {app}\*.dll
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

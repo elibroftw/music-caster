@@ -1,4 +1,4 @@
-VERSION = '4.54.7'
+VERSION = '4.54.8'
 UPDATE_MESSAGE = """
 [Feature] Chromecast Groups
 """
@@ -632,7 +632,6 @@ def play_url(url, position=0, autoplay=True):
         cast_last_checked = time.time() + 30
         return True
     elif get_youtube_id(url) is not None:
-        init_ydl_thread.join()
         r = ydl.extract_info(url, download=False)
         formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
         try:
@@ -1683,25 +1682,26 @@ def create_shortcut(_shortcut_path):
 
 
 def auto_update():
-    global update_available, exit_app
-    if not settings['auto_update'] and not settings.get('DEBUG', False): return
+    global update_available, quit_if_running_thread, load_settings_thread
     try:
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
         release = requests.get(releases_url).json()
         latest_ver = release['tag_name'][1:]
         _version = [int(x) for x in VERSION.split('.')]
         compare_ver = [int(x) for x in latest_ver.split('.')]
+        load_settings_thread.join()
+        quit_if_running_thread.join()
+        if not settings['auto_update'] and not settings.get('DEBUG', False): return
         if compare_ver > _version or settings.get('DEBUG', False):
             setup_dl_link = ''
             for asset in release['assets']:
                 if 'exe' in asset['name']:
                     setup_dl_link = asset['browser_download_url']
                     break
-            if setup_dl_link == '': return
-            elif settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
+            if settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
+            elif exit_app or setup_dl_link == '': return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
-                quit_if_running_thread.join()
-                if os.path.exists(UNINSTALLER) and not exit_app:
+                if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                     temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
                     temp_tray.Update(tooltip=f'Downloading update v{latest_ver}')
@@ -1712,7 +1712,7 @@ def auto_update():
                 else:
                     os.startfile('Updater.exe')
                     time.sleep(2)
-                exit_app = True
+                sys.exit()
             else:
                 update_available = f'Update v{latest_ver} is available'
     except requests.ConnectionError: pass
@@ -1736,7 +1736,7 @@ def init_pygame():  # ~0.3 seconds
 
 
 def quit_if_running():  # 0.3 - 1 seconds
-    global SHORTCUT_PATH, exit_app
+    global SHORTCUT_PATH, load_settings_thread, exit_app
     if is_already_running():
         r_text = ''
         port = PORT
@@ -1748,23 +1748,19 @@ def quit_if_running():  # 0.3 - 1 seconds
             port += 1
         load_settings_thread.join()
         if not settings.get('DEBUG', False): exit_app = True
-    else:  # stuff to do if app is one instance
-        load_settings_thread.join()
 
 
+init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)
+init_ydl_thread.start()
+init_pygame_thread = Thread(target=init_pygame, daemon=True)
+init_pygame_thread.start()
 load_settings_thread = Thread(target=load_settings, daemon=True)
 load_settings_thread.start()
 quit_if_running_thread = Thread(target=quit_if_running, daemon=True)
 quit_if_running_thread.start()
-auto_update_thread = Thread(target=auto_update, daemon=True)
-auto_update_thread.start()
-init_pygame_thread = Thread(target=init_pygame, daemon=True)
-init_pygame_thread.start()
-pygame_thread_time = time.time()
-init_ydl_thread = Thread(target=init_youtube_dl)
-init_ydl_thread.start()
+auto_update()
+load_settings_thread.join()
 quit_if_running_thread.join()
-auto_update_thread.join()
 if exit_app: sys.exit()
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
@@ -1822,6 +1818,7 @@ try:
     with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     init_pygame_thread.join()
+    init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
