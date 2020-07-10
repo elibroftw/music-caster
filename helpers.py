@@ -1,5 +1,6 @@
 import time
 from contextlib import suppress
+import datetime
 from functools import wraps
 import os
 import platform
@@ -126,8 +127,7 @@ def valid_music_file(file_path):
             or file_path.endswith('.wma') or file_path.endswith('.wav'))
 
 
-def find_chromecasts(timeout=0.3, callback=None):
-    # OLD CODE
+def find_chromecasts(timeout=0.3, callback=None):  # OLD unused CODE
     # assuming subnet mask is 255.255.255.0
     _RANGE = 256
     ipv4_address = get_ipv4()
@@ -140,7 +140,7 @@ def find_chromecasts(timeout=0.3, callback=None):
         nonlocal stop_discovery
         stop_discovery = True
 
-    def _connect_to_chromecast(ip, thread_index: int, port=8009):
+    def _connect_to_chromecast(ip, port=8009):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         port_alive = sock.connect_ex((ip, port))
@@ -152,7 +152,7 @@ def find_chromecasts(timeout=0.3, callback=None):
 
     for i in range(_RANGE):
         possible_ip = f'{base}.{i}'
-        t = Thread(target=_connect_to_chromecast, args=[possible_ip, i], daemon=True)
+        t = Thread(target=_connect_to_chromecast, args=[possible_ip], daemon=True)
         threads.append(t)
         t.start()
 
@@ -181,7 +181,7 @@ def get_repeat_img_et_tooltip(repeat_setting):
 
 # GUI LAYOUTS
 # noinspection PyUnusedLocal
-def create_main_gui(songs, listbox_selected, playing_status, settings, version, qr_code,
+def create_main_gui(songs, listbox_selected, playing_status, settings, version, qr_code, timer,
                     title='Nothing Playing', artist='', album_cover_data=None):
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
@@ -215,7 +215,6 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (100, 0)), size=(35, 0), justification='center')],
         [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((0, 0), (0, 10)), size=(35, 0), justification='center')],
         music_controls, progress_bar_layout], element_justification='center', pad=((5, 5), (5, 5)))
-
     # tabs side is for music queue, queue controls, and later, the music library
     # tab 1 is the queue, tab 2 will be the library
     queue_controls = [
@@ -241,14 +240,14 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
                    bind_return_key=True),
         Sg.Column(listbox_controls, pad=(0, 5))]]
     queue_tab = Sg.Tab('Queue', queue_tab_layout, background_color=bg, key='tab_queue')
-    # TODO: timer tab
-    # TODO: library tab
-    # library_tab = Sg.Tab()
     settings_layout = create_settings(version, settings, qr_code)
     settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
-    tabs_side = Sg.TabGroup([[queue_tab, settings_tab]], key='tab_group', title_color=fg, tab_background_color=bg,
-                            selected_title_color=button_text_color, selected_background_color=accent_color,
-                            border_width=0)
+    timer_layout = create_timer(settings, timer)
+    timer_tab = Sg.Tab('Timer', timer_layout, background_color=bg, key='tab_timer')
+    # TODO: library_tab = Sg.Tab()
+    tabs_side = Sg.TabGroup([[queue_tab, settings_tab, timer_tab]], title_color=fg, border_width=0, key='tab_group',
+                            tab_background_color=bg, selected_background_color=accent_color,
+                            selected_title_color=button_text_color)
 
     return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
 
@@ -256,74 +255,69 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
 def create_settings(version, settings, qr_code):
     fg, bg = settings['text_color'], settings['background_color']
     checkbox_col = Sg.Column([
-        [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(20, 5),
-                     pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(13, 5),
-                     pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(20, 5),
-                     pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(13, 5),
-                     pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Save Window Positions', default=settings['save_window_positions'],
-                     key='save_window_positions', size=(20, 5), background_color=bg, font=FONT_NORMAL,
-                     enable_events=True, pad=((0, 5), (5, 5))),
+        [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', background_color=bg,
+                     font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
+         Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc', background_color=bg,
+                     font=FONT_NORMAL, enable_events=True, size=(13, 5), pad=((0, 5), (5, 5)))],
+        [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications', background_color=bg,
+                     font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
+         Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup', background_color=bg,
+                     font=FONT_NORMAL, enable_events=True, size=(13, 5), pad=((0, 5), (5, 5)))],
+        [Sg.Checkbox('Save Window Positions', default=settings['save_window_positions'], key='save_window_positions',
+                     size=(20, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5))),
          Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(13, 5),
-                     pad=((0, 5), (5, 5)))],
+                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(13, 5), pad=((0, 5), (5, 5)))],
         [Sg.Checkbox('Populate Queue on Startup', default=settings['populate_queue_startup'],
-                     tooltip='Populates Queue From Folders on Startup',
-                     key='populate_queue_startup', size=(20, 5), background_color=bg, font=FONT_NORMAL,
-                     enable_events=True, pad=((0, 5), (5, 5))),
+                     tooltip='Populates Queue From Folders on Startup', key='populate_queue_startup',
+                     size=(20, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5))),
          Sg.Checkbox('Save Queue Between Sessions', default=settings['save_queue_sessions'], key='save_queue_sessions',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(23, 5),
-                     pad=((0, 5), (5, 5)))]
+                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(23, 5), pad=((0, 5), (5, 5)))]
     ], pad=((0, 0), (5, 0)))
-    qr_code_col = Sg.Column([
-        [Sg.Button(image_data=qr_code, tooltip='Web GUI QR Code (click or scan)', key='web_gui', border_width=0)]],
-        pad=(0, 0))
+    qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'image_data': qr_code, 'border_width': 0}
+    qr_code_col = Sg.Column([[Sg.Button(**qr_code__params, key='web_gui')]], pad=(0, 0))
+    email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': 'Send me an email'}
+    add_music_folder = {'button_text': 'Add Music Folder', 'font': FONT_NORMAL, 'enable_events': True, 'size': (15, 1)}
+    open_settings_file = {'font': FONT_NORMAL, 'enable_events': True, 'size': (15, 1)}
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', font=FONT_NORMAL),
-         Sg.Text('elijahllopezz@gmail.com', text_color=LINK_COLOR, font=FONT_LINK, click_submits=True, key='email',
-                 tooltip='Click to send me an email')],
+         Sg.Text('elijahllopezz@gmail.com', **email_params, click_submits=True, key='email')],
         [checkbox_col, qr_code_col],
         [Sg.Listbox(settings['music_directories'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
          Sg.Frame('', [
              [Sg.Button('Remove Folder', key='remove_folder', enable_events=True, font=FONT_NORMAL, size=(15, 1))],
-             [Sg.FolderBrowse('Add Music Folder', font=FONT_NORMAL, enable_events=True, key='add_folder',
-                              size=(15, 1))],
-             [Sg.Button('Open settings.json', key='settings_file', font=FONT_NORMAL, enable_events=True,
-                        size=(15, 1))]],
+             [Sg.FolderBrowse(**add_music_folder, key='add_folder')],
+             [Sg.Button('Open settings.json', **open_settings_file, key='settings_file')]],
                   background_color=bg, border_width=0)]]
     return layout
 
 
-def create_timer(settings):
+def create_timer(settings, timer):
     shut_off = settings['timer_shut_off_computer']
     hibernate = settings['timer_hibernate_computer']
     sleep = settings['timer_sleep_computer']
     fg, bg = settings['text_color'], settings['background_color']
     do_nothing = not (shut_off or hibernate or sleep)
+    timer_date = datetime.datetime.fromtimestamp(timer)
+    timer_date = timer_date.strftime('%#I:%M %p')
+    timer_text = f'Timer set for {timer_date}' if timer else 'No Timer Set'
+    # wait for last song to finish setting
+    cancel_button = Sg.Button('Cancel Timer', key='cancel_timer', visible=timer != 0)
     layout = [
-        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=shut_off,
-                  key='shut_off', text_color=fg, background_color=bg, font=FONT_NORMAL,
-                  enable_events=True)],
-        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate,
-                  key='hibernate', text_color=fg, background_color=bg, font=FONT_NORMAL,
-                  enable_events=True)],
-        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep,
-                  key='sleep', text_color=fg, background_color=bg, font=FONT_NORMAL,
-                  enable_events=True)],
-        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing,
-                  key='do_nothing', text_color=fg, background_color=bg, font=FONT_NORMAL,
-                  enable_events=True)],
-        [Sg.Text('Enter minutes or HH:MM', tooltip='Press enter once done', font=FONT_NORMAL)],
-        [Sg.Input(key='minutes', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)],
-        [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=FONT_NORMAL, visible=False, key='error')]]
+        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=shut_off, key='shut_off', text_color=fg,
+                  background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((5, 5), (20, 5)))],
+        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate, key='hibernate',
+                  text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
+        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep, key='sleep',
+                  text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
+        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='do_nothing',
+                  text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
+        [Sg.Text('Enter minutes or HH:MM', tooltip='Press enter once done', font=FONT_NORMAL),
+         Sg.Input(key='minutes', font=FONT_NORMAL, size=(11, 1)),
+         Sg.Button('Submit', font=FONT_NORMAL, key='timer_submit')],
+        [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=FONT_NORMAL, visible=False, key='timer_error')],
+        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1)), cancel_button]
+    ]
     return layout
 
 
@@ -333,9 +327,9 @@ def create_playlist_selector(settings):
     layout = [
         [Sg.Combo(values=playlists, size=(41, 5), key='pl_selector', background_color=bg, font=FONT_NORMAL,
                   enable_events=True, readonly=True, default_value=playlists[0] if playlists else None),
-         Sg.Button(button_text='Edit', key='edit_pl', tooltip='Ctrl + E', enable_events=True, font=FONT_NORMAL),
-         Sg.Button(button_text='Delete', key='del_pl', tooltip='Ctrl + Del', enable_events=True, font=FONT_NORMAL),
-         Sg.Button(button_text='New', key='create_pl', tooltip='Ctrl + N', enable_events=True, font=FONT_NORMAL)]]
+         Sg.Button('Edit', key='edit_pl', tooltip='Ctrl + E', enable_events=True, font=FONT_NORMAL),
+         Sg.Button('Delete', key='del_pl', tooltip='Ctrl + Del', enable_events=True, font=FONT_NORMAL),
+         Sg.Button('New', key='create_pl', tooltip='Ctrl + N', enable_events=True, font=FONT_NORMAL)]]
     return layout
 
 
@@ -343,6 +337,8 @@ def create_playlist_editor(initial_folder, settings, playlist_name=''):
     paths = settings['playlists'].get(playlist_name, [])
     fg, bg = settings['text_color'], settings['background_color']
     songs = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
+    move_up_params = {'size': (11, 1), 'tooltip': 'Ctrl + U', 'font': FONT_NORMAL, 'enable_events': True}
+    move_down_params = {'size': (11, 1), 'tooltip': 'Ctrl + D', 'font': FONT_NORMAL, 'enable_events': True}
     layout = [[
         Sg.Text('Playlist name', font=FONT_NORMAL, size=(12, 1), justification='center'),
         Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL),
@@ -352,16 +348,12 @@ def create_playlist_editor(initial_folder, settings, playlist_name=''):
                                        size=(11, 1), initial_folder=initial_folder, font=FONT_NORMAL,
                                        enable_events=True)],
                        [Sg.Button('Remove song', key='Remove song', tooltip='Ctrl + R', font=FONT_NORMAL,
-                                  enable_events=True, size=(11, 1))]],
-                  background_color=bg, border_width=0),
+                                  enable_events=True, size=(11, 1))]], background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(37, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='songs', background_color=bg, font=FONT_NORMAL, enable_events=True),
-         Sg.Frame('', [
-             [Sg.Button('Move up', size=(11, 1), key='move_up', tooltip='Ctrl + U', font=FONT_NORMAL,
-                        enable_events=True)],
-             [Sg.Button('Move down', size=(11, 1), key='move_down', tooltip='Ctrl + D', font=FONT_NORMAL,
-                        enable_events=True)]
-         ], background_color=bg, border_width=0)]]
+         Sg.Frame('', [[Sg.Button('Move up', **move_up_params, key='move_up')],
+                       [Sg.Button('Move down', **move_down_params, key='move_down')]],
+                  background_color=bg, border_width=0)]]
     return layout
 
 

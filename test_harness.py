@@ -131,12 +131,9 @@ button_color = settings['button_text_color'], settings['accent_color']
 Sg.SetOptions(button_color=button_color, scrollbar_color=bg, background_color=bg, element_background_color=bg,
               text_element_background_color=bg, text_color=settings['text_color'])
 songs_list, selected_value = create_songs_list()
-playing_layout = create_main_gui(songs_list, selected_value, 'PLAYING', settings, now_playing_text,
-                                 album_cover_data)
-
 QR_CODE = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
-other_main_layout = create_main_gui(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE,
+other_main_layout = create_main_gui(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE, time.time() + 999,
                                     really_long_tile, 'Martin')
 
 main_window1 = Sg.Window('Music Caster - Main Window V2 Test', other_main_layout, background_color=bg, icon=WINDOW_ICON,

@@ -1,8 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
-4.55.1
-- [UI] Added Ctrl+1 and Ctrl+2 for main window tab control
+4.56.0
+- [UI] Added Ctrl + {1, 2, 3} for main window tab control
+- [UI] Merged timer window as a tab on the main window
 - [Fix] Made populate and save session queues mutually exclusive
+- [Fix] Queue files
 
 4.55.0
 - [Optimization] Reduced installation size

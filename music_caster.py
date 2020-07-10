@@ -1,4 +1,4 @@
-VERSION = '4.55.1'
+VERSION = '4.56.0'
 UPDATE_MESSAGE = """
 [Optimization] Reduced installation size
 """
@@ -59,7 +59,7 @@ MC_SECRET = str(uuid.uuid4())
 show_pygame_error = variable_exception_sent = update_devices = settings_file_in_use = False
 update_available = False
 settings_last_modified, last_press = 0, time.time()
-active_windows = {'main': False, 'timer': False, 'playlist_selector': False,
+active_windows = {'main': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
 main_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
 main_last_event = pl_editor_last_event = None
@@ -375,7 +375,6 @@ def index():  # web GUI
         for k, v in active_windows.items():  # Opens up GUI
             if v:
                 {'main': main_window,
-                 'timer': timer_window,
                  'playlist_selector': pl_selector_window,
                  'playlist_editor': pl_editor_window,
                  'play_url': play_url_window}[k].bring_to_front()
@@ -751,16 +750,6 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
             mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=song_position,
                           metadata=metadata, thumb=thumb, autoplay=autoplay)
-            if active_windows['main']:
-                time_left = song_length - song_position
-                mins_elapsed, mins_left = floor(song_position / 60), floor(time_left / 60)
-                secs_elapsed, secs_left = floor(song_position % 60), floor(time_left % 60)
-                if secs_left < 10: secs_left = f'0{secs_left}'
-                if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
-                main_window['progressbar'].Update(value=song_position/song_length)
-                main_window['time_elapsed'].Update(value=f'{mins_elapsed}:{secs_elapsed}')
-                main_window['time_left'].Update(value=f'{mins_left}:{secs_left}')
-                main_window.Read(1)
             mc.block_until_active()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
             progress_bar_last_update = time.time()
@@ -862,7 +851,7 @@ def queue_file():
         _start_playing = not music_queue
         music_queue.extend([_f for _f in fd.GetPaths() if valid_music_file(_f)])
         if _start_playing and music_queue: play(music_queue[0])
-    if main_window is not None: main_window.TKroot.focus_force()
+    # if main_window is not None: main_window.TKroot.focus_force()
 
 
 def queue_folder():
@@ -1037,7 +1026,7 @@ def on_press(key):
 
 def activate_main_window(selected_tab='tab_queue'):
     global active_windows, main_window, IPV4, QR_CODE
-    # selected_tab can be 'tab_queue' or 'tab_settings'
+    # selected_tab can be 'tab_queue', 'tab_settings', or 'tab_timer'
     if not active_windows['main']:
         active_windows['main'] = True
         window_location = get_window_location('main')
@@ -1051,11 +1040,11 @@ def activate_main_window(selected_tab='tab_queue'):
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
-            main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings,
-                                              VERSION, QR_CODE, title, artist, album_cover_data=album_cover_data)
+            main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings, VERSION, QR_CODE,
+                                              timer, title, artist, album_cover_data=album_cover_data)
         else:
             main_gui_layout = create_main_gui(songs_list, selected_value, playing_status, settings,
-                                              VERSION, QR_CODE)
+                                              VERSION, QR_CODE, timer)
         main_window = Sg.Window('Music Caster', main_gui_layout, background_color=settings['background_color'],
                                 icon=WINDOW_ICON, return_keyboard_events=True,
                                 use_default_focus=False, location=window_location)
@@ -1069,6 +1058,8 @@ def activate_main_window(selected_tab='tab_queue'):
         main_window['queue'].bind('<Leave>', '_mouse_leave')
         set_save_position_callback(main_window, 'main')
     main_window[selected_tab].Select()
+    if selected_tab == 'tab_timer':
+        main_window['minutes'].SetFocus()
     main_window.TKroot.focus_force()
     main_window.Normal()
 
@@ -1103,20 +1094,6 @@ def activate_play_url():
     play_url_window.TKroot.focus_force()
     play_url_window.Normal()
     play_url_window['url'].SetFocus()
-
-
-def activate_timer_window():
-    global timer_window
-    if not active_windows['timer']:
-        active_windows['timer'], timer_layout = True, create_timer(settings)
-        window_location = get_window_location('timer')
-        timer_window = Sg.Window('Music Caster - Timer', timer_layout, icon=WINDOW_ICON,
-                                 return_keyboard_events=True, grab_anywhere=True, location=window_location)
-        timer_window.Finalize()
-        set_save_position_callback(timer_window, 'timer')
-    timer_window.TKroot.focus_force()
-    timer_window.Normal()
-    timer_window['minutes'].SetFocus()
 
 
 def cancel_timer():
@@ -1187,7 +1164,7 @@ def reset_mouse_hover():
 
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, song_position, progress_bar_last_update,\
-        song_start, song_end
+        song_start, song_end, timer
     # make if statements into dict mapping
     main_event, main_values = main_window.Read(timeout=10)
     not_file_pick = main_last_event not in {'queue_folder', 'play_next', 'queue_file', 'add_folder'}
@@ -1223,6 +1200,9 @@ def read_main_window():
     if main_event == '__TIMEOUT__': pass
     elif main_event == '1:49': main_window['tab_queue'].Select()
     elif main_event == '2:50': main_window['tab_settings'].Select()
+    elif main_event == '3:51':
+        main_window['tab_timer'].Select()
+        main_window['minutes'].SetFocus()
     elif main_event.endswith('mouse_enter'):
         mouse_hover = '_'.join(main_event.split('_')[:-2])
     elif main_event in {'progressbar_mouse_leave', 'queue_mouse_leave'}:
@@ -1243,15 +1223,24 @@ def read_main_window():
             if music_queue: play(music_queue[0])
             else: play_all()
     elif main_event == 'next' and playing_status != 'NOT PLAYING':
+        main_window['progressbar'].Update(value=0)
+        main_window['time_elapsed'].Update(value='00:00')
+        main_window['time_left'].Update(value='00:00')
+        main_window.Read(1)
         next_song()
     elif main_event == 'prev' and playing_status != 'NOT PLAYING':
+        main_window['progressbar'].Update(value=0)
+        main_window['time_elapsed'].Update(value='00:00')
+        main_window['time_left'].Update(value='00:00')
+        main_window.Read(1)
         prev_song()
     elif main_event == 'shuffle':
         # TODO: just shuffle music queue
         pass
     elif main_event == 'repeat':
         cycle_repeat()
-    elif main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit():
+    elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
+          and main_values['tab_group'] == 'tab_queue'):
         delta = 0
         if main_event.isdigit():
             new_volume = int(main_event) * 10
@@ -1382,7 +1371,7 @@ def read_main_window():
         play_all([all_songs[main_value]])
     elif main_event == 'progressbar':
         if playing_status == 'NOT PLAYING':
-            main_window['progressbar'].Update(disabled=True)
+            main_window['progressbar'].Update(disabled=True, value=0)
             # maybe even make it invisible?
             return
         else:
@@ -1443,6 +1432,44 @@ def read_main_window():
     elif main_event == 'music_dirs':
         with suppress(IndexError):
             Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
+    # timer
+    elif main_event == 'cancel_timer':
+        main_window['timer_text'].Update(value='No Timer Set')
+        main_window['timer_error'].Update(visible=False)
+        main_window['cancel_timer'].Update(visible=False)
+    elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
+          and main_values['tab_group'] == 'tab_timer'):
+        try:
+            timer_value = main_values['minutes']
+            if timer_value.isdigit():
+                seconds = abs(float(main_values['minutes'])) * 60
+            elif timer_value.count(':') == 1:
+                if timer_value[-3:].strip().upper() in ('PM', 'AM'):
+                    timer_value = timer_value[timer_value:-3]
+                elif timer_value[-2:].upper() in ('PM', 'AM'):
+                    timer_value = timer_value[timer_value:-2]
+                to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
+                seconds_delta = (to_stop - datetime.now()).total_seconds()
+                if seconds_delta < 0: seconds_delta += 43200
+                seconds = seconds_delta
+            else:
+                raise ValueError()
+            timer = time.time() + seconds
+            timer_set_to = datetime.now() + timedelta(minutes=seconds // 60)
+            if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
+            else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+            main_window['timer_text'].Update(value=f'Timer set for {timer_set_to}')
+            main_window['cancel_timer'].Update(visible=True)
+        except ValueError:
+            for i in range(3):
+                main_window['timer_error'].Update(visible=True, text_color='#ffcccb')
+                main_window.Read(timeout=50)
+                main_window['timer_error'].Update(text_color='red')
+                main_window.Read(timeout=50)
+    elif main_event in {'shut_off', 'hibernate', 'sleep', 'do_nothing'}:
+        change_settings('timer_hibernate_computer', main_values['hibernate'])
+        change_settings('timer_sleep_computer', main_values['sleep'])
+        change_settings('timer_shut_off_computer', main_values['shut_off'])
 
     if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
         if music_queue:
@@ -1604,48 +1631,6 @@ def read_playlist_editor_window():
         pl_selector_window.Normal()
         set_save_position_callback(pl_selector_window, 'playlist_selector')
     pl_editor_last_event = pl_editor_event
-
-
-def read_timer_window():
-    global timer
-    timer_event, timer_values = timer_window.Read(timeout=10)
-    if timer_event in {None, 'Escape:27', 'q', 'Q'}:
-        active_windows['timer'] = False
-        timer_window.Close()
-    elif timer_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
-        try:
-            timer_value = timer_values['minutes']
-            if timer_value.isdigit():
-                seconds = abs(float(timer_values['minutes'])) * 60
-            elif timer_value.count(':') == 1:
-                if timer_value[-3:].strip().upper() in ('PM', 'AM'):
-                    timer_value = timer_value[timer_value:-3]
-                elif timer_value[-2:].upper() in ('PM', 'AM'):
-                    timer_value = timer_value[timer_value:-2]
-                to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
-                seconds_delta = (to_stop - datetime.now()).total_seconds()
-                if seconds_delta < 0: seconds_delta += 43200
-                seconds = seconds_delta
-            else:
-                raise ValueError()
-            timer = time.time() + seconds
-            if settings['notifications']:
-                timer_set_to = datetime.now() + timedelta(minutes=seconds // 60)
-                if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
-                else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
-                tray.ShowMessage('Music Caster', f'Timer set for {timer_set_to}', time=500)
-            active_windows['timer'] = False
-            timer_window.Close()
-        except ValueError:
-            for i in range(3):
-                timer_window['error'].Update(visible=True, text_color='#ffcccb')
-                timer_window.Read(timeout=50)
-                timer_window['error'].Update(text_color='red')
-                timer_window.Read(timeout=50)
-    elif timer_event in {'shut_off', 'hibernate', 'sleep', 'do_nothing'}:
-        change_settings('timer_hibernate_computer', timer_values['hibernate'])
-        change_settings('timer_sleep_computer', timer_values['sleep'])
-        change_settings('timer_shut_off_computer', timer_values['shut_off'])
 
 
 def read_play_url_window():
@@ -1873,7 +1858,7 @@ try:
         'Settings': lambda: activate_main_window('tab_settings'),
         'Create/Edit a Playlist': create_edit_playlists,
         # PL should be an if statement
-        'Set Timer': activate_timer_window,
+        'Set Timer': lambda: activate_main_window('tab_timer'),
         'Cancel Timer': cancel_timer,
         'Play URL': activate_play_url,
         'Play File(s)': lambda: Thread(target=play_file).start(),
@@ -1900,7 +1885,6 @@ try:
         if active_windows['main']: read_main_window()
         if active_windows['playlist_selector']: read_playlist_selector_window()
         if active_windows['playlist_editor']: read_playlist_editor_window()
-        if active_windows['timer']: read_timer_window()
         if active_windows['play_url']: read_play_url_window()
 except Exception as e:
     handle_exception(e, True)
