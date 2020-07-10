@@ -241,6 +241,7 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
                    bind_return_key=True),
         Sg.Column(listbox_controls, pad=(0, 5))]]
     queue_tab = Sg.Tab('Queue', queue_tab_layout, background_color=bg, key='tab_queue')
+    # TODO: timer tab
     # TODO: library tab
     # library_tab = Sg.Tab()
     settings_layout = create_settings(version, settings, qr_code)

@@ -52,12 +52,12 @@ with open('mc_version_info.txt', 'r+') as f:
         elif line.startswith('    filevers'):
             version = ', '.join(VERSION.split('.'))
             lines[i] = f'    filevers=({version}, 0),\n'
-        elif line.startswith("        StringStruct('FileVersion'"):
+        elif line.startswith("        StringStruct('FileVersion"):
             lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
-        elif line.startswith("        StringStruct('ProductVersion'"):
-            lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
         elif line.startswith("        StringStruct('LegalCopyright'"):
             lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
+        elif line.startswith("        StringStruct('ProductVersion"):
+            lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
             break
     f.seek(0)
     f.writelines(lines)

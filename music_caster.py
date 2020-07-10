@@ -1,6 +1,6 @@
-VERSION = '4.55.0'
+VERSION = '4.55.1'
 UPDATE_MESSAGE = """
-[Feature] Chromecast Groups
+[Optimization] Reduced installation size
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -1221,6 +1221,8 @@ def read_main_window():
             update_volume(new_volume)
         main_window.Refresh()
     if main_event == '__TIMEOUT__': pass
+    elif main_event == '1:49': main_window['tab_queue'].Select()
+    elif main_event == '2:50': main_window['tab_settings'].Select()
     elif main_event.endswith('mouse_enter'):
         mouse_hover = '_'.join(main_event.split('_')[:-2])
     elif main_event in {'progressbar_mouse_leave', 'queue_mouse_leave'}:
@@ -1407,6 +1409,11 @@ def read_main_window():
         elif main_event == 'save_queue_sessions':
             if main_value: save_queues()
             else: change_settings('queues', {'done': [], 'music': [], 'next': []})
+            change_settings('populate_queue_startup', False)
+            main_window['populate_queue_startup'].Update(value=False)
+        elif main_event in 'populate_queue_startup':
+            main_window['save_queue_sessions'].Update(value=False)
+            change_settings('save_queue_sessions', False)
         elif main_event == 'discord_rpc':
             with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
@@ -1839,6 +1846,8 @@ try:
     if temp.count(True) > 1:  # Only one of the below can be True
         if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
         change_settings('timer_sleep_computer', False)
+    if settings['save_queue_sessions'] and settings['populate_queue_startup']:  # mutually exclusive
+        change_settings('populate_queue_startup', False)
     cast_last_checked = time.time()
     Thread(target=background_tasks, daemon=True).start()
     Thread(target=start_chromecast_discovery, daemon=True).start()

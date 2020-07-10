@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.55.1
+- [UI] Added Ctrl+1 and Ctrl+2 for main window tab control
+- [Fix] Made populate and save session queues mutually exclusive
+
 4.55.0
 - [Optimization] Reduced installation size
 - [Fix] Error handling
