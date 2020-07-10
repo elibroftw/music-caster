@@ -3,6 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.56.0
 - [UI] Added Ctrl + {1, 2, 3} for main window tab control
 - [UI] Merged timer window as a tab on the main window
+- [Optimization] Cached YouTube url's
 - [Fix] Made populate and save session queues mutually exclusive
 - [Fix] Queue files
 

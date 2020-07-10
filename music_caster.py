@@ -621,7 +621,7 @@ def play_url(url, position=0, autoplay=True):
         while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
         song_start = time.time() - position
         song_end = time.time() * 2
-        song_length = 999
+        song_length = 3600  # 1 hour default
         playing_url, playing_status = True, 'PLAYING'
         if settings['notifications']:
             tray.ShowMessage('Music Caster', f'Playing: {url}', time=500)
@@ -633,29 +633,33 @@ def play_url(url, position=0, autoplay=True):
         cast_last_checked = time.time() + 30
         return True
     elif get_youtube_id(url) is not None:
-        r = ydl.extract_info(url, download=False)
-        formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
         try:
-            if r['track']: _title = r['track']
-            else: _title = r['title']
-            if r['artist']: _artist = r['artist'].split(', ', 1)[0]
-            else: _artist = r['uploader']
-            playing_text = f'{_artist} - {_title}'
-            formats.sort(key=lambda _f: _f['width'])
-            _f = formats[0]
-            song_length = r['duration']
-            music_metadata[url] = {'title': _title, 'artist': _artist, 'album': r['album'],
-                                   'length': song_length, 'art': r['thumbnail']}
-            metadata = {'metadataType': 3, 'albumName': r['album'], 'title': _title, 'artist': _artist}
+            if url not in music_metadata:
+                r = ydl.extract_info(url, download=False)
+                formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
+                if r['track']: _title = r['track']
+                else: _title = r['title']
+                if r['artist']: _artist = r['artist'].split(', ', 1)[0]
+                else: _artist = r['uploader']
+                formats.sort(key=lambda _f: _f['width'])
+                _f = formats[0]
+                song_length = r['duration']
+                music_metadata[url] = {'title': _title, 'artist': r['artist'] or r['uploader'], 'album': r['album'],
+                                       'length': song_length, 'art': r['thumbnail'], 'src': _f['url'], 'ext': _f['ext']}
+            metadata = music_metadata[url]
+            _title, _artist, _album = metadata['title'], metadata['artist'].split(', ', 1)[0], metadata['album']
+            _metadata = {'metadataType': 3, 'albumName': _album, 'title': _title, 'artist': _artist}
+            thumbnail, ext = metadata['art'], metadata['ext']
             cast.wait()
             mc = cast.media_controller
-            mc.play_media(_f['url'], f'video/{_f["ext"]}', metadata=metadata, thumb=r['thumbnail'],
+            mc.play_media(metadata['src'], f'video/{ext}', metadata=metadata, thumb=thumbnail,
                           current_time=position, autoplay=autoplay)
             mc.block_until_active()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
             song_start = time.time() - position
             song_end = song_start + song_length
             playing_url, playing_status = True, 'PLAYING'
+            playing_text = f'{_artist} - {_title}'
             if settings['notifications']:
                 tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
@@ -1082,10 +1086,10 @@ def create_edit_playlists():
     pl_selector_window.Normal()
 
 
-def activate_play_url():
+def activate_play_url(queue=False):
     global play_url_window
     if not active_windows['play_url']:
-        active_windows['play_url'], play_url_layout = True, create_play_url_window()
+        active_windows['play_url'], play_url_layout = True, create_play_url_window(queue=False)
         window_location = get_window_location('play_url')
         play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
                                     return_keyboard_events=True, location=window_location)
@@ -1851,7 +1855,7 @@ try:
     elif settings['populate_queue_startup']:
         compiling_songs_thread.join()
         play_all(queue_only=True)
-    if settings.get('DEBUG', False): print('Running in tray')
+    print('Running in tray')
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,

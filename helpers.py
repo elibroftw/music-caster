@@ -357,7 +357,8 @@ def create_playlist_editor(initial_folder, settings, playlist_name=''):
     return layout
 
 
-def create_play_url_window():
+def create_play_url_window(queue=False):
+    # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
     layout = [[Sg.Text('Enter url.\nSupports: YouTube', font=FONT_NORMAL)],
               [Sg.Input(key='url', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)]]
     return layout
