@@ -1162,6 +1162,14 @@ def reset_mouse_hover():
     mouse_hover = ''
 
 
+def reset_progress():
+    # NOTE: needs to be in main thread
+    main_window['progressbar'].Update(value=0)
+    main_window['time_elapsed'].Update(value='00:00')
+    main_window['time_left'].Update(value='00:00')
+    main_window.Read(1)
+
+
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, song_position, progress_bar_last_update,\
         song_start, song_end, timer
@@ -1223,16 +1231,10 @@ def read_main_window():
             if music_queue: play(music_queue[0])
             else: play_all()
     elif main_event == 'next' and playing_status != 'NOT PLAYING':
-        main_window['progressbar'].Update(value=0)
-        main_window['time_elapsed'].Update(value='00:00')
-        main_window['time_left'].Update(value='00:00')
-        main_window.Read(1)
+        reset_progress()
         next_song()
     elif main_event == 'prev' and playing_status != 'NOT PLAYING':
-        main_window['progressbar'].Update(value=0)
-        main_window['time_elapsed'].Update(value='00:00')
-        main_window['time_left'].Update(value='00:00')
-        main_window.Read(1)
+        reset_progress()
         prev_song()
     elif main_event == 'shuffle':
         # TODO: just shuffle music queue
@@ -1357,11 +1359,12 @@ def read_main_window():
     elif main_event == 'queue_file': Thread(target=queue_file).start()
     elif main_event == 'queue_folder': Thread(target=queue_folder).start()
     elif main_event == 'clear_queue':
+        reset_progress()
+        main_window['queue'].Update(values=[])
         if playing_status in {'PLAYING', 'PAUSED'}: stop()
         music_queue.clear()
         next_queue.clear()
         done_queue.clear()
-        main_window['queue'].Update(values=[])
     elif main_event == 'play_next':
         play_next()
         main_window.TKroot.focus_force()
