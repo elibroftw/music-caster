@@ -1,6 +1,8 @@
 VERSION = '4.56.0'
 UPDATE_MESSAGE = """
-[Optimization] Reduced installation size
+[UI] Added Keyboard Shortcuts
+[UI] Added Queue URL
+[UI] Use Ctrl + Shift + Alt + M
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -62,6 +64,7 @@ MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid.uuid4())
+PRESSED_KEYS = set()
 show_pygame_error = variable_exception_sent = update_devices = settings_file_in_use = False
 update_available = False
 settings_last_modified, last_press = 0, time.time()
@@ -840,13 +843,13 @@ def play_file():
 
 
 def play_next():
-    global music_directories, DEFAULT_DIR, playing_status
+    global music_directories, DEFAULT_DIR, playing_status, next_queue
     DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
-    _fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
-                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
-    if _fd.ShowModal() != wx.ID_CANCEL:
-        file_paths = _fd.GetPaths()
-        next_queue.extend([file_path for file_path in file_paths if valid_music_file(file_path)])
+    fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+                       style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+    if fd.ShowModal() != wx.ID_CANCEL:
+        file_paths = fd.GetPaths()
+        next_queue += [file_path for file_path in file_paths if valid_music_file(file_path)]
         if playing_status == 'NOT PLAYING':
             if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
             playing_status = 'PLAYING'
@@ -1025,14 +1028,25 @@ def background_tasks():
 
 def on_press(key):
     global last_press, daemon_command
-    if str(key) not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
-    if str(key) == '<179>':
+    key = str(key)
+    PRESSED_KEYS.add(key)
+    if (len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS and
+            ('Key.ctrl_l' in PRESSED_KEYS or 'Key.ctrl_r' in PRESSED_KEYS) and
+            ('Key.shift' in PRESSED_KEYS or 'Key.shift_r' in PRESSED_KEYS) and
+            ('Key.alt_l' in PRESSED_KEYS or 'Key.alt_r' in PRESSED_KEYS)):
+        daemon_command = '__ACTIVATED__'
+    if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
+    if key == '<179>':
         if playing_status == 'PLAYING': daemon_command = 'Pause'
         elif playing_status == 'PAUSED': daemon_command = 'Resume'
-    elif str(key) == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Song'
-    elif str(key) == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Song'
-    elif str(key) == '<178>': stop()
+    elif key == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Song'
+    elif key == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Song'
+    elif key == '<178>': stop()
     last_press = time.time()
+
+
+def on_release(key):
+    with suppress(KeyError): PRESSED_KEYS.remove(str(key))
 
 
 def activate_main_window(selected_tab='tab_queue'):
@@ -1178,7 +1192,7 @@ def reset_progress():
     main_window['progressbar'].Update(value=0)
     main_window['time_elapsed'].Update(value='00:00')
     main_window['time_left'].Update(value='00:00')
-    main_window.Read(1)
+    main_window.Refresh()
 
 
 def read_main_window():
@@ -1216,12 +1230,23 @@ def read_main_window():
             change_settings('volume', new_volume)
             update_volume(new_volume)
         main_window.Refresh()
+    if main_event in {'j', 'l'} and main_values['tab_group'] != 'tab_timer':
+        if playing_status in {'PLAYING', 'PAUSED'}:
+            delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
+            update_song_position()
+            new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
+            main_window['progressbar'].Update(value=new_position)
+            main_values['progressbar'] = new_position
+            main_event = 'progressbar'
+            main_window.Refresh()
     if main_event == '__TIMEOUT__': pass
     elif main_event == '1:49': main_window['tab_queue'].Select()
-    elif main_event == '2:50': main_window['tab_settings'].Select()
-    elif main_event == '3:51':
+    elif main_event == '2:50' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':
         main_window['tab_timer'].Select()
         main_window['minutes'].SetFocus()
+    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue': main_window['queue_file'].SetFocus()
+    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_settings': main_window['auto_update'].SetFocus()
+    elif main_event == '3:51': main_window['tab_settings'].Select()
     elif main_event.endswith('mouse_enter'):
         mouse_hover = '_'.join(main_event.split('_')[:-2])
     elif main_event in {'progressbar_mouse_leave', 'queue_mouse_leave'}:
@@ -1235,7 +1260,7 @@ def read_main_window():
                 Popen(f'explorer /select,"{fix_path(music_queue[selected_file_index])}"')
             elif 0 < selected_file_index <= len(next_queue):
                 Popen(f'explorer /select,"{fix_path(next_queue[selected_file_index - 1])}"')
-    elif main_event == 'pause/resume':
+    elif main_event == 'pause/resume' or main_event in {' ', 'k'} and main_values['tab_group'] != 'tab_timer':
         try:
             pause_resume[playing_status]()
         except KeyError:
@@ -1250,7 +1275,7 @@ def read_main_window():
     elif main_event == 'shuffle':
         # TODO: just shuffle music queue
         pass
-    elif main_event == 'repeat':
+    elif main_event in {'repeat', 'r:82'}:
         cycle_repeat()
     elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
           and main_values['tab_group'] == 'tab_queue'):
@@ -1263,7 +1288,7 @@ def read_main_window():
             new_volume = main_values['volume_slider'] + delta
         change_settings('volume', new_volume)
         update_volume(new_volume)
-    elif main_event == 'mute':
+    elif main_event in {'mute', 'm:77'}:
         muted = change_settings('muted', not settings['muted'])
         if muted:
             main_window['mute'].Update(data=VOLUME_MUTED_IMG)
@@ -1441,7 +1466,7 @@ def read_main_window():
             refresh_tray()
             save_settings()
             compile_all_songs()
-    elif main_event == 'settings_file':
+    elif main_event in {'settings_file', 'o:79'}:
         try: os.startfile(settings_file)
         except OSError: Popen(f'explorer /select,"{fix_path(settings_file)}"')
     elif main_event == 'music_dirs':
@@ -1478,9 +1503,9 @@ def read_main_window():
         except ValueError:
             for i in range(3):
                 main_window['timer_error'].Update(visible=True, text_color='#ffcccb')
-                main_window.Read(timeout=50)
+                main_window.Refresh()
                 main_window['timer_error'].Update(text_color='red')
-                main_window.Read(timeout=50)
+                main_window.Refresh()
     elif main_event in {'shut_off', 'hibernate', 'sleep', 'do_nothing'}:
         change_settings('timer_hibernate_computer', main_values['hibernate'])
         change_settings('timer_sleep_computer', main_values['sleep'])
@@ -1536,48 +1561,52 @@ def read_playlist_selector_window():
         pl_selector_window.Close()
         return
     if pl_selector_event in {'del_pl', 'Delete:46'}:
-        pl_name = pl_selector_values.get('pl_selector', '')
-        if pl_name in playlists: del playlists[pl_name]
-        pl_selector_window.Close()
-        window_location = get_window_location('playlist_selector')
-        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(playlists),
-                                       background_color=settings['background_color'],
-                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
-        pl_selector_window.Read(timeout=10)
-        pl_selector_window.TKroot.focus_force()
-        pl_selector_window.Normal()
-        save_settings()
+        pl_name = pl_selector_values.get('playlist_combo', '')
+        if pl_name in playlists:
+            del playlists[pl_name]
+            save_settings()
+        playlist_names = list(settings['playlists'].keys())
+        default_playlist_name = playlist_names[0] if playlist_names else ''
+        pl_selector_window['playlist_combo'].Update(value=default_playlist_name, values=playlist_names)
+        pl_selector_window.Refresh()
         tray_playlists.clear()
         tray_playlists.append('Create/Edit a Playlist')
         tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
     elif pl_selector_event in {'edit_pl', 'create_pl', 'e', 'n', 'e:69', 'n:78'}:
         if pl_selector_event in {'edit_pl', 'e', 'e:69'}:
-            pl_name = pl_selector_values.get('pl_selector', '')
+            pl_name = pl_selector_values.get('playlist_combo', '')
         else:
             pl_name = ''
         window_location = get_window_location('playlist_editor')
-        pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(DEFAULT_DIR, settings, pl_name),
+        pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(settings, pl_name),
                                      background_color=settings['background_color'], icon=WINDOW_ICON,
                                      return_keyboard_events=True, location=window_location)
         pl_files = playlists.get(pl_name, [])
         pl_selector_window.Close()
         pl_editor_window.Finalize()
+
         pl_editor_window.TKroot.focus_force()
         pl_editor_window.Normal()
         set_save_position_callback(pl_editor_window, 'playlist_editor')
-        if pl_selector_event == 'create_pl':
-            pl_editor_window['playlist_name'].SetFocus()
+        if pl_name == '': pl_editor_window['playlist_name'].SetFocus()
         else:
             pl_editor_window['songs'].SetFocus()
             pl_editor_window['songs'].Update(set_to_index=0)
         active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
+    elif pl_selector_event in {'Up:38', 'Down:40'}:
+        with suppress(KeyError, IndexError, ValueError):
+            pl_selector_combo = pl_selector_window['playlist_combo']
+            pl_index = pl_selector_combo.Values.index(pl_selector_values['playlist_combo'])
+            new_index = max(pl_index + {'Up:38': -1, 'Down:40': 1}[pl_selector_event], 0)
+            pl_selector_combo.Update(value=pl_selector_combo.Values[new_index])
 
 
 def read_playlist_editor_window():
     global pl_files, pl_editor_last_event, pl_name, tray_playlists, pl_selector_window
     pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=10)
     open_pl_selector = False
-    if pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event != 'Add songs':
+    if pl_editor_event == '__TIMEOUT__': pass
+    elif pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event not in {'Add songs', 'f:70'}:
         active_windows['playlist_editor'] = False
         pl_editor_window.Close()
         open_pl_selector = True
@@ -1613,11 +1642,12 @@ def read_playlist_editor_window():
                 formatted_songs = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window['songs'].Update(values=formatted_songs, set_to_index=new_i,
                                                  scroll_to_index=new_i)
-    elif pl_editor_event == 'Add songs':
-        selected_songs = pl_editor_values['Add songs']
-        if selected_songs:
-            new_files = [file for file in selected_songs.split(';') if valid_music_file(file)]
-            pl_files += new_files
+    elif pl_editor_event in {'Add songs', 'f:70'}:
+        fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+        if fd.ShowModal() != wx.ID_CANCEL:
+            file_paths = fd.GetPaths()
+            pl_files += [file_path for file_path in file_paths if valid_music_file(file_path)]
             pl_editor_window.TKroot.focus_force()
             pl_editor_window.Normal()
             formatted_songs = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
@@ -1767,8 +1797,7 @@ init_ydl_thread.start()
 init_pygame_thread = Thread(target=init_pygame, daemon=True)
 init_pygame_thread.start()
 auto_update()
-if exit_app: sys.exit()
-if not IS_FROZEN and not DEBUG: Thread(target=send_info, daemon=True).start()
+if IS_FROZEN and not DEBUG: Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)
@@ -1822,7 +1851,7 @@ try:
     QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     with suppress(RuntimeError, pypresence.PyPresenceException): rich_presence.connect()
-    pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
+    pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
     init_pygame_thread.join()
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'

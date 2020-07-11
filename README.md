@@ -55,16 +55,34 @@ Only I have access to this data, I will NEVER give it to anyone else.
 - IP because I can do something [cool](https://github.com/elibroftw/music-caster/wiki)
 
 ## UI Keyboard Shortcuts
-There exists keyboard shortcuts. I will finish this table later.
-Note that the progress bar and the volume slider can be controlled via scrolling.
-| Shortcut        | Window           | Behaviour  |
-| ------------- |:-------------:| -----:|
-| Ctrl + S | | |
-| Ctrl + R | | |
-| Ctrl + D | | |
-| Page Up | | |
-| Page Down | | |
-| Esc | | |
+I love keyboard shortcuts, they make us more productive.
+
+| **Shortcut** | **Window** | **Behaviour**
+| ------------ |----------- | -------------
+| Ctrl + Shift + Alt + M | Global | Activate Main Window
+| Esc | ALL | Close Window |
+| Scroll | Main | Volume and Progress Bar
+| A | Main | Decrease Volume by 5%
+| D | Main | Increase Volume by 5%
+| # | Main | Set Volume to # * 10%
+| K / \<Space\> | Main | Pause / Resume / Start Playing 
+| J | Main | Rewind 5 seconds
+| L | Main | Fast-forward 5 seconds
+| Ctrl + R | Main | Cycle Repeat
+| Ctrl + M | Main | Mute
+| Ctrl + 1 | Main | Go to Tab 1 (Queue)
+| Ctrl + 2 | Main | Go to Tab 2 (Timer)
+| Ctrl + 3 | Main | Go to Tab 3 (Settings)
+| Ctrl + N | Playlist Selector | Create New Playlist
+| Ctrl + E | Playlist Selector | Edit Selected Playlist
+| Del | Playlist Selector | Delete Selected Playlist
+| Up / Down | Playlist Selector | Change Selected Playlist
+| Ctrl + S | Playlist Editor | Save and Quit
+| Ctrl + F | Playlist Editor | Add Songs
+| Ctrl + R | Playlist Editor | Remove Song
+| Ctrl + U | Playlist Editor | Move Song Up
+| Ctrl + D | Playlist Editor | Move Song Down
+
 
 ## Settings.json Guide
 - Music Caster will detect changes within 10 seconds of editing `settings.json`

@@ -239,13 +239,13 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
                    bind_return_key=True),
         Sg.Column(listbox_controls, pad=(0, 5))]]
     queue_tab = Sg.Tab('Queue', queue_tab_layout, background_color=bg, key='tab_queue')
-    settings_layout = create_settings(version, settings, qr_code)
-    settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
     timer_layout = create_timer(settings, timer)
     timer_tab = Sg.Tab('Timer', timer_layout, background_color=bg, key='tab_timer')
+    settings_layout = create_settings(version, settings, qr_code)
+    settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
     # TODO: library_tab = Sg.Tab()
-    tabs_side = Sg.TabGroup([[queue_tab, settings_tab, timer_tab]], title_color=fg, border_width=0, key='tab_group',
-                            tab_background_color=bg, selected_background_color=accent_color,
+    tabs_side = Sg.TabGroup([[queue_tab, timer_tab, settings_tab]], title_color=fg, border_width=0, key='tab_group',
+                            tab_background_color=bg, selected_background_color=accent_color, enable_events=True,
                             selected_title_color=button_text_color)
 
     return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
@@ -324,7 +324,7 @@ def create_playlist_selector(settings):
     bg = settings['background_color']
     playlists = list(settings['playlists'].keys())
     layout = [
-        [Sg.Combo(values=playlists, size=(41, 5), key='pl_selector', background_color=bg, font=FONT_NORMAL,
+        [Sg.Combo(values=playlists, size=(41, 5), key='playlist_combo', background_color=bg, font=FONT_NORMAL,
                   enable_events=True, readonly=True, default_value=playlists[0] if playlists else None),
          Sg.Button('Edit', key='edit_pl', tooltip='Ctrl + E', enable_events=True, font=FONT_NORMAL),
          Sg.Button('Delete', key='del_pl', tooltip='Ctrl + Del', enable_events=True, font=FONT_NORMAL),
@@ -332,20 +332,19 @@ def create_playlist_selector(settings):
     return layout
 
 
-def create_playlist_editor(initial_folder, settings, playlist_name=''):
+def create_playlist_editor(settings, playlist_name=''):
     paths = settings['playlists'].get(playlist_name, [])
     fg, bg = settings['text_color'], settings['background_color']
     songs = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
     move_up_params = {'size': (11, 1), 'tooltip': 'Ctrl + U', 'font': FONT_NORMAL, 'enable_events': True}
     move_down_params = {'size': (11, 1), 'tooltip': 'Ctrl + D', 'font': FONT_NORMAL, 'enable_events': True}
+    add_songs = [Sg.Button('Add songs', key='Add songs', size=(11, 1), font=FONT_NORMAL, enable_events=True)]
     layout = [[
         Sg.Text('Playlist name', font=FONT_NORMAL, size=(12, 1), justification='center'),
         Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL),
         Sg.Submit('Save', key='Save', tooltip='Ctrl + S', font=FONT_NORMAL, size=(6, 1), pad=((14, 5), (5, 5))),
         Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=FONT_NORMAL, enable_events=True, size=(3, 1))],
-        [Sg.Frame('', [[Sg.FilesBrowse('Add songs', key='Add songs', file_types=(('Audio Files', '*.mp3'),),
-                                       size=(11, 1), initial_folder=initial_folder, font=FONT_NORMAL,
-                                       enable_events=True)],
+        [Sg.Frame('', [add_songs,
                        [Sg.Button('Remove song', key='Remove song', tooltip='Ctrl + R', font=FONT_NORMAL,
                                   enable_events=True, size=(11, 1))]], background_color=bg, border_width=0),
          Sg.Listbox(songs, size=(37, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
