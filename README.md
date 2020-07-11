@@ -52,7 +52,7 @@ What is sent to me when an error is encountered?
 In addition, I collect MAC and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
 - MAC so that I know how many users (450+)
-- IP because I plan on plotting points on a map (for my curiosity)
+- IP because I can do something [cool](https://github.com/elibroftw/music-caster/wiki)
 
 ## UI Keyboard Shortcuts
 There exists keyboard shortcuts. I will finish this table later.
