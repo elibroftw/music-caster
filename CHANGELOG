@@ -2,12 +2,12 @@ Music Caster by Elijah Lopez Changelog
 
 4.56.0
 - [UI] Merged timer window as a tab on the main window
-- [UI] Added Queue URL to main window
+- [UI] Added Queue URL to the main window
 - [UI] Added Ctrl + {1, 2, 3} for main window tab control
 - [UI] Use Ctrl + Shift + Alt + M to launch main window
 - [UI] Added fast-forward and rewind keyboard shortcuts (L/J)
-- [Optimization] Cached YouTube url's
-- [Optimization] Even Faster Startup
+- [Optimization] Cached YouTube URLs
+- [Optimization] Even faster startup
 - [Fix] Made populate and save session queues mutually exclusive
 - [Fix] Queue files
 - [Fix] Get metadata
