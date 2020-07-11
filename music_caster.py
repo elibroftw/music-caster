@@ -268,6 +268,7 @@ def compile_all_songs(update_global=True, ignore_files: list = None):
                     if use_temp: all_songs_temp[_file_info] = _file
                     else: all_songs[_file_info] = _file
         if use_temp: all_songs = all_songs_temp.copy()
+        del all_songs_temp
 
     if not update_global:
         temp_songs = all_songs.copy()
@@ -363,6 +364,7 @@ def load_settings():  # up to 0.4 seconds
             if _temp != music_directories or music_directories == [home_music_dir]:
                 compile_all_songs()
                 refresh_folders()
+            del _temp
             DEFAULT_DIR = music_directories[0]
             bg = settings['background_color']
             button_color = settings['button_text_color'], settings['accent_color']
