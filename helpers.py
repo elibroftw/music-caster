@@ -94,7 +94,7 @@ def create_qr_code(port):
 
 def get_running_processes():
     # edited from https://stackoverflow.com/a/22914414/7732434
-    p = Popen('tasklist', shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
+    p = Popen('tasklist /NH /FI "IMAGENAME eq Music Caster.exe"', shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
     task = p.stdout.readline()
     while task != '':
         task = p.stdout.readline().decode().strip()
@@ -110,6 +110,7 @@ def get_running_processes():
 
 def is_already_running():
     threshold = 1
+    start = time.time()
     for process in get_running_processes():
         process_name = process['name']
         if process_name == 'Music Caster.exe':

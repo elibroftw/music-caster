@@ -21,6 +21,7 @@ from math import floor
 from pathlib import Path
 import pprint
 from shutil import copyfile, copyfileobj
+import argparse
 from random import shuffle
 import sys
 import shutil
@@ -50,6 +51,11 @@ import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
 # CONSTANTS
+parser = argparse.ArgumentParser(description='Music Caster')
+parser.add_argument('file', nargs='?', default='', help='path to file you want to play')
+parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance')
+args = parser.parse_args()
+DEBUG = args.debug
 EMAIL = 'elijahllopezz@gmail.com'
 EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
@@ -194,7 +200,6 @@ def cycle_repeat():
 
 
 def handle_exception(exception, restart_program=False):
-    if settings.get('DEBUG', False) and not IS_FROZEN: raise exception
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
@@ -202,8 +207,6 @@ def handle_exception(exception, restart_program=False):
     payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
                'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program,
                'OS': platform.platform(), 'TIME': _current_time}
-    with suppress(requests.ConnectionError):
-        requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     try:
         with open(f'{starting_dir}/error.log', 'r') as _f:
             content = _f.read()
@@ -213,6 +216,9 @@ def handle_exception(exception, restart_program=False):
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
+    if not IS_FROZEN: raise exception
+    with suppress(requests.ConnectionError):
+        requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     if restart_program:
         with suppress(NameError):
             tray.ShowMessage('Music Caster Error', 'An error has occurred, restarting now')
@@ -323,6 +329,7 @@ def get_window_location(window_key):
 #     im = im.resize((new_w, new_h), Image.ANTIALIAS)
 #     im.save(raw, optimize=True, format='PNG')
 #     return thumb, raw.getvalue()
+
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
@@ -670,7 +677,7 @@ def play_url(url, position=0, autoplay=True):
             return True
         except StopIteration as _e:
             tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
-            if settings.get('DEBUG', False): raise _e
+            if not IS_FROZEN: raise _e
     return False
 
 
@@ -1679,28 +1686,26 @@ def create_shortcut(_shortcut_path):
                 os.remove(_shortcut_path)
         except Exception as _e:
             handle_exception(_e)
-    if not settings.get('DEBUG', False): Thread(target=_threaded, daemon=True).start()
+    if IS_FROZEN and not DEBUG: Thread(target=_threaded, daemon=True).start()
 
 
 def auto_update():
-    global update_available, quit_if_running_thread, load_settings_thread
+    global update_available
     try:
+        if exit_app or not settings['auto_update'] and not DEBUG and IS_FROZEN: return
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
         release = requests.get(releases_url).json()
         latest_ver = release['tag_name'][1:]
         _version = [int(x) for x in VERSION.split('.')]
         compare_ver = [int(x) for x in latest_ver.split('.')]
-        load_settings_thread.join()
-        quit_if_running_thread.join()
-        if not settings['auto_update'] and not settings.get('DEBUG', False): return
-        if compare_ver > _version or settings.get('DEBUG', False):
+        if compare_ver > _version or not IS_FROZEN or DEBUG:
             setup_dl_link = ''
             for asset in release['assets']:
                 if 'exe' in asset['name']:
                     setup_dl_link = asset['browser_download_url']
                     break
-            if settings.get('DEBUG', False): return print('Installer Link:', setup_dl_link)
-            elif exit_app or setup_dl_link == '': return
+            if not IS_FROZEN or DEBUG: return print('Installer Link:', setup_dl_link)
+            elif setup_dl_link == '': return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
@@ -1725,11 +1730,13 @@ def send_info():
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION})
 
 
+@timing
 def init_youtube_dl():  # 1 - 1.4 seconds
     global ydl
     ydl = YoutubeDL()
 
 
+@timing
 def init_pygame():  # ~0.3 seconds
     global show_pygame_error
     try: local_music_player.init(44100, -16, 2, 2048)
@@ -1737,33 +1744,27 @@ def init_pygame():  # ~0.3 seconds
 
 
 def quit_if_running():  # 0.3 - 1 seconds
-    global SHORTCUT_PATH, load_settings_thread, exit_app
-    if is_already_running():
+    if is_already_running() or True:
         r_text = ''
         port = PORT
         while port <= 2003 and not r_text:
             with suppress(requests.exceptions.InvalidSchema, requests.exceptions.ConnectionError):
-                if len(sys.argv) > 1:  # a file was opened with MC
-                    r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'path': sys.argv[1]}).text
+                if args.file:  # a file was opened with MC
+                    r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'path': args.file}).text
                 else: r_text = requests.post(f'http://127.0.0.1:{port}/').text
             port += 1
-        load_settings_thread.join()
-        if not settings.get('DEBUG', False): exit_app = True
+        if IS_FROZEN and not DEBUG: sys.exit()
 
 
+quit_if_running()
+load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)
 init_ydl_thread.start()
 init_pygame_thread = Thread(target=init_pygame, daemon=True)
 init_pygame_thread.start()
-load_settings_thread = Thread(target=load_settings, daemon=True)
-load_settings_thread.start()
-quit_if_running_thread = Thread(target=quit_if_running, daemon=True)
-quit_if_running_thread.start()
 auto_update()
-load_settings_thread.join()
-quit_if_running_thread.join()
 if exit_app: sys.exit()
-if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
+if not IS_FROZEN and not DEBUG: Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)

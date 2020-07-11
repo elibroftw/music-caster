@@ -126,7 +126,7 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
 print('Created dist/Source Files Condensed.zip')
 if not args.nostart:
     print('Launching Music Caster.exe')
-    subprocess.Popen(r'"dist\Music Caster.exe"')
+    subprocess.Popen(r'"dist\Music Caster.exe --debug"')
 if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
 print('Build Time:', time.time() - start_time, 'seconds')
