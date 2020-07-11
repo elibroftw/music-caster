@@ -95,7 +95,8 @@ def create_qr_code(port):
 
 def get_running_processes():
     # edited from https://stackoverflow.com/a/22914414/7732434
-    p = Popen('tasklist /NH /FI "IMAGENAME eq Music Caster.exe"', shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
+    cmd = 'tasklist /NH /FI "IMAGENAME eq Music Caster.exe" /FO'
+    p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
     task = p.stdout.readline()
     while task != '':
         task = p.stdout.readline().decode().strip()
@@ -222,6 +223,7 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
     queue_controls = [
         Sg.Button('Queue File(s)', font=FONT_NORMAL, key='queue_file', pad=(5, 5)),
         Sg.Button('Queue Folder', font=FONT_NORMAL, key='queue_folder', pad=(5, 5)),
+        Sg.Button('Queue URL', font=FONT_NORMAL, key='queue_url', pad=(5, 5)),
         Sg.Button('Play Next', font=FONT_NORMAL, key='play_next', pad=(5, 5)),
         Sg.Button('Clear Queue', font=FONT_NORMAL, key='clear_queue', pad=(5, 5)),
         Sg.Button('Locate File', font=FONT_NORMAL, key='locate_file', pad=(5, 5),
@@ -230,13 +232,8 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
         [Sg.Button('▲', key='move_up', tooltip='Move song up the queue', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove song from the queue', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move song down the queue', size=(3, 1))]]
-    if settings['EXPERIMENTAL']:
-        queue_controls.insert(2, Sg.Button('Queue URL', font=FONT_NORMAL, key='queue_url', pad=(5, 5)))
-        listbox_size = (64, 13)
-    else:
-        listbox_size = (58, 13)
     queue_tab_layout = [queue_controls, [
-        Sg.Listbox(songs, default_values=listbox_selected, size=listbox_size,
+        Sg.Listbox(songs, default_values=listbox_selected, size=(64, 13),
                    select_mode=Sg.SELECT_MODE_SINGLE,
                    text_color=fg, key='queue', background_color=bg, font=FONT_NORMAL,
                    bind_return_key=True),
@@ -359,9 +356,11 @@ def create_playlist_editor(initial_folder, settings, playlist_name=''):
     return layout
 
 
-def create_play_url_window(queue=False):
+def create_play_url_window(combo_value='Play Immediately'):
     # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
-    layout = [[Sg.Text('Enter url.\nSupports: YouTube', font=FONT_NORMAL)],
+    combo_values = ['Play Immediately', 'Queue', 'Add to Next Queue']
+    layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL),
+               Sg.Combo(combo_values, default_value=combo_value, key='combo_choice')],
               [Sg.Input(key='url', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)]]
     return layout
 

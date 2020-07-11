@@ -1093,10 +1093,10 @@ def create_edit_playlists():
     pl_selector_window.Normal()
 
 
-def activate_play_url(queue=False):
+def activate_play_url(combo_value='Play Immediately'):
     global play_url_window
     if not active_windows['play_url']:
-        active_windows['play_url'], play_url_layout = True, create_play_url_window(queue=False)
+        active_windows['play_url'], play_url_layout = True, create_play_url_window(combo_value=combo_value)
         window_location = get_window_location('play_url')
         play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
                                     return_keyboard_events=True, location=window_location)
@@ -1369,6 +1369,7 @@ def read_main_window():
         main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
     elif main_event == 'queue_file': Thread(target=queue_file).start()
     elif main_event == 'queue_folder': Thread(target=queue_folder).start()
+    elif main_event == 'queue_url': activate_play_url(combo_value='Queue')
     elif main_event == 'clear_queue':
         reset_progress()
         main_window['queue'].Update(values=[])
@@ -1656,8 +1657,13 @@ def read_play_url_window():
         active_windows['play_url'] = False
         play_url_window.Close()
         url_to_play = play_url_values['url']
-        music_queue.insert(0, url_to_play)
-        play(url_to_play)
+        if play_url_values['combo_choice'] == 'Play Immediately' or not music_queue and not next_queue:
+            music_queue.insert(0, url_to_play)
+            play(url_to_play)
+        elif play_url_values['combo_choice'] == 'Queue':
+            music_queue.append(url_to_play)
+            if len(music_queue) == 1: play(url_to_play)
+        else: next_queue.append(url_to_play)  # Add to Next Queue
 
 
 def create_shortcut(_shortcut_path):
@@ -1742,7 +1748,7 @@ def init_pygame():  # 1 - 1.4 seconds
 
 
 def quit_if_running():
-    if is_already_running() or not IS_FROZEN:
+    if is_already_running() or DEBUG:
         r_text = ''
         port = PORT
         while port <= 2003 and not r_text:
