@@ -7,6 +7,8 @@ Music Caster by Elijah Lopez Changelog
 - [Optimization] Even Faster Startup
 - [Fix] Made populate and save session queues mutually exclusive
 - [Fix] Queue files
+- [Fix] Get metadata
+- [Fix] Discord rich presence
 
 4.55.0
 - [Optimization] Reduced installation size
