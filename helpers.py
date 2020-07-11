@@ -64,7 +64,8 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
         else:
             audio = mutagen.File(file_path)
         _title = audio.get('title', ['Unknown Title'])[0]
-        _artist = ', '.join(audio.get('artist', ['Unknown Artist']))
+        try: _artist = ', '.join(audio['artist'])
+        except (KeyError, TypeError): _artist = 'Unknown Artist'
         _album = audio.get('album', ['Unknown Album'])[0]
     return _title, _artist, _album
 

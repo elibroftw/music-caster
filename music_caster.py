@@ -634,7 +634,7 @@ def play_url(url, position=0, autoplay=True):
             tray.ShowMessage('Music Caster', f'Playing: {url}', time=500)
         tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=f'Playing from {url_frags.netloc}')
         if settings['discord_rpc']:
-            with suppress(AttributeError, pypresence.InvalidID):
+            with suppress(AttributeError, pypresence.PyPresenceException):
                 rich_presence.update(state=_artist, details=url_frags.path, large_image='default',
                                      large_text='Listening', small_image='logo', small_text='Music Caster')
         cast_last_checked = time.time() + 30
@@ -671,7 +671,7 @@ def play_url(url, position=0, autoplay=True):
                 tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
             tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
             if settings['discord_rpc']:
-                with suppress(AttributeError, pypresence.InvalidID):
+                with suppress(AttributeError, pypresence.PyPresenceException):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
             return True
@@ -781,7 +781,7 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
     if settings['discord_rpc']:
-        with suppress(AttributeError, pypresence.InvalidID):
+        with suppress(AttributeError, pypresence.PyPresenceException):
             rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                  large_text='Listening', small_image='logo', small_text='Music Caster')
 
@@ -912,7 +912,7 @@ def pause():
         if music_queue:
             _title, _artist = get_metadata_wrapped(music_queue[0])[:2]
             if settings['discord_rpc']:
-                with suppress(AttributeError, pypresence.InvalidID):
+                with suppress(AttributeError, pypresence.PyPresenceException):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
     except UnsupportedNamespace:
@@ -936,7 +936,7 @@ def resume():
         playing_status = 'PLAYING'
         _title, _artist = get_metadata_wrapped(music_queue[0])[:2]
         if settings['discord_rpc']:
-            with suppress(AttributeError, pypresence.InvalidID):
+            with suppress(AttributeError, pypresence.PyPresenceException):
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Playing', small_image='logo', small_text='Music Caster')
     except (UnsupportedNamespace, NotConnected):
@@ -947,7 +947,7 @@ def stop():
     global playing_status, cast, song_position
     playing_status = 'NOT PLAYING'
     if settings['discord_rpc']:
-        with suppress(AttributeError, pypresence.InvalidID, RuntimeError): rich_presence.clear()
+        with suppress(AttributeError, RuntimeError, pypresence.PyPresenceException): rich_presence.clear()
     if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
         mc = cast.media_controller
         mc.stop()
@@ -1124,7 +1124,7 @@ def exit_program():
             stop()
         elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING':
             cast.quit_app()
-    with suppress(AttributeError, RuntimeError, pypresence.InvalidID):
+    with suppress(AttributeError, RuntimeError, pypresence.PyPresenceException):
         rich_presence.close()
     sys.exit()
 
@@ -1418,7 +1418,7 @@ def read_main_window():
             main_window['save_queue_sessions'].Update(value=False)
             change_settings('save_queue_sessions', False)
         elif main_event == 'discord_rpc':
-            with suppress(AttributeError, pypresence.InvalidID, RuntimeError):
+            with suppress(AttributeError, RuntimeError, pypresence.PyPresenceException):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
                     title, artist = get_metadata_wrapped(music_queue[0])[:2]
                     rich_presence.connect()
@@ -1817,7 +1817,7 @@ try:
     IPV4 = get_ipv4()
     QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
-    with suppress(pypresence.InvalidPipe, RuntimeError): rich_presence.connect()
+    with suppress(RuntimeError, pypresence.PyPresenceException): rich_presence.connect()
     pynput.keyboard.Listener(on_press=on_press).start()  # daemon=True by default
     init_pygame_thread.join()
     init_ydl_thread.join()
