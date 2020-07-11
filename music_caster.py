@@ -1704,8 +1704,8 @@ def auto_update():
                 if 'exe' in asset['name']:
                     setup_dl_link = asset['browser_download_url']
                     break
-            if not IS_FROZEN or DEBUG: return print('Installer Link:', setup_dl_link)
-            elif setup_dl_link == '': return
+            if not IS_FROZEN or DEBUG or not setup_dl_link: return
+            print('Installer Link:', setup_dl_link)
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
@@ -1730,21 +1730,19 @@ def send_info():
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION})
 
 
-@timing
 def init_youtube_dl():  # 1 - 1.4 seconds
     global ydl
     ydl = YoutubeDL()
 
 
-@timing
-def init_pygame():  # ~0.3 seconds
+def init_pygame():  # 1 - 1.4 seconds
     global show_pygame_error
     try: local_music_player.init(44100, -16, 2, 2048)
     except pygame_error: show_pygame_error = True
 
 
-def quit_if_running():  # 0.3 - 1 seconds
-    if is_already_running() or True:
+def quit_if_running():
+    if is_already_running() or not IS_FROZEN:
         r_text = ''
         port = PORT
         while port <= 2003 and not r_text:
