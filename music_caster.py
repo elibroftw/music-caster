@@ -1704,8 +1704,8 @@ def auto_update():
                 if 'exe' in asset['name']:
                     setup_dl_link = asset['browser_download_url']
                     break
-            if not IS_FROZEN or DEBUG or not setup_dl_link: return
             print('Installer Link:', setup_dl_link)
+            if not IS_FROZEN or DEBUG or not setup_dl_link: return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
