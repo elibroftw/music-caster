@@ -129,4 +129,4 @@ if not args.nostart:
     subprocess.Popen(r'"dist\Music Caster.exe --debug"')
 if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
-print('Build Time:', time.time() - start_time, 'seconds')
+print('Build Time:', round(time.time() - start_time, 2), 'seconds')
