@@ -81,7 +81,7 @@ music_directories, window_locations = [], {}
 music_queue, done_queue, next_queue = [], [], []
 mouse_hover = ''
 daemon_command = None
-playing_url = exit_app = False
+playing_url = False
 progress_bar_last_update = song_position = timer = song_end = song_length = song_start = 0  # seconds but using time()
 playing_status = 'NOT PLAYING'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -432,9 +432,9 @@ def index():  # web GUI
 @app.route('/play/', methods=['GET', 'POST'])
 def play_file_page():
     global music_queue, playing_status
-    args = request.args if request.method == 'GET' else request.form
-    if 'path' in args:
-        _file_or_dir = args['path']
+    request_args = request.args if request.method == 'GET' else request.form
+    if 'path' in request_args:
+        _file_or_dir = request_args['path']
         if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
             play_all([_file_or_dir])
         elif os.path.isdir(_file_or_dir):
@@ -1698,7 +1698,7 @@ def create_shortcut(_shortcut_path):
 def auto_update():
     global update_available
     try:
-        if exit_app or not settings['auto_update'] and not DEBUG and IS_FROZEN: return
+        if not settings['auto_update'] and not DEBUG and IS_FROZEN: return
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
         release = requests.get(releases_url).json()
         latest_ver = release['tag_name'][1:]
