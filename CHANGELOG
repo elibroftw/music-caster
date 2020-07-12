@@ -5,8 +5,8 @@ Music Caster by Elijah Lopez Changelog
 - [UI] Added Queue URL to the main window
 - [UI] Added Ctrl + {1, 2, 3} for main window tab control
 - [UI] Use Ctrl + Shift + Alt + M to launch main window
-- [UI] Added fast-forward and rewind keyboard shortcuts (L/J)
-- [UI] Added more play options to main window
+- [UI] Added fast-forward, rewind, and pause keyboard shortcuts (L, J, K)
+- [UI] Added more play options to the main window
 - [Optimization] Cached YouTube URLs
 - [Optimization] Even faster startup
 - [Fix] Made populate and save session queues mutually exclusive
