@@ -197,6 +197,7 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
     # main side for album cover, track title, track artist, and music controls
     music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
                       Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
+                      # TODO: stop button
                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0, metadata=playing_status),
                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
                       # TODO: modify tooltip
@@ -225,13 +226,14 @@ def create_main_gui(songs, listbox_selected, playing_status, settings, version, 
         Sg.Button('Queue Folder', font=FONT_NORMAL, key='queue_folder', pad=(5, 5)),
         Sg.Button('Queue URL', font=FONT_NORMAL, key='queue_url', pad=(5, 5)),
         Sg.Button('Play Next', font=FONT_NORMAL, key='play_next', pad=(5, 5)),
-        Sg.Button('Clear Queue', font=FONT_NORMAL, key='clear_queue', pad=(5, 5)),
+        # Sg.Button('Clear Queue', font=FONT_NORMAL, key='clear_queue', pad=(5, 5)),
         Sg.Button('Locate File', font=FONT_NORMAL, key='locate_file', pad=(5, 5),
                   tooltip='Show selected file in explorer')]
     listbox_controls = [
-        [Sg.Button('▲', key='move_up', tooltip='Move song up the queue', size=(3, 1))],
-        [Sg.Button('❌', key='remove', tooltip='Remove song from the queue', size=(3, 1))],
-        [Sg.Button('▼', key='move_down', tooltip='Move song down the queue', size=(3, 1))]]
+        [Sg.Button('⌧', key='clear_queue', tooltip='Clear the queue', size=(3, 1))],
+        [Sg.Button('▲', key='move_up', tooltip='Move song up', size=(3, 1))],
+        [Sg.Button('❌', key='remove', tooltip='Remove song', size=(3, 1))],
+        [Sg.Button('▼', key='move_down', tooltip='Move song down', size=(3, 1))]]
     queue_tab_layout = [queue_controls, [
         Sg.Listbox(songs, default_values=listbox_selected, size=(64, 13),
                    select_mode=Sg.SELECT_MODE_SINGLE,

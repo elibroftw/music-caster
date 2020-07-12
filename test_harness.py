@@ -167,7 +167,7 @@ for main_window in {main_window1}:
 
 # Playlists GUI
 
-pl_editor_layout = create_playlist_editor('C:/', settings, 'test')
+pl_editor_layout = create_playlist_editor(settings, 'test')
 pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, background_color=bg, return_keyboard_events=True)
 
 pl_editor_window.Finalize()
