@@ -1,4 +1,4 @@
-VERSION = '4.56.1'
+VERSION = '4.56.2'
 UPDATE_MESSAGE = """
 [UI] Added Keyboard Shortcuts
 [UI] Added Queue URL
@@ -838,7 +838,7 @@ def select_and_play_folder():
 
 def file_action(action='Play File(s)'):
     # actions = 'Play File(s)', 'Play File(s) Next', 'Queue File(s)'
-    global DEFAULT_DIR, music_queue, next_queue, playing_status
+    global DEFAULT_DIR, music_queue, next_queue, playing_status, main_last_event
     DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
     fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
@@ -856,7 +856,8 @@ def file_action(action='Play File(s)'):
                 playing_status = 'PLAYING'
                 next_song()
         else: raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
-    if active_windows['main']: main_window.TKroot.focus_force()
+        main_last_event = '__TIMEOUT__'
+    else: main_last_event = 'file_action'
 
 
 def play_file():
@@ -872,7 +873,7 @@ def play_next():
 
 
 def folder_action(action='Play Folder'):
-    global DEFAULT_DIR, music_queue, next_queue, playing_status
+    global DEFAULT_DIR, music_queue, next_queue, playing_status, main_last_event
     # actions: 'Play Folder', 'Play Folder Next', 'Queue Folder'
     DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
     dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
@@ -902,7 +903,8 @@ def folder_action(action='Play Folder'):
             gui_queue = create_songs_list()[0]
             main_window['queue'].Update(values=gui_queue)
         del temp_queue
-    if active_windows['main']: main_window.TKroot.focus_force()
+        main_last_event = '__TIMEOUT__'
+    else: main_last_event = 'folder_action'
 
 
 def update_song_position():
@@ -1226,13 +1228,13 @@ def read_main_window():
         song_start, song_end, timer, main_window
     # make if statements into dict mapping
     main_event, main_values = main_window.Read(timeout=10)
-    not_file_pick = main_last_event not in {'file_action', 'folder_action'}
-    if main_event in {None, 'Escape:27'} and not_file_pick:
+    if main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action'}:
         active_windows['main'] = False
         main_window.Close()
         return False
     main_value = main_values.get(main_event)
-    if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event: main_last_event = main_event
+    if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != '__TIMEOUT__':
+        main_last_event = main_event
     p_r_button = main_window['pause/resume']
     gui_title = main_window['title'].DisplayText
     time_left = None
@@ -1580,7 +1582,6 @@ def read_main_window():
     if update_lb_mq:
         lb_music_queue_songs = create_songs_list()[0]
         lb_music_queue.Update(values=lb_music_queue_songs, set_to_index=dq_len, scroll_to_index=dq_len)
-    main_last_event = main_event
     return True
 
 
