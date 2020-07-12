@@ -8,7 +8,7 @@ from helpers import get_metadata
 print(find_chromecasts())
 music_metadata = {}
 timer = time.time()
-print('is_already_running():', is_already_running(), time.time() - timer)
+print('is_already_running():', is_already_running(0), time.time() - timer)
 print('get_mac():', get_mac())
 
 

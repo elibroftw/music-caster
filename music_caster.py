@@ -55,7 +55,7 @@ from youtube_dl import YoutubeDL
 # CONSTANTS
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
-parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance')
+parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
 args = parser.parse_args()
 DEBUG = args.debug
 EMAIL = 'elijahllopezz@gmail.com'
@@ -1814,6 +1814,7 @@ def init_pygame():  # 1 - 1.4 seconds
 
 def quit_if_running():
     if is_already_running() or DEBUG:
+        print('Another instance of Music Caster was found' if not DEBUG else '')
         r_text = ''
         port = PORT
         while port <= 2003 and not r_text:
@@ -1889,7 +1890,7 @@ try:
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
     init_pygame_thread.join()
     init_ydl_thread.join()
-    tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
+    tooltip = 'Music Caster [DEBUG]' if (DEBUG or not IS_FROZEN) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
