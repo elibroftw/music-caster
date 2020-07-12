@@ -188,7 +188,7 @@ def save_queues():
 
 def update_volume(new_vol):
     """new_vol: float[0, 100]"""
-    if main_window.Title != '': main_window['volume_slider'].Update(value=new_vol)
+    if active_windows['main']: main_window['volume_slider'].Update(value=new_vol)
     new_vol = new_vol / 100
     local_music_player.music.set_volume(new_vol)
     if cast is not None: cast.set_volume(new_vol)
@@ -856,7 +856,7 @@ def file_action(action='Play File(s)'):
                 playing_status = 'PLAYING'
                 next_song()
         else: raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
-    if main_window.Title != '': main_window.TKroot.focus_force()
+    if active_windows['main']: main_window.TKroot.focus_force()
 
 
 def play_file():
@@ -898,11 +898,11 @@ def folder_action(action='Play Folder'):
             music_queue += temp_queue
             if start_playing and music_queue: play(music_queue[0])
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
-        if main_window.Title != '':
+        if active_windows['main']:
             gui_queue = create_songs_list()[0]
             main_window['queue'].Update(values=gui_queue)
         del temp_queue
-    if main_window.Title != '': main_window.TKroot.focus_force()
+    if active_windows['main']: main_window.TKroot.focus_force()
 
 
 def update_song_position():
@@ -1164,18 +1164,23 @@ def exit_program():
     sys.exit()
 
 
+def play_playlist(playlist_name):
+    if playlist_name in playlists:
+        music_queue.clear()
+        done_queue.clear()
+        music_queue.extend(playlists.get(playlist_name, []))
+        if music_queue:
+            if settings['shuffle_playlists']: shuffle(music_queue)
+            play(music_queue[0])
+
+
 def other_tray_actions(_tray_item):
     global cast, cast_last_checked, timer
     if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
         with suppress(ValueError):
             change_device(device_names.index(tray_item))
     elif _tray_item.startswith('PL: '):  # playlist
-        music_queue.clear()
-        music_queue.extend(playlists.get(tray_item[4:], []))
-        if music_queue:
-            done_queue.clear()
-            if settings['shuffle_playlists']: shuffle(music_queue)
-            play(music_queue[0])
+        play_playlist(tray_item[4:])
     elif _tray_item.startswith('PF: '):  # play folder
         if tray_item == 'PF: Select Folder(s)':
             Thread(target=select_and_play_folder).start()
@@ -1218,11 +1223,11 @@ def reset_progress():
 
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, song_position, progress_bar_last_update,\
-        song_start, song_end, timer
+        song_start, song_end, timer, main_window
     # make if statements into dict mapping
     main_event, main_values = main_window.Read(timeout=10)
     not_file_pick = main_last_event not in {'file_action', 'folder_action'}
-    if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27' and not_file_pick:
+    if main_event in {None, 'Escape:27'} and not_file_pick:
         active_windows['main'] = False
         main_window.Close()
         return False
@@ -1419,6 +1424,7 @@ def read_main_window():
         Thread(target=file_action, kwargs={'action': main_values['file_option']}).start()
     elif main_event == 'folder_action':
         Thread(target=folder_action, kwargs={'action': main_values['folder_option']}).start()
+    elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
     elif main_event == 'url_actions': activate_play_url()
     elif main_event == 'clear_queue':
         reset_progress()
@@ -1581,7 +1587,7 @@ def read_main_window():
 def read_playlist_selector_window():
     global pl_selector_window, tray_playlists, pl_files, pl_name, pl_editor_window
     pl_selector_event, pl_selector_values = pl_selector_window.Read(timeout=10)
-    if pl_selector_event in {None, 'Escape:27', 'q', 'Q'}:
+    if pl_selector_event in {None, 'Escape:27', 'q'}:
         active_windows['playlist_selector'] = False
         pl_selector_window.Close()
         return
@@ -1590,10 +1596,12 @@ def read_playlist_selector_window():
         if pl_name in playlists:
             del playlists[pl_name]
             save_settings()
-        playlist_names = list(settings['playlists'].keys())
+        playlist_names = tuple(settings['playlists'].keys())
         default_playlist_name = playlist_names[0] if playlist_names else ''
         pl_selector_window['playlist_combo'].Update(value=default_playlist_name, values=playlist_names)
         pl_selector_window.Refresh()
+        if active_windows['main']:
+            main_window['playlists'].Update(value=default_playlist_name, values=playlist_names)
         tray_playlists.clear()
         tray_playlists.append('Create/Edit a Playlist')
         tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
@@ -1609,7 +1617,6 @@ def read_playlist_selector_window():
         pl_files = playlists.get(pl_name, [])
         pl_selector_window.Close()
         pl_editor_window.Finalize()
-
         pl_editor_window.TKroot.focus_force()
         pl_editor_window.Normal()
         set_save_position_callback(pl_editor_window, 'playlist_editor')
@@ -1631,7 +1638,7 @@ def read_playlist_editor_window():
     pl_editor_event, pl_editor_values = pl_editor_window.Read(timeout=10)
     open_pl_selector = False
     if pl_editor_event == '__TIMEOUT__': pass
-    elif pl_editor_event in {None, 'Escape:27', 'q:81', 'Cancel'} and pl_editor_last_event not in {'Add tracks', 'f:70'}:
+    elif pl_editor_event in {None, 'Escape:27', 'Cancel'} and pl_editor_last_event not in {'Add tracks', 'f:70'}:
         active_windows['playlist_editor'] = False
         pl_editor_window.Close()
         open_pl_selector = True
@@ -1642,6 +1649,9 @@ def read_playlist_editor_window():
             if pl_name in playlists: del playlists[pl_name]
             pl_name = new_name
         playlists[pl_name] = pl_files
+        if active_windows['main']:
+            playlist_names = tuple(playlists.keys())
+            main_window['playlists'].Update(value=playlist_names[0], values=playlist_names)
         save_settings()
         active_windows['playlist_editor'] = False
         pl_editor_window.Close()
@@ -1657,7 +1667,7 @@ def read_playlist_editor_window():
                 pl_files.insert(new_i, pl_files.pop(to_move))
                 formatted_songs = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window['tracks'].Update(values=formatted_songs, set_to_index=new_i,
-                                                 scroll_to_index=new_i)
+                                                  scroll_to_index=new_i)
     elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
         if pl_editor_values['tracks']:
             to_move = pl_editor_window['tracks'].GetListValues().index(pl_editor_values['tracks'][0])
@@ -1666,7 +1676,7 @@ def read_playlist_editor_window():
                 pl_files.insert(new_i, pl_files.pop(to_move))
                 formatted_songs = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window['tracks'].Update(values=formatted_songs, set_to_index=new_i,
-                                                 scroll_to_index=new_i)
+                                                  scroll_to_index=new_i)
     elif pl_editor_event in {'Add tracks', 'f:70'}:
         fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
@@ -1705,7 +1715,7 @@ def read_playlist_editor_window():
 
 def read_play_url_window():
     play_url_event, play_url_values = play_url_window.Read(timeout=10)
-    if play_url_event in {None, 'Escape:27', 'q', 'Q'}:
+    if play_url_event in {None, 'Escape:27', 'q'}:
         active_windows['play_url'] = False
         play_url_window.Close()
     elif play_url_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
