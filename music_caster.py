@@ -1,4 +1,4 @@
-VERSION = '4.56.0'
+VERSION = '4.56.1'
 UPDATE_MESSAGE = """
 [UI] Added Keyboard Shortcuts
 [UI] Added Queue URL

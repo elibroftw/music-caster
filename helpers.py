@@ -227,12 +227,14 @@ def create_main(songs, listbox_selected, playing_status, settings, version, qr_c
                              font=FONT_NORMAL, enable_events=True, readonly=True, pad=(5, (5, 0)))],
                    [Sg.Combo(folder_opts, default_value='Play Folder', key='folder_option', size=(14, None),
                              font=FONT_NORMAL, enable_events=True, readonly=True, pad=(5, (10, 0)))]]),
-        Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True)],
-                   [Sg.Button('Play Folder', font=FONT_NORMAL, key='folder_action', enable_events=True)]]),
+        Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action',
+                              enable_events=True, size=(13, 1))],
+                   [Sg.Button('Play Folder', font=FONT_NORMAL, key='folder_action',
+                              enable_events=True, size=(13, 1))]]),
         Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
-                             size=(14, None), font=FONT_NORMAL, readonly=True, pad=(5, (5, 0)), key='playlists')],
+                             size=(14, 1), font=FONT_NORMAL, readonly=True, pad=(5, (5, 0)), key='playlists')],
                    [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
-                              size=(14, None), pad=(5, (9, 0)))]]),
+                              size=(14, 1), pad=(5, (9, 0)))]]),
         Sg.Column([[Sg.Button('URL Actions', font=FONT_NORMAL, key='url_actions', pad=(5, 5), enable_events=True)]]),
     ]
     listbox_controls = [
