@@ -65,7 +65,7 @@ I love keyboard shortcuts, they make us more productive.
 | A | Main | Decrease Volume by 5%
 | D | Main | Increase Volume by 5%
 | # | Main | Set Volume to # * 10%
-| K / \<Space\> | Main | Pause / Resume / Start Playing 
+| K | Main | Pause / Resume / Start Playing 
 | J | Main | Rewind 5 seconds
 | L | Main | Fast-forward 5 seconds
 | Ctrl + R | Main | Cycle Repeat
