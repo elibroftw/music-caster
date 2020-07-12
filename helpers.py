@@ -222,7 +222,7 @@ def create_main(songs, listbox_selected, playing_status, settings, version, qr_c
     # tabs side is for music queue, queue controls, and later, the music library
     # tab 1 is the queue, tab 2 will be the library
     file_options = ['Play File(s)', 'Play File(s) Next', 'Queue File(s)']
-    folder_opts = ['Play Folder', 'Play Folder Next', 'Queue Folder']
+    folder_opts = ['Play Folder', 'Play Folder Next', 'Queue Folder']  # TODO: queue folders
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value='Play File(s)', key='file_option', size=(14, None),
                              font=FONT_NORMAL, enable_events=True, readonly=True, pad=(5, (5, 0)))],
