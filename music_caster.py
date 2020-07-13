@@ -1759,26 +1759,26 @@ def create_shortcut(_shortcut_path):
                 os.remove(_shortcut_path)
         except Exception as _e:
             handle_exception(_e)
-    if IS_FROZEN and not DEBUG: Thread(target=_threaded, daemon=True).start()
+    if not settings.get('DEBUG', False): Thread(target=_threaded, daemon=True).start()
 
 
 def auto_update():
     global update_available
     try:
-        if not settings['auto_update'] and not DEBUG and IS_FROZEN: return
+        if not settings['auto_update'] and not settings.get('DEBUG', False): return
         releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
         release = requests.get(releases_url).json()
         latest_ver = release['tag_name'][1:]
         _version = [int(x) for x in VERSION.split('.')]
         compare_ver = [int(x) for x in latest_ver.split('.')]
-        if compare_ver > _version or not IS_FROZEN or DEBUG:
+        if compare_ver > _version or not IS_FROZEN or settings.get('DEBUG', False):
             setup_dl_link = ''
             for asset in release['assets']:
                 if 'exe' in asset['name']:
                     setup_dl_link = asset['browser_download_url']
                     break
             print('Installer Link:', setup_dl_link)
-            if not IS_FROZEN or DEBUG or not setup_dl_link: return
+            if settings.get('DEBUG', False) or not setup_dl_link: return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
@@ -1815,7 +1815,7 @@ def init_pygame():  # 1 - 1.4 seconds
 
 
 def quit_if_running():
-    if is_already_running() or DEBUG:
+    if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2) or DEBUG:
         print('Another instance of Music Caster was found' if not DEBUG else '')
         r_text = ''
         port = PORT
@@ -1835,7 +1835,7 @@ init_ydl_thread.start()
 init_pygame_thread = Thread(target=init_pygame, daemon=True)
 init_pygame_thread.start()
 auto_update()
-if IS_FROZEN and not DEBUG: Thread(target=send_info, daemon=True).start()
+if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)
@@ -1892,7 +1892,7 @@ try:
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
     init_pygame_thread.join()
     init_ydl_thread.join()
-    tooltip = 'Music Caster [DEBUG]' if (DEBUG or not IS_FROZEN) else 'Music Caster'
+    tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
