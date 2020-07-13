@@ -370,7 +370,7 @@ def create_playlist_editor(settings, playlist_name=''):
 
 def create_play_url_window(combo_value='Play Immediately'):
     # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
-    combo_values = ['Play Immediately', 'Queue', 'Add to Next Queue']
+    combo_values = ['Play Immediately', 'Queue', 'Play Next']
     layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL),
                Sg.Combo(combo_values, default_value=combo_value, key='combo_choice', readonly=True)],
               [Sg.Input(key='url', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)]]
