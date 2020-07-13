@@ -13,7 +13,7 @@ except RuntimeError as e: VERSION = str(e)
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
 parser.add_argument('--versioning', default=False, action='store_true')
-parser.add_argument('--nostart', default=False, action='store_true', help='Disable auto launch of MC after building')
+parser.add_argument('--start', default=False, action='store_true', help='Auto launch portable MC after building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -124,7 +124,7 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     with suppress(FileNotFoundError): zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
-if not args.nostart:
+if args.start:
     print('Launching Music Caster.exe')
     subprocess.Popen(r'"dist\Music Caster.exe --debug"')
 if s4 is not None: s4.wait()  # Wait for inno script to finish

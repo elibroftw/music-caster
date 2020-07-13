@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.56.4
+- [Fix] Music Queue with non-existant files
+
 4.56.3
 - [Fix] Switching device after a long time
 

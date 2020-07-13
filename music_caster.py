@@ -1,4 +1,4 @@
-VERSION = '4.56.3'
+VERSION = '4.56.4'
 UPDATE_MESSAGE = """
 [UI] Added Keyboard Shortcuts
 [UI] Added Queue URL
@@ -553,7 +553,7 @@ def change_device(selected_index):
     refresh_tray()
     if cast != new_device:
         current_pos = 0
-        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
+        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status in {'PLAYING', 'PAUSED'}:
             mc = cast.media_controller
             with suppress(UnsupportedNamespace):
                 mc.update_status()  # Switch device without playback loss
@@ -620,7 +620,7 @@ def play_url(url, position=0, autoplay=True):
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
         return False
-    elif valid_music_file(url):
+    elif url.startswith('http') and valid_music_file(url):
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         _title = url_frags.path.split('/')[-1]
