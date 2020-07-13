@@ -1,4 +1,4 @@
-VERSION = '4.56.2'
+VERSION = '4.56.3'
 UPDATE_MESSAGE = """
 [UI] Added Keyboard Shortcuts
 [UI] Added Queue URL
@@ -559,7 +559,8 @@ def change_device(selected_index):
                 mc.update_status()  # Switch device without playback loss
                 current_pos = mc.status.adjusted_current_time
                 if mc.is_playing or mc.is_paused: mc.stop()
-            cast.quit_app()
+            with suppress(NotConnected):
+                cast.quit_app()
         elif cast is None and local_music_player.music.get_busy():
             if playing_status == 'PLAYING': current_pos = time.time() - song_start
             else: current_pos = song_position

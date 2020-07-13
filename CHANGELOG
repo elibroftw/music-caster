@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.56.3
+- [Fix] Switching device after a long time
+
 4.56.2
 - [Fix] Cancelling file selector closes the window
 
