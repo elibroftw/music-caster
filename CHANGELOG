@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.57.0
+- [Feature] Play url supports SoundCloud
+- [Fix] Play url
+
 4.56.4
 - [Fix] Music Queue with non-existent files
 

@@ -1,8 +1,6 @@
-VERSION = '4.56.4'
+VERSION = '4.57.0'
 UPDATE_MESSAGE = """
-[UI] Added Keyboard Shortcuts
-[UI] Added Queue URL
-[UI] Use Ctrl + Shift + Alt + M
+[Feature] Play URL - SoundCloud
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -615,72 +613,67 @@ def create_songs_list():
     return songs, selected_value
 
 
+def play_url_generic(src, ext, title, artist, album, length, position=0, thumbnail=None, autoplay=True):
+    global song_start, song_end, playing_url, playing_status, song_length
+    _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+    cast.wait()
+    mc = cast.media_controller
+    mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
+                  current_time=position, autoplay=autoplay)
+    mc.block_until_active()
+    while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
+    song_length = length
+    song_start = time.time() - position
+    song_end = song_start + length
+    playing_url, playing_status = True, 'PLAYING'
+    playing_text = f'{artist} - {title}'
+    if settings['notifications']:
+        tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
+    tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
+    if settings['discord_rpc']:
+        with suppress(AttributeError, pypresence.PyPresenceException):
+            rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
+                                 large_text='Listening', small_image='logo', small_text='Music Caster')
+    return True
+
+
 def play_url(url, position=0, autoplay=True):
     global cast, playing_url, playing_status, song_length, song_start, song_end, cast_last_checked
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
         return False
-    elif url.startswith('http') and valid_music_file(url):
+    elif url.startswith('http') and valid_music_file(url):  # source url e.g. http://...radio.mp3
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
-        _title = url_frags.path.split('/')[-1]
-        _artist = url_frags.netloc
-        metadata = {'title': _title, 'artist': _artist, 'length': 0, 'album': url_frags.path[1:]}
+        title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
+        metadata = {'title': title, 'artist': artist, 'length': 0, 'album': album}
         music_metadata[url] = metadata
-        cast.wait()
-        mc = cast.media_controller
-        mc.play_media(url, f'audio/{ext}', metadata=metadata, current_time=position, autoplay=autoplay)
-        mc.block_until_active()
-        while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
-        song_start = time.time() - position
-        song_end = time.time() * 2
         song_length = 3600  # 1 hour default
-        playing_url, playing_status = True, 'PLAYING'
-        if settings['notifications']:
-            tray.ShowMessage('Music Caster', f'Playing: {url}', time=500)
-        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=f'Playing from {url_frags.netloc}')
-        if settings['discord_rpc']:
-            with suppress(AttributeError, pypresence.PyPresenceException):
-                rich_presence.update(state=_artist, details=url_frags.path, large_image='default',
-                                     large_text='Listening', small_image='logo', small_text='Music Caster')
-        cast_last_checked = time.time() + 30
-        return True
+        return play_url_generic(url, ext, title, artist, album, song_length,
+                                position=position, thumbnail=None, autoplay=autoplay)
+    elif 'soundcloud.com' in url:
+        if url not in music_metadata:
+            r = ydl.extract_info(url, download=False)
+            music_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'Unknown Album',
+                                   'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
+        metadata = music_metadata[url]
+        return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
+                                metadata['album'], metadata['length'], position=position,
+                                thumbnail=metadata['art'], autoplay=autoplay)
     elif get_youtube_id(url) is not None:
         try:
             if url not in music_metadata:
                 r = ydl.extract_info(url, download=False)
                 formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                if r['track']: _title = r['track']
-                else: _title = r['title']
-                if r['artist']: _artist = r['artist'].split(', ', 1)[0]
-                else: _artist = r['uploader']
                 formats.sort(key=lambda _f: _f['width'])
                 _f = formats[0]
-                song_length = r['duration']
-                music_metadata[url] = {'title': _title, 'artist': r['artist'] or r['uploader'], 'album': r['album'],
-                                       'length': song_length, 'art': r['thumbnail'], 'src': _f['url'], 'ext': _f['ext']}
+                music_metadata[url] = {'title': r['track'] or r['title'], 'artist': r['artist'] or r['uploader'],
+                                       'album': r['album'], 'length': r['duration'], 'art': r['thumbnail'],
+                                       'src': _f['url'], 'ext': _f['ext']}
             metadata = music_metadata[url]
-            _title, _artist, _album = metadata['title'], metadata['artist'].split(', ', 1)[0], metadata['album']
-            _metadata = {'metadataType': 3, 'albumName': _album, 'title': _title, 'artist': _artist}
-            thumbnail, ext = metadata['art'], metadata['ext']
-            cast.wait()
-            mc = cast.media_controller
-            mc.play_media(metadata['src'], f'video/{ext}', metadata=metadata, thumb=thumbnail,
-                          current_time=position, autoplay=autoplay)
-            mc.block_until_active()
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
-            song_start = time.time() - position
-            song_end = song_start + song_length
-            playing_url, playing_status = True, 'PLAYING'
-            playing_text = f'{_artist} - {_title}'
-            if settings['notifications']:
-                tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
-            tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
-            if settings['discord_rpc']:
-                with suppress(AttributeError, pypresence.PyPresenceException):
-                    rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
-                                         large_text='Listening', small_image='logo', small_text='Music Caster')
-            return True
+            artist = metadata['artist'].split(', ', 1)[0]
+            return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
+                                    metadata['length'], position=position, thumbnail=metadata['art'], autoplay=autoplay)
         except StopIteration as _e:
             tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
             if not IS_FROZEN: raise _e
@@ -690,6 +683,7 @@ def play_url(url, position=0, autoplay=True):
 def play(file_path, position=0, autoplay=True, switching_device=False):
     global song_start, song_end, playing_status, song_length, song_position,\
         thumbs_dir, cast_last_checked, music_queue, progress_bar_last_update
+    assert file_path == music_queue[0]
     while not os.path.exists(file_path):
         if play_url(file_path, position=position, autoplay=autoplay): return
         music_queue.remove(file_path)
@@ -765,9 +759,10 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
                 mc.stop()
                 mc.block_until_active(5)
             metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
-            mc.play_media(url, f'audio/{file_path.split(".")[-1]}', current_time=position,
+            ext = file_path.split('.')[-1]
+            mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=thumb, autoplay=autoplay)
-            mc.block_until_active()
+            mc.block_until_active()  # timeout=WAIT_TIMEOUT
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
             progress_bar_last_update = time.time()
             song_position = position
