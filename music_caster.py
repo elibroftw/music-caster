@@ -1,4 +1,4 @@
-VERSION = '4.57.1'
+VERSION = '4.57.0'
 UPDATE_MESSAGE = """
 [Feature] Play URL - SoundCloud
 """
