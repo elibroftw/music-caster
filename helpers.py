@@ -21,7 +21,7 @@ from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import HeaderNotFoundError
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
-from wavinfo import WavInfoReader  # until mutagen supports .wav
+from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
 # Styling
@@ -49,23 +49,20 @@ def timing(f):
 def get_metadata(file_path: str) -> tuple:  # title, artist, album
     file_path = file_path.lower()
     _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
-    with suppress(ID3NoHeaderError, HeaderNotFoundError):
+    with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError):
         if file_path.endswith('.mp3'):
             audio = EasyID3(file_path)
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
             audio = EasyMP4(file_path)
         elif file_path.endswith('.wav'):
-            try:
-                a = WavInfoReader(file_path).info.to_dict()
-                audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
-            except AttributeError: raise HeaderNotFoundError
+            a = WavInfoReader(file_path).info.to_dict()
+            audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
         elif file_path.endswith('.wma'):
             audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
         else:
             audio = mutagen.File(file_path)
         _title = audio.get('title', ['Unknown Title'])[0]
-        try: _artist = ', '.join(audio['artist'])
-        except (KeyError, TypeError): _artist = 'Unknown Artist'
+        with suppress(KeyError, TypeError): _artist = ', '.join(audio['artist'])
         _album = audio.get('album', ['Unknown Album'])[0]
     return _title, _artist, _album
 
