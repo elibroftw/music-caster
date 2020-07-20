@@ -1,4 +1,4 @@
-VERSION = '4.57.0'
+VERSION = '4.57.1'
 UPDATE_MESSAGE = """
 [Feature] Play URL - SoundCloud
 """
@@ -189,7 +189,8 @@ def update_volume(new_vol):
     if active_windows['main']: main_window['volume_slider'].Update(value=new_vol)
     new_vol = new_vol / 100
     local_music_player.music.set_volume(new_vol)
-    if cast is not None: cast.set_volume(new_vol)
+    if cast is not None:
+        with suppress(NotConnected): cast.set_volume(new_vol)
 
 
 def cycle_repeat():
@@ -696,8 +697,12 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
         sample_rate = a.fmt.sample_rate
         song_length = a.data.frame_count / sample_rate
     elif file_path.lower().endswith('.wma'):
-        audio_info = AAC(file_path).info
-        song_length, sample_rate = audio_info.length, audio_info.sample_rate
+        try:
+            audio_info = AAC(file_path).info
+            song_length, sample_rate = audio_info.length, audio_info.sample_rate
+        except AttributeError:
+            audio_info = mutagen.File(file_path).info
+            song_length, sample_rate = audio_info.length, audio_info.sample_rate
     elif file_path.lower().endswith('.opus'):
         audio_info = mutagen.File(file_path).info
         song_length, sample_rate = audio_info.length, 48000
