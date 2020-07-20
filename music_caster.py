@@ -693,10 +693,10 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
         song_length = a.data.frame_count / sample_rate
     elif file_path.lower().endswith('.wma'):
         try:
-            audio_info = AAC(file_path).info
+            audio_info = mutagen.File(file_path).info
             song_length, sample_rate = audio_info.length, audio_info.sample_rate
         except AttributeError:
-            audio_info = mutagen.File(file_path).info
+            audio_info = AAC(file_path).info
             song_length, sample_rate = audio_info.length, audio_info.sample_rate
     elif file_path.lower().endswith('.opus'):
         audio_info = mutagen.File(file_path).info
