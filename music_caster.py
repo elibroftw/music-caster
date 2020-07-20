@@ -63,7 +63,7 @@ UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 MC_SECRET = str(uuid.uuid4())
 PRESSED_KEYS = set()
-show_pygame_error = variable_exception_sent = update_devices = settings_file_in_use = False
+show_pygame_error = update_devices = settings_file_in_use = False
 update_available = False
 settings_last_modified, last_press = 0, time.time()
 active_windows = {'main': False, 'playlist_selector': False,
@@ -232,19 +232,14 @@ def handle_exception(exception, restart_program=False):
 
 
 def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
-    global variable_exception_sent
     try:
+        return get_metadata(file_path)
+    except mutagen.MutagenError:
         try:
-            return get_metadata(file_path)
-        except mutagen.MutagenError:
             metadata = music_metadata[file_path]
             return metadata['title'], metadata['artist'], metadata['album']
-    except Exception as _e:
-        _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
-        if not variable_exception_sent:
-            handle_exception(_e)
-            variable_exception_sent = True
-    return _title, _artist, _album
+        except KeyError:
+            return 'Unknown Title', 'Unknown Artist', 'Unknown Album'
 
 
 def compile_all_songs(update_global=True, ignore_files: list = None):
