@@ -8,7 +8,7 @@ import pyqrcode
 import PySimpleGUI as Sg
 import socket
 from urllib.parse import urlparse, parse_qs
-import uuid
+from uuid import getnode
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
 from threading import Thread
@@ -82,7 +82,7 @@ def get_ipv4() -> str:
     return ipv4_address
 
 
-def get_mac(): return ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
 
 
 def create_qr_code(port):

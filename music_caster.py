@@ -1,6 +1,6 @@
-VERSION = '4.57.0'
+VERSION = '4.58.0'
 UPDATE_MESSAGE = """
-[Feature] Play URL - SoundCloud
+[Feature] Added /files/ route
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -61,7 +61,6 @@ EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
-MC_SECRET = str(uuid.uuid4())
 PRESSED_KEYS = set()
 show_pygame_error = update_devices = settings_file_in_use = False
 update_available = False
@@ -478,11 +477,23 @@ def change_device_web():
 
 @app.route('/file/')
 def get_file():
-    if 'path' in request.args and request.args.get('secret', '') == MC_SECRET:  # security reasons
-        _file_or_dir = request.args['path']
-        if os.path.isfile(_file_or_dir):
-            return send_file(_file_or_dir, conditional=True, as_attachment=True, cache_timeout=360000)
-    return '404'
+    if 'path' in request.args:
+        file_path = request.args['path']
+        if os.path.isfile(file_path) and valid_music_file(file_path):
+            return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
+    return '401'
+
+
+@app.route('/files/')
+def return_all_files():
+    device_name = platform.node()
+    html_resp = f'<!DOCTYPE html><title>Music Caster Files</title><h1>Music Files on {device_name}</h1><ul>\n'
+    sorted_songs = sorted(all_songs.items(), key=lambda item: item[0].lower())
+    for formatted_track, filename in sorted_songs:
+        filename = urllib.parse.urlencode({'path': filename})
+        el = f'<li><a title="{formatted_track}" class="track" href="/file?{filename}">{formatted_track}</a></li>\n'
+        html_resp += el
+    return html_resp + '</ul>'
 
 
 @app.errorhandler(404)
@@ -744,13 +755,13 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
         try:
             ipv4_address = get_ipv4()
             file_path_obj = Path(file_path)
-            url_args = urllib.parse.urlencode({'path': file_path, 'secret': MC_SECRET})
+            url_args = urllib.parse.urlencode({'path': file_path})
             url = f'http://{ipv4_address}:{PORT}/file?{url_args}'
             if pict:
                 thumb = thumbs_dir + f'/{file_path_obj.stem}.png'
                 with open(thumb, 'wb') as _f: _f.write(pict)
             else: thumb = f'{thumbs_dir}/default.png'
-            url_args = urllib.parse.urlencode({'path': thumb, 'secret': MC_SECRET})
+            url_args = urllib.parse.urlencode({'path': thumb})
             thumb = f'http://{ipv4_address}:{PORT}/file?{url_args}'
             cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)

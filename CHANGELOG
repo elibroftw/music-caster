@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.58.0
+- [Feature] See and download available files through /files/
+
 4.57.0
 - [Feature] Play URL supports SoundCloud
 - [Fix] Play URL
