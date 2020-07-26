@@ -29,10 +29,9 @@ class AudioPlayer:
         """
         m = self.vlc_instance.media_new(file_path)  # Path
         self.player.set_media(m)
-        self.set_pos(start_from)
         self.player.play()
+        self.set_pos(start_from)
         if not start_playing: self.player.pause()
-        # self.set_pos(start_from)
         if volume is not None: self.set_volume(volume)
 
     def load(self, file_path):
@@ -56,13 +55,13 @@ class AudioPlayer:
             while not self.player.is_playing(): pass
 
     def stop(self):
-        """ Stop the playback of any audio """
+        """ Stop the playback of any audio and return the current position in seconds """
         if self.player.is_playing() or self.__is_paused:
-            position = self.player.get_time()
+            position = self.player.get_time() / 1000
             self.player.stop()
             self.__is_paused = False
             return position
-        return None
+        return 0
 
     def set_volume(self, volume=1.0):
         """

@@ -1,4 +1,4 @@
-VERSION = '4.59.0'
+VERSION = '4.59.1'
 UPDATE_MESSAGE = """
 [Feature] Better progressbar
 [Feature] Support for all formats locally (thanks to VLC bindings)
@@ -565,9 +565,7 @@ def change_device(selected_index):
                 if mc.is_playing or mc.is_paused: mc.stop()
             with suppress(NotConnected):
                 cast.quit_app()
-        elif cast is None and audio_player.is_busy():
-            if playing_status == 'PLAYING': current_pos = time.time() - song_start
-            else: current_pos = audio_player.stop()
+        elif cast is None and audio_player.is_busy(): current_pos = audio_player.stop()
         cast = new_device
         volume = 0 if settings['muted'] else settings['volume']
         change_settings('previous_device', None if cast is None else str(cast.uuid))
@@ -907,7 +905,8 @@ def update_song_position():
             song_position = mc.status.adjusted_current_time
         except (UnsupportedNamespace, NotConnected):
             song_position = time.time() - song_start
-    elif playing_status in {'PLAYING', 'PAUSED'}: song_position = audio_player.get_pos()
+    elif playing_status in {'PLAYING', 'PAUSED'}:
+        song_position = audio_player.get_pos()
     return song_position
 
 
@@ -1794,7 +1793,6 @@ def send_info():
 def init_youtube_dl():  # 1 - 1.4 seconds
     global ydl
     ydl = YoutubeDL()
-
 
 
 def quit_if_running():

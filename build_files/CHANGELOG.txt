@@ -1,7 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.59.1
+- [Fix] Change device
+
 4.59.0
-- [Feature] Better progressbar
+- [Feature] Better progress bar
 - [Feature] Support for all formats locally (thanks to VLC bindings)
 - [Feature] 32-bit support
 
