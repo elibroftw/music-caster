@@ -12,7 +12,8 @@ except RuntimeError as e: VERSION = str(e)
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
-parser.add_argument('--nostart', default=False, action='store_true', help='Disable auto launch of MC after building')
+parser.add_argument('--versioning', default=False, action='store_true')
+parser.add_argument('--start', default=False, action='store_true', help='Auto launch portable MC after building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -26,20 +27,21 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
 def update_spec_files(debug_option):
-    with open('mc_portable.spec', 'r+') as f:
-        new_spec = f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+    with open('mc_portable.spec', 'r+') as _f:
+        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
-    with open('mc_onedir.spec', 'r+') as f:
-        new_spec = f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+        _f.seek(0)
+        _f.write(new_spec)
+        _f.truncate()
+    with open('mc_onedir.spec', 'r+') as _f:
+        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        f.seek(0)
-        f.write(new_spec)
-        f.truncate()
+        _f.seek(0)
+        _f.write(new_spec)
+        _f.truncate()
 
 
+print('Updating versions of build files')
 # UPDATE VERSIONS OF version file and installer script
 with open('mc_version_info.txt', 'r+') as f:
     lines = f.readlines()
@@ -50,12 +52,12 @@ with open('mc_version_info.txt', 'r+') as f:
         elif line.startswith('    filevers'):
             version = ', '.join(VERSION.split('.'))
             lines[i] = f'    filevers=({version}, 0),\n'
-        elif line.startswith("        StringStruct('FileVersion'"):
+        elif line.startswith("        StringStruct('FileVersion"):
             lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
-        elif line.startswith("        StringStruct('ProductVersion'"):
-            lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
         elif line.startswith("        StringStruct('LegalCopyright'"):
             lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
+        elif line.startswith("        StringStruct('ProductVersion"):
+            lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
             break
     f.seek(0)
     f.writelines(lines)
@@ -72,7 +74,7 @@ with open('setup_script.iss', 'r+') as f:
     f.seek(0)
     f.writelines(lines)
     f.truncate()
-
+if args.versioning: sys.exit()
 if args.debug: update_spec_files(True)
 print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
@@ -88,6 +90,7 @@ s2.wait()
 try: s4 = subprocess.Popen('iscc setup_script.iss')
 except FileNotFoundError: s4 = None
 s1.wait()
+if args.debug: update_spec_files(False)
 
 files = ['images/default.png', 'static/style.css', 'templates/index.html']
 for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
@@ -121,10 +124,9 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     with suppress(FileNotFoundError): zf.write('settings.json')
 
 print('Created dist/Source Files Condensed.zip')
+if args.start:
+    print('Launching Music Caster.exe')
+    subprocess.Popen(r'"dist\Music Caster.exe --debug"')
 if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
-if args.debug: update_spec_files(False)
-print('Build Time:', time.time() - start_time, 'seconds')
-if not args.nostart:
-    print('Launching Music Caster.exe')
-    subprocess.Popen(r'"dist\Music Caster.exe"')
+print('Build Time:', round(time.time() - start_time, 2), 'seconds')

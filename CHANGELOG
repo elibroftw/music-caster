@@ -1,15 +1,104 @@
 Music Caster by Elijah Lopez Changelog
 
+4.59.0
+- [Feature] Now supporting 32 bit devices
+- [Feature] Better progressbar
+
+4.58.0
+- [Feature] See and download available files through /files/
+
+4.57.0
+- [Feature] Play URL supports SoundCloud
+- [Fix] Play URL
+- [Fix] WAV files
+
+4.56.4
+- [Fix] Music Queue with non-existent files
+
+4.56.3
+- [Fix] Switching device after a long time
+
+4.56.2
+- [Fix] Cancelling file selector closes the window
+
+4.56.1
+- [UI] Made buttons wider
+
+4.56.0
+- [UI] Merged timer window as a tab on the main window
+- [UI] Added Queue URL to the main window
+- [UI] Added Ctrl + {1, 2, 3} for main window tab control
+- [UI] Use Ctrl + Shift + Alt + M to launch main window
+- [UI] Added fast-forward, rewind, and pause keyboard shortcuts (L, J, K)
+- [UI] Added more play options to the main window
+- [Optimization] Cached YouTube URLs
+- [Optimization] Even faster startup
+- [Fix] Made populate and save session queues mutually exclusive
+- [Fix] Queue files
+- [Fix] Get metadata
+- [Fix] Discord rich presence
+- [Fix] Playlist Selector and Editor
+
+4.55.0
+- [Optimization] Reduced installation size
+- [Fix] Error handling
+- [Fix] Resume playback after long time
+
+4.54.8
+- [Fix] Auto-updating
+
+4.54.7
+- [UI] Sort cast devices by groups first
+
+4.54.6
+- [Fix] Cast groups detection (zeroconf == 0.24.5)
+
+4.54.5
+- [Fix] Exit after downloading update
+
+4.54.4
+- [Fix] No metadata WAV files
+
+4.54.2
+- [Fix] Auto-update
+
+4.54.1
+- [Fix] Auto-update
+- [Feature] Better url support
+
+4.54.0
+- [Feature] Change device via web GUI
+
+4.53.1
+- [Optimization] Faster startup time (-70%)
+- [Fix] Auto update
+
+4.53.0
+- [UI] Removed ugly border from buttons
+- [UI] Merged Tab's 1 and 2 for Main Window
+- [UI] Merged Settings with Main Window
+- [Optimization] Optimized Settings Window
+- [Optimization] Faster update checking
+- [Optimization] Better Portable Updater
+- [Fix] Queue file
+- [Fix] Save window positions
+
+4.52.0
+- [Feature] Play URL works alright now (youtube only)
+- [Fix] Web shortcut icons
+
 4.51.3
 - [Optimization] Mainly Tray Optimizations
 - [UI] Swapped "Controls" and "Play" in the tray menu
+- [UI] New text color #d7d7d7 (either delete settings.json or enter it manually)
 - [Fix] Startup error if MC is already running
+- [Fix] Population/Save queue will load queue now
 
 4.51.2
 - [Fix] Settings loading
 
 4.51.1
-- [Fix] Main window closing after canceling queue file
+- [Fix] Main window closing after cancelling  queue file
 
 4.51.0
 - [Feature] Populate queue on startup

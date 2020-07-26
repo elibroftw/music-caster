@@ -1,15 +1,21 @@
 <!DOCTYPE html>
+<head>
 <title>Music Caster - {{device_name}}</title>
-<link rel="icon" type="image/png"
-    href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png">
-<link rel="shortcut icon"
-    href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/music%20caster.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-16x16.png">
+<link rel="manifest" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/site.webmanifest">
+<link rel="mask-icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/safari-pinned-tab.svg" color="#00bfff">
+<link rel="shortcut icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-config" content="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/browserconfig.xml">
+<meta name="theme-color" content="#eeeeee">
+<meta http-equiv="refresh" content="30">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" id="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
- <meta http-equiv="refresh" content="30">
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#ffffff" />
+</head>
 <div id="wrapper">
     <div class="player__container">
         <!-- TODO: theme option -->
@@ -60,6 +66,13 @@
                 </svg>
                 <input id="volRange" value="{{settings['volume']}}" type="range" min="0" max="100" step="1"
                        oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
+            </div>
+            <div>
+                <select name="devices" id="devices" onchange="changeDevice()">
+                    {% for device_name in devices %}
+                    <option selected="{{'selected' if loop.index - 1 == device_index else ''}}" value="{{loop.index - 1}}">{{ device_name }}</option>
+                    {% endfor %}
+                  </select>
             </div>
         </div>
     </div>
@@ -253,6 +266,16 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({setting_name: 'volume', value: newVol})
+        });
+    }
+
+    function changeDevice() {
+        deviceIndex = parseInt(document.getElementById("devices").value);
+        console.log(deviceIndex);
+        fetch('/change-device/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({device_index: deviceIndex})
         });
     }
 </script>

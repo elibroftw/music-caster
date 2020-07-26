@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.51.3"
+#define MyAppVersion "4.59.0"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -37,6 +37,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "{#SourcePath}dist\Music Caster\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#SourcePath}CHANGELOG"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+
+[InstallDelete]
+Type: files; Name: {app}\*.pyd
+Type: files; Name: {app}\*.dll
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

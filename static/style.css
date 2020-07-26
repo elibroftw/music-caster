@@ -462,6 +462,11 @@ input:checked+.slider:before {
   background: #f5f6f6;
 }
 
+#devices {
+    width: 80%;
+    margin-left: 8%;
+}
+
 @media screen and (max-width: 800px) {
 
     .modal-content {

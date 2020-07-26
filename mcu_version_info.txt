@@ -2,8 +2,8 @@
 
 VSVersionInfo(
     ffi=FixedFileInfo(
-        prodvers=(2, 2, 0, 0),
-        filevers=(2, 2, 0, 0),
+        prodvers=(2, 3, 0, 0),
+        filevers=(2, 3, 0, 0),
         mask=0x17,
         flags=0x0,
         OS=0x4,
@@ -15,10 +15,10 @@ VSVersionInfo(
             '000004b0',
             [StringStruct('CompanyName', 'Elijah Lopez'),
             StringStruct('FileDescription', 'Updater for Music Caster'),
-            StringStruct('FileVersion', '2.2.0.0'),
+            StringStruct('FileVersion', '2.3.0.0'),
             StringStruct('InternalName', 'Music Caster Updater'),
             StringStruct('LegalCopyright', 'Copyright (c) 2019 - 2020, Elijah Lopez'),
             StringStruct('OriginalFilename', 'Updater.exe'),
             StringStruct('ProductName', 'Music Caster Updater'),
-            StringStruct('ProductVersion', '2.2.0.0')])]),
+            StringStruct('ProductVersion', '2.3.0.0')])]),
         VarFileInfo([VarStruct('Translation', [0, 1200])])])
