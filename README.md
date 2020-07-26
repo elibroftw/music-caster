@@ -35,6 +35,7 @@ There is a web GUI accessible through the settings window (click or scan the QR 
 ## Limitations and Known Issues
 - For now, the local playback only supports MP3 files (you can still play other file types on your Google devices)
 - Note that Chromecasts only support the AAC version of WMA files
+- Do not use Emojis when creating playlists or in your music files! You won't be able to use the GUI
 - [Roadmap](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy
