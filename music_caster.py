@@ -731,14 +731,6 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
     else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': song_length}
 
     if cast is None:  # play locally
-        if file_path.lower()[-3:] not in {'mp3', 'ogg'}:
-            if settings['notifications']:
-                file_format = file_path.split('.')[-1]
-                tray.ShowMessage('Music Caster', f'File format {file_format} not supported')
-            music_queue.pop(0)
-            if music_queue:
-                play(music_queue[0])
-            return
         audio_player.play(file_path, volume=_volume, start_playing=autoplay, start_from=position)
         song_position = position
         song_start = time.time() - song_position
