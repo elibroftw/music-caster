@@ -1,6 +1,7 @@
-VERSION = '4.58.0'
+VERSION = '4.59.0'
 UPDATE_MESSAGE = """
-[Feature] Added /files/ route
+[Feature] Now supporting 32 bit devices
+[Feature] Better progressbar
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import time
@@ -1256,7 +1257,7 @@ def read_main_window():
         if mouse_hover == 'progressbar':
             if playing_status in {'PLAYING', 'PAUSED'}:
                 update_song_position()
-                new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
+                new_position = min(max(song_position + delta, 0), song_length)
                 main_window['progressbar'].Update(value=new_position)
                 main_values['progressbar'] = new_position
                 main_event = 'progressbar'
@@ -1269,7 +1270,7 @@ def read_main_window():
         if playing_status in {'PLAYING', 'PAUSED'}:
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             update_song_position()
-            new_position = min(max(song_position + delta, 0), song_length) / song_length * 100
+            new_position = min(max(song_position + delta, 0), song_length)
             main_window['progressbar'].Update(value=new_position)
             main_values['progressbar'] = new_position
             main_event = 'progressbar'
@@ -1455,7 +1456,7 @@ def read_main_window():
             # maybe even make it invisible?
             return
         else:
-            new_position = main_values['progressbar'] / 100 * song_length
+            new_position = main_values['progressbar']
             song_position = new_position
             if cast is not None:
                 cast.media_controller.seek(new_position)
@@ -1556,7 +1557,7 @@ def read_main_window():
             progress_bar = main_window['progressbar']
             with suppress(ZeroDivisionError):
                 update_song_position()
-                progress_bar.Update(song_position / song_length * 100, disabled=False)
+                progress_bar.Update(song_position, range=(0, song_length), disabled=False)
             time_left = song_length - song_position
             progress_bar_last_update = time.time() - song_position + int(song_position)
         else:

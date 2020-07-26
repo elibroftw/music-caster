@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.59.0
+- [Feature] Now supporting 32 bit devices
+- [Feature] Better progressbar
+
 4.58.0
 - [Feature] See and download available files through /files/
 
