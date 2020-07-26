@@ -29,13 +29,19 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
 def update_spec_files(debug_option):
-    with open('mc_portable.spec', 'r+') as _f:
+    with open('build_files/mc_portable.spec', 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
         _f.write(new_spec)
         _f.truncate()
-    with open('mc_onedir.spec', 'r+') as _f:
+    with open('build_files/mc_onedir.spec', 'r+') as _f:
+        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
+        _f.seek(0)
+        _f.write(new_spec)
+        _f.truncate()
+    with open('build_files/updater.spec', 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
@@ -45,7 +51,7 @@ def update_spec_files(debug_option):
 
 print('Updating versions of build files')
 # UPDATE VERSIONS OF version file and installer script
-with open('mc_version_info.txt', 'r+') as f:
+with open('build_files/mc_version_info.txt', 'r+') as f:
     lines = f.readlines()
     for i, line in enumerate(lines):
         if line.startswith('    prodvers'):
@@ -65,7 +71,7 @@ with open('mc_version_info.txt', 'r+') as f:
     f.writelines(lines)
     f.truncate()
 
-with open('setup_script.iss', 'r+') as f:
+with open('build_files/setup_script.iss', 'r+') as f:
     lines = f.readlines()
     for i, line in enumerate(lines):
         if line.startswith('#define MyAppVersion'):
@@ -82,14 +88,14 @@ print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
-try: s1 = subprocess.Popen('pyinstaller mc_portable.spec')
-except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" mc_portable.spec')
-try: s2 = subprocess.Popen('pyinstaller updater.spec')
-except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" updater.spec')
-try: subprocess.check_call('pyinstaller mc_onedir.spec')
-except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" mc_onedir.spec')
+try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
+except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" build_files/mc_portable.spec')
+try: s2 = subprocess.Popen('pyinstaller build_files/updater.spec')
+except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" build_files/updater.spec')
+try: subprocess.check_call('pyinstaller build_files/mc_onedir.spec')
+except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" build_files/mc_onedir.spec')
 s2.wait()
-try: s4 = subprocess.Popen('iscc setup_script.iss')
+try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
 except FileNotFoundError: s4 = None
 s1.wait()
 if args.debug: update_spec_files(False)
@@ -109,7 +115,7 @@ with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('resources/default.png', 'images/default.png')
     zf.write('templates/index.html')
     zf.write('static/style.css')
-    zf.write('CHANGELOG', 'CHANGELOG.txt')
+    zf.write('build_files/CHANGELOG.txt', 'CHANGELOG.txt')
     for f in glob('vlc/**/*.*', recursive=True):
         zf.write(f)
 

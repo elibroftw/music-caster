@@ -95,7 +95,7 @@ I love keyboard shortcuts, they make us more productive.
 - Some settings are there for the future and have no effect
 
 ## Development Guide
-1. Have Python >=3.6.8 installed
+1. Use Python 3.6 or 3.8. 32-bit is fine.
 2. `pip install -r requirements.txt`
 3. Make sure Python scripts folder is on PATH
 4. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH

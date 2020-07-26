@@ -1,44 +1,36 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.config import CONF
+CONF['distpath'] = './dist'
 block_cipher = None
-
-
-a = Analysis(['updater.py'],
+# noinspection PyUnresolvedReferences
+a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
              datas=[],
-             hiddenimports=[],
+             hiddenimports=['pkg_resources.py2_warn'],
              hookspath=[],
              runtime_hooks=[],
-             excludes=['pandas', 'numpy', 'cryptography', 'simplejson', 'PySide2'],
+             excludes=['pandas', 'simplejson', 'PySide2'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+# noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data,
-             cipher=block_cipher)
+          cipher=block_cipher)
+# noinspection PyUnresolvedReferences
 exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.zipfiles,
           a.datas,
           [],
-          name='Updater',
+          name='Music Caster',
           debug=False,
-          manifest=None,
           bootloader_ignore_signals=False,
           strip=False,
           upx=False,
-          upx_exclude=['VCRUNTIME140.dll', 'python36.dll'],
+          upx_exclude=['vcruntime140.dll', 'msvcp140.dll', 'python36.dll', 'python37.dll', 'python38.dll'],
           runtime_tmpdir=None,
-          console=False,
-          icon='resources/Updater.ico',
-          version='mcu_version_info.txt')
-#coll = COLLECT(
-#    exe,
-#    a.binaries,
-#    a.zipfiles,
-#    a.datas,
-#    name='Music Caster Updater',
-#    strip=False,
-#    upx=True)
+          console=False, version='mc_version_info.txt', icon=os.path.abspath('resources/Music Caster.ico'))
