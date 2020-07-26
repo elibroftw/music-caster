@@ -8,7 +8,7 @@ Music Caster</h1>
 Music Caster is a music player which lets you cast your local music files to a Google Cast Device (Chromecast, Home, etc.).
 If you enjoyed this product a lot feel free to donate at http://elopez.me/donate.
 
-## [Download Here (Windows 64-bit)](https://github.com/elibroftw/music-caster/releases/latest)
+## [Download Here (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 
 ## Demo
 

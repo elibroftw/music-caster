@@ -7,6 +7,8 @@ import sys
 from contextlib import suppress
 from datetime import datetime
 import argparse
+from glob import glob
+from distutils.dir_util import copy_tree
 try: from music_caster import VERSION
 except RuntimeError as e: VERSION = str(e)
 
@@ -17,7 +19,7 @@ parser.add_argument('--start', default=False, action='store_true', help='Auto la
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
-SETUP_OUTPUT_NAME = 'Music Caster x64 Setup'
+SETUP_OUTPUT_NAME = 'Music Caster Setup'
 # https://stackoverflow.com/questions/418896/how-to-redirect-output-to-a-file-and-stdout
 shutil.rmtree('dist/Music Caster', True)
 with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
@@ -96,6 +98,8 @@ files = ['images/default.png', 'static/style.css', 'templates/index.html']
 for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(_dir)
 
+copy_tree('vlc', 'dist/vlc')
+
 for file in files:
     shutil.copyfile(file, 'dist/' + file)
 
@@ -106,8 +110,8 @@ with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('templates/index.html')
     zf.write('static/style.css')
     zf.write('CHANGELOG', 'CHANGELOG.txt')
-    # for f in glob.glob(r'Music Caster Updater\Music Caster Updater\bin\Release\netcoreapp3.1\*.*'):
-    #     zf.write(f, os.path.basename(f))
+    for f in glob('vlc/**/*.*', recursive=True):
+        zf.write(f)
 
 print('Created dist/Portable.zip')
 

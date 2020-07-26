@@ -1,15 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from glob import glob
 block_cipher = None
+
+vlc_files = [(file, os.path.dirname(file)) for file in glob('vlc/**/*.*', recursive=True)]
 data_files = [('resources/default.png', 'images'),
               ('templates/index.html', 'templates'),
-              ('static/style.css', 'static')]
+              ('static/style.css', 'static')] + vlc_files
 
 a = Analysis(['music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
              datas=data_files,
-             hiddenimports=[],
+             hiddenimports=['pkg_resources.py2_warn'],
              hookspath=[],
              runtime_hooks=[],
              excludes=['pandas', 'numpy', 'cryptography', 'simplejson', 'PySide2'],

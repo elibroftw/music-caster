@@ -1,14 +1,12 @@
 VERSION = '4.59.0'
 UPDATE_MESSAGE = """
-[Feature] Now supporting 32 bit devices
 [Feature] Better progressbar
-[Feature] More local playback formats (thanks to VLC bindings)
+[Feature] Support for all formats locally (thanks to VLC bindings)
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
-import time
-start = time.time()
-# helper file
+# helper files
 from helpers import *
+from audio_player import AudioPlayer
 import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -41,10 +39,6 @@ import wx
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
-from pygame import mixer as local_music_player
-from pygame import error as pygame_error
-from audio_player import AudioPlayer, NoDeviceFoundError
 import pynput.keyboard
 import pypresence
 import pythoncom
@@ -59,6 +53,10 @@ parser.add_argument('path', nargs='?', default='', help='path of file/dir you wa
 parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
 args = parser.parse_args()
 DEBUG = args.debug
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+os.chdir(starting_dir)
+os.environ['PYTHON_VLC_LIB_PATH'] = starting_dir + '\\vlc\\libvlc.dll'
+import vlc
 EMAIL = 'elijahllopezz@gmail.com'
 EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
@@ -87,11 +85,9 @@ daemon_command = None
 playing_url = False
 progress_bar_last_update = song_position = timer = song_end = song_length = song_start = 0  # seconds but using time()
 playing_status = 'NOT PLAYING'
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 thumbs_dir = f'{starting_dir}/images'
 # if music caster was launched in some other folder, play all or queue all that folder?
 SHORTCUT_PATH = ''
-os.chdir(starting_dir)
 home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
 
@@ -190,7 +186,7 @@ def update_volume(new_vol):
     """new_vol: float[0, 100]"""
     if active_windows['main']: main_window['volume_slider'].Update(value=new_vol)
     new_vol = new_vol / 100
-    local_music_player.music.set_volume(new_vol)
+    audio_player.set_volume(new_vol)
     if cast is not None:
         with suppress(NotConnected): cast.set_volume(new_vol)
 
@@ -569,10 +565,9 @@ def change_device(selected_index):
                 if mc.is_playing or mc.is_paused: mc.stop()
             with suppress(NotConnected):
                 cast.quit_app()
-        elif cast is None and local_music_player.music.get_busy():
+        elif cast is None and audio_player.is_busy():
             if playing_status == 'PLAYING': current_pos = time.time() - song_start
-            else: current_pos = song_position
-            local_music_player.music.stop()
+            else: current_pos = audio_player.stop()
         cast = new_device
         volume = 0 if settings['muted'] else settings['volume']
         change_settings('previous_device', None if cast is None else str(cast.uuid))
@@ -744,13 +739,7 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             if music_queue:
                 play(music_queue[0])
             return
-        if local_music_player.get_init() is None or local_music_player.get_init()[0] != sample_rate:
-            local_music_player.quit()
-            local_music_player.init(sample_rate, -16, 2, 2048)
-        local_music_player.music.load(file_path)
-        local_music_player.music.set_volume(_volume)
-        local_music_player.music.play(start=position)
-        if not autoplay: local_music_player.music.pause()
+        audio_player.play(file_path, volume=_volume, start_playing=autoplay, start_from=position)
         song_position = position
         song_start = time.time() - song_position
         song_end = song_start + song_length
@@ -926,7 +915,7 @@ def update_song_position():
             song_position = mc.status.adjusted_current_time
         except (UnsupportedNamespace, NotConnected):
             song_position = time.time() - song_start
-    elif playing_status == 'PLAYING': song_position = time.time() - song_start
+    elif playing_status in {'PLAYING', 'PAUSED'}: song_position = audio_player.get_pos()
     return song_position
 
 
@@ -936,7 +925,7 @@ def pause():
     try:
         if cast is None:
             song_position = time.time() - song_start
-            local_music_player.music.pause()
+            audio_player.pause()
         else:
             mc = cast.media_controller
             mc.update_status()
@@ -958,7 +947,7 @@ def resume():
     global tray, playing_status, song_end, song_position, song_start
     tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     try:
-        if cast is None: local_music_player.music.unpause()
+        if cast is None: audio_player.resume()
         else:
             mc = cast.media_controller
             mc.update_status()
@@ -987,11 +976,10 @@ def stop():
         mc = cast.media_controller
         mc.stop()
         while mc.is_playing or mc.is_paused: time.sleep(0.1)
-    elif local_music_player.music.get_busy():
-        local_music_player.music.stop()
-        # local_music_player.music.unload()  # only in 2.0
+    else: audio_player.stop()
     song_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
+    if active_windows['main']: main_window['progressbar'].Update(disabled=True, value=0)
 
 
 def next_song(from_timeout=False):
@@ -1334,7 +1322,7 @@ def read_main_window():
         else:
             main_window['mute'].Update(data=VOLUME_IMG)
             main_window['volume_slider'].Update(settings['volume'])
-            local_music_player.music.set_volume(settings['volume'] / 100)
+            audio_player.set_volume(settings['volume'] / 100)
             if cast is not None: cast.set_volume(settings['volume'] / 100)
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
         with suppress(AttributeError, IndexError):
@@ -1454,7 +1442,7 @@ def read_main_window():
         play_all([all_songs[main_value]])
     elif main_event == 'progressbar':
         if playing_status == 'NOT PLAYING':
-            main_window['progressbar'].Update(disabled=True, value=0)
+            main_window['progressbar'].Update(disabled=True, value=0, visible=False)
             # maybe even make it invisible?
             return
         else:
@@ -1464,8 +1452,7 @@ def read_main_window():
                 cast.media_controller.seek(new_position)
                 playing_status = 'PLAYING'
             else:
-                local_music_player.music.rewind()
-                local_music_player.music.set_pos(new_position)
+                audio_player.set_pos(new_position)
             time_left = song_length - song_position
             song_end = time.time() + time_left
             song_start = song_end - song_length
@@ -1559,7 +1546,7 @@ def read_main_window():
             progress_bar = main_window['progressbar']
             with suppress(ZeroDivisionError):
                 update_song_position()
-                progress_bar.Update(song_position, range=(0, song_length), disabled=False)
+                progress_bar.Update(song_position, range=(0, song_length), disabled=False, visible=True)
             time_left = song_length - song_position
             progress_bar_last_update = time.time() - song_position + int(song_position)
         else:
@@ -1817,11 +1804,6 @@ def init_youtube_dl():  # 1 - 1.4 seconds
     ydl = YoutubeDL()
 
 
-def init_pygame():  # 1 - 1.4 seconds
-    global show_pygame_error
-    try: local_music_player.init(44100, -16, 2, 2048)
-    except pygame_error: show_pygame_error = True
-
 
 def quit_if_running():
     if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2) or DEBUG:
@@ -1841,8 +1823,9 @@ quit_if_running()
 load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)
 init_ydl_thread.start()
-init_pygame_thread = Thread(target=init_pygame, daemon=True)
-init_pygame_thread.start()
+audio_player = AudioPlayer()
+vlc_instance = vlc.Instance()
+music_player = vlc_instance.media_player_new()
 auto_update()
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
@@ -1899,7 +1882,6 @@ try:
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     with suppress(RuntimeError, pypresence.PyPresenceException): rich_presence.connect()
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
-    init_pygame_thread.join()
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
