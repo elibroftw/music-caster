@@ -1,4 +1,4 @@
-VERSION = '4.59.1'
+VERSION = '4.59.2'
 UPDATE_MESSAGE = """
 [Feature] Better progressbar
 [Feature] Support for all formats locally (thanks to VLC bindings)
