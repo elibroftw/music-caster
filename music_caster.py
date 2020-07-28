@@ -1217,7 +1217,8 @@ def read_main_window():
         song_start, song_end, timer, main_window
     # make if statements into dict mapping
     main_event, main_values = main_window.Read(timeout=10)
-    if main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action'}:
+    if (main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action'}
+            or main_values is None):
         active_windows['main'] = False
         main_window.Close()
         return False
