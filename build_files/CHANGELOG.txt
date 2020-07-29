@@ -7,6 +7,7 @@ Music Caster by Elijah Lopez Changelog
 - [UI] Renamed Song to Track
 - [UI] Better queue modification experience
 - [Fix] Move track up in the queue
+- [Fix] Web GUI selected device
 
 4.59.2
 - [Dependency] Updated youtube-dl
