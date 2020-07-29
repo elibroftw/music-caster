@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.59.4"
+#define MyAppVersion "4.59.5"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -41,8 +41,16 @@ Source: "{#SourcePath}CHANGELOG.txt"; DestDir: "{app}"; DestName: "CHANGELOG.txt
 [InstallDelete]
 Type: files; Name: {app}\*.pyd
 Type: files; Name: {app}\*.dll
+; delete previous version folders and those that may contain old files
 Type: filesandordirs; Name: {app}\pygame
 Type: filesandordirs; Name: {app}\images
+Type: filesandordirs; Name: {app}\wx
+Type: filesandordirs; Name: {app}\lxml
+Type: filesandordirs; Name: {app}\lib2to3
+Type: filesandordirs; Name: {app}\google
+Type: filesandordirs; Name: {app}\markupsafe
+Type: filesandordirs; Name: {app}\Crypto
+Type: filesandordirs; Name: {app}\templates
 
 
 [Icons]
