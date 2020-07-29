@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.59.4
+- [Fix] Album art not showing on devices
+- [Optimization] images folder no longer needed
+
 4.59.3
 - [UI] Better progress bar
 - [UI] Slightly better icon

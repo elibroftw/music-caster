@@ -1,4 +1,4 @@
-VERSION = '4.59.3'
+VERSION = '4.59.4'
 UPDATE_MESSAGE = """
 [Feature] Better progressbar
 [Feature] Support for all formats locally (thanks to VLC bindings)
@@ -85,7 +85,6 @@ playing_url = False
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 # seconds but using time()
 playing_status = 'NOT PLAYING'
-thumbs_dir = f'{starting_dir}/images'
 # if music caster was launched in some other folder, play all or queue all that folder?
 SHORTCUT_PATH = ''
 home_music_dir = f'{Path.home()}/Music'
@@ -95,7 +94,7 @@ settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
-    'default_file_handler': True, 'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
+    'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
     'accent_color': '#00bfff', 'text_color': '#d7d7d7', 'button_text_color': '#000000', 'background_color': '#121212',
     'flip_main_window': False, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
     'timer_sleep_computer': False, 'music_directories': [home_music_dir], 'playlists': {},
@@ -303,32 +302,6 @@ def get_window_location(window_key):
     return window_locations.get(window_key, (None, None))
 
 
-# def get_album_cover(file_path, only_b64=True):
-#     file_path_obj = Path(file_path)
-#     thumb = thumbs_dir + f'/{file_path_obj.stem}.png'
-#     tags = mutagen.File(file_path)
-#     pict = None
-#     for tag in tags.keys():
-#         if 'APIC' in tag:
-#             pict = tags[tag]
-#             break
-#     if pict is not None:
-#         raw = pict = pict.data
-#         with open(thumb, 'wb') as f: f.write(pict)
-#     else:
-#         thumb = f'{thumbs_dir}/default.png'
-#         with open(thumb, 'rb') as f: raw = f.read()
-#     data = io.BytesIO(raw)
-#     im = Image.open(data)
-#     raw = io.BytesIO()
-#     new_h = 150
-#     h_percent = (new_h / float(im.size[1]))
-#     new_w = int((float(im.size[0]) * float(h_percent)))
-#     im = im.resize((new_w, new_h), Image.ANTIALIAS)
-#     im.save(raw, optimize=True, format='PNG')
-#     return thumb, raw.getvalue()
-
-
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
     global settings, playlists, music_directories, settings_last_modified, \
@@ -408,11 +381,10 @@ def index():  # web GUI
     if playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError):
             metadata = music_metadata[music_queue[0]]
-    art = metadata.get('art', f'data:image/png;base64,{DEFAULT_IMG_DATA}')
+    art = 'data:image/png;base64,' + metadata.get('art', str(DEFAULT_IMG_DATA)[2:-1])
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
-    # list_of_tracks = ''  #
     # sort by the formatted title
     list_of_tracks = []
     sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
@@ -430,6 +402,10 @@ def index():  # web GUI
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
                            device_index=device_index, devices=formatted_devices)
+
+
+def is_img(_file_or_dir):
+    return _file_or_dir.endswith('.jpg') or _file_or_dir.endswith('.jpg') or _file_or_dir.endswith('.png')
 
 
 @app.route('/play/', methods=['GET', 'POST'])
@@ -485,6 +461,12 @@ def get_file():
     if 'path' in request.args:
         file_path = request.args['path']
         if os.path.isfile(file_path) and valid_music_file(file_path):
+            if request.args.get('thumbnail_only', False):
+                img_data = base64.b64decode(music_metadata[file_path].get('art', DEFAULT_IMG_DATA))
+                mime_type = music_metadata[file_path].get('mime_type', 'image/png')
+                ext = mime_type.split('/')[1]
+                return send_file(io.BytesIO(img_data), attachment_filename=f'thumbnail.{ext}',
+                                 mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
             return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
     return '401'
 
@@ -691,7 +673,7 @@ def play_url(url, position=0, autoplay=True):
 
 def play(file_path, position=0, autoplay=True, switching_device=False):
     global track_start, track_end, playing_status, track_length, track_position,\
-        thumbs_dir, cast_last_checked, music_queue, progress_bar_last_update
+        cast_last_checked, music_queue, progress_bar_last_update
     assert file_path == music_queue[0]
     while not os.path.exists(file_path):
         if play_url(file_path, position=position, autoplay=autoplay): return
@@ -722,18 +704,18 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
     # thumb, album_cover_data = get_album_cover(file_path)
     # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': track_length,
     #                               'album_cover_data': album_cover_data}
-    pict = None
+    pict = mime = None
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
                 pict = tags[tag].data
+                mime = tags[tag].mime
                 break
     if pict:
         music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length,
-                                     'art': f'data:image/png;base64,{base64.b64encode(pict).decode("utf-8")}'}
+                                     'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime}
     else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length}
-
     if cast is None:  # play locally
         audio_player.play(file_path, volume=_volume, start_playing=autoplay, start_from=position)
         track_position = position
@@ -745,12 +727,6 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             file_path_obj = Path(file_path)
             url_args = urllib.parse.urlencode({'path': file_path})
             url = f'http://{ipv4_address}:{PORT}/file?{url_args}'
-            if pict:
-                thumb = thumbs_dir + f'/{file_path_obj.stem}.png'
-                with open(thumb, 'wb') as _f: _f.write(pict)
-            else: thumb = f'{thumbs_dir}/default.png'
-            url_args = urllib.parse.urlencode({'path': thumb})
-            thumb = f'http://{ipv4_address}:{PORT}/file?{url_args}'
             cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
             mc = cast.media_controller
@@ -760,7 +736,7 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
             ext = file_path.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
-                          metadata=metadata, thumb=thumb, autoplay=autoplay)
+                          metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
             mc.block_until_active()  # timeout=WAIT_TIMEOUT
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
             progress_bar_last_update = time.time()
@@ -1824,22 +1800,10 @@ if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)
-with suppress(FileExistsError): os.mkdir(thumbs_dir)
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
 try:
     # TODO: Set as default music file handler (See MODIFY REGISTRY in helpers.py)
-    for img in glob(f'{thumbs_dir}/*.*'):
-        if not img.endswith('default.png'): os.remove(img)
-    if not os.path.exists(f'{thumbs_dir}/default.png'):  # in case the user decided to delete the default image
-        if os.path.exists('resources/default.png'):  # running from source code
-            copyfile('resources/default.png', 'images/default.png')
-        else:  # download the default image
-            with suppress(requests.ConnectionError):
-                default_img = 'https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/default.png'
-                response = requests.get(default_img, stream=True)
-                with open(f'{thumbs_dir}/default.png', 'wb') as f: copyfileobj(response.raw, f)
-    with open(f'{thumbs_dir}/default.png', 'rb') as f: DEFAULT_IMG_DATA = base64.b64encode(f.read()).decode()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
         while True:

@@ -398,6 +398,7 @@ def create_play_url_window(combo_value='Play Immediately'):
 #     import winreg as wr
 #     for ext in ['Folder', '.mp3']:
 #         # Check for extension handler override
+#         Data = "os.getfile" "%1"
 #         key_val = 'SOFTWARE\\Classes\\' + ext + '\\shell\\' + menu_name + '\\command'
 #         try:
 #             key = wr.OpenKey(wr.HKEY_LOCAL_MACHINE, key_val, 0, wr.KEY_ALL_ACCESS)

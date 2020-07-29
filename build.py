@@ -100,8 +100,8 @@ except FileNotFoundError: s4 = None
 s1.wait()
 if args.debug: update_spec_files(False)
 
-files = ['images/default.png', 'static/style.css', 'templates/index.html']
-for _dir in {'dist/images', 'dist/static', 'dist/templates'}:
+files = ['static/style.css', 'templates/index.html']
+for _dir in {'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(_dir)
 
 copy_tree('vlc', 'dist/vlc')
@@ -112,7 +112,6 @@ for file in files:
 with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
     zf.write('dist/Music Caster.exe', 'Music Caster.exe')
     zf.write('dist/Updater.exe', 'Updater.exe')
-    zf.write('resources/default.png', 'images/default.png')
     zf.write('templates/index.html')
     zf.write('static/style.css')
     zf.write('build_files/CHANGELOG.txt', 'CHANGELOG.txt')
@@ -127,7 +126,6 @@ with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
     zf.write('b64_images.py')
     zf.write('updater.py')
     zf.write('resources/Music Caster.ico', 'icon.ico')
-    zf.write('resources/default.png', 'images/default.png')
     zf.write('templates/index.html')
     zf.write('static/style.css')
     zf.write('requirements.txt')
