@@ -107,6 +107,8 @@ save_queue_thread: Thread = None
 # noinspection PyTypeChecker
 ydl: YoutubeDL = None
 app = Flask(__name__)
+app.jinja_env.lstrip_blocks = True
+app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = True
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
@@ -391,8 +393,12 @@ def index():  # web GUI
             elif music_queue: play(music_queue[0])
             else: play_all()
         elif 'pause' in request.args and playing_status == 'PLAYING': pause()
-        elif 'next' in request.args: daemon_command = 'Next Track'
-        elif 'prev' in request.args: daemon_command = 'Previous Track'
+        elif 'next' in request.args:
+            daemon_command = 'Next Track'
+            time.sleep(0.1)
+        elif 'prev' in request.args:
+            daemon_command = 'Previous Track'
+            time.sleep(0.1)
         elif 'repeat' in request.args:
             cycle_repeat()
         elif 'shuffle' in request.args:
@@ -406,13 +412,13 @@ def index():  # web GUI
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
-    list_of_tracks = ''  #
+    # list_of_tracks = ''  #
     # sort by the formatted title
+    list_of_tracks = []
     sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
     for formatted_track, filename in sorted_tracks:
         filename = urllib.parse.urlencode({'path': filename})
-        el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
-        list_of_tracks += el
+        list_of_tracks.append({'title': formatted_track, 'href': f'/play?{filename}'})
     _queue = create_track_list()[0]
     device_index = 0
     for i, device_name in enumerate(device_names):

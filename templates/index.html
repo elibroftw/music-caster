@@ -7,9 +7,9 @@
 <link rel="manifest" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/site.webmanifest">
 <link rel="mask-icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/safari-pinned-tab.svg" color="#00bfff">
 <link rel="shortcut icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon.ico">
-<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileColor" content="#ededed">
 <meta name="msapplication-config" content="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/browserconfig.xml">
-<meta name="theme-color" content="#eeeeee">
+<meta name="theme-color" content="#ededed">
 <meta http-equiv="refresh" content="30">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" id="stylesheet" href="/static/style.css">
@@ -69,10 +69,14 @@
             </div>
             <div>
                 <select name="devices" id="devices" onchange="changeDevice()">
-                    {% for device_name in devices %}
-                    <option selected="{{'selected' if loop.index - 1 == device_index else ''}}" value="{{loop.index - 1}}">{{ device_name }}</option>
-                    {% endfor %}
-                  </select>
+                {% for device_name in devices %}
+                    {% if loop.index - 1 == device_index %}
+                    <option value="{{loop.index - 1}}" selected>{{ device_name }}</option>
+                    {% else %}
+                    <option value="{{loop.index - 1}}">{{ device_name }}</option>
+                    {% endif %}
+                {% endfor %}
+                </select>
             </div>
         </div>
     </div>
@@ -94,56 +98,59 @@
     <div id="tracks-list" class="modal-content">
         <h2>Music Selection</h2>
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
-        placeholder="Search for music..." title="Type in artist/tracks">
-        {{ list_of_tracks|safe }}
+               placeholder="Search for music..." title="Type in artist/tracks">
+        {% for track in list_of_tracks %}
+            <a class="track" title="{{track['title']}}" href="{{track['href']}}">{{track['title']}}</a>
+        {% endfor %}
     </div>
 </div>
 <div id="settings-modal" class="modal">
     <div class="modal-content">
         <h2>Settings</h2>
-        <li data-key='auto_update' title="Auto Update" class="setting" onclick="toggleSetting(this)">
-            Auto Update
-            <label class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </label></li>
-        <li data-key='notifications' title="Notifications" class="setting" onclick="toggleSetting(this)">
-            Notiications
-            <label class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </label></li>
-        <li data-key='discord_rpc' title="Discord Prescence" class="setting" onclick="toggleSetting(this)">
-            Discord Prescence
-            <label class="switch">
-                <input type="checkbox">
-
-                <span class="slider round"></span>
-            </label></li>
-        <li data-key='run_on_startup' title="Run on Startup" class="setting" onclick="toggleSetting(this)">
-            Run on Startup
-            <label class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </label></li>
-        <li data-key='save_window_positions' title="Save Window Positions" class="setting" onclick="toggleSetting(this)">
-            Save Window Positions
-            <label class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </label></li>
-        <li data-key='populate_queue_startup' title="Populates Queue From Folders on Startup" class="setting" onclick="toggleSetting(this)">
-            Populate Queue on Startup
-            <label class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </label></li>
-        <li data-key='save_queue_sessions' title="Save Queue Between Sessions" class="setting" onclick="toggleSetting(this)">
-            Save Queue Between Sessions
-            <label class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </label></li>
+        <ul>
+            <li data-key='auto_update' title="Auto Update" class="setting" onclick="toggleSetting(this)">
+                Auto Update
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+            <li data-key='notifications' title="Notifications" class="setting" onclick="toggleSetting(this)">
+                Notifications
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+            <li data-key='discord_rpc' title="Discord Prescence" class="setting" onclick="toggleSetting(this)">
+                Discord Presence
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+            <li data-key='run_on_startup' title="Run on Startup" class="setting" onclick="toggleSetting(this)">
+                Run on Startup
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+            <li data-key='save_window_positions' title="Save Window Positions" class="setting" onclick="toggleSetting(this)">
+                Save Window Positions
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+            <li data-key='populate_queue_startup' title="Populates Queue From Folders on Startup" class="setting" onclick="toggleSetting(this)">
+                Populate Queue on Startup
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+            <li data-key='save_queue_sessions' title="Save Queue Between Sessions" class="setting" onclick="toggleSetting(this)">
+                Save Queue Between Sessions
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label></li>
+        </ul>
     </div>
 </div>
 <script>
