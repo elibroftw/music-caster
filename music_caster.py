@@ -413,7 +413,7 @@ def index():  # web GUI
         filename = urllib.parse.urlencode({'path': filename})
         el = f'<a title="{formatted_track}" class="track" href="/play?{filename}">{formatted_track}</a>\n'
         list_of_tracks += el
-    _queue = create_tracks_list()[0]
+    _queue = create_track_list()[0]
     device_index = 0
     for i, device_name in enumerate(device_names):
         if device_name.startswith('✓'):
@@ -589,7 +589,7 @@ def format_file(path: str):
         return os.path.splitext(base)[0]
 
 
-def create_tracks_list():
+def create_track_list():
     """:returns the formatted tracks queue, and the selected value (currently playing)"""
     tracks = []
     dq_len = len(done_queue)
@@ -889,7 +889,7 @@ def folder_action(action='Play Folder'):
             if start_playing and music_queue: play(music_queue[0])
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         if active_windows['main']:
-            gui_queue = create_tracks_list()[0]
+            gui_queue = create_track_list()[0]
             main_window['queue'].Update(values=gui_queue)
         del temp_queue
         main_last_event = '__TIMEOUT__'
@@ -1069,7 +1069,7 @@ def activate_main_window(selected_tab='tab_queue'):
     if not active_windows['main']:
         active_windows['main'] = True
         window_location = get_window_location('main')
-        tracks_list, selected_value = create_tracks_list()
+        lb_tracks, selected_value = create_track_list()
         if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
             current_track = music_queue[0]
             metadata = music_metadata[current_track]
@@ -1080,12 +1080,11 @@ def activate_main_window(selected_tab='tab_queue'):
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
             position, length = get_track_position(), music_metadata[music_queue[0]]['length']
-            print(length)
-            main_gui_layout = create_main(tracks_list, selected_value, playing_status, settings, VERSION, QR_CODE,
+            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE,
                                           timer, title, artist, album_cover_data=album_cover_data,
                                           track_length=length, track_position=position)
         else:
-            main_gui_layout = create_main(tracks_list, selected_value, playing_status, settings, VERSION, QR_CODE, timer)
+            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE, timer)
         main_window = Sg.Window('Music Caster', main_gui_layout, background_color=settings['background_color'],
                                 icon=WINDOW_ICON, return_keyboard_events=True,
                                 use_default_focus=False, location=window_location)
@@ -1321,7 +1320,7 @@ def read_main_window():
                 move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
                 new_i = main_window['queue'].GetListValues().index(main_values['queue'][0]) + move
                 new_i = min(max(new_i, 0), len(music_queue) - 1)
-                main_window['queue'].Update(set_to_index=new_i, scroll_to_index=new_i)
+                main_window['queue'].Update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         selected_file_index = main_window['queue'].GetListValues().index(main_value[0])
         if done_queue and selected_file_index < len(done_queue):
@@ -1336,7 +1335,7 @@ def read_main_window():
                 if next_queue:
                     music_queue.insert(0, next_queue.pop(0))
         play(music_queue[0])
-        updated_list = create_tracks_list()[0]
+        updated_list = create_track_list()[0]
         dq_len = len(done_queue)
         main_window['queue'].Update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
     elif main_event == 'move_up' and main_values['queue']:
@@ -1345,7 +1344,7 @@ def read_main_window():
         new_i = index_to_move - 1
         dq_len = len(done_queue)
         nq_len = len(next_queue)
-        if index_to_move < dq_len:  # move within dq
+        if index_to_move < dq_len and new_i >= 0:  # move within dq
             done_queue.insert(new_i, done_queue.pop(index_to_move))
         elif index_to_move == dq_len and done_queue:  # move index -1 to 1
             if next_queue:
@@ -1357,16 +1356,17 @@ def read_main_window():
                 done_queue.append(next_queue.pop(0))
             else:
                 done_queue.append(music_queue.pop(1))
-        elif next_queue and index_to_move < dq_len + nq_len + 1:  # within next_queue
+        elif next_queue and index_to_move > dq_len and index_to_move - dq_len < nq_len:  # within next_queue
             nq_i = new_i - dq_len - 1
             next_queue.insert(nq_i, next_queue.pop(nq_i + 1))
         elif next_queue and index_to_move == dq_len + nq_len + 1:  # moving into next queue
             next_queue.insert(nq_len - 1, music_queue.pop(1))
-        else:  # moving within mq
+        elif new_i >= 0:  # moving within mq
             mq_i = new_i - dq_len - nq_len
             music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
-        updated_list = create_tracks_list()[0]
-        main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
+        else: new_i = max(new_i, 0)
+        updated_list = create_track_list()[0]
+        main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
     elif main_event == 'move_down' and main_values['queue']:
         index_to_move = main_window['queue'].GetListValues().index(main_values['queue'][0])
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
@@ -1392,8 +1392,8 @@ def read_main_window():
             else:  # within music_queue
                 mq_i = new_i - dq_len - nq_len
                 music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
-            updated_list = create_tracks_list()[0]
-            main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
+            updated_list = create_track_list()[0]
+            main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'remove' and main_values['queue']:
         index_to_remove = main_window['queue'].GetListValues().index(main_values['queue'][0])
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
@@ -1406,9 +1406,9 @@ def read_main_window():
             next_queue.pop(index_to_remove - dq_len - 1)
         elif index_to_remove < nq_len + mq_len + dq_len:
             music_queue.pop(index_to_remove - dq_len - nq_len)
-        updated_list = create_tracks_list()[0]
+        updated_list = create_track_list()[0]
         new_i = min(len(updated_list), index_to_remove)
-        main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=new_i)
+        main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'file_option': main_window['file_action'].Update(text=main_values['file_option'])
     elif main_event == 'folder_option': main_window['folder_action'].Update(text=main_values['folder_option'])
     elif main_event == 'file_action':
@@ -1565,7 +1565,7 @@ def read_main_window():
         main_window['artist'].Update(value=artist)
         update_lb_mq = True
     if update_lb_mq:
-        lb_tracks = create_tracks_list()[0]
+        lb_tracks = create_track_list()[0]
         lb_music_queue.Update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     return True
 
@@ -1653,7 +1653,7 @@ def read_playlist_editor_window():
                 pl_files.insert(new_i, pl_files.pop(to_move))
                 formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window['tracks'].Update(values=formatted_tracks, set_to_index=new_i,
-                                                  scroll_to_index=new_i)
+                                                  scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
         if pl_editor_values['tracks']:
             to_move = pl_editor_window['tracks'].GetListValues().index(pl_editor_values['tracks'][0])
@@ -1662,7 +1662,7 @@ def read_playlist_editor_window():
                 pl_files.insert(new_i, pl_files.pop(to_move))
                 formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 pl_editor_window['tracks'].Update(values=formatted_tracks, set_to_index=new_i,
-                                                  scroll_to_index=new_i)
+                                                  scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'Add tracks', 'f:70'}:
         fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
@@ -1673,19 +1673,19 @@ def read_playlist_editor_window():
             pl_editor_window.Normal()
             formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1  # - len(new_files)
-            pl_editor_window['tracks'].Update(formatted_tracks, set_to_index=new_i, scroll_to_index=new_i)
+            pl_editor_window['tracks'].Update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'Remove track', 'r:82'}:  # r:82 is Ctrl + R
         if pl_editor_values['tracks']:
             index_to_rm = pl_editor_window['tracks'].GetListValues().index(pl_editor_values['tracks'][0])
             with suppress(ValueError): pl_files.pop(index_to_rm)
             formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
             new_i = max(index_to_rm - 1, 0)
-            pl_editor_window['tracks'].Update(formatted_tracks, set_to_index=new_i, scroll_to_index=new_i)
+            pl_editor_window['tracks'].Update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'} and pl_editor_values['tracks']:
         move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
         new_i = pl_editor_window['tracks'].GetListValues().index(pl_editor_values['tracks'][0]) + move
         new_i = min(max(new_i, 0), len(pl_files) - 1)
-        pl_editor_window['tracks'].Update(set_to_index=new_i, scroll_to_index=new_i)
+        pl_editor_window['tracks'].Update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     if open_pl_selector:
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')

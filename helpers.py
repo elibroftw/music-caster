@@ -202,13 +202,13 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     accent_color, fg, bg = settings['accent_color'], settings['text_color'], settings['background_color']
     button_text_color = settings['button_text_color']
     # main side for album cover, track title, track artist, and music controls
-    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
-                      Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0,
-                                metadata=playing_status),
+    pr_button = {'image_data': pause_resume_img, 'border_width': 0, 'metadata': playing_status}
+    next_btn = {'image_data': NEXT_BUTTON_IMG, 'border_width': 0, 'metadata': playing_status, 'tooltip': 'next_track'}
+    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0, tooltip='previous track'),
+                      Sg.Button(key='pause/resume', **pr_button),
                       # TODO: stop button
-                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0, metadata=playing_status),
+                      Sg.Button(key='next', **next_btn),
                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
-                      # TODO: modify tooltip
                       Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                 disable_number_display=True, enable_events=True, background_color=accent_color,

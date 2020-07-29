@@ -5,6 +5,8 @@ Music Caster by Elijah Lopez Changelog
 - [UI] Slightly better icon
 - [UI] New start menu tile (matte black style)
 - [UI] Renamed Song to Track
+- [UI] Better queue modification experience
+- [Fix] Move track up in the queue
 
 4.59.2
 - [Dependency] Updated youtube-dl
