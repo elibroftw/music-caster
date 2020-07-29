@@ -5,7 +5,6 @@ Music Caster by Elijah Lopez Changelog
 - [Optimization] images folder no longer needed
 
 4.59.3
-- [UI] Better progress bar
 - [UI] Slightly better icon
 - [UI] New start menu tile (matte black style)
 - [UI] Renamed Song to Track
