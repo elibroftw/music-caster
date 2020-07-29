@@ -131,7 +131,7 @@ a {
 }
 
 .info__album,
-.info__song {
+.info__track {
     margin-bottom: 0.5rem;
 }
 
@@ -142,7 +142,7 @@ a {
     color: #666;
 }
 
-.info__song {
+.info__track {
     font-size: 1.5rem;
     font-weight: 400;
     color: #d30320;

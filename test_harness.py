@@ -86,7 +86,7 @@ for file in SAMPLE_MUSIC_FILES:
 
 file_path = MUSIC_FILE_WITH_ALBUM_ART
 audio_info = mutagen.File(file_path).info
-song_length = audio_info.length
+track_length = audio_info.length
 _title, _artist, _album = get_metadata(file_path)
 pict = None
 try:
@@ -102,13 +102,13 @@ for tag in tags.keys():
 music_meta_data = {}
 
 if pict:
-    music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': _album, 'length': song_length,
+    music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': _album, 'length': track_length,
                                   'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 else:
     music_meta_data[file_path] = {
-        'artist': _artist, 'title': _title, 'album': _album, 'length': song_length}
+        'artist': _artist, 'title': _title, 'album': _album, 'length': track_length}
 music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {'artist': _artist, 'title': _title, 'album': _album,
-                                              'length': song_length,
+                                              'length': track_length,
                                               'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 metadata = music_meta_data[file_path]
 artist, title = metadata['artist'].split(', ')[0], metadata['title']

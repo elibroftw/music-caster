@@ -1,7 +1,13 @@
 Music Caster by Elijah Lopez Changelog
 
+4.59.3
+- [UI] Better progress bar
+- [UI] Slightly better icon
+- [UI] New start menu tile (matte black style)
+- [UI] Renamed Song to Track
+
 4.59.2
-- [Dependency] Update youtube-dl
+- [Dependency] Updated youtube-dl
 
 4.59.1
 - [Fix] Change device

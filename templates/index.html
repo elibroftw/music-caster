@@ -31,7 +31,7 @@
             </div>
             <div class="body__info">
                 <div class="info__album">{{metadata['album']}}</div>
-                <div class="info__song">{{metadata['title']}}</div>
+                <div class="info__track">{{metadata['title']}}</div>
                 <div class="info__artist">{{metadata['artist']}}</div>
             </div>
             <div class="body__buttons">
@@ -95,7 +95,7 @@
         <h2>Music Selection</h2>
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
         placeholder="Search for music..." title="Type in artist/tracks">
-        {{ list_of_songs|safe }}
+        {{ list_of_tracks|safe }}
     </div>
 </div>
 <div id="settings-modal" class="modal">

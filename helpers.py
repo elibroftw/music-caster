@@ -4,6 +4,8 @@ import datetime
 from functools import wraps
 import os
 import platform
+from math import floor
+
 import pyqrcode
 import PySimpleGUI as Sg
 import socket
@@ -177,21 +179,32 @@ def get_repeat_img_et_tooltip(repeat_setting):
     else: return REPEAT_ALL_IMG, 'Repeat track'
 
 
+def create_progress_bar_text(position, length) -> (str, str):  #
+    """":return: time_elapsed_text, time_left_text"""
+    time_left = length - position
+    mins_elapsed, mins_left = floor(position / 60), floor(time_left / 60)
+    secs_elapsed, secs_left = floor(position % 60), floor(time_left % 60)
+    if secs_left < 10: secs_left = f'0{secs_left}'
+    if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
+    return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'
+
+
 # GUI LAYOUTS
 # noinspection PyUnusedLocal
-def create_main(songs, listbox_selected, playing_status, settings, version, qr_code, timer,
-                title='Nothing Playing', artist='', album_cover_data=None):
+def create_main(tracks, listbox_selected, playing_status, settings, version, qr_code, timer, title='Nothing Playing',
+                artist='', album_cover_data=None, track_length=0, track_position=0):
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
-    repeating_song = settings['repeat']
+    repeating_track = settings['repeat']
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
-    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_song)
+    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
     accent_color, fg, bg = settings['accent_color'], settings['text_color'], settings['background_color']
     button_text_color = settings['button_text_color']
     # main side for album cover, track title, track artist, and music controls
     music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0),
-                      Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0),
+                      Sg.Button(key='pause/resume', image_data=pause_resume_img, border_width=0,
+                                metadata=playing_status),
                       # TODO: stop button
                       Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, border_width=0, metadata=playing_status),
                       Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
@@ -200,12 +213,16 @@ def create_main(songs, listbox_selected, playing_status, settings, version, qr_c
                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                 disable_number_display=True, enable_events=True, background_color=accent_color,
                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
-    progress_bar_layout = [Sg.Text('00:00', font=FONT_NORMAL, key='time_elapsed', pad=((5, 5), (10, 0))),
-                           Sg.Slider(range=(0, 100), orientation='h', size=(30, 10), key='progressbar',
+    time_elapsed, time_left = create_progress_bar_text(track_position, track_length)
+    text_size = (5, 1)
+    progress_bar_layout = [Sg.Text(time_elapsed, size=text_size, font=FONT_NORMAL, key='time_elapsed',
+                                   pad=((0, 5), (10, 0)), justification='right'),
+                           Sg.Slider(range=(0, track_length), default_value=track_position,
+                                     orientation='h', size=(30, 10), key='progressbar',
                                      enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
                                      disable_number_display=True, disabled=artist == '',
-                                     tooltip='Scroll mousewheel', pad=((5, 5), (10, 0))),
-                           Sg.Text('00:00', font=FONT_NORMAL, key='time_left', pad=((5, 5), (10, 0)))]
+                                     tooltip='Scroll mousewheel', pad=((8, 8), (10, 0))),
+                           Sg.Text(time_left, size=text_size, font=FONT_NORMAL, key='time_left', pad=((5, 0), (10, 0)))]
     # album_cover = [Sg.Image(data=album_cover_data, pad=(0, 0), size=(255, 255),
     #                         key='album_cover')] if album_cover_data else []
     # album_cover = [Sg.Image(data=WINDOW_ICON, pad=(0, 0), size=(255, 255), key='album_cover')]
@@ -242,7 +259,7 @@ def create_main(songs, listbox_selected, playing_status, settings, version, qr_c
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
     queue_tab_layout = [queue_controls, [
-        Sg.Listbox(songs, default_values=listbox_selected, size=(64, 11),
+        Sg.Listbox(tracks, default_values=listbox_selected, size=(64, 11),
                    select_mode=Sg.SELECT_MODE_SINGLE,
                    text_color=fg, key='queue', background_color=bg, font=FONT_NORMAL,
                    bind_return_key=True),
