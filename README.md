@@ -35,20 +35,21 @@ There is a web GUI accessible through the settings window (click or scan the QR 
 ## Limitations and Known Issues
 - Note that Chromecasts only support the AAC version of WMA files
 - Emoji support; the GUI might not work. There's always settings.json + WEB GUI though
+- Play and Queue multiple folders not supported yet
 - [Road Map](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy
 What is sent to me when an error is encountered?
 ```JS
 // As seen in handle_exception(exception)
-'TIME': current_time,
 'VERSION': VERSION,
-'OS': platform.platform(),
 'EXCEPTION TYPE': exc_type.__name__,  // error name
 'LINE': exc_tb.tb_lineno,             // error location
-'FATAL': restart_program,             // if the error crashed the program
 'TRACEBACK': trace_back_msg,          // error message
-'MAC': MAC                            // error unqiueness
+'MAC': MAC,                           // error unqiueness
+'FATAL': restart_program,             // if the error crashed the program
+'OS': platform.platform(),
+'TIME': current_time 
 ```
 In addition, I collect MAC and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
@@ -99,6 +100,7 @@ I love keyboard shortcuts, they make us more productive.
 3. Make sure Python scripts folder is on PATH
 4. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH
 5. run `build` or `build.py`
+
 [Detailed guide](https://github.com/elibroftw/music-caster/wiki/Development-Guide)
 
 ## Credits

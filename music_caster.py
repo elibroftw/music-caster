@@ -1,7 +1,6 @@
-VERSION = '4.59.5'
+VERSION = '4.60.0'
 UPDATE_MESSAGE = """
-[Feature] Better progressbar
-[Feature] Support for all formats locally (thanks to VLC bindings)
+[Feature] Registered Music Caster as a default audio player
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -19,7 +18,7 @@ import json
 import logging
 from pathlib import Path
 import pprint
-from shutil import copyfile, copyfileobj
+from shutil import copyfileobj
 import argparse
 from random import shuffle
 import sys
@@ -1700,6 +1699,7 @@ def read_play_url_window():
 
 
 def create_shortcut(_shortcut_path):
+    """ creates shortcut if run_on_startup else removes existing shortcut """
     def _threaded():
         try:
             shortcut_exists = os.path.exists(_shortcut_path)
@@ -1800,6 +1800,8 @@ if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)
+if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe')
+
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 shutil.rmtree('Update', ignore_errors=True)
 try:

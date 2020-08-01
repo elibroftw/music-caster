@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.60.0
+- [Feature] Register Music Caster in registry as a program to open audio files and folders
+
 4.59.5
 - [Optimization] Delete old files when updating
 
