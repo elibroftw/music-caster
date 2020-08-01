@@ -1,3 +1,4 @@
+@echo off
 set args=%1
 shift
 :start
