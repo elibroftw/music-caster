@@ -399,40 +399,52 @@ def is_os_64bit():
 def add_reg_handlers(path_to_exe):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
+    # TODO: use arg parser
+    # TODO: queue file option
+    # TODO: queue folder option
     path_to_exe = path_to_exe.replace('/', '\\')
     classes_path = 'SOFTWARE\\Classes\\'
     key_name_ext = 'MusicCaster_file'
-    access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
+    write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
+    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
     # create handlers
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}', 0, access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Audio File')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\DefaultIcon', 0, access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\DefaultIcon', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, path_to_exe)  # define icon location
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\Open\\Command', 0, access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\open', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Play')
+        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\open\\command', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\queue', 0, write_access) as key:
+    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Queue file in Music Caster')
+    #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
+    #     wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\queue\\command', 0, write_access) as key:
+    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
     # set file handlers
     for ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav'}:
         key_path = f'{classes_path}{ext}'
         try:
             # check if key exists
-            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, access) as key: pass
+            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as key: pass
         except (WindowsError, FileNotFoundError):
             # create key if it does not exist
-            with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, access) as key:
+            with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:
                 # set as default program unless .mp4 because that's a video format
                 if ext != '.mp4':
                     wr.SetValueEx(key, None, 0, wr.REG_SZ, 'MusicCaster_file')
         # add to Open With (prompts user to set default program)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, access) as key:
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
             wr.SetValueEx(key, key_name_ext, 0, wr.REG_NONE, b'')
     # set open folder in Music Caster
     play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Play Folder with Music Caster')
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Play with Music Caster')
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
-    # TODO: queue folder option (need to add arg parser)
     # queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'
     # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, access) as key:
     #     wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Queue Folder in Music Caster')

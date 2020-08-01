@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.60.1
+- [Fix] Discord Presence Errors
+- [Fix] Better Registry Modifications
+
 4.60.0
 - [Feature] Register Music Caster in the registry as a program to open audio files and folders
 
