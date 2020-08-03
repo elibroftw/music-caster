@@ -2,9 +2,10 @@ from json import JSONDecodeError
 
 from pypresence import PyPresenceException
 
-VERSION = '4.60.1'
+VERSION = '4.60.2'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
+[UI] Better styling
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -98,10 +99,10 @@ settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
-    'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
-    'accent_color': '#00bfff', 'text_color': '#d7d7d7', 'button_text_color': '#000000', 'background_color': '#121212',
-    'flip_main_window': False, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
-    'timer_sleep_computer': False, 'music_directories': [home_music_dir], 'playlists': {},
+    'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
+    'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+    'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
+    'music_directories': [home_music_dir], 'playlists': {},
     'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
 compiling_tracks_thread: Thread = None
@@ -337,11 +338,20 @@ def load_settings():  # up to 0.4 seconds
                 refresh_folders()
             del _temp
             DEFAULT_DIR = music_directories[0]
-            bg = settings['background_color']
-            button_color = settings['button_text_color'], settings['accent_color']
-            Sg.SetOptions(button_color=button_color, scrollbar_color=bg, background_color=bg,
-                          element_background_color=bg,
-                          text_element_background_color=bg, text_color=settings['text_color'])
+            theme = settings['theme']
+            Sg.SetOptions(text_color=theme['text'],
+                   input_text_color=theme['text'],
+                   element_text_color=theme['text'],
+                   background_color=theme['background'],
+                   text_element_background_color=theme['background'],
+                   element_background_color=theme['background'],
+                   input_elements_background_color=theme['background'],
+                   scrollbar_color=theme['background'],
+                   button_color=(theme['background'], theme['accent']),
+                   progress_meter_color=theme['accent'],
+                   border_width=1,
+                   slider_border_width=1,
+                   progress_meter_border_depth=0)
         settings_file_in_use = False
         if overwrite_settings: save_settings()
     else:
@@ -1071,10 +1081,9 @@ def activate_main_window(selected_tab='tab_queue'):
                                           track_length=length, track_position=position)
         else:
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE, timer)
-        main_window = Sg.Window('Music Caster', main_gui_layout, background_color=settings['background_color'],
-                                icon=WINDOW_ICON, return_keyboard_events=True,
+        main_window = Sg.Window('Music Caster', main_gui_layout,
+                                icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,
                                 use_default_focus=False, location=window_location)
-        main_window.Finalize()
         main_window['queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
@@ -1100,9 +1109,7 @@ def create_edit_playlists():
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')
         pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings),
-                                       background_color=settings['background_color'],
-                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
-        pl_selector_window.Finalize()
+                                       finalize=True, icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
         set_save_position_callback(pl_selector_window, 'playlist_selector')
     pl_selector_window.TKroot.focus_force()
     pl_selector_window.Normal()
@@ -1114,8 +1121,7 @@ def activate_play_url(combo_value='Play Immediately'):
         active_windows['play_url'], play_url_layout = True, create_play_url_window(combo_value=combo_value)
         window_location = get_window_location('play_url')
         play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
-                                    return_keyboard_events=True, location=window_location)
-        play_url_window.Finalize()
+                                    finalize=True, return_keyboard_events=True, location=window_location)
         set_save_position_callback(play_url_window, 'play_url')
     play_url_window.TKroot.focus_force()
     play_url_window.Normal()
@@ -1507,12 +1513,13 @@ def read_main_window():
             else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
             main_window['timer_text'].Update(value=f'Timer set for {timer_set_to}')
             main_window['cancel_timer'].Update(visible=True)
+            main_window['timer_error'].Update(visible=False)
         except ValueError:
             for i in range(3):
                 main_window['timer_error'].Update(visible=True, text_color='#ffcccb')
-                main_window.Refresh()
+                main_window.Read(10)
                 main_window['timer_error'].Update(text_color='red')
-                main_window.Refresh()
+                main_window.Read(10)
     elif main_event in {'shut_off', 'hibernate', 'sleep', 'do_nothing'}:
         change_settings('timer_hibernate_computer', main_values['hibernate'])
         change_settings('timer_sleep_computer', main_values['sleep'])
@@ -1583,12 +1590,10 @@ def read_playlist_selector_window():
         else:
             pl_name = ''
         window_location = get_window_location('playlist_editor')
-        pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(settings, pl_name),
-                                     background_color=settings['background_color'], icon=WINDOW_ICON,
-                                     return_keyboard_events=True, location=window_location)
         pl_files = playlists.get(pl_name, [])
         pl_selector_window.Close()
-        pl_editor_window.Finalize()
+        pl_editor_window = Sg.Window('Playlist Editor', create_playlist_editor(settings, pl_name), finalize=True,
+                                     icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
         pl_editor_window.TKroot.focus_force()
         pl_editor_window.Normal()
         set_save_position_callback(pl_editor_window, 'playlist_editor')
@@ -1675,10 +1680,8 @@ def read_playlist_editor_window():
     if open_pl_selector:
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')
-        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings),
-                                       background_color=settings['background_color'], icon=WINDOW_ICON,
-                                       return_keyboard_events=True, location=window_location)
-        pl_selector_window.Finalize()
+        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings), finalize=True,
+                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
         pl_selector_window.TKroot.focus_force()
         pl_selector_window.Normal()
         set_save_position_callback(pl_selector_window, 'playlist_selector')
@@ -1821,6 +1824,7 @@ try:
                     break
                 except OSError: PORT += 1
             else: PORT += 1
+    print('Running on port:', PORT)
     repeat_menu = ['Repeat All ✓' if settings['repeat'] is False else 'Repeat All',
                    'Repeat One ✓' if settings['repeat'] else 'Repeat One',
                    'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']

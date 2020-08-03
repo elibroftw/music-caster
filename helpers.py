@@ -35,7 +35,6 @@ FONT_LINK = 'SourceSans', 11, 'underline'
 LINK_COLOR = '#3ea6ff'
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .flac, .m4a, .mp4, .aac, .ogg, .opus, .wma, .wav)|' \
                    '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus;*.wma;*.wav'
-Sg.change_look_and_feel('SystemDefault')
 # TODO: add right click menus for list boxes
 
 
@@ -200,8 +199,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     repeating_track = settings['repeat']
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
-    accent_color, fg, bg = settings['accent_color'], settings['text_color'], settings['background_color']
-    button_text_color = settings['button_text_color']
+    accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     # main side for album cover, track title, track artist, and music controls
     pr_button = {'image_data': pause_resume_img, 'border_width': 0, 'metadata': playing_status}
     next_btn = {'image_data': NEXT_BUTTON_IMG, 'border_width': 0, 'metadata': playing_status, 'tooltip': 'next_track'}
@@ -239,15 +237,13 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     playlist_names = list(settings['playlists'].keys())
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value='Play File(s)', key='file_option', size=(14, None),
-                             font=FONT_NORMAL, enable_events=True, readonly=True, pad=(5, (5, 0)))],
+                             font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)))],
                    [Sg.Combo(folder_opts, default_value='Play Folder', key='folder_option', size=(14, None),
-                             font=FONT_NORMAL, enable_events=True, readonly=True, pad=(5, (10, 0)))]]),
-        Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action',
-                              enable_events=True, size=(13, 1))],
-                   [Sg.Button('Play Folder', font=FONT_NORMAL, key='folder_action',
-                              enable_events=True, size=(13, 1))]]),
+                             font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
+        Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
+                   [Sg.Button('Play Folder', font=FONT_NORMAL, key='folder_action', enable_events=True, size=(13, 1))]]),
         Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
-                             size=(14, 1), font=FONT_NORMAL, readonly=True, pad=(5, (5, 0)), key='playlists')],
+                             size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists')],
                    [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
                               size=(14, 1), pad=(5, (9, 0)))]]),
         Sg.Column([[Sg.Button('URL Actions', font=FONT_NORMAL, key='url_actions', pad=(5, 5), enable_events=True)]]),
@@ -262,24 +258,25 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     queue_tab_layout = [queue_controls, [
         Sg.Listbox(tracks, default_values=listbox_selected, size=(64, 11),
                    select_mode=Sg.SELECT_MODE_SINGLE,
-                   text_color=fg, key='queue', background_color=bg, font=FONT_NORMAL,
+                   text_color=fg, key='queue', font=FONT_NORMAL,
                    bind_return_key=True),
         Sg.Column(listbox_controls, pad=(0, 5))]]
-    queue_tab = Sg.Tab('Queue', queue_tab_layout, background_color=bg, key='tab_queue')
+    queue_tab = Sg.Tab('Queue', queue_tab_layout, key='tab_queue', background_color=bg)
     timer_layout = create_timer(settings, timer)
-    timer_tab = Sg.Tab('Timer', timer_layout, background_color=bg, key='tab_timer')
+    timer_tab = Sg.Tab('Timer', timer_layout, key='tab_timer', background_color=bg)
     settings_layout = create_settings(version, settings, qr_code)
-    settings_tab = Sg.Tab('Settings', settings_layout, background_color=bg, key='tab_settings')
+    settings_tab = Sg.Tab('Settings', settings_layout, key='tab_settings')
     # TODO: library_tab = Sg.Tab()
     tabs_side = Sg.TabGroup([[queue_tab, timer_tab, settings_tab]], title_color=fg, border_width=0, key='tab_group',
-                            tab_background_color=bg, selected_background_color=accent_color, enable_events=True,
-                            selected_title_color=button_text_color)
+                            selected_background_color=accent_color, enable_events=True,
+                            tab_background_color=bg,
+                            selected_title_color=bg, background_color=bg)
 
     return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
 
 
 def create_settings(version, settings, qr_code):
-    fg, bg = settings['text_color'], settings['background_color']
+    fg, bg = settings['theme']['text'], settings['theme']['background']
     checkbox_col = Sg.Column([
         [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', background_color=bg,
                      font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
@@ -322,7 +319,7 @@ def create_timer(settings, timer):
     shut_off = settings['timer_shut_off_computer']
     hibernate = settings['timer_hibernate_computer']
     sleep = settings['timer_sleep_computer']
-    fg, bg = settings['text_color'], settings['background_color']
+    fg, bg = settings['theme']['text'], settings['theme']['background']
     do_nothing = not (shut_off or hibernate or sleep)
     timer_date = datetime.datetime.fromtimestamp(timer)
     timer_date = timer_date.strftime('%#I:%M %p')
@@ -348,11 +345,11 @@ def create_timer(settings, timer):
 
 
 def create_playlist_selector(settings):
-    bg = settings['background_color']
+    bg = settings['theme']['background']
     playlists = list(settings['playlists'].keys())
     layout = [
-        [Sg.Combo(values=playlists, size=(41, 5), key='playlist_combo', background_color=bg, font=FONT_NORMAL,
-                  enable_events=True, readonly=True, default_value=playlists[0] if playlists else None),
+        [Sg.Combo(values=playlists, size=(41, 5), key='playlist_combo', font=FONT_NORMAL,
+                  enable_events=True, default_value=playlists[0] if playlists else None),
          Sg.Button('Edit', key='edit_pl', tooltip='Ctrl + E', enable_events=True, font=FONT_NORMAL),
          Sg.Button('Delete', key='del_pl', tooltip='Ctrl + Del', enable_events=True, font=FONT_NORMAL),
          Sg.Button('New', key='create_pl', tooltip='Ctrl + N', enable_events=True, font=FONT_NORMAL)]]
@@ -361,7 +358,7 @@ def create_playlist_selector(settings):
 
 def create_playlist_editor(settings, playlist_name=''):
     paths = settings['playlists'].get(playlist_name, [])
-    fg, bg = settings['text_color'], settings['background_color']
+    fg, bg = settings['theme']['text'], settings['theme']['background']
     tracks = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
     move_up_params = {'size': (11, 1), 'tooltip': 'Ctrl + U', 'font': FONT_NORMAL, 'enable_events': True}
     move_down_params = {'size': (11, 1), 'tooltip': 'Ctrl + D', 'font': FONT_NORMAL, 'enable_events': True}
@@ -387,7 +384,7 @@ def create_play_url_window(combo_value='Play Immediately'):
     # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
     combo_values = ['Play Immediately', 'Queue', 'Play Next']
     layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL),
-               Sg.Combo(combo_values, default_value=combo_value, key='combo_choice', readonly=True)],
+               Sg.Combo(combo_values, default_value=combo_value, key='combo_choice')],
               [Sg.Input(key='url', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)]]
     return layout
 
@@ -451,4 +448,3 @@ def add_reg_handlers(path_to_exe):
     #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, access) as key:
     #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --queue_folders "%1"')
-

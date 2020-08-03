@@ -126,10 +126,27 @@ settings = {  # default settings
     'flip_main_window': False, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
     'timer_sleep_computer': False, 'music_directories': ['C:/test'], 'playlists': {'test': SAMPLE_MUSIC_FILES},
     'queues': {'done': [], 'music': [], 'next': []}}
-bg = settings['background_color']
-button_color = settings['button_text_color'], settings['accent_color']
-Sg.SetOptions(button_color=button_color, scrollbar_color=bg, background_color=bg, element_background_color=bg,
-              text_element_background_color=bg, text_color=settings['text_color'])
+
+Sg.SetOptions(background_color=theme['background'],
+                   text_element_background_color=theme['background'],
+                   element_background_color=theme['background'],
+                   text_color=theme['text'],
+                   input_text_color=theme['text'],
+                   input_elements_background_color=theme['background'],
+                   button_color=(theme['background'], theme['accent']),
+                   progress_meter_color=theme['accent'],
+                   border_width=1,
+                   slider_border_width=1,
+                   progress_meter_border_depth=0,
+                   scrollbar_color=theme['background'],
+                   element_text_color=theme['text'])
+
+play_url_window = Sg.Window('Play URL', create_play_url_window(), finalize=True)
+
+play_url_window.Read()
+play_url_window.Close()
+
+
 songs_list, selected_value = create_songs_list()
 QR_CODE = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
