@@ -1818,7 +1818,7 @@ try:
                     break
                 except OSError: PORT += 1
             else: PORT += 1
-    print('Running on port:', PORT)
+    print('Running on port', PORT)
     repeat_menu = ['Repeat All ✓' if settings['repeat'] is False else 'Repeat All',
                    'Repeat One ✓' if settings['repeat'] else 'Repeat One',
                    'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']
