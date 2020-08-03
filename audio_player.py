@@ -1,3 +1,9 @@
+"""
+AudioPlayer v2.0.0
+Author: Elijah Lopez
+Make sure VLC .dll files are located in ./vlc/
+"""
+
 from contextlib import suppress
 import os
 import sys
@@ -70,7 +76,7 @@ class AudioPlayer:
         Capped at 1 to prevent distortion
         """
         assert 0 <= volume <= 1
-        db_change = (1 - volume) * 55 if volume else 100
+        # db_change = (1 - volume) * 55 if volume else 100
         self.player.audio_set_volume(int(volume * 100))
 
     def get_volume(self):

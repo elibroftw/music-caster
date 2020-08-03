@@ -14,9 +14,7 @@ from urllib.parse import urlparse, parse_qs
 from uuid import getnode
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
-from threading import Thread
 import re
-import pychromecast
 import mutagen
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
@@ -27,14 +25,12 @@ from mutagen.easymp4 import EasyMP4
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 # FUTURE: C++ JPG TO PNG
 # https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
-# Styling
+# CONSTANTS
 FONT_NORMAL = 'SourceSans', 11
 FONT_TITLE = 'Helvetica', 14
 FONT_ARTIST = 'Helvetica', 12
 FONT_LINK = 'SourceSans', 11, 'underline'
 LINK_COLOR = '#3ea6ff'
-MUSIC_FILE_TYPES = 'Audio File (.mp3, .flac, .m4a, .mp4, .aac, .ogg, .opus, .wma, .wav)|' \
-                   '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus;*.wma;*.wav'
 # TODO: add right click menus for list boxes
 
 
@@ -64,8 +60,8 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
         else:
             audio = mutagen.File(file_path)
         _title = audio.get('title', ['Unknown Title'])[0]
-        with suppress(KeyError, TypeError): _artist = ', '.join(audio['artist'])
         _album = audio.get('album', ['Unknown Album'])[0]
+        with suppress(KeyError, TypeError): _artist = ', '.join(audio['artist'])
     return _title, _artist, _album
 
 
@@ -120,50 +116,13 @@ def is_already_running(threshold=1):
 
 def valid_music_file(file_path):
     file_path = file_path.lower()
-    # NOTE: pygame only supports (mp3, oog, and wav)
     return (file_path.endswith('.mp3') or file_path.endswith('.flac') or file_path.endswith('.m4a')
             or file_path.endswith('.mp4') or file_path.endswith('.aac')
             or file_path.endswith('.ogg') or file_path.endswith('.opus')
             or file_path.endswith('.wma') or file_path.endswith('.wav'))
 
 
-def find_chromecasts(timeout=0.3, callback=None):  # OLD unused CODE
-    # assuming subnet mask is 255.255.255.0
-    _RANGE = 256
-    ipv4_address = get_ipv4()
-    base = '.'.join(ipv4_address.split('.')[:-1])
-    threads = []
-    stop_discovery = False
-    chromecasts = []
-
-    def _stop_discovery():
-        nonlocal stop_discovery
-        stop_discovery = True
-
-    def _connect_to_chromecast(ip, port=8009):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        port_alive = sock.connect_ex((ip, port))
-        sock.close()
-        if not stop_discovery and port_alive == 0:
-            cc = pychromecast.Chromecast(ip, port=port)
-            if callback is not None: callback(cc)
-            else: chromecasts.append(cc)
-
-    for i in range(_RANGE):
-        possible_ip = f'{base}.{i}'
-        t = Thread(target=_connect_to_chromecast, args=[possible_ip], daemon=True)
-        threads.append(t)
-        t.start()
-
-    if callback is None:
-        for t in threads:
-            t.join()
-        return chromecasts
-    return _stop_discovery
-
-
-def get_youtube_id(url):
+def parse_youtube_id(url):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
     if query.hostname in ('www.youtube.com', 'youtube.com'):
@@ -241,7 +200,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
                    [Sg.Combo(folder_opts, default_value='Play Folder', key='folder_option', size=(14, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
         Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
-                   [Sg.Button('Play Folder', font=FONT_NORMAL, key='folder_action', enable_events=True, size=(13, 1))]]),
+                   [Sg.Button('Play Folder', font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
         Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
                              size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists')],
                    [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
@@ -345,7 +304,6 @@ def create_timer(settings, timer):
 
 
 def create_playlist_selector(settings):
-    bg = settings['theme']['background']
     playlists = list(settings['playlists'].keys())
     layout = [
         [Sg.Combo(values=playlists, size=(41, 5), key='playlist_combo', font=FONT_NORMAL,
@@ -412,20 +370,22 @@ def add_reg_handlers(path_to_exe):
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\open', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Play')
         wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\open\\command', 0, write_access) as key:
+    command_path = f'{classes_path}{key_name_ext}\\shell\\open\\command'
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
     # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\queue', 0, write_access) as key:
     #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Queue file in Music Caster')
     #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     #     wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\queue\\command', 0, write_access) as key:
+    # command_path = f'{classes_path}{key_name_ext}\\shell\\queue\\command'
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
     #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
     # set file handlers
     for ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav'}:
         key_path = f'{classes_path}{ext}'
         try:
             # check if key exists
-            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as key: pass
+            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _: pass
         except (WindowsError, FileNotFoundError):
             # create key if it does not exist
             with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:

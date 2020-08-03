@@ -11,23 +11,23 @@ if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
 from helpers import *
 from audio_player import AudioPlayer
+import argparse
 import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
 # noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
 from functools import cmp_to_key
-import io
 from glob import glob
+import io
 import json
 import logging
 from pathlib import Path
 import pprint
-from shutil import copyfileobj
-import argparse
 from random import shuffle
+from shutil import copyfileobj, rmtree
 import sys
-import shutil
+from threading import Thread
 import traceback
 import urllib.parse
 from urllib.parse import urlsplit
@@ -50,11 +50,14 @@ from wavinfo import WavInfoReader  # until mutagen supports .wav
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
-# CONSTANTS
+# arg parser
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
 parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
 args = parser.parse_args()
+# CONSTANTS
+MUSIC_FILE_TYPES = 'Audio File (.mp3, .flac, .m4a, .mp4, .aac, .ogg, .opus, .wma, .wav)|' \
+                   '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus;*.wma;*.wav'
 DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
@@ -92,7 +95,7 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 playing_status = 'NOT PLAYING'
 # if music caster was launched in some other folder, play all or queue all that folder?
 SHORTCUT_PATH = ''
-home_music_dir = f'{Path.home()}/Music'
+DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
 
 settings = {  # default settings
@@ -309,8 +312,8 @@ def get_window_location(window_key):
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
-    global settings, playlists, music_directories, settings_last_modified, \
-        DEFAULT_DIR, window_locations, settings_file_in_use
+    global settings, playlists, music_directories, settings_last_modified, DEFAULT_DIR,\
+        window_locations, settings_file_in_use
     if settings_file_in_use: return
     elif os.path.exists(settings_file):
         settings_file_in_use = True
@@ -339,19 +342,12 @@ def load_settings():  # up to 0.4 seconds
             del _temp
             DEFAULT_DIR = music_directories[0]
             theme = settings['theme']
-            Sg.SetOptions(text_color=theme['text'],
-                   input_text_color=theme['text'],
-                   element_text_color=theme['text'],
-                   background_color=theme['background'],
-                   text_element_background_color=theme['background'],
-                   element_background_color=theme['background'],
-                   input_elements_background_color=theme['background'],
-                   scrollbar_color=theme['background'],
-                   button_color=(theme['background'], theme['accent']),
-                   progress_meter_color=theme['accent'],
-                   border_width=1,
-                   slider_border_width=1,
-                   progress_meter_border_depth=0)
+            Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
+                          background_color=theme['background'], text_element_background_color=theme['background'],
+                          element_background_color=theme['background'], scrollbar_color=theme['background'],
+                          input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
+                          button_color=(theme['background'], theme['accent']),
+                          border_width=1, slider_border_width=1, progress_meter_border_depth=0)
         settings_file_in_use = False
         if overwrite_settings: save_settings()
     else:
@@ -665,7 +661,7 @@ def play_url(url, position=0, autoplay=True):
         return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
                                 metadata['album'], metadata['length'], position=position,
                                 thumbnail=metadata['art'], autoplay=autoplay)
-    elif get_youtube_id(url) is not None:
+    elif parse_youtube_id(url) is not None:
         try:
             if url not in music_metadata:
                 r = ydl.extract_info(url, download=False)
@@ -822,8 +818,7 @@ def select_and_play_folder():
 
 def file_action(action='Play File(s)'):
     # actions = 'Play File(s)', 'Play File(s) Next', 'Queue File(s)'
-    global DEFAULT_DIR, music_queue, next_queue, playing_status, main_last_event
-    DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
+    global music_queue, next_queue, playing_status, main_last_event
     fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
     if fd.ShowModal() != wx.ID_CANCEL:
@@ -857,9 +852,8 @@ def play_next():
 
 
 def folder_action(action='Play Folder'):
-    global DEFAULT_DIR, music_queue, next_queue, playing_status, main_last_event
+    global music_queue, next_queue, playing_status, main_last_event
     # actions: 'Play Folder', 'Play Folder Next', 'Queue Folder'
-    DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
     dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         folder_path = dlg.GetPath()
@@ -1108,8 +1102,8 @@ def create_edit_playlists():
     elif not active_windows['playlist_selector']:
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')
-        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings),
-                                       finalize=True, icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
+        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings), finalize=True,
+                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
         set_save_position_callback(pl_selector_window, 'playlist_selector')
     pl_selector_window.TKroot.focus_force()
     pl_selector_window.Normal()
@@ -1811,7 +1805,7 @@ create_shortcut(SHORTCUT_PATH)
 if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe')
 
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
-shutil.rmtree('Update', ignore_errors=True)
+rmtree('Update', ignore_errors=True)
 try:
     # TODO: Set as default music file handler (See MODIFY REGISTRY in helpers.py)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -1856,7 +1850,6 @@ try:
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
         compile_all_tracks()
-    DEFAULT_DIR = music_directories[0]
     if settings['notifications']:
         if show_pygame_error:
             tray.ShowMessage('Music Caster Error', 'No local audio device found')

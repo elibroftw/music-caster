@@ -4,6 +4,7 @@ import sys
 from PyInstaller.config import CONF
 CONF['distpath'] = './dist'
 block_cipher = None
+# noinspection PyTypeChecker
 sys.modules['FixTk'] = None
 # noinspection PyUnresolvedReferences
 a = Analysis([f'{os.getcwd()}/updater.py'],
