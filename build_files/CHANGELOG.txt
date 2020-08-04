@@ -3,6 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.60.2
 - [UI] Better UI styling
 - [Fix] Timer error text
+- [Fix] Support for .mpeg files
 
 4.60.1
 - [Fix] Discord Presence Errors

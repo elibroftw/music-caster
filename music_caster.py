@@ -56,8 +56,8 @@ parser.add_argument('path', nargs='?', default='', help='path of file/dir you wa
 parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
 args = parser.parse_args()
 # CONSTANTS
-MUSIC_FILE_TYPES = 'Audio File (.mp3, .flac, .m4a, .mp4, .aac, .ogg, .opus, .wma, .wav)|' \
-                   '*.mp3;*.flac;*.m4a;*.mp4;*.aac;*.ogg;*.opus;*.wma;*.wav'
+MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
+                   '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
 DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)

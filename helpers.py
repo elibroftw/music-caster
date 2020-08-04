@@ -117,7 +117,7 @@ def is_already_running(threshold=1):
 def valid_music_file(file_path):
     file_path = file_path.lower()
     return (file_path.endswith('.mp3') or file_path.endswith('.flac') or file_path.endswith('.m4a')
-            or file_path.endswith('.mp4') or file_path.endswith('.aac')
+            or file_path.endswith('.mp4') or file_path.endswith('.aac') or file_path.endswith('.mpeg')
             or file_path.endswith('.ogg') or file_path.endswith('.opus')
             or file_path.endswith('.wma') or file_path.endswith('.wav'))
 
@@ -381,7 +381,7 @@ def add_reg_handlers(path_to_exe):
     # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
     #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
     # set file handlers
-    for ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav'}:
+    for ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav', '.mpeg'}:
         key_path = f'{classes_path}{ext}'
         try:
             # check if key exists
