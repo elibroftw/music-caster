@@ -2,7 +2,7 @@ from json import JSONDecodeError
 
 from pypresence import PyPresenceException
 
-VERSION = '4.60.2'
+VERSION = '4.60.3'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
 [UI] Better styling
@@ -150,30 +150,30 @@ def refresh_tray():
 
 def change_settings(settings_key, new_value):
     global settings, active_windows, tray
-    if settings[settings_key] == new_value: return new_value
-    settings[settings_key] = new_value
-    save_settings()
-    if settings_key == 'repeat':
-        repeat_menu[0] = 'Repeat All ✓' if new_value is False else 'Repeat All'
-        repeat_menu[1] = 'Repeat One ✓' if new_value else 'Repeat One'
-        repeat_menu[2] = 'Repeat Off ✓' if new_value is None else 'Repeat Off'
-        refresh_tray()
-        if active_windows['main']:
-            if new_value is None:
-                repeat_img = REPEAT_OFF_IMG
-                new_tooltip = 'Repeat'
-            elif new_value:
-                repeat_img = REPEAT_ONE_IMG
-                new_tooltip = "Don't repeat"
-            else:
-                repeat_img = REPEAT_ALL_IMG
-                new_tooltip = "Repeat track"
-            main_window['repeat'].Update(image_data=repeat_img)
-            main_window['repeat'].SetTooltip(new_tooltip)
-        if settings['notifications']:
-            if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off')
-            elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One')
-            else: tray.ShowMessage('Music Caster', 'Repeat set to All')
+    if settings[settings_key] != new_value:
+        settings[settings_key] = new_value
+        save_settings()
+        if settings_key == 'repeat':
+            repeat_menu[0] = 'Repeat All ✓' if new_value is False else 'Repeat All'
+            repeat_menu[1] = 'Repeat One ✓' if new_value else 'Repeat One'
+            repeat_menu[2] = 'Repeat Off ✓' if new_value is None else 'Repeat Off'
+            refresh_tray()
+            if active_windows['main']:
+                if new_value is None:
+                    repeat_img = REPEAT_OFF_IMG
+                    new_tooltip = 'Repeat'
+                elif new_value:
+                    repeat_img = REPEAT_ONE_IMG
+                    new_tooltip = "Don't repeat"
+                else:
+                    repeat_img = REPEAT_ALL_IMG
+                    new_tooltip = "Repeat track"
+                main_window['repeat'].Update(image_data=repeat_img)
+                main_window['repeat'].SetTooltip(new_tooltip)
+            if settings['notifications']:
+                if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off')
+                elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One')
+                else: tray.ShowMessage('Music Caster', 'Repeat set to All')
     return new_value
 
 
@@ -614,31 +614,53 @@ def create_track_list():
     return tracks, selected_value
 
 
-def play_url_generic(src, ext, title, artist, album, length, position=0, thumbnail=None, autoplay=True):
-    global track_start, track_end, playing_url, playing_status, track_length
+def after_play(artists: str, title, autoplay, switching_device):
+    global playing_status, cast_last_checked
+    # artists is comma separated string
+    playing_text = f"{artists.split(', ')[0]} - {title}"
+    if autoplay:
+        if settings['notifications'] and not switching_device:
+            tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
+        playing_status = 'PLAYING'
+        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
+    else: tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+    cast_last_checked = time.time()
+    if settings['save_queue_sessions']: save_queues()
+    if settings['discord_rpc']:
+        with suppress(py_presence_errors):
+            rich_presence.update(state=f'By: {artists}', details=title, large_image='default',
+                                 large_text='Listening', small_image='logo', small_text='Music Caster')
+
+
+def play_url_generic(src, ext, title, artist, album, length, position=0,
+                     thumbnail=None, autoplay=True, switching_device=False):
+    global track_position, track_start, track_end, playing_url, track_length, progress_bar_last_update
     _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-    cast.wait()
+    cast.wait(timeout=WAIT_TIMEOUT)
+    cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
     mc = cast.media_controller
+    if mc.status.player_is_playing or mc.status.player_is_paused:
+        mc.stop()
+        mc.block_until_active(WAIT_TIMEOUT)
     mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                   current_time=position, autoplay=autoplay)
     mc.block_until_active()
-    while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
+    start_time = time.time()
+    while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+        print('waiting for chromecast to start playing', title)
+        time.sleep(0.2)
+        if time.time() - start_time > 5: break  # show error?
+    progress_bar_last_update = time.time()
+    track_position = position
     track_length = length
-    track_start = time.time() - position
-    track_end = track_start + length
-    playing_url, playing_status = True, 'PLAYING'
-    playing_text = f'{artist} - {title}'
-    if settings['notifications']:
-        tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
-    tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
-    if settings['discord_rpc']:
-        with suppress(py_presence_errors):
-            rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
-                                 large_text='Listening', small_image='logo', small_text='Music Caster')
+    track_start = time.time() - track_position
+    track_end = track_start + track_length
+    playing_url = True
+    after_play(artist, title, autoplay, switching_device)
     return True
 
 
-def play_url(url, position=0, autoplay=True):
+def play_url(url, position=0, autoplay=True, switching_device=False):
     global cast, playing_url, playing_status, track_length, track_start, track_end, cast_last_checked
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
@@ -650,8 +672,8 @@ def play_url(url, position=0, autoplay=True):
         metadata = {'title': title, 'artist': artist, 'length': 0, 'album': album}
         music_metadata[url] = metadata
         track_length = 3600  # 1 hour default
-        return play_url_generic(url, ext, title, artist, album, track_length,
-                                position=position, thumbnail=None, autoplay=autoplay)
+        return play_url_generic(url, ext, title, artist, album, track_length, position=position,
+                                thumbnail=None, autoplay=autoplay, switching_device=switching_device)
     elif 'soundcloud.com' in url:
         if url not in music_metadata:
             r = ydl.extract_info(url, download=False)
@@ -660,7 +682,7 @@ def play_url(url, position=0, autoplay=True):
         metadata = music_metadata[url]
         return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
                                 metadata['album'], metadata['length'], position=position,
-                                thumbnail=metadata['art'], autoplay=autoplay)
+                                thumbnail=metadata['art'], autoplay=autoplay, switching_device=switching_device)
     elif parse_youtube_id(url) is not None:
         try:
             if url not in music_metadata:
@@ -672,9 +694,10 @@ def play_url(url, position=0, autoplay=True):
                                        'album': r['album'], 'length': r['duration'], 'art': r['thumbnail'],
                                        'src': _f['url'], 'ext': _f['ext']}
             metadata = music_metadata[url]
-            artist = metadata['artist'].split(', ', 1)[0]
+            artist = metadata['artist']
             return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
-                                    metadata['length'], position=position, thumbnail=metadata['art'], autoplay=autoplay)
+                                    metadata['length'], position=position, thumbnail=metadata['art'],
+                                    autoplay=autoplay, switching_device=switching_device)
         except StopIteration as _e:
             tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
             if not IS_FROZEN: raise _e
@@ -682,11 +705,10 @@ def play_url(url, position=0, autoplay=True):
 
 
 def play(file_path, position=0, autoplay=True, switching_device=False):
-    global track_start, track_end, playing_status, track_length, track_position,\
-        cast_last_checked, music_queue, progress_bar_last_update
+    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update
     assert file_path == music_queue[0]
     while not os.path.exists(file_path):
-        if play_url(file_path, position=position, autoplay=autoplay): return
+        if play_url(file_path, position=position, autoplay=autoplay, switching_device=switching_device): return
         music_queue.remove(file_path)
         if music_queue: file_path = music_queue[0]
         else: return
@@ -709,7 +731,6 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
     else:
         audio_info = mutagen.File(file_path).info
         track_length, sample_rate = audio_info.length, audio_info.sample_rate
-    _volume = 0 if settings['muted'] else settings['volume'] / 100
     _title, _artist, album = get_metadata_wrapped(file_path)
     # thumb, album_cover_data = get_album_cover(file_path)
     # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': track_length,
@@ -726,11 +747,9 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
         music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length,
                                      'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime}
     else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length}
+    _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(file_path, volume=_volume, start_playing=autoplay, start_from=position)
-        track_position = position
-        track_start = time.time() - track_position
-        track_end = track_start + track_length
     else:
         try:
             ipv4_address = get_ipv4()
@@ -741,35 +760,27 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             mc = cast.media_controller
             if mc.status.player_is_playing or mc.status.player_is_paused:
                 mc.stop()
-                mc.block_until_active(5)
+                mc.block_until_active(WAIT_TIMEOUT)
             metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
             ext = file_path.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
-            mc.block_until_active()  # timeout=WAIT_TIMEOUT
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'}: time.sleep(0.1)
+            mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
+            start_time = time.time()
+            while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+                print('waiting for chromecast to start playing')
+                time.sleep(0.2)
+                if time.time() - start_time > 5: break  # show error?
             progress_bar_last_update = time.time()
-            track_position = position
-            track_start = time.time() - track_position
-            track_end = track_start + track_length
         except (pychromecast.error.NotConnected, OSError) as _e:
             if _e == OSError: handle_exception(_e)
             tray.ShowMessage('Music Caster Error', 'Could not connect to Chromecast device')
             with suppress(pychromecast.error.UnsupportedNamespace): stop()
             return
-    playing_text = f"{_artist.split(', ')[0]} - {_title}"
-    if settings['notifications'] and not switching_device:
-        tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
-    if autoplay:
-        playing_status = 'PLAYING'
-        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
-    else: tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
-    cast_last_checked = time.time()
-    if settings['save_queue_sessions']: save_queues()
-    if settings['discord_rpc']:
-        with suppress(py_presence_errors):
-            rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
-                                 large_text='Listening', small_image='logo', small_text='Music Caster')
+    track_position = position
+    track_start = time.time() - track_position
+    track_end = track_start + track_length
+    after_play(_artist, _title, autoplay, switching_device)
 
 
 def play_all(starting_files: list = None, queue_only=False):
@@ -1006,8 +1017,6 @@ def background_tasks():
                     mc.update_status()
                     is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
                     new_track_position = mc.status.adjusted_current_time
-                    _volume = settings['volume']
-                    cast_volume = cast.status.volume_level * 100
                     # handle scrubbing of music from the home app
                     track_start = time.time() - new_track_position
                     track_end = time.time() + track_length - new_track_position
@@ -1017,10 +1026,13 @@ def background_tasks():
                         daemon_command = 'Resume'
                     elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING':
                         daemon_command = 'Stop'
+                    _volume = settings['volume']
+                    cast_volume = round(cast.status.volume_level * 100, 1)
                     if _volume != cast_volume:
-                        if cast_volume or cast_volume == 0 and not settings['muted']:
+                        if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
+                            # if volume was changed via Google Home App
                             _volume = change_settings('volume', cast_volume)
-                            if _volume and settings['muted']: change_settings('muted', not settings['muted'])
+                            if _volume and settings['muted']: change_settings('muted', False)
                             if active_windows['main']:
                                 if _volume and settings['muted']:
                                     main_window['mute'].Update(data=VOLUME_IMG)
@@ -1230,6 +1242,9 @@ def read_main_window():
         elif mouse_hover in {'', 'volume_slider'}:  # not in another tab
             new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
             change_settings('volume', new_volume)
+            if settings['muted']:
+                main_window['mute'].Update(data=VOLUME_IMG)
+                change_settings('muted', False)
             update_volume(new_volume)
         main_window.Refresh()
     if main_event in {'j', 'l'} and main_values['tab_group'] != 'tab_timer':
@@ -1280,7 +1295,7 @@ def read_main_window():
     elif main_event in {'repeat', 'r:82'}:
         cycle_repeat()
     elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
-          and main_values['tab_group'] == 'tab_queue'):
+          and main_values['tab_group'] == 'tab_queue'):  # User scrubbed volume bar or pressed [while on Tab 1]
         delta = 0
         if main_event.isdigit():
             new_volume = int(main_event) * 10
@@ -1290,16 +1305,14 @@ def read_main_window():
             new_volume = main_values['volume_slider'] + delta
         change_settings('volume', new_volume)
         update_volume(new_volume)
-    elif main_event in {'mute', 'm:77'}:
+    elif main_event in {'mute', 'm:77'}:  # toggle mute
         muted = change_settings('muted', not settings['muted'])
         if muted:
             main_window['mute'].Update(data=VOLUME_MUTED_IMG)
             update_volume(0)
         else:
             main_window['mute'].Update(data=VOLUME_IMG)
-            main_window['volume_slider'].Update(settings['volume'])
-            audio_player.set_volume(settings['volume'] / 100)
-            if cast is not None: cast.set_volume(settings['volume'] / 100)
+            update_volume(settings['volume'])
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
         with suppress(AttributeError, IndexError):
             if main_window.FindElementWithFocus() == main_window['queue']:
