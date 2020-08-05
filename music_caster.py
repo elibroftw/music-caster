@@ -1977,20 +1977,24 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Live System Audio', 'URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
                         'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
-                       ['Live System Audio', 'URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
                         'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
-                       ['Live System Audio', 'URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
                         'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+    if settings['EXPERIMENTAL']:
+        menu_def_1[1][8].insert(0, 'Live System Audio')
+        menu_def_2[1][10].insert(0, 'Live System Audio')
+        menu_def_3[1][10].insert(0, 'Live System Audio')
     IPV4 = get_ipv4()
     QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
