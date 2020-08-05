@@ -392,7 +392,9 @@ def index():  # web GUI
             change_settings('shuffle', not settings['shuffle'])
         return redirect('/')
     metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-    if playing_status in {'PLAYING', 'PAUSED'}:
+    if playing_live:
+        metadata = music_metadata['LIVE']
+    elif playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError):
             metadata = music_metadata[music_queue[0]]
     art = 'data:image/png;base64,' + metadata.get('art', DEFAULT_IMG_DATA.decode())
@@ -744,7 +746,7 @@ def stream_live_audio(switching_device=False):
         track_position = 0
         track_start = time.time() - track_position
         track_end = track_start + track_length
-        music_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album}
+        music_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album, 'art': LIVE_AUDIO_ART.decode()}
         after_play(artist, title, True, switching_device)
         return True
 
