@@ -1200,9 +1200,12 @@ def activate_main_window(selected_tab='tab_queue'):
         active_windows['main'] = True
         window_location = get_window_location('main')
         lb_tracks, selected_value = create_track_list()
-        if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
-            current_track = music_queue[0]
-            metadata = music_metadata[current_track]
+        if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
+            if playing_live:
+                metadata = music_metadata['LIVE']
+            else:
+                current_track = music_queue[0]
+                metadata = music_metadata[current_track]
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
             album_cover_data = metadata.get('album_cover_data', None)
             # album_cover_data = DEFAULT_IMG_DATA
@@ -1600,7 +1603,11 @@ def read_main_window():
         elif main_event == 'discord_rpc':
             with suppress(py_presence_errors):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
-                    title, artist = get_metadata_wrapped(music_queue[0])[:2]
+                    if playing_live:
+                        metadata = music_metadata['LIVE']
+                        title, artist = metadata['title'], metadata['artist']
+                    else:
+                        title, artist = get_metadata_wrapped(music_queue[0])[:2]
                     rich_presence.connect()
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
