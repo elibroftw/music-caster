@@ -85,8 +85,8 @@ with open('build_files/setup_script.iss', 'r+') as f:
 if args.versioning: sys.exit()
 if args.debug: update_spec_files(True)
 print('Installing dependencies...')
-subprocess.check_call('pip install --upgrade -r requirements.txt', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-subprocess.check_call('pip install build_files\PyAudio-0.2.11-cp38-cp38-win32.whl --force', stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
+subprocess.check_call('pip install build_files\PyAudio-0.2.11-cp38-cp38-win32.whl --force', stdout=subprocess.DEVNULL)
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
