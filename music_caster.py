@@ -1359,7 +1359,7 @@ def read_main_window():
     update_progress_bar_text, artist, title = False, '', 'Nothing Playing'
     with suppress(KeyError, IndexError):
         if playing_status in {'PAUSED', 'PLAYING'}:
-            metadata = music_metadata[music_queue[0]]
+            metadata = music_metadata['LIVE'] if playing_live else music_metadata[music_queue[0]]
             artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
