@@ -4,8 +4,7 @@ from pypresence import PyPresenceException
 
 VERSION = '4.60.3'
 UPDATE_MESSAGE = """
-[Feature] Registered Music Caster as a default audio player
-[UI] Better styling
+[Feature] Stream live system audio
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -26,6 +25,7 @@ from pathlib import Path
 import pprint
 from random import shuffle
 from shutil import copyfileobj, rmtree
+import subprocess
 import sys
 from threading import Thread
 import traceback
@@ -34,10 +34,11 @@ from urllib.parse import urlsplit
 import webbrowser  # takes 0.05 seconds
 import zipfile
 # 3rd party imports
-from flask import Flask, jsonify, render_template, request, redirect, send_file
+from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
 from mutagen.aac import AAC
 # from PIL import Image
 import PySimpleGUIWx as SgWx
+import pyaudio
 import wx
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
@@ -88,8 +89,8 @@ chromecasts, device_names = [], ['✓ Local device']
 music_directories, window_locations = [], {}
 music_queue, done_queue, next_queue = [], [], []
 mouse_hover = ''
-daemon_command = None
-playing_url = False
+daemon_command = ''
+playing_url = playing_live = False
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 # seconds but using time()
 playing_status = 'NOT PLAYING'
@@ -97,6 +98,7 @@ playing_status = 'NOT PLAYING'
 SHORTCUT_PATH = ''
 DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
+
 
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
@@ -127,9 +129,6 @@ def save_settings():
         with open(settings_file, 'w') as outfile:
             json.dump(settings, outfile, indent=4)
         settings_file_in_use = False
-
-
-def do_nothing(): pass
 
 
 def refresh_folders():
@@ -171,9 +170,9 @@ def change_settings(settings_key, new_value):
                 main_window['repeat'].Update(image_data=repeat_img)
                 main_window['repeat'].SetTooltip(new_tooltip)
             if settings['notifications']:
-                if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off')
-                elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One')
-                else: tray.ShowMessage('Music Caster', 'Repeat set to All')
+                if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off', time=5000)
+                elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One', time=5000)
+                else: tray.ShowMessage('Music Caster', 'Repeat set to All', time=5000)
     return new_value
 
 
@@ -230,7 +229,7 @@ def handle_exception(exception, restart_program=False):
         requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     if restart_program:
         with suppress(NameError):
-            tray.ShowMessage('Music Caster Error', 'An error has occurred, restarting now')
+            tray.ShowMessage('Music Caster', 'An error occurred, restarting now', time=5000)
             time.sleep(5)
         with suppress(Exception):
             stop()
@@ -356,6 +355,11 @@ def load_settings():  # up to 0.4 seconds
     settings_last_modified = os.path.getmtime(settings_file)
 
 
+@app.errorhandler(404)
+def page_not_found(_):
+    return redirect('/')
+
+
 # use socket io?
 @app.route('/', methods=['GET', 'POST'])
 def index():  # web GUI
@@ -391,7 +395,7 @@ def index():  # web GUI
     if playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError):
             metadata = music_metadata[music_queue[0]]
-    art = 'data:image/png;base64,' + metadata.get('art', str(DEFAULT_IMG_DATA)[2:-1])
+    art = 'data:image/png;base64,' + metadata.get('art', DEFAULT_IMG_DATA.decode())
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
@@ -493,9 +497,82 @@ def return_all_files():
     return html_resp + '</ul>'
 
 
-@app.errorhandler(404)
-def page_not_found(_):
-    return redirect('/')
+def gen_header(sample_rate, bits_per_sample, channels):
+    data_size = 2000 * 10 ** 6
+    o = bytes('RIFF', 'ascii')  # 4 bytes Marks file as RIFF
+    o += (data_size + 36).to_bytes(4, 'little')  # (4 bytes) File size in bytes excluding this and RIFF marker
+    o += bytes('WAVE', 'ascii')  # 4 bytes File type
+    o += bytes('fmt ', 'ascii')  # 4 bytes Format Chunk Marker
+    o += (16).to_bytes(4, 'little')  # 4 bytes Length of above format data
+    o += (1).to_bytes(2, 'little')  # 2 bytes Format type (1 - PCM)
+    o += channels.to_bytes(2, 'little')  # 2 bytes
+    o += sample_rate.to_bytes(4, 'little')  # 4 bytes
+    o += (sample_rate * channels * bits_per_sample // 8).to_bytes(4, 'little')  # 4 bytes
+    o += (channels * bits_per_sample // 8).to_bytes(2, 'little')  # 2 bytes
+    o += bits_per_sample.to_bytes(2, 'little')  # 2 bytes
+    o += bytes('data', 'ascii')  # 4 bytes Data Chunk Marker
+    o += data_size.to_bytes(4, 'little')  # 4 bytes Data size in bytes
+    return o
+
+
+@app.route('/live/')
+def get_live_audio():
+    # send system live audio to chromecast
+    # TODO: quality option: 1 for WAV, 2 for MP3 320, 3 for MP3 192, 4 for MP3 128
+
+    def get_stereo_mix_index(audio):
+        for i in range(audio.get_device_count()):
+            device_info = audio.get_device_info_by_index(i)
+            if device_info['name'] == 'Stereo Mix (Realtek(R) Audio)' and device_info['hostApi'] == 0:
+                return device_info['index']
+        return -1
+
+    def system_sound():
+        global daemon_command
+        # live system sound generator
+        _format = pyaudio.paInt16
+        sample_rate = 44100
+        chunk = 1024
+        audio = pyaudio.PyAudio()
+        bits_per_sample = 16
+        channels = 2
+        wav_header = gen_header(sample_rate, bits_per_sample, channels)
+        # get stereo mix device
+        stereo_mix_index = get_stereo_mix_index(audio)
+        if stereo_mix_index == -1:
+
+            subprocess.call('control mmsys.cpl,,1')
+            daemon_command = 'Show Notification: Music Caster, ERROR: Stereo Mix is not enabled'
+        retries = 6  # 3 minutes to enable stereo mix
+        while stereo_mix_index == -1 and retries > 0:
+            print(f'Stereo Mix device not found retries = {retries}')
+            time.sleep(30)
+            audio = pyaudio.PyAudio()
+            stereo_mix_index = get_stereo_mix_index(audio)
+            retries -= 1
+        if stereo_mix_index != -1:
+            stream = audio.open(format=_format, channels=channels,
+                                rate=sample_rate, input=True, input_device_index=stereo_mix_index,
+                                frames_per_buffer=chunk)
+            first_run = True
+            print('sending data')
+            while True:
+                if first_run:
+                    data = wav_header + stream.read(chunk)
+                    first_run = False
+                else:
+                    data = stream.read(chunk)
+                yield data
+        else:
+            yield 'ERROR'
+
+    return Response(system_sound())
+
+
+@app.route('/live/thumbnail.png')
+def live_thumbnail():
+    return send_file(io.BytesIO(base64.b64decode(LIVE_AUDIO_ART)), attachment_filename=f'thumbnail.png',
+                     mimetype='image/png', as_attachment=True, cache_timeout=360000, conditional=True)
 
 
 @cmp_to_key
@@ -632,6 +709,44 @@ def after_play(artists: str, title, autoplay, switching_device):
                                  large_text='Listening', small_image='logo', small_text='Music Caster')
 
 
+def stream_live_audio(switching_device=False):
+    global track_position, track_start, track_end, track_length, playing_live
+    if cast is None:
+        tray.ShowMessage('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
+        return False
+    else:
+        stop()
+        # TODO: mute computer audio
+        ipv4_address = get_ipv4()
+        url = f'http://{ipv4_address}:{PORT}/live/'
+        _volume = 0 if settings['muted'] else settings['volume'] / 100
+        cast.wait(timeout=WAIT_TIMEOUT)
+        cast.set_volume(_volume)
+        mc = cast.media_controller
+        if mc.status.player_is_playing or mc.status.player_is_paused:
+            mc.stop()
+            mc.block_until_active(WAIT_TIMEOUT)
+        title = 'Live Audio'
+        artist = platform.node()
+        album = 'Music Caster'
+        metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+        # audio/x-wav;codec=pcm
+        print(url)
+        mc.play_media(f'{url}', f' audio/x-wav;codec=pcm', metadata=metadata, thumb=f'{url}thumbnail.png')
+        mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
+        start_time = time.time()
+        while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+            print('waiting for chromecast to start playing')
+            time.sleep(0.2)
+            if time.time() - start_time > 5: break  # show error?
+        track_length = 108800  # 3 hour default
+        track_position = 0
+        track_start = time.time() - track_position
+        track_end = track_start + track_length
+        after_play(artist, title, True, switching_device)
+        return True
+
+
 def play_url_generic(src, ext, title, artist, album, length, position=0,
                      thumbnail=None, autoplay=True, switching_device=False):
     global track_position, track_start, track_end, playing_url, track_length, progress_bar_last_update
@@ -663,7 +778,7 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
 def play_url(url, position=0, autoplay=True, switching_device=False):
     global cast, playing_url, playing_status, track_length, track_start, track_end, cast_last_checked
     if cast is None:
-        tray.ShowMessage('Music Caster', 'ERROR: You are not connected to a cast device')
+        tray.ShowMessage('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
         return False
     elif url.startswith('http') and valid_music_file(url):  # source url e.g. http://...radio.mp3
         ext = url[::-1].split('.', 1)[0][::-1]
@@ -671,7 +786,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
         metadata = {'title': title, 'artist': artist, 'length': 0, 'album': album}
         music_metadata[url] = metadata
-        track_length = 3600  # 1 hour default
+        track_length = 108000  # 3 hour default
         return play_url_generic(url, ext, title, artist, album, track_length, position=position,
                                 thumbnail=None, autoplay=autoplay, switching_device=switching_device)
     elif 'soundcloud.com' in url:
@@ -699,7 +814,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                                     metadata['length'], position=position, thumbnail=metadata['art'],
                                     autoplay=autoplay, switching_device=switching_device)
         except StopIteration as _e:
-            tray.ShowMessage('Music Caster ERROR', 'Could not play URL. Keep MC updated')
+            tray.ShowMessage('Music Caster', 'ERROR: Could not play URL. Is MC up to date?', time=5000)
             if not IS_FROZEN: raise _e
     return False
 
@@ -774,7 +889,7 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             progress_bar_last_update = time.time()
         except (pychromecast.error.NotConnected, OSError) as _e:
             if _e == OSError: handle_exception(_e)
-            tray.ShowMessage('Music Caster Error', 'Could not connect to Chromecast device')
+            tray.ShowMessage('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
             with suppress(pychromecast.error.UnsupportedNamespace): stop()
             return
     track_position = position
@@ -791,7 +906,8 @@ def play_all(starting_files: list = None, queue_only=False):
     starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
     if compiling_tracks_thread is not None and compiling_tracks_thread.is_alive():
         if settings['notifications']:
-            tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built')
+            tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built',
+                             time=5000)
     if starting_files: music_queue.extend(compile_all_tracks(False, starting_files).values())
     else: music_queue.extend(all_tracks.values())
     if music_queue: shuffle(music_queue)
@@ -1137,7 +1253,7 @@ def activate_play_url(combo_value='Play Immediately'):
 def cancel_timer():
     global timer
     timer = 0
-    if settings['notifications']: tray.ShowMessage('Music Caster', 'Timer stopped')
+    if settings['notifications']: tray.ShowMessage('Music Caster', 'Timer stopped', time=5000)
 
 
 def locate_file():
@@ -1164,6 +1280,12 @@ def play_playlist(playlist_name):
         if music_queue:
             if settings['shuffle_playlists']: shuffle(music_queue)
             play(music_queue[0])
+
+
+def other_daemon_actions(command_name):
+    if command_name.startswith('Show Notification: '):
+        title, msg = command_name[19:].split(', ', 1)
+        tray.ShowMessage(title, msg, time=5000)
 
 
 def other_tray_actions(_tray_item):
@@ -1527,7 +1649,7 @@ def read_main_window():
                 main_window.Read(10)
                 main_window['timer_error'].Update(text_color='red')
                 main_window.Read(10)
-    elif main_event in {'shut_off', 'hibernate', 'sleep', 'do_nothing'}:
+    elif main_event in {'shut_off', 'hibernate', 'sleep', 'other_daemon_actions'}:
         change_settings('timer_hibernate_computer', main_values['hibernate'])
         change_settings('timer_sleep_computer', main_values['sleep'])
         change_settings('timer_shut_off_computer', main_values['shut_off'])
@@ -1763,7 +1885,7 @@ def auto_update():
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
-                    temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}')
+                    temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}', time=5000)
                     temp_tray.Update(tooltip=f'Downloading update v{latest_ver}')
                     download(setup_dl_link, 'MC_Installer.exe')
                     temp_tray.Hide()
@@ -1838,20 +1960,20 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                       ['Live System Audio', 'URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
                         'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
-                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
-                        'Play File Next', 'Play All'], 'Exit']]
+                       ['Live System Audio', 'URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                        'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
-                       ['Play URL', 'Folders', tray_folders, 'Playlists', tray_playlists, 'Play File(s)',
-                        'Play File Next', 'Play All'], 'Exit']]
+                       ['Live System Audio', 'URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
+                        'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     IPV4 = get_ipv4()
     QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
@@ -1865,11 +1987,11 @@ try:
         compile_all_tracks()
     if settings['notifications']:
         if show_pygame_error:
-            tray.ShowMessage('Music Caster Error', 'No local audio device found')
+            tray.ShowMessage('Music Caster', 'ERROR: No local audio device found', time=5000)
         if settings['update_message'] != UPDATE_MESSAGE:
-            tray.ShowMessage('Music Caster Updated', UPDATE_MESSAGE)
+            tray.ShowMessage('Music Caster Updated', UPDATE_MESSAGE, time=5000)
     if update_available:
-        tray.ShowMessage('Music Caster', update_available)
+        tray.ShowMessage('Music Caster', update_available, time=5000)
     change_settings('update_message', UPDATE_MESSAGE)
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
     if temp.count(True) > 1:  # Only one of the below can be True
@@ -1903,7 +2025,8 @@ try:
         # PL should be an if statement
         'Set Timer': lambda: activate_main_window('tab_timer'),
         'Cancel Timer': cancel_timer,
-        'Play URL': activate_play_url,
+        'Live System Audio': stream_live_audio,
+        'URL': activate_play_url,
         'Play File(s)': lambda: Thread(target=play_file).start(),
         'Play All': play_all,
         'Play File Next': lambda: Thread(target=play_next).start(),
@@ -1918,12 +2041,13 @@ try:
         'Repeat Off': lambda: change_settings('repeat', None),
         'Locate File': locate_file,
         'Exit': exit_program,
+        '': lambda: None,
     }
     while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
-        if daemon_command is not None:
-            tray_actions.get(daemon_command, do_nothing)()
-            daemon_command = None
+        try: tray_actions[daemon_command]()
+        except KeyError: other_daemon_actions(daemon_command)
+        daemon_command = ''
         tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         if active_windows['main']: read_main_window()
         if active_windows['playlist_selector']: read_playlist_selector_window()

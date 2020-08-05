@@ -292,7 +292,7 @@ def create_timer(settings, timer):
                   text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
         [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep, key='sleep',
                   text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
-        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='do_nothing',
+        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='other_daemon_actions',
                   text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
         [Sg.Text('Enter minutes or HH:MM', tooltip='Press enter once done', font=FONT_NORMAL),
          Sg.Input(key='minutes', font=FONT_NORMAL, size=(11, 1)),
