@@ -25,7 +25,6 @@ from pathlib import Path
 import pprint
 from random import shuffle
 from shutil import copyfileobj, rmtree
-import subprocess
 import sys
 from threading import Thread
 import traceback
@@ -120,6 +119,7 @@ app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = True
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+live_lag = 0
 
 
 def save_settings():
@@ -520,52 +520,50 @@ def get_live_audio():
     # send system live audio to chromecast
     # TODO: quality option: 1 for WAV, 2 for MP3 320, 3 for MP3 192, 4 for MP3 128
 
-    def get_stereo_mix_index(audio):
-        for i in range(audio.get_device_count()):
-            device_info = audio.get_device_info_by_index(i)
-            if device_info['name'] == 'Stereo Mix (Realtek(R) Audio)' and device_info['hostApi'] == 0:
-                return device_info['index']
-        return -1
+    def get_output_device(pa):
+        for i in range(pa.get_device_count()):
+            device_info = pa.get_device_info_by_index(i)
+            host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
+            if (host_api_info['name'] == 'Windows WASAPI' and
+                device_info['name'].count('Steam') == 0 and
+                device_info['maxOutputChannels'] > 0):
+                print(device_info)
+                return device_info
+        raise RuntimeError('No Output Device Found')
 
     def system_sound():
-        global daemon_command
+        global daemon_command, live_lag
         # live system sound generator
+        p = pyaudio.PyAudio()
         _format = pyaudio.paInt16
-        sample_rate = 44100
         chunk = 1024
-        audio = pyaudio.PyAudio()
         bits_per_sample = 16
-        channels = 2
+        # get output device
+        device_info = get_output_device(p)
+        sample_rate = int(device_info['defaultSampleRate'])
+        channels = device_info['maxOutputChannels']
+        if channels > 2: channels = 2
         wav_header = gen_header(sample_rate, bits_per_sample, channels)
-        # get stereo mix device
-        stereo_mix_index = get_stereo_mix_index(audio)
-        if stereo_mix_index == -1:
-
-            subprocess.call('control mmsys.cpl,,1')
-            daemon_command = 'Show Notification: Music Caster, ERROR: Stereo Mix is not enabled'
-        retries = 6  # 3 minutes to enable stereo mix
-        while stereo_mix_index == -1 and retries > 0:
-            print(f'Stereo Mix device not found retries = {retries}')
-            time.sleep(30)
-            audio = pyaudio.PyAudio()
-            stereo_mix_index = get_stereo_mix_index(audio)
-            retries -= 1
-        if stereo_mix_index != -1:
-            stream = audio.open(format=_format, channels=channels,
-                                rate=sample_rate, input=True, input_device_index=stereo_mix_index,
-                                frames_per_buffer=chunk)
-            first_run = True
-            print('sending data')
-            while True:
-                if first_run:
-                    data = wav_header + stream.read(chunk)
-                    first_run = False
-                else:
-                    data = stream.read(chunk)
-                yield data
+        stream = p.open(format=_format, channels=channels, as_loopback=True,
+                        rate=sample_rate, input=True, input_device_index=device_info['index'],
+                        frames_per_buffer=chunk)
+        print('sending data')
+        first_run = True
+        while True:
+            # TODO: timeout the stream.read() and return empty data?
+            if first_run:
+                data = wav_header + stream.read(chunk)
+                first_run = False
+            else:
+                if live_lag:
+                    print('live lag:', live_lag)
+                    for _ in range(int(sample_rate / chunk * live_lag * 0.9)):
+                        stream.read(chunk)
+                    live_lag = 0
+                data = stream.read(chunk)
+            yield data
         else:
             yield 'ERROR'
-
     return Response(system_sound())
 
 
@@ -710,7 +708,7 @@ def after_play(artists: str, title, autoplay, switching_device):
 
 
 def stream_live_audio(switching_device=False):
-    global track_position, track_start, track_end, track_length, playing_live
+    global track_position, track_start, track_end, track_length, playing_live, live_lag
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
         return False
@@ -732,17 +730,21 @@ def stream_live_audio(switching_device=False):
         metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
         # audio/x-wav;codec=pcm
         print(url)
-        mc.play_media(f'{url}', f' audio/x-wav;codec=pcm', metadata=metadata, thumb=f'{url}thumbnail.png')
+        mc.play_media(f'{url}', 'audio/x-wav;codec=pcm', metadata=metadata, thumb=f'{url}thumbnail.png')
         mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
         start_time = time.time()
         while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
             print('waiting for chromecast to start playing')
             time.sleep(0.2)
-            if time.time() - start_time > 5: break  # show error?
+            mc.update_status()
+        print(mc.status.player_state)
+        live_lag = time.time() - start_time
+        playing_live = True
         track_length = 108800  # 3 hour default
         track_position = 0
         track_start = time.time() - track_position
         track_end = track_start + track_length
+        music_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album}
         after_play(artist, title, True, switching_device)
         return True
 
@@ -1040,12 +1042,15 @@ def pause():
             while not mc.status.player_is_paused: time.sleep(0.1)
             track_position = mc.status.adjusted_current_time
         playing_status = 'PAUSED'
-        if music_queue:
-            _title, _artist = get_metadata_wrapped(music_queue[0])[:2]
-            if settings['discord_rpc']:
-                with suppress(py_presence_errors):
-                    rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
-                                         large_text='Paused', small_image='logo', small_text='Music Caster')
+        if playing_live:
+            metadata = music_metadata['LIVE']
+            title, artist = metadata['title'], metadata['artist']
+        elif music_queue:
+            title, artist = get_metadata_wrapped(music_queue[0])[:2]
+        if settings['discord_rpc'] and (music_queue or playing_live):
+            with suppress(py_presence_errors):
+                rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
+                                        large_text='Paused', small_image='logo', small_text='Music Caster')
     except UnsupportedNamespace:
         stop()
 
@@ -1065,18 +1070,23 @@ def resume():
         track_start = time.time() - track_position
         track_end = track_start + track_length
         playing_status = 'PLAYING'
-        _title, _artist = get_metadata_wrapped(music_queue[0])[:2]
+        if playing_live:
+            metadata = music_metadata['LIVE']
+            title, artist = metadata['title'], metadata['artist']
+        else:
+            title, artist = get_metadata_wrapped(music_queue[0])[:2]
         if settings['discord_rpc']:
             with suppress(py_presence_errors):
-                rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
+                rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                      large_text='Playing', small_image='logo', small_text='Music Caster')
     except (UnsupportedNamespace, NotConnected):
-        play(music_queue[0], position=track_position)
+        if music_queue: play(music_queue[0], position=track_position)
 
 
 def stop():
-    global playing_status, cast, track_position
+    global playing_status, cast, track_position, playing_live
     playing_status = 'NOT PLAYING'
+    playing_live = False
     if settings['discord_rpc']:
         with suppress(py_presence_errors):
             rich_presence.clear()
@@ -1094,7 +1104,7 @@ def next_track(from_timeout=False):
     global playing_status
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
         playing_status = 'NOT PLAYING'
-    elif playing_status != 'NOT PLAYING' and next_queue or music_queue:
+    elif playing_status != 'NOT PLAYING' and playing_live and (next_queue or music_queue):
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
             if music_queue: done_queue.append(music_queue.pop(0))
@@ -1108,7 +1118,7 @@ def next_track(from_timeout=False):
 
 def prev_track():
     global playing_status
-    if playing_status != 'NOT PLAYING':
+    if playing_status != 'NOT PLAYING' and not playing_live:
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
         else:
             if done_queue:
@@ -1930,8 +1940,6 @@ load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)
 init_ydl_thread.start()
 audio_player = AudioPlayer()
-vlc_instance = vlc.Instance()
-music_player = vlc_instance.media_player_new()
 auto_update()
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
