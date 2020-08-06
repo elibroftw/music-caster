@@ -1,6 +1,6 @@
 from pypresence import PyPresenceException
 
-VERSION = '4.60.5'
+VERSION = '4.60.6'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
 [UI] Better styling
@@ -532,7 +532,6 @@ def start_chromecast_discovery():
     global stop_discovery
     if stop_discovery is not None: stop_discovery()
     chromecasts.clear()
-    # stop_discovery = find_chromecasts(callback=chromecast_callback)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     time.sleep(10.1)
     stop_discovery()
@@ -1895,7 +1894,7 @@ try:
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
         'Refresh Library': compile_all_tracks,
-        'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True),
+        'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True).start(),
         # isdigit should be an if statement
         'Settings': lambda: activate_main_window('tab_settings'),
         'Create/Edit a Playlist': create_edit_playlists,

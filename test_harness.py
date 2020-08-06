@@ -5,7 +5,9 @@ from pathlib import Path
 from contextlib import suppress
 import mutagen.id3
 from helpers import get_metadata
+from pychromecast import get_chromecasts
 
+print(get_chromecasts())
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(0), time.time() - timer)
@@ -179,7 +181,7 @@ for main_window in {main_window1}:
 # Playlists GUI
 
 pl_editor_layout = create_playlist_editor(settings, 'test')
-pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, background_color=bg, return_keyboard_events=True)
+pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, return_keyboard_events=True)
 
 pl_editor_window.Finalize()
 pl_editor_window.TKroot.focus_force()

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.60.6
+- [Fix] Refresh Devices
+
 4.60.5
 - [Fix] Maxing volume on local device
 
