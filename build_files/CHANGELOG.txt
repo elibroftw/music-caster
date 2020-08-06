@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.60.5
+- [Fix] Maxing volume on local device
+
 4.60.4
 - [Fix] Main window queuing
 

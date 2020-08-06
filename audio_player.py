@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.0.0
+AudioPlayer v2.0.1
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -69,13 +69,13 @@ class AudioPlayer:
             return position
         return 0
 
-    def set_volume(self, volume=1.0):
+    def set_volume(self, volume):
         """
         Sets the output volume and not the program volume
         :param volume: float[0, 1]
         Capped at 1 to prevent distortion
         """
-        assert 0 <= volume <= 1
+        volume = max(min(1.0, volume), 0.0)  # clamp volume
         # db_change = (1 - volume) * 55 if volume else 100
         self.player.audio_set_volume(int(volume * 100))
 

@@ -1,6 +1,6 @@
 from pypresence import PyPresenceException
 
-VERSION = '4.60.4'
+VERSION = '4.60.5'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
 [UI] Better styling
@@ -703,39 +703,39 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
     return False
 
 
-def play(file_path, position=0, autoplay=True, switching_device=False):
+def play(uri, position=0, autoplay=True, switching_device=False):
     global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update
-    assert file_path == music_queue[0]
-    while not os.path.exists(file_path):
-        if play_url(file_path, position=position, autoplay=autoplay, switching_device=switching_device): return
-        music_queue.remove(file_path)
-        if music_queue: file_path = music_queue[0]
+    assert uri == music_queue[0]
+    while not os.path.exists(uri):
+        if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
+        music_queue.remove(uri)
+        if music_queue: uri = music_queue[0]
         else: return
         position = 0
     # named_tuple
-    if file_path.lower().endswith('.wav'):
-        a = WavInfoReader(file_path)
+    if uri.lower().endswith('.wav'):
+        a = WavInfoReader(uri)
         sample_rate = a.fmt.sample_rate
         track_length = a.data.frame_count / sample_rate
-    elif file_path.lower().endswith('.wma'):
+    elif uri.lower().endswith('.wma'):
         try:
-            audio_info = mutagen.File(file_path).info
+            audio_info = mutagen.File(uri).info
             track_length, sample_rate = audio_info.length, audio_info.sample_rate
         except AttributeError:
-            audio_info = AAC(file_path).info
+            audio_info = AAC(uri).info
             track_length, sample_rate = audio_info.length, audio_info.sample_rate
-    elif file_path.lower().endswith('.opus'):
-        audio_info = mutagen.File(file_path).info
+    elif uri.lower().endswith('.opus'):
+        audio_info = mutagen.File(uri).info
         track_length, sample_rate = audio_info.length, 48000
     else:
-        audio_info = mutagen.File(file_path).info
+        audio_info = mutagen.File(uri).info
         track_length, sample_rate = audio_info.length, audio_info.sample_rate
-    _title, _artist, album = get_metadata_wrapped(file_path)
+    _title, _artist, album = get_metadata_wrapped(uri)
     # thumb, album_cover_data = get_album_cover(file_path)
     # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': track_length,
     #                               'album_cover_data': album_cover_data}
     pict = mime = None
-    tags = mutagen.File(file_path)
+    tags = mutagen.File(uri)
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
@@ -743,16 +743,16 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
                 mime = tags[tag].mime
                 break
     if pict:
-        music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length,
-                                     'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime}
-    else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length}
+        music_metadata[uri] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length,
+                               'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime}
+    else: music_metadata[uri] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length}
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
-        audio_player.play(file_path, volume=_volume, start_playing=autoplay, start_from=position)
+        audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
     else:
         try:
             ipv4_address = get_ipv4()
-            url_args = urllib.parse.urlencode({'path': file_path})
+            url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{ipv4_address}:{PORT}/file?{url_args}'
             cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
@@ -761,7 +761,7 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
                 mc.stop()
                 mc.block_until_active(WAIT_TIMEOUT)
             metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
-            ext = file_path.split('.')[-1]
+            ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
             mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
