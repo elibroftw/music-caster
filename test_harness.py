@@ -1,11 +1,11 @@
 from helpers import *
 import base64
 from mutagen.easyid3 import EasyID3
+from pathlib import Path
 from contextlib import suppress
 import mutagen.id3
 from helpers import get_metadata
 
-print(find_chromecasts())
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(0), time.time() - timer)
@@ -117,33 +117,28 @@ album_cover_data = metadata.get('art', None)
 done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]
 music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
-settings = {  # default settings
-    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': True,
+home_music_dir = f'{Path.home()}/Music'
+settings = {
+    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
-    'default_file_handler': True, 'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
-    'accent_color': '#00bfff', 'text_color': '#d7d7d7', 'button_text_color': '#000000', 'background_color': '#121212',
-    'flip_main_window': False, 'timer_shut_off_computer': False, 'timer_hibernate_computer': False,
-    'timer_sleep_computer': False, 'music_directories': ['C:/test'], 'playlists': {'test': SAMPLE_MUSIC_FILES},
+    'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
+    'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+    'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
+    'music_directories': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
     'queues': {'done': [], 'music': [], 'next': []}}
 
-Sg.SetOptions(background_color=theme['background'],
-                   text_element_background_color=theme['background'],
-                   element_background_color=theme['background'],
-                   text_color=theme['text'],
-                   input_text_color=theme['text'],
-                   input_elements_background_color=theme['background'],
-                   button_color=(theme['background'], theme['accent']),
-                   progress_meter_color=theme['accent'],
-                   border_width=1,
-                   slider_border_width=1,
-                   progress_meter_border_depth=0,
-                   scrollbar_color=theme['background'],
-                   element_text_color=theme['text'])
+theme = settings['theme']
+Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
+                          background_color=theme['background'], text_element_background_color=theme['background'],
+                          element_background_color=theme['background'], scrollbar_color=theme['background'],
+                          input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
+                          button_color=(theme['background'], theme['accent']),
+                          border_width=1, slider_border_width=1, progress_meter_border_depth=0)
 
 play_url_window = Sg.Window('Play URL', create_play_url_window(), finalize=True)
 
-play_url_window.Read()
+play_url_window.Read(timeout=8000)  # 10 second timeout
 play_url_window.Close()
 
 
@@ -153,8 +148,9 @@ really_long_tile = 'extremely long convoluted title that tests max length'
 other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE, time.time() + 999,
                                 really_long_tile, 'Martin')
 
-main_window1 = Sg.Window('Music Caster - Main Window V2 Test', other_main_layout, background_color=bg, icon=WINDOW_ICON,
-                         return_keyboard_events=True, use_default_focus=False)
+main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout,
+                                icon=WINDOW_ICON, return_keyboard_events=True,
+                                use_default_focus=False, location=(None, None))
 for main_window in {main_window1}:
     main_window.Finalize()
     main_window.TKroot.focus_force()
@@ -175,8 +171,6 @@ for main_window in {main_window1}:
             repeat_img, new_tooltip = get_repeat_img_et_tooltip(repeat_setting)
             main_window['repeat'].Update(image_data=repeat_img)
             main_window['repeat'].SetTooltip(new_tooltip)
-
-# Sg.Window('Main GUI', playing_layout)
 
 # Settings GUI
 
