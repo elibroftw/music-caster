@@ -1,8 +1,6 @@
-from json import JSONDecodeError
-
 from pypresence import PyPresenceException
 
-VERSION = '4.60.3'
+VERSION = '4.60.4'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
 [UI] Better styling
@@ -21,6 +19,7 @@ from functools import cmp_to_key
 from glob import glob
 import io
 import json
+from json import JSONDecodeError
 import logging
 from pathlib import Path
 import pprint
@@ -1333,7 +1332,7 @@ def read_main_window():
                 done_queue.append(music_queue.pop(0))
                 if next_queue:
                     music_queue.insert(0, next_queue.pop(0))
-        play(music_queue[0])
+        if music_queue: play(music_queue[0])
         updated_list = create_track_list()[0]
         dq_len = len(done_queue)
         main_window['queue'].Update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)

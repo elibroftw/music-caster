@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.60.4
+- [Fix] Main window queuing
+
 4.60.3
 - [Fix] Mute behaviour
 
