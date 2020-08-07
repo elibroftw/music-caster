@@ -735,11 +735,10 @@ def stream_live_audio(switching_device=False):
         mc.play_media(f'{url}', 'audio/x-wav;codec=pcm', metadata=metadata, thumb=f'{url}thumbnail.png')
         mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
         start_time = time.time()
-        while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+        while not mc.status.player_is_playing:
             print('waiting for chromecast to start playing')
             time.sleep(0.2)
             mc.update_status()
-        print(mc.status.player_state)
         live_lag = time.time() - start_time
         playing_live = True
         track_length = 108800  # 3 hour default
