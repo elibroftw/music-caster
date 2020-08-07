@@ -1,7 +1,3 @@
-from json import JSONDecodeError
-
-from pypresence import PyPresenceException
-
 VERSION = '4.60.3'
 UPDATE_MESSAGE = """
 [Feature] Stream live system audio
@@ -20,6 +16,7 @@ from functools import cmp_to_key
 from glob import glob
 import io
 import json
+from json import JSONDecodeError
 import logging
 from pathlib import Path
 import pprint
@@ -44,6 +41,7 @@ from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
 import pynput.keyboard
 import pypresence
+from pypresence import PyPresenceException
 import pythoncom
 import requests
 from wavinfo import WavInfoReader  # until mutagen supports .wav
