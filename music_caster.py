@@ -1203,16 +1203,17 @@ def activate_main_window(selected_tab='tab_queue'):
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
                 metadata = music_metadata['LIVE']
+                position, length = track_length - live_lag, track_length
             else:
                 current_track = music_queue[0]
                 metadata = music_metadata[current_track]
+                position, length = get_track_position(), music_metadata[music_queue[0]]['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
             album_cover_data = metadata.get('album_cover_data', None)
             # album_cover_data = DEFAULT_IMG_DATA
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
-            position, length = get_track_position(), music_metadata[music_queue[0]]['length']
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE,
                                           timer, title, artist, album_cover_data=album_cover_data,
                                           track_length=length, track_position=position)
