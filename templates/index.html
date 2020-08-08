@@ -70,7 +70,7 @@
             <div>
                 <select name="devices" id="devices" onchange="changeDevice()">
                 {% for device_name in devices %}
-                    {% if loop.index - 1 == device_index %}
+                    {% if loop.index0 == device_index %}
                     <option value="{{loop.index - 1}}" selected>{{ device_name }}</option>
                     {% else %}
                     <option value="{{loop.index - 1}}">{{ device_name }}</option>
