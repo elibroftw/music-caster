@@ -1,6 +1,6 @@
 from pypresence import PyPresenceException
 
-VERSION = '4.60.6'
+VERSION = '4.60.7'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
 [UI] Better styling
@@ -787,9 +787,8 @@ def play_all(starting_files: list = None, queue_only=False):
     done_queue.clear()
     if starting_files is None: starting_files = []
     starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
-    if compiling_tracks_thread is not None and compiling_tracks_thread.is_alive():
-        if settings['notifications']:
-            tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built')
+    if compiling_tracks_thread is not None and compiling_tracks_thread.is_alive() and settings['notifications']:
+        tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built')
     if starting_files: music_queue.extend(compile_all_tracks(False, starting_files).values())
     else: music_queue.extend(all_tracks.values())
     if music_queue: shuffle(music_queue)
@@ -894,15 +893,33 @@ def folder_action(action='Play Folder'):
     else: main_last_event = 'folder_action'
 
 
+@timing
+def internet_available(host='8.8.8.8', port=53, timeout=3):
+    """
+    Host: 8.8.8.8 (google-public-dns-a.google.com)
+    OpenPort: 53/tcp
+    Service: domain (DNS/TCP)
+    """
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error as ex:
+        print(ex)
+        return False
+
+
 def get_track_position():
     global tray, track_position, cast
     if cast is not None:
-        try:
-            mc = cast.media_controller
-            mc.update_status()
-            track_position = mc.status.adjusted_current_time
-        except (UnsupportedNamespace, NotConnected):
-            track_position = time.time() - track_start
+        if internet_available():
+            try:
+                mc = cast.media_controller
+                mc.update_status()
+                track_position = mc.status.adjusted_current_time
+            except (UnsupportedNamespace, NotConnected):
+                track_position = time.time() - track_start
+        else: stop()
     elif playing_status in {'PLAYING', 'PAUSED'}:
         track_position = audio_player.get_pos()
     return track_position
@@ -910,17 +927,17 @@ def get_track_position():
 
 def pause():
     global tray, playing_status, track_position
-    tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
     try:
         if cast is None:
             track_position = time.time() - track_start
             audio_player.pause()
         else:
-            mc = cast.media_controller
-            mc.update_status()
-            mc.pause()
-            while not mc.status.player_is_paused: time.sleep(0.1)
-            track_position = mc.status.adjusted_current_time
+            if internet_available():
+                mc = cast.media_controller
+                mc.update_status()
+                mc.pause()
+                while not mc.status.player_is_paused: time.sleep(0.1)
+                track_position = mc.status.adjusted_current_time
         playing_status = 'PAUSED'
         if music_queue:
             _title, _artist = get_metadata_wrapped(music_queue[0])[:2]
@@ -928,13 +945,12 @@ def pause():
                 with suppress(py_presence_errors):
                     rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
-    except UnsupportedNamespace:
-        stop()
+    except UnsupportedNamespace: stop()
+    tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
 
 
 def resume():
     global tray, playing_status, track_end, track_position, track_start
-    tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     try:
         if cast is None: audio_player.resume()
         else:
@@ -952,6 +968,7 @@ def resume():
             with suppress(py_presence_errors):
                 rich_presence.update(state=f'By: {_artist}', details=_title, large_image='default',
                                      large_text='Playing', small_image='logo', small_text='Music Caster')
+        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     except (UnsupportedNamespace, NotConnected):
         play(music_queue[0], position=track_position)
 
@@ -960,12 +977,12 @@ def stop():
     global playing_status, cast, track_position
     playing_status = 'NOT PLAYING'
     if settings['discord_rpc']:
-        with suppress(py_presence_errors):
-            rich_presence.clear()
-    if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
-        mc = cast.media_controller
-        mc.stop()
-        while mc.is_playing or mc.is_paused: time.sleep(0.1)
+        with suppress(py_presence_errors): rich_presence.clear()
+    if cast is not None:
+        if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
+            mc = cast.media_controller
+            mc.stop()
+            while mc.is_playing or mc.is_paused: time.sleep(0.1)
     else: audio_player.stop()
     track_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
@@ -991,7 +1008,8 @@ def next_track(from_timeout=False):
 def prev_track():
     global playing_status
     if playing_status != 'NOT PLAYING':
-        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
+        if cast is not None and (not internet_available() or cast.app_id != APP_MEDIA_RECEIVER):
+            playing_status = 'NOT PLAYING'
         else:
             if done_queue:
                 if settings['repeat']: change_settings('repeat', False)
@@ -1003,12 +1021,11 @@ def prev_track():
 
 def background_tasks():
     global cast, cast_last_checked, track_start, track_end, track_position, daemon_command, settings_last_modified
-
     while True:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # updates last modified
         refresh_tray()
-        if cast is not None and time.time() - cast_last_checked > 5:
+        if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
             with suppress(UnsupportedNamespace):
                 if cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller
@@ -1276,8 +1293,7 @@ def read_main_window():
             elif 0 < selected_file_index <= len(next_queue):
                 Popen(f'explorer /select,"{fix_path(next_queue[selected_file_index - 1])}"')
     elif main_event == 'pause/resume' or main_event == 'k' and main_values['tab_group'] != 'tab_timer':
-        try:
-            pause_resume[playing_status]()
+        try: pause_resume[playing_status]()
         except KeyError:
             if music_queue: play(music_queue[0])
             else: play_all()
@@ -1879,7 +1895,7 @@ try:
     Thread(target=background_tasks, daemon=True).start()
     Thread(target=start_chromecast_discovery, daemon=True).start()
     if args.path is not None:
-        if os.path.isfile(args.path): play(args.path)
+        if os.path.isfile(args.path): play_all([args.path])
         elif os.path.isdir(args.path): play_folder([args.path])
     elif settings['save_queue_sessions']:
         queues = settings['queues']

@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.0.1
+AudioPlayer v2.0.2
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -45,9 +45,9 @@ class AudioPlayer:
 
     def pause(self):
         if not self.__is_paused and self.is_playing():
-            self.__is_paused = True
             self.player.pause()
             while self.player.is_playing(): pass
+            self.__is_paused = True
 
     def resume(self):
         """
@@ -55,10 +55,10 @@ class AudioPlayer:
         Also used to start playing audio after load was used
         """
         if self.__is_paused:
-            self.__is_paused = False
             self.player.audio_set_volume(self.player.audio_get_volume())
             self.player.pause()
             while not self.player.is_playing(): pass
+            self.__is_paused = False
 
     def stop(self):
         """ Stop the playback of any audio and return the current position in seconds """
