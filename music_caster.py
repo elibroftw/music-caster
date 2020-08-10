@@ -259,12 +259,12 @@ def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
     return length, sample_rate
 
 
-def get_album_cover(file_path: str) -> tuple:  # mime, data / (None, None)
+def get_album_cover(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
-                return tags[tag].mime, tags[tag].data
+                return tags[tag].mime, base64.b64encode(tags[tag].data).decode('utf-8')
     return None, None
 
 
@@ -304,12 +304,9 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                     if title == 'Unknown Title' or artist == 'Unknown Artist':
                         sort_key = os.path.splitext(os.path.basename(file_path))[0]
                     else: sort_key = f'{title} - {artist}'
-                    mime, pict = get_album_cover(file_path)
                     length, sample_rate = get_length_and_sample_rate(file_path)
                     metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key,
                                 'length': length, 'sample_rate': sample_rate}
-                    if mime is not None:
-                        metadata.update({'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime})
                     if use_temp: all_tracks_temp[file_path] = metadata
                     else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
@@ -432,7 +429,10 @@ def index():  # web GUI
     metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
     if playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError): metadata = get_uri_info(music_queue[0])
-    art = 'data:image/png;base64,' + metadata.get('art', str(DEFAULT_IMG_DATA)[2:-1])
+    try: art = metadata['art']
+    except KeyError: art = get_album_cover(music_queue[0])[1] if music_queue else None
+    if art is None: art = DEFAULT_IMG_DATA.decode()
+    art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
@@ -513,11 +513,11 @@ def get_file():
         file_path = request.args['path']
         if os.path.isfile(file_path) and valid_music_file(file_path):
             if request.args.get('thumbnail_only', False):
-                metadata = get_uri_info(file_path)
-                img_data = base64.b64decode(metadata.get('art', DEFAULT_IMG_DATA))
-                mime_type = metadata.get('mime_type', 'image/png')
+                mime_type, img_data = get_album_cover(file_path)
+                if mime_type is None: mime_type, img_data = 'image/png', DEFAULT_IMG_DATA
+                else: img_data = base64.b64decode(img_data)
                 ext = mime_type.split('/')[1]
-                return send_file(io.BytesIO(img_data), attachment_filename=f'thumbnail.{ext}',
+                return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
                                  mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
             return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
     return '401'
@@ -764,9 +764,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     except KeyError:  # not in all_track so add to all tracks
         track_length, sample_rate = get_length_and_sample_rate(uri)
         title, artist, album = get_metadata_wrapped(uri)
-        mime, pict = get_album_cover(uri)
         all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
-        if pict: all_tracks[uri].update({'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime})
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
@@ -1111,7 +1109,7 @@ def activate_main_window(selected_tab='tab_queue'):
         if playing_status in {'PAUSED', 'PLAYING'} and music_queue:
             metadata = get_uri_info(music_queue[0])
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
-            album_cover_data = metadata.get('art', DEFAULT_IMG_DATA)
+            album_cover_data = get_album_cover(music_queue[0])[1]
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
