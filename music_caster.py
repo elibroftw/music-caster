@@ -1,6 +1,10 @@
-VERSION = '4.60.3'
+from pypresence import PyPresenceException
+
+VERSION = '4.60.8'
 UPDATE_MESSAGE = """
-[Feature] Stream live system audio
+[Feature] Registered Music Caster as a default audio player
+[UI] Better styling
+[Optimization] Reduced memory footprint + better file indexing
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -13,7 +17,7 @@ from datetime import datetime, timedelta
 # noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
 from functools import cmp_to_key
-from glob import glob
+from glob import iglob
 import io
 import json
 from json import JSONDecodeError
@@ -78,7 +82,7 @@ py_presence_errors = (AttributeError, RuntimeError, PyPresenceException, JSONDec
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 stop_discovery = None  # function
-playlists, all_tracks, music_metadata = {}, {}, {}
+playlists, all_tracks, url_metadata = {}, {}, {}
 # playlist_name: [], formatted_name: file path, file: {artist: str, title: str}
 tray_playlists, tray_folders = ['Create/Edit a Playlist'], []
 all_folders, pl_name, pl_files = ['PF: Select Folder(s)'], '', []
@@ -107,7 +111,7 @@ settings = {  # default settings
     'music_directories': [home_music_dir], 'playlists': {},
     'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
-compiling_tracks_thread: Thread = None
+indexing_tracks_thread: Thread = None
 # noinspection PyTypeChecker
 save_queue_thread: Thread = None
 # noinspection PyTypeChecker
@@ -235,52 +239,91 @@ def handle_exception(exception, restart_program=False):
         sys.exit()
 
 
+def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
+    if file_path.lower().endswith('.wav'):
+        a = WavInfoReader(file_path)
+        sample_rate = a.fmt.sample_rate
+        length = a.data.frame_count / sample_rate
+    elif file_path.lower().endswith('.wma'):
+        try:
+            audio_info = mutagen.File(file_path).info
+            length, sample_rate = audio_info.length, audio_info.sample_rate
+        except AttributeError:
+            audio_info = AAC(file_path).info
+            length, sample_rate = audio_info.length, audio_info.sample_rate
+    elif file_path.lower().endswith('.opus'):
+        audio_info = mutagen.File(file_path).info
+        length, sample_rate = audio_info.length, 48000
+    else:
+        audio_info = mutagen.File(file_path).info
+        length, sample_rate = audio_info.length, audio_info.sample_rate
+    return length, sample_rate
+
+
+def get_album_cover(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
+    tags = mutagen.File(file_path)
+    if tags is not None:
+        for tag in tags.keys():
+            if 'APIC' in tag:
+                return tags[tag].mime, base64.b64encode(tags[tag].data).decode('utf-8')
+    return None, None
+
+
 def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
     try:
         return get_metadata(file_path)
     except mutagen.MutagenError:
         try:
-            metadata = music_metadata[file_path]
+            metadata = all_tracks[file_path]
             return metadata['title'], metadata['artist'], metadata['album']
         except KeyError:
             return 'Unknown Title', 'Unknown Artist', 'Unknown Album'
 
 
-def compile_all_tracks(update_global=True, ignore_files: list = None):
+def get_uri_info(uri):
+    # get metadata from all_track and resort to url_metadata if not found in all_tracks
+    #   if file/url is not in all_track. e.g. links
+    uri = uri.replace('\\', '/')
+    try: return all_tracks[uri]
+    except KeyError: return url_metadata[uri]
+
+
+def index_all_tracks(update_global=True, ignore_files: list = None):
     # returns the music library dict or starts building the library
-    global compiling_tracks_thread, all_tracks
+    global indexing_tracks_thread, all_tracks
     if ignore_files is None: ignore_files = []
 
-    def _compile_tracks():
+    def _index_tracks():
         global all_tracks
         use_temp = not not all_tracks
         all_tracks_temp = {}
         for directory in music_directories:
-            for _file in glob(f'{directory}/**/*.*', recursive=True):
-                _file = _file.replace('\\', '/')
-                if _file not in ignore_files and valid_music_file(_file):
-                    title, artist, album = get_metadata_wrapped(_file)
-                    _file_info = f'{title} - {artist}'
-                    if _file not in music_metadata:
-                        music_metadata[_file] = {'title': title, 'artist': artist, 'album': album}
-                    if use_temp: all_tracks_temp[_file_info] = _file
-                    else: all_tracks[_file_info] = _file
+            for file_path in iglob(f'{directory}/**/*.*', recursive=True):
+                file_path = file_path.replace('\\', '/')
+                if file_path not in ignore_files and valid_music_file(file_path):
+                    title, artist, album = get_metadata_wrapped(file_path)
+                    if title == 'Unknown Title' or artist == 'Unknown Artist':
+                        sort_key = os.path.splitext(os.path.basename(file_path))[0]
+                    else: sort_key = f'{title} - {artist}'
+                    length, sample_rate = get_length_and_sample_rate(file_path)
+                    metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key,
+                                'length': length, 'sample_rate': sample_rate}
+                    if use_temp: all_tracks_temp[file_path] = metadata
+                    else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
 
     if not update_global:
         temp_tracks = all_tracks.copy()
         if ignore_files:
-            for ignore_file in ignore_files:
-                file_info = get_metadata_wrapped(ignore_file)[:2]
-                temp_tracks.pop(' - '.join(file_info), None)
+            for ignore_file in ignore_files: temp_tracks.pop(ignore_file, None)
         return temp_tracks
-    if compiling_tracks_thread is None:
-        compiling_tracks_thread = Thread(target=_compile_tracks, daemon=True)
-        compiling_tracks_thread.start()
-    elif not compiling_tracks_thread.is_alive():
-        compiling_tracks_thread = Thread(target=_compile_tracks, daemon=True)
-        compiling_tracks_thread.start()
+    if indexing_tracks_thread is None:
+        indexing_tracks_thread = Thread(target=_index_tracks, daemon=True)
+        indexing_tracks_thread.start()
+    elif not indexing_tracks_thread.is_alive():  # force reindex
+        indexing_tracks_thread = Thread(target=_index_tracks, daemon=True)
+        indexing_tracks_thread.start()
 
 
 def download(url, outfile):
@@ -334,7 +377,7 @@ def load_settings():  # up to 0.4 seconds
             window_locations = settings['window_locations']
             if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
             if _temp != music_directories or music_directories == [home_music_dir]:
-                compile_all_tracks()
+                index_all_tracks()
                 refresh_folders()
             del _temp
             DEFAULT_DIR = music_directories[0]
@@ -391,20 +434,22 @@ def index():  # web GUI
         return redirect('/')
     metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
     if playing_live:
-        metadata = music_metadata['LIVE']
+        metadata = url_metadata['LIVE']
     elif playing_status in {'PLAYING', 'PAUSED'}:
-        with suppress(KeyError, IndexError):
-            metadata = music_metadata[music_queue[0]]
-    art = 'data:image/png;base64,' + metadata.get('art', DEFAULT_IMG_DATA.decode())
+        with suppress(KeyError, IndexError): metadata = get_uri_info(music_queue[0])
+    try: art = metadata['art']
+    except KeyError: art = get_album_cover(music_queue[0])[1] if music_queue else None
+    if art is None: art = DEFAULT_IMG_DATA.decode()
+    art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
     # sort by the formatted title
     list_of_tracks = []
-    sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
-    for formatted_track, filename in sorted_tracks:
+    sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+    for filename, metadata in sorted_tracks:
         filename = urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'title': formatted_track, 'href': f'/play?{filename}'})
+        list_of_tracks.append({'title': metadata['sort_key'], 'href': f'/play?{filename}'})
     _queue = create_track_list()[0]
     device_index = 0
     for i, device_name in enumerate(device_names):
@@ -437,10 +482,10 @@ def play_file_page():
 
 @app.route('/metadata/')
 def send_metadata():
-    if music_queue:
-        file_path = music_queue[0]
-        metadata = music_metadata[file_path]
-    else:
+    try:
+        file_path = music_queue[0].replace('\\', '/')
+        metadata = all_tracks.get(file_path, url_metadata[file_path])
+    except (IndexError, KeyError):
         metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
     return jsonify(metadata)
 
@@ -476,10 +521,11 @@ def get_file():
         file_path = request.args['path']
         if os.path.isfile(file_path) and valid_music_file(file_path):
             if request.args.get('thumbnail_only', False):
-                img_data = base64.b64decode(music_metadata[file_path].get('art', DEFAULT_IMG_DATA))
-                mime_type = music_metadata[file_path].get('mime_type', 'image/png')
+                mime_type, img_data = get_album_cover(file_path)
+                if mime_type is None: mime_type, img_data = 'image/png', DEFAULT_IMG_DATA
+                else: img_data = base64.b64decode(img_data)
                 ext = mime_type.split('/')[1]
-                return send_file(io.BytesIO(img_data), attachment_filename=f'thumbnail.{ext}',
+                return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
                                  mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
             return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
     return '401'
@@ -489,11 +535,11 @@ def get_file():
 def return_all_files():
     device_name = platform.node()
     html_resp = f'<!DOCTYPE html><title>Music Caster Files</title><h1>Music Files on {device_name}</h1><ul>\n'
+    # sort by filename
     sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
-    for formatted_track, filename in sorted_tracks:
-        filename = urllib.parse.urlencode({'path': filename})
-        el = f'<li><a title="{formatted_track}" class="track" href="/file?{filename}">{formatted_track}</a></li>\n'
-        html_resp += el
+    for filename, metadata in sorted_tracks:
+        query = urllib.parse.urlencode({'path': filename})
+        html_resp += f'<li><a title="{filename}" class="track" href="/file?{query}">{filename}</a></li>\n'
     return html_resp + '</ul>'
 
 
@@ -608,7 +654,6 @@ def start_chromecast_discovery():
     global stop_discovery
     if stop_discovery is not None: stop_discovery()
     chromecasts.clear()
-    # stop_discovery = find_chromecasts(callback=chromecast_callback)
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     time.sleep(10.1)
     stop_discovery()
@@ -650,15 +695,15 @@ def change_device(selected_index):
             play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
 
 
-def format_file(path: str):
+def format_file(uri: str):
     try:
-        metadata = music_metadata[path]
+        metadata = get_uri_info(uri)
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
         return f'{artist} - {title}'
-    except KeyError:
-        if path.startswith('http'): return path
-        base = os.path.basename(path)
+    except KeyError:  # show something useful instead of Unknown - Unknown
+        if uri.startswith('http'): return uri
+        base = os.path.basename(uri)
         return os.path.splitext(base)[0]
 
 
@@ -669,8 +714,8 @@ def create_track_list():
     mq_start = len(next_queue) + 1
     selected_value = None
     # format: Index. Artists - Title
-    for i, path in enumerate(done_queue):
-        formatted_track = format_file(path)
+    for i, uri in enumerate(done_queue):
+        formatted_track = format_file(uri)
         formatted_item = f'-{dq_len - i}. {formatted_track}'
         tracks.append(formatted_item)
     if music_queue:
@@ -678,12 +723,12 @@ def create_track_list():
         formatted_item = f' {0}. {formatted_track}'
         tracks.append(formatted_item)
         selected_value = formatted_item
-    for i, path in enumerate(next_queue):
-        formatted_track = format_file(path)
+    for i, uri in enumerate(next_queue):
+        formatted_track = format_file(uri)
         formatted_item = f' {i + 1}. {formatted_track}'
         tracks.append(formatted_item)
-    for i, path in enumerate(music_queue[1:]):
-        formatted_track = format_file(path)
+    for i, uri in enumerate(music_queue[1:]):
+        formatted_track = format_file(uri)
         formatted_item = f' {i + mq_start}. {formatted_track}'
         tracks.append(formatted_item)
     return tracks, selected_value
@@ -785,31 +830,33 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
-        metadata = {'title': title, 'artist': artist, 'length': 0, 'album': album}
-        music_metadata[url] = metadata
+        metadata = {'title': title, 'artist': artist, 'length': 0, 'album': album, 'src': url}
+        url_metadata[url.replace('\\', '/')] = metadata
         track_length = 108000  # 3 hour default
         return play_url_generic(url, ext, title, artist, album, track_length, position=position,
                                 thumbnail=None, autoplay=autoplay, switching_device=switching_device)
     elif 'soundcloud.com' in url:
-        if url not in music_metadata:
+        if url not in url_metadata:
             r = ydl.extract_info(url, download=False)
-            music_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'Unknown Album',
-                                   'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
-        metadata = music_metadata[url]
+            url = url.replace('\\', '/')
+            url_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'Unknown Album',
+                                 'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
+        metadata = url_metadata[url]
         return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
                                 metadata['album'], metadata['length'], position=position,
                                 thumbnail=metadata['art'], autoplay=autoplay, switching_device=switching_device)
     elif parse_youtube_id(url) is not None:
         try:
-            if url not in music_metadata:
+            if url not in url_metadata:
                 r = ydl.extract_info(url, download=False)
                 formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                 formats.sort(key=lambda _f: _f['width'])
                 _f = formats[0]
-                music_metadata[url] = {'title': r['track'] or r['title'], 'artist': r['artist'] or r['uploader'],
+                url = url.replace('\\', '/')
+                url_metadata[url] = {'title': r['track'] or r['title'], 'artist': r['artist'] or r['uploader'],
                                        'album': r['album'], 'length': r['duration'], 'art': r['thumbnail'],
                                        'src': _f['url'], 'ext': _f['ext']}
-            metadata = music_metadata[url]
+            metadata = url_metadata[url]
             artist = metadata['artist']
             return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
                                     metadata['length'], position=position, thumbnail=metadata['art'],
@@ -820,56 +867,31 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
     return False
 
 
-def play(file_path, position=0, autoplay=True, switching_device=False):
+def play(uri, position=0, autoplay=True, switching_device=False):
     global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update
-    assert file_path == music_queue[0]
-    while not os.path.exists(file_path):
-        if play_url(file_path, position=position, autoplay=autoplay, switching_device=switching_device): return
-        music_queue.remove(file_path)
-        if music_queue: file_path = music_queue[0]
+    assert uri == music_queue[0]
+    while not os.path.exists(uri):
+        if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
+        music_queue.remove(uri)
+        if music_queue: uri = music_queue[0]
         else: return
         position = 0
-    # named_tuple
-    if file_path.lower().endswith('.wav'):
-        a = WavInfoReader(file_path)
-        sample_rate = a.fmt.sample_rate
-        track_length = a.data.frame_count / sample_rate
-    elif file_path.lower().endswith('.wma'):
-        try:
-            audio_info = mutagen.File(file_path).info
-            track_length, sample_rate = audio_info.length, audio_info.sample_rate
-        except AttributeError:
-            audio_info = AAC(file_path).info
-            track_length, sample_rate = audio_info.length, audio_info.sample_rate
-    elif file_path.lower().endswith('.opus'):
-        audio_info = mutagen.File(file_path).info
-        track_length, sample_rate = audio_info.length, 48000
-    else:
-        audio_info = mutagen.File(file_path).info
-        track_length, sample_rate = audio_info.length, audio_info.sample_rate
-    _title, _artist, album = get_metadata_wrapped(file_path)
-    # thumb, album_cover_data = get_album_cover(file_path)
-    # music_meta_data[file_path] = {'artist': artist, 'title': title, 'album': album, 'length': track_length,
-    #                               'album_cover_data': album_cover_data}
-    pict = mime = None
-    tags = mutagen.File(file_path)
-    if tags is not None:
-        for tag in tags.keys():
-            if 'APIC' in tag:
-                pict = tags[tag].data
-                mime = tags[tag].mime
-                break
-    if pict:
-        music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length,
-                                     'art': base64.b64encode(pict).decode('utf-8'), 'mime_type': mime}
-    else: music_metadata[file_path] = {'artist': _artist, 'title': _title, 'album': album, 'length': track_length}
+    uri = uri.replace('\\', '/')
+    try:
+        metadata = all_tracks[uri]
+        track_length, sample_rate = metadata['length'], metadata['sample_rate']
+        title, artist, album = metadata['title'], metadata['artist'], metadata['album']
+    except KeyError:  # not in all_track so add to all tracks
+        track_length, sample_rate = get_length_and_sample_rate(uri)
+        title, artist, album = get_metadata_wrapped(uri)
+        all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
-        audio_player.play(file_path, volume=_volume, start_playing=autoplay, start_from=position)
+        audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
     else:
         try:
             ipv4_address = get_ipv4()
-            url_args = urllib.parse.urlencode({'path': file_path})
+            url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{ipv4_address}:{PORT}/file?{url_args}'
             cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
@@ -877,8 +899,8 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
             if mc.status.player_is_playing or mc.status.player_is_paused:
                 mc.stop()
                 mc.block_until_active(WAIT_TIMEOUT)
-            metadata = {'metadataType': 3, 'albumName': album, 'title': _title, 'artist': _artist}
-            ext = file_path.split('.')[-1]
+            metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
             mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
@@ -896,21 +918,19 @@ def play(file_path, position=0, autoplay=True, switching_device=False):
     track_position = position
     track_start = time.time() - track_position
     track_end = track_start + track_length
-    after_play(_artist, _title, autoplay, switching_device)
+    after_play(artist, title, autoplay, switching_device)
 
 
 def play_all(starting_files: list = None, queue_only=False):
-    global playing_status, compiling_tracks_thread
+    global playing_status, indexing_tracks_thread
     music_queue.clear()
     done_queue.clear()
     if starting_files is None: starting_files = []
     starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
-    if compiling_tracks_thread is not None and compiling_tracks_thread.is_alive():
-        if settings['notifications']:
-            tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built',
-                             time=5000)
-    if starting_files: music_queue.extend(compile_all_tracks(False, starting_files).values())
-    else: music_queue.extend(all_tracks.values())
+    if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
+        tray.ShowMessage('Music Caster', 'Some files may be missing as music library is still being built')
+    if starting_files: music_queue.extend(index_all_tracks(False, starting_files).keys())
+    else: music_queue.extend(all_tracks.keys())
     if music_queue: shuffle(music_queue)
     if starting_files:
         for j, _f in enumerate(starting_files):
@@ -928,7 +948,7 @@ def play_folder(folders):
     music_queue.clear()
     done_queue.clear()
     for _folder in folders:
-        for _file in glob(f'{_folder}/**/*.*', recursive=True):
+        for _file in iglob(f'{_folder}/**/*.*', recursive=True):
             if valid_music_file(_file): music_queue.append(_file)
     if settings['shuffle_playlists']: shuffle(music_queue)
     if music_queue: play(music_queue[0])
@@ -986,7 +1006,7 @@ def folder_action(action='Play Folder'):
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         folder_path = dlg.GetPath()
         temp_queue = []
-        for _f in glob(f'{folder_path}/**/*.*', recursive=True):
+        for _f in iglob(f'{folder_path}/**/*.*', recursive=True):
             if valid_music_file(_f): temp_queue.append(_f)
         if settings['shuffle_playlists']: shuffle(temp_queue)
         if action == 'Play Folder':
@@ -1013,15 +1033,32 @@ def folder_action(action='Play Folder'):
     else: main_last_event = 'folder_action'
 
 
+def internet_available(host='8.8.8.8', port=53, timeout=3):
+    """
+    Host: 8.8.8.8 (google-public-dns-a.google.com)
+    OpenPort: 53/tcp
+    Service: domain (DNS/TCP)
+    """
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error as ex:
+        print(ex)
+        return False
+
+
 def get_track_position():
     global tray, track_position, cast
     if cast is not None:
-        try:
-            mc = cast.media_controller
-            mc.update_status()
-            track_position = mc.status.adjusted_current_time
-        except (UnsupportedNamespace, NotConnected):
-            track_position = time.time() - track_start
+        if internet_available():
+            try:
+                mc = cast.media_controller
+                mc.update_status()
+                track_position = mc.status.adjusted_current_time
+            except (UnsupportedNamespace, NotConnected):
+                track_position = time.time() - track_start
+        else: stop()
     elif playing_status in {'PLAYING', 'PAUSED'}:
         track_position = audio_player.get_pos()
     return track_position
@@ -1029,34 +1066,30 @@ def get_track_position():
 
 def pause():
     global tray, playing_status, track_position
-    tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
     try:
         if cast is None:
             track_position = time.time() - track_start
             audio_player.pause()
         else:
-            mc = cast.media_controller
-            mc.update_status()
-            mc.pause()
-            while not mc.status.player_is_paused: time.sleep(0.1)
-            track_position = mc.status.adjusted_current_time
+            if internet_available():
+                mc = cast.media_controller
+                mc.update_status()
+                mc.pause()
+                while not mc.status.player_is_paused: time.sleep(0.1)
+                track_position = mc.status.adjusted_current_time
         playing_status = 'PAUSED'
-        if playing_live:
-            metadata = music_metadata['LIVE']
-            title, artist = metadata['title'], metadata['artist']
-        elif music_queue:
-            title, artist = get_metadata_wrapped(music_queue[0])[:2]
         if settings['discord_rpc'] and (music_queue or playing_live):
+            metadata = url_metadata['LIVE'] if playing_live else get_uri_info(music_queue[0])
+            title, artist = metadata['title'], metadata['artist']
             with suppress(py_presence_errors):
                 rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                         large_text='Paused', small_image='logo', small_text='Music Caster')
-    except UnsupportedNamespace:
-        stop()
+    except UnsupportedNamespace: stop()
+    tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
 
 
 def resume():
     global tray, playing_status, track_end, track_position, track_start
-    tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     try:
         if cast is None: audio_player.resume()
         else:
@@ -1078,6 +1111,7 @@ def resume():
             with suppress(py_presence_errors):
                 rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                      large_text='Playing', small_image='logo', small_text='Music Caster')
+        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
     except (UnsupportedNamespace, NotConnected):
         if music_queue: play(music_queue[0], position=track_position)
 
@@ -1087,12 +1121,12 @@ def stop():
     playing_status = 'NOT PLAYING'
     playing_live = False
     if settings['discord_rpc']:
-        with suppress(py_presence_errors):
-            rich_presence.clear()
-    if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
-        mc = cast.media_controller
-        mc.stop()
-        while mc.is_playing or mc.is_paused: time.sleep(0.1)
+        with suppress(py_presence_errors): rich_presence.clear()
+    if cast is not None:
+        if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
+            mc = cast.media_controller
+            mc.stop()
+            while mc.is_playing or mc.is_paused: time.sleep(0.1)
     else: audio_player.stop()
     track_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
@@ -1130,12 +1164,11 @@ def prev_track():
 
 def background_tasks():
     global cast, cast_last_checked, track_start, track_end, track_position, daemon_command, settings_last_modified
-
     while True:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # updates last modified
         refresh_tray()
-        if cast is not None and time.time() - cast_last_checked > 5:
+        if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
             with suppress(UnsupportedNamespace):
                 if cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller
@@ -1203,11 +1236,10 @@ def activate_main_window(selected_tab='tab_queue'):
                 position, length = track_length - live_lag, track_length
             else:
                 current_track = music_queue[0]
-                metadata = music_metadata[current_track]
-                position, length = get_track_position(), music_metadata[music_queue[0]]['length']
+                metadata = get_uri_info(music_queue[0])
+                position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
-            album_cover_data = metadata.get('album_cover_data', None)
-            # album_cover_data = DEFAULT_IMG_DATA
+            album_cover_data = get_album_cover(music_queue[0])[1]
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
@@ -1360,9 +1392,9 @@ def read_main_window():
     p_r_button = main_window['pause/resume']
     gui_title = main_window['title'].DisplayText
     update_progress_bar_text, artist, title = False, '', 'Nothing Playing'
-    with suppress(KeyError, IndexError):
-        if playing_status in {'PAUSED', 'PLAYING'}:
-            metadata = music_metadata['LIVE'] if playing_live else music_metadata[music_queue[0]]
+    if playing_status in {'PAUSED', 'PLAYING'}:
+        with suppress(KeyError, IndexError):
+            metadata = music_metadata['LIVE'] if playing_live else get_uri_info(music_queue[0])
             artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
@@ -1413,8 +1445,7 @@ def read_main_window():
             elif 0 < selected_file_index <= len(next_queue):
                 Popen(f'explorer /select,"{fix_path(next_queue[selected_file_index - 1])}"')
     elif main_event == 'pause/resume' or main_event == 'k' and main_values['tab_group'] != 'tab_timer':
-        try:
-            pause_resume[playing_status]()
+        try: pause_resume[playing_status]()
         except KeyError:
             if music_queue: play(music_queue[0])
             else: play_all()
@@ -1468,7 +1499,7 @@ def read_main_window():
                 done_queue.append(music_queue.pop(0))
                 if next_queue:
                     music_queue.insert(0, next_queue.pop(0))
-        play(music_queue[0])
+        if music_queue: play(music_queue[0])
         updated_list = create_track_list()[0]
         dq_len = len(done_queue)
         main_window['queue'].Update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
@@ -1563,8 +1594,7 @@ def read_main_window():
         main_window.TKroot.focus_force()
     elif main_event == 'locate_file':
         Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
-    elif main_event == 'library':
-        play_all([all_tracks[main_value]])
+    # elif main_event == 'library':  # TODO
     elif main_event == 'progressbar':
         if playing_status == 'NOT PLAYING':
             main_window['progressbar'].Update(disabled=True, value=0, visible=False)
@@ -1617,14 +1647,14 @@ def read_main_window():
             main_window['music_dirs'].Update(music_directories)
             refresh_tray()
             save_settings()
-            compile_all_tracks()
+            index_all_tracks()
     elif main_event == 'add_folder':
         if main_value not in music_directories and os.path.exists(main_value):
             music_directories.append(main_value)
             main_window['music_dirs'].Update(music_directories)
             refresh_tray()
             save_settings()
-            compile_all_tracks()
+            index_all_tracks()
     elif main_event in {'settings_file', 'o:79'}:
         try: os.startfile(settings_file)
         except OSError: Popen(f'explorer /select,"{fix_path(settings_file)}"')
@@ -2003,7 +2033,7 @@ try:
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
-        compile_all_tracks()
+        index_all_tracks()
     if settings['notifications']:
         if show_pygame_error:
             tray.ShowMessage('Music Caster', 'ERROR: No local audio device found', time=5000)
@@ -2022,7 +2052,7 @@ try:
     Thread(target=background_tasks, daemon=True).start()
     Thread(target=start_chromecast_discovery, daemon=True).start()
     if args.path is not None:
-        if os.path.isfile(args.path): play(args.path)
+        if os.path.isfile(args.path): play_all([args.path])
         elif os.path.isdir(args.path): play_folder([args.path])
     elif settings['save_queue_sessions']:
         queues = settings['queues']
@@ -2030,14 +2060,14 @@ try:
         music_queue.extend(queues.get('music', []))
         next_queue.extend(queues.get('next', []))
     elif settings['populate_queue_startup']:
-        compiling_tracks_thread.join()
+        indexing_tracks_thread.join()
         play_all(queue_only=True)
     print('Running in tray')
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
-        'Refresh Library': compile_all_tracks,
-        'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True),
+        'Refresh Library': index_all_tracks,
+        'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True).start(),
         # isdigit should be an if statement
         'Settings': lambda: activate_main_window('tab_settings'),
         'Create/Edit a Playlist': create_edit_playlists,

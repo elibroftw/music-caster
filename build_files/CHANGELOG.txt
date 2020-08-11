@@ -1,5 +1,22 @@
 Music Caster by Elijah Lopez Changelog
 
+4.60.8
+- [Optimization] Reduced memory footprint
+- [Optimization] File indexing
+
+4.60.7
+- [Fix] Pausing / Resuming local playback bugs
+- [Fix] Play file with new instance
+
+4.60.6
+- [Fix] Refresh Devices
+
+4.60.5
+- [Fix] Maxing volume on local device
+
+4.60.4
+- [Fix] Main window queuing
+
 4.60.3
 - [Fix] Mute behaviour
 
