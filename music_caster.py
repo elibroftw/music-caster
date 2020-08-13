@@ -955,7 +955,7 @@ def play_folder(folders):
 
 def select_and_play_folder():
     # TODO: multi folder support
-    dlg = wx.DirDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
+    dlg = wx.DirDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
     if dlg.ShowModal() != wx.ID_CANCEL:
         path_to_folder = dlg.GetPath()
         play_folder([path_to_folder])
