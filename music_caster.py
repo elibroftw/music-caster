@@ -447,9 +447,9 @@ def index():  # web GUI
     # sort by the formatted title
     list_of_tracks = []
     sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
-    for filename, metadata in sorted_tracks:
+    for filename, data in sorted_tracks:
         filename = urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'title': metadata['sort_key'], 'href': f'/play?{filename}'})
+        list_of_tracks.append({'title': data['sort_key'], 'href': f'/play?{filename}'})
     _queue = create_track_list()[0]
     device_index = 0
     for i, device_name in enumerate(device_names):
@@ -571,9 +571,7 @@ def get_live_audio():
             device_info = pa.get_device_info_by_index(i)
             host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
             if (host_api_info['name'] == 'Windows WASAPI' and
-                device_info['name'].count('Steam') == 0 and
-                device_info['maxOutputChannels'] > 0):
-                print(device_info)
+                    device_info['name'].count('Steam') == 0 and device_info['maxOutputChannels'] > 0):
                 return device_info
         raise RuntimeError('No Output Device Found')
 
@@ -608,8 +606,6 @@ def get_live_audio():
                     live_lag = 0
                 data = stream.read(chunk)
             yield data
-        else:
-            yield 'ERROR'
     return Response(system_sound())
 
 
@@ -788,7 +784,7 @@ def stream_live_audio(switching_device=False):
         track_position = 0
         track_start = time.time() - track_position
         track_end = track_start + track_length
-        music_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album, 'art': LIVE_AUDIO_ART.decode()}
+        url_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album, 'art': LIVE_AUDIO_ART.decode()}
         after_play(artist, title, True, switching_device)
         return True
 
@@ -854,8 +850,8 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                 _f = formats[0]
                 url = url.replace('\\', '/')
                 url_metadata[url] = {'title': r['track'] or r['title'], 'artist': r['artist'] or r['uploader'],
-                                       'album': r['album'], 'length': r['duration'], 'art': r['thumbnail'],
-                                       'src': _f['url'], 'ext': _f['ext']}
+                                     'album': r['album'], 'length': r['duration'], 'art': r['thumbnail'],
+                                     'src': _f['url'], 'ext': _f['ext']}
             metadata = url_metadata[url]
             artist = metadata['artist']
             return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
@@ -958,10 +954,10 @@ def play_folder(folders):
 
 
 def select_and_play_folder():
-    dlg = wx.DirDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
-    if dlg.ShowModal() != wx.ID_CANCEL:
-        path_to_folder = dlg.GetPath()
-        play_folder([path_to_folder])
+    # TODO: multi folder support
+    path = Sg.PopupGetFolder('Choose folder to play', no_window=True, initial_folder=DEFAULT_DIR, icon=WINDOW_ICON)
+    if path and os.path.exists(path):
+        play_folder([path])
 
 
 def file_action(action='Play File(s)'):
@@ -1083,7 +1079,7 @@ def pause():
             title, artist = metadata['title'], metadata['artist']
             with suppress(py_presence_errors):
                 rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
-                                        large_text='Paused', small_image='logo', small_text='Music Caster')
+                                     large_text='Paused', small_image='logo', small_text='Music Caster')
     except UnsupportedNamespace: stop()
     tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
 
@@ -1103,7 +1099,7 @@ def resume():
         track_end = track_start + track_length
         playing_status = 'PLAYING'
         if playing_live:
-            metadata = music_metadata['LIVE']
+            metadata = url_metadata['LIVE']
             title, artist = metadata['title'], metadata['artist']
         else:
             title, artist = get_metadata_wrapped(music_queue[0])[:2]
@@ -1232,10 +1228,9 @@ def activate_main_window(selected_tab='tab_queue'):
         lb_tracks, selected_value = create_track_list()
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
-                metadata = music_metadata['LIVE']
+                metadata = url_metadata['LIVE']
                 position, length = track_length - live_lag, track_length
             else:
-                current_track = music_queue[0]
                 metadata = get_uri_info(music_queue[0])
                 position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
@@ -1394,7 +1389,7 @@ def read_main_window():
     update_progress_bar_text, artist, title = False, '', 'Nothing Playing'
     if playing_status in {'PAUSED', 'PLAYING'}:
         with suppress(KeyError, IndexError):
-            metadata = music_metadata['LIVE'] if playing_live else get_uri_info(music_queue[0])
+            metadata = url_metadata['LIVE'] if playing_live else get_uri_info(music_queue[0])
             artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
@@ -1632,7 +1627,7 @@ def read_main_window():
             with suppress(py_presence_errors):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
                     if playing_live:
-                        metadata = music_metadata['LIVE']
+                        metadata = url_metadata['LIVE']
                         title, artist = metadata['title'], metadata['artist']
                     else:
                         title, artist = get_metadata_wrapped(music_queue[0])[:2]

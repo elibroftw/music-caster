@@ -3,6 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.60.8
 - [Optimization] Reduced memory footprint
 - [Optimization] File indexing
+- [Fix] Play folder window
 
 4.60.7
 - [Fix] Pausing / Resuming local playback bugs
