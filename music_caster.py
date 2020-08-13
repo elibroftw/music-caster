@@ -955,9 +955,10 @@ def play_folder(folders):
 
 def select_and_play_folder():
     # TODO: multi folder support
-    path = Sg.PopupGetFolder('Choose folder to play', no_window=True, initial_folder=DEFAULT_DIR, icon=WINDOW_ICON)
-    if path and os.path.exists(path):
-        play_folder([path])
+    dlg = wx.DirDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
+    if dlg.ShowModal() != wx.ID_CANCEL:
+        path_to_folder = dlg.GetPath()
+        play_folder([path_to_folder])
 
 
 def file_action(action='Play File(s)'):
