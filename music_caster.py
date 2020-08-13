@@ -1133,7 +1133,7 @@ def next_track(from_timeout=False):
     global playing_status
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
         playing_status = 'NOT PLAYING'
-    elif playing_status != 'NOT PLAYING' and playing_live and (next_queue or music_queue):
+    elif playing_status != 'NOT PLAYING' and not playing_live and (next_queue or music_queue):
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
             if music_queue: done_queue.append(music_queue.pop(0))
