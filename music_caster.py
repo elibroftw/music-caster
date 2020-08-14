@@ -1,8 +1,6 @@
-VERSION = '4.60.8'
+VERSION = '4.61.0'
 UPDATE_MESSAGE = """
-[Feature] Registered Music Caster as a default audio player
-[UI] Better styling
-[Optimization] Reduced memory footprint + better file indexing
+[Feature] Cast Live System Audio
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -88,6 +86,7 @@ music_queue, done_queue, next_queue = [], [], []
 mouse_hover = ''
 daemon_command = ''
 playing_url = playing_live = False
+live_lag = 0.0
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 # seconds but using time()
 playing_status = 'NOT PLAYING'
@@ -576,7 +575,7 @@ def get_live_audio():
         raise RuntimeError('No Output Device Found')
 
     def system_sound():
-        global daemon_command
+        global daemon_command, live_lag
         # live system sound generator
         p = pyaudio.PyAudio()
         _format = pyaudio.paInt16
@@ -591,14 +590,20 @@ def get_live_audio():
         stream = p.open(format=_format, channels=channels, as_loopback=True,
                         rate=sample_rate, input=True, input_device_index=device_info['index'],
                         frames_per_buffer=chunk)
-        print('sending data')
         first_run = True
+        last_sleep = time.time()
         while True:
             # TODO: figure out how to stop chromecast from buffering stream
             if first_run:
                 data = wav_header + stream.read(chunk)
                 first_run = False
             else:
+                if live_lag > 0.25 and time.time() - last_sleep > 1:
+                    # don't sleep consecutively
+                    sleep_for = min(live_lag * 0.9, 0.25)  # * 0.9 because some buffering is okay
+                    live_lag -= sleep_for
+                    time.sleep(sleep_for)
+                    last_sleep = time.time()
                 data = stream.read(chunk)  # records latest audio; not old audio
             yield data
     return Response(system_sound())
@@ -744,7 +749,7 @@ def after_play(artists: str, title, autoplay, switching_device):
 
 
 def stream_live_audio(switching_device=False):
-    global track_position, track_start, track_end, track_length, playing_live
+    global track_position, track_start, track_end, track_length, playing_live, live_lag
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
         return False
@@ -764,15 +769,16 @@ def stream_live_audio(switching_device=False):
         artist = platform.node()
         album = 'Music Caster'
         metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-        # audio/x-wav;codec=pcm
-        print(url)
-        mc.play_media(f'{url}', 'audio/x-wav;codec=pcm', metadata=metadata, thumb=f'{url}thumbnail.png')
+        mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png', stream_type='LIVE')
         mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
+        start_time = time.time()
+        playing_live = True
         while not mc.status.player_is_playing:
             print('waiting for chromecast to start playing')
             time.sleep(0.2)
             mc.update_status()
-        playing_live = True
+        live_lag = time.time() - start_time
+        mc.play()  # force chromecast device to start playing
         track_length = 108800  # 3 hour default
         track_position = 0
         track_start = time.time() - track_position
@@ -857,8 +863,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
 
 
 def play(uri, position=0, autoplay=True, switching_device=False):
-    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update
-    assert uri == music_queue[0]
+    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update, playing_live
     while not os.path.exists(uri):
         if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
         music_queue.remove(uri)
@@ -866,6 +871,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         else: return
         position = 0
     uri = uri.replace('\\', '/')
+    playing_live = False
     try:
         metadata = all_tracks[uri]
         track_length, sample_rate = metadata['length'], metadata['sample_rate']
@@ -1126,7 +1132,8 @@ def stop():
     else: audio_player.stop()
     track_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
-    if active_windows['main']: main_window['progressbar'].Update(disabled=True, value=0)
+    if active_windows['main'] and main_window.Title == 'Music Caster':
+        main_window['progressbar'].Update(disabled=True, value=0)
 
 
 def next_track(from_timeout=False):
@@ -1234,7 +1241,7 @@ def activate_main_window(selected_tab='tab_queue'):
                 metadata = get_uri_info(music_queue[0])
                 position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
-            album_cover_data = get_album_cover(music_queue[0])[1]
+            album_cover_data = None if playing_live else get_album_cover(music_queue[0])[1]
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
@@ -2001,24 +2008,20 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders, 'Playlists',
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders, 'Playlists',
                         tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
-                       ['URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
                         tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
-                       ['URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
                         tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    if settings['EXPERIMENTAL']:
-        menu_def_1[1][8].insert(0, 'Live System Audio')
-        menu_def_2[1][10].insert(0, 'Live System Audio')
-        menu_def_3[1][10].insert(0, 'Live System Audio')
     IPV4 = get_ipv4()
     QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)

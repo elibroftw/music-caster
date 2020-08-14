@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.61.0
+- [Feature] Cast Live System Audio (may be buggy, tell me if it works for you)
+
 4.60.8
 - [Optimization] Reduced memory footprint
 - [Optimization] File indexing
