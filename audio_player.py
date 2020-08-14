@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.0.2
+AudioPlayer v2.1.0
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -104,6 +104,9 @@ class AudioPlayer:
 
     def get_length(self):
         return self.player.get_length()
+
+    def get_sample_rate(self):
+        return self.player.get_rate()
 
     def is_playing(self):
         return self.player.is_playing() or self.is_paused

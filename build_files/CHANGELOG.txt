@@ -6,6 +6,7 @@ Music Caster by Elijah Lopez Changelog
 - [Web GUI] Added "Refresh Devices" to settings modal
 - [UI] More tray play URL options
 - [Fix] Play folder window
+- [Fix] Corrupt file handling
 - [Fix] Internet cutting out scenarios
 
 4.60.7

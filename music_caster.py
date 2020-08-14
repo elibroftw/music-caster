@@ -297,15 +297,18 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
             for file_path in iglob(f'{directory}/**/*.*', recursive=True):
                 file_path = file_path.replace('\\', '/')
                 if file_path not in ignore_files and valid_music_file(file_path):
-                    title, artist, album = get_metadata_wrapped(file_path)
-                    if title == 'Unknown Title' or artist == 'Unknown Artist':
-                        sort_key = os.path.splitext(os.path.basename(file_path))[0]
-                    else: sort_key = f'{title} - {artist}'
-                    length, sample_rate = get_length_and_sample_rate(file_path)
-                    metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key,
-                                'length': length, 'sample_rate': sample_rate}
-                    if use_temp: all_tracks_temp[file_path] = metadata
-                    else: all_tracks[file_path] = metadata
+                    with suppress(HeaderNotFoundError):
+                        title, artist, album = get_metadata_wrapped(file_path)
+                        if title == 'Unknown Title' or artist == 'Unknown Artist':
+                            sort_key = os.path.splitext(os.path.basename(file_path))[0]
+                        else:
+                            sort_key = f'{title} - {artist}'
+                        metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+                        length, sample_rate = get_length_and_sample_rate(file_path)
+                        metadata['length'] = length
+                        metadata['sample_rate'] = sample_rate
+                        if use_temp: all_tracks_temp[file_path] = metadata
+                        else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
 
@@ -876,9 +879,15 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         track_length, sample_rate = metadata['length'], metadata['sample_rate']
         title, artist, album = metadata['title'], metadata['artist'], metadata['album']
     except KeyError:  # not in all_track so add to all tracks
-        track_length, sample_rate = get_length_and_sample_rate(uri)
         title, artist, album = get_metadata_wrapped(uri)
-        all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
+        all_tracks[uri] = {'artist': artist, 'title': title, 'album': album}
+        try:
+            track_length, sample_rate = get_length_and_sample_rate(uri)
+            all_tracks[uri]['length'] = track_length
+        except HeaderNotFoundError:
+            tray.ShowMessage('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
+            next_track()
+            return
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
