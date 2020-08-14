@@ -322,7 +322,8 @@ def create_playlist_editor(settings, playlist_name=''):
     move_down_params = {'size': (11, 1), 'tooltip': 'Ctrl + D', 'font': FONT_NORMAL, 'enable_events': True}
     add_tracks = [Sg.Button('Add track', key='Add tracks', tooltip='Ctrl + F',
                             size=(11, 1), font=FONT_NORMAL, enable_events=True)]
-    add_url = [Sg.Button('Add URL', key='Add URL', tooltip='Ctrl + E',
+    # TODO: playlist url support
+    add_url = [Sg.Button('Add URL', key='Add URL', tooltip='Ctrl + L',
                          size=(11, 1), font=FONT_NORMAL, enable_events=True)]
     layout = [[
         Sg.Text('Playlist name', font=FONT_NORMAL, size=(12, 1), justification='center'),

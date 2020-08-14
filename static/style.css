@@ -43,9 +43,7 @@ a {
     list-style-type: none;
 }
 
-.body__buttons,
-.body__info,
-.player__footer {
+.body__buttons, .body__info, .player__footer {
     padding-right: 2rem;
     padding-left: 2rem;
 }
@@ -54,8 +52,7 @@ a {
     justify-content: space-between;
 }
 
-.list--header .list__link,
-.list--footer .list__link {
+.list--header .list__link, .list--footer .list__link {
     color: #888;
     fill: #888;
 }
@@ -92,8 +89,7 @@ a {
     cursor: pointer;
 }
 
-.range:before,
-.range:after {
+.range:before, .range:after {
     content: "";
     position: absolute;
     cursor: pointer;
@@ -119,8 +115,7 @@ a {
     transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.range:focus:after,
-.range:hover:after {
+.range:focus:after, .range:hover:after {
     background: rgba(211, 3, 32, .95);
 }
 
@@ -130,13 +125,11 @@ a {
     text-align: center;
 }
 
-.info__album,
-.info__track {
+.info__album, .info__track {
     margin-bottom: 0.5rem;
 }
 
-.info__artist,
-.info__album {
+.info__artist, .info__album {
     font-size: 1rem;
     font-weight: 300;
     color: #666;
@@ -165,8 +158,7 @@ a {
     margin-left: 1.25rem;
 }
 
-.list--buttons a,
-#play-pause-btn {
+.list--buttons a, #play-pause-btn {
     padding-top: 0.6rem;
     padding-right: 0.75rem;
     padding-bottom: 0.6rem;
@@ -176,9 +168,7 @@ a {
     box-shadow: 0 3px 6px rgba(33, 33, 33, .1), 0 3px 12px rgba(33, 33, 33, .15);
 }
 
-.list--buttons a:focus,
-.list--buttons a:hover,
-#play-pause-btn {
+.list--buttons a:focus, .list--buttons a:hover, #play-pause-btn {
     color: rgba(171, 2, 26, .95);
     opacity: 1;
     box-shadow: 0 6px 9px rgba(33, 33, 33, .1), 0 6px 16px rgba(33, 33, 33, .15);
@@ -200,8 +190,7 @@ a {
     opacity: 1;
 }
 
-.list--buttons li:first-of-type a,
-.list--buttons li:last-of-type a {
+.list--buttons li:first-of-type a, .list--buttons li:last-of-type a {
     font-size: 0.95rem;
     color: #212121;
     opacity: 0.5;
@@ -219,9 +208,7 @@ a {
     transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.list__link:focus, .list__link:hover,
-.list__link>img:hover,
-#play-pause-btn {
+.list__link:focus, .list__link:hover, .list__link>img:hover, #play-pause-btn {
     color: #d30320;
     fill: #d30320;
 }
@@ -235,8 +222,7 @@ a {
     opacity: 0.5;
 }
 
-.list--footer a:focus,
-.list--footer a:hover {
+.list--footer a:focus, .list--footer a:hover {
     opacity: 0.9;
 }
 
@@ -252,7 +238,7 @@ a {
 .modal {
     display: none;
     position: fixed;
-    z-index: 200;
+    z-index: 5;
     left: 0;
     top: 0;
     width: 100%;
@@ -273,7 +259,6 @@ h2 {
     width: 80%;
     font-size: x-large;
     color: white;
-    font-family: 'Roboto', Arial, Verdana, sans-serif;
     text-align: center;
     margin-left: auto;
     margin-right: auto;
@@ -295,14 +280,13 @@ h2 {
     text-align: left;
     border: 1px solid black;
     font-size: large;
-    font-family: 'Roboto', Arial, Verdana, sans-serif;
 }
 
-.track:hover {
+.track:hover, .modalRow:hover {
     color: cyan;
 }
 
-.setting {
+.modalRow {
 	display: flex;
 	justify-content: space-between;
     width: 100%;
@@ -321,11 +305,6 @@ h2 {
     text-align: left;
     /* border: 1px solid black; */
     font-size: large;
-    font-family: 'Roboto', Arial, Verdana, sans-serif;
-}
-
-.setting:hover {
-    color: cyan;
 }
 
 .switch {
@@ -395,7 +374,6 @@ input:checked+.slider:before {
     background-position: 10px 12px;
     background-repeat: no-repeat;
     font-size: large;
-    font-family: 'Roboto', Arial, Verdana, sans-serif;
     width: 100%;
     width: -moz-available;
     width: -webkit-fill-available;
@@ -468,7 +446,6 @@ input:checked+.slider:before {
 }
 
 @media screen and (max-width: 800px) {
-
     .modal-content {
         width: 80%;
     }
@@ -480,4 +457,26 @@ input:checked+.slider:before {
     .player__container {
         margin-top: 2em;
     }
+}
+
+#toast {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -150px;
+    background-color: rgba(0, 0, 0, .9);
+    color: #fff;
+    text-align: center;
+    border-radius: 20px;
+    padding: 16px;
+    position: fixed;
+    z-index: 10000;
+    font-size: 20px;
+    left: 50%;
+    bottom: 60px
+}
+
+#toast.show {
+    visibility: visible;
+    -webkit-animation: fadein .5s, fadeout .5s 2s;
+    animation: fadein .5s, fadeout .5s 2s
 }

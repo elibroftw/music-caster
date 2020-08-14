@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#ededed">
 <meta http-equiv="refresh" content="30">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" id="stylesheet" href="/static/style.css">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.1.4">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -108,51 +108,55 @@
     <div class="modal-content">
         <h2>Settings</h2>
         <ul>
-            <li data-key='auto_update' title="Auto Update" class="setting" onclick="toggleSetting(this)">
+            <li data-key='auto_update' title="Auto Update" class="modalRow setting" onclick="toggleSetting(this)">
                 Auto Update
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
-            <li data-key='notifications' title="Notifications" class="setting" onclick="toggleSetting(this)">
+            <li data-key='notifications' title="Notifications" class="modalRow setting" onclick="toggleSetting(this)">
                 Notifications
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
-            <li data-key='discord_rpc' title="Discord Prescence" class="setting" onclick="toggleSetting(this)">
+            <li data-key='discord_rpc' title="Discord Prescence" class="modalRow setting" onclick="toggleSetting(this)">
                 Discord Presence
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
-            <li data-key='run_on_startup' title="Run on Startup" class="setting" onclick="toggleSetting(this)">
+            <li data-key='run_on_startup' title="Run on Startup" class="modalRow setting" onclick="toggleSetting(this)">
                 Run on Startup
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
-            <li data-key='save_window_positions' title="Save Window Positions" class="setting" onclick="toggleSetting(this)">
+            <li data-key='save_window_positions' title="Save Window Positions" class="modalRow setting" onclick="toggleSetting(this)">
                 Save Window Positions
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
-            <li data-key='populate_queue_startup' title="Populates Queue From Folders on Startup" class="setting" onclick="toggleSetting(this)">
+            <li data-key='populate_queue_startup' title="Populates Queue From Folders on Startup" class="modalRow setting" onclick="toggleSetting(this)">
                 Populate Queue on Startup
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
-            <li data-key='save_queue_sessions' title="Save Queue Between Sessions" class="setting" onclick="toggleSetting(this)">
+            <li data-key='save_queue_sessions' title="Save Queue Between Sessions" class="modalRow setting" onclick="toggleSetting(this)">
                 Save Queue Between Sessions
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
                 </label></li>
+            <li class="modalRow" title="search for chromecasts" onclick="refreshDevices()">
+               Refresh Devices
+            </li>
         </ul>
     </div>
 </div>
+<div id="toast">Refreshing Devices</div>
 <script>
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
@@ -238,10 +242,10 @@
         try { showModal(getHash()); } catch (TypeError) {}
 
         for (const settingEl of settingToggles) {
-            checkBox = settingEl.getElementsByTagName('input')[0];
+            const checkBox = settingEl.getElementsByTagName('input')[0];
             checkBox.checked = settingsFromServer[settingEl.dataset.key];
         }
-        };
+    };
 
     function filterTracks() {
         const filter = searchBar.value.toUpperCase();
@@ -265,6 +269,18 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({setting_name: settingName, value: checkBox.checked})
         });
+    }
+
+    function refreshDevices() {
+        fetch('/refresh-devices/');
+        showToast('Refreshing Devices');
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.innerHTML = message;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 2400);
     }
 
     function setVolume(newVol) {

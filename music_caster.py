@@ -1,5 +1,3 @@
-from pypresence import PyPresenceException
-
 VERSION = '4.60.8'
 UPDATE_MESSAGE = """
 [Feature] Registered Music Caster as a default audio player
@@ -63,8 +61,6 @@ MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opu
 DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
-os.environ['PYTHON_VLC_LIB_PATH'] = starting_dir + '\\vlc\\libvlc.dll'
-import vlc
 EMAIL = 'elijahllopezz@gmail.com'
 EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
@@ -463,10 +459,6 @@ def index():  # web GUI
                            device_index=device_index, devices=formatted_devices)
 
 
-def is_img(_file_or_dir):
-    return _file_or_dir.endswith('.jpg') or _file_or_dir.endswith('.jpg') or _file_or_dir.endswith('.png')
-
-
 @app.route('/play/', methods=['GET', 'POST'])
 def play_file_page():
     global music_queue, playing_status
@@ -505,6 +497,12 @@ def change_settings_web():
             update_volume(0 if settings['muted'] else settings['volume'])
         return 'true'
     return 'false'
+
+
+@app.route('/refresh-devices/')
+def refresh_devices_web():
+    Thread(target=start_chromecast_discovery, daemon=True).start(),
+    return 'true'
 
 
 @app.route('/change-device/', methods=['POST'])
@@ -1279,6 +1277,7 @@ def create_edit_playlists():
 
 
 def activate_play_url(combo_value='Play Immediately'):
+    # combo_values = ['Play Immediately', 'Queue', 'Play Next']
     global play_url_window
     if not active_windows['play_url']:
         active_windows['play_url'], play_url_layout = True, create_play_url_window(combo_value=combo_value)
@@ -2001,20 +2000,20 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
-                        'Play File(s)', 'Play All'], 'Exit']]
+                       ['URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders, 'Playlists',
+                        tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
-                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
-                        'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+                       ['URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
+                        tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
-                       ['URL', 'Folders', tray_folders, 'Playlists', tray_playlists,
-                        'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+                       ['URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
+                        tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     if settings['EXPERIMENTAL']:
         menu_def_1[1][8].insert(0, 'Live System Audio')
         menu_def_2[1][10].insert(0, 'Live System Audio')
@@ -2071,7 +2070,9 @@ try:
         'Set Timer': lambda: activate_main_window('tab_timer'),
         'Cancel Timer': cancel_timer,
         'Live System Audio': stream_live_audio,
-        'URL': activate_play_url,
+        'Play URL': activate_play_url,
+        'Queue URL': lambda: activate_play_url('Queue'),
+        'Play URL Next': lambda: activate_play_url('Play Next'),
         'Play File(s)': lambda: Thread(target=play_file).start(),
         'Play All': play_all,
         'Play File Next': lambda: Thread(target=play_next).start(),
