@@ -117,7 +117,6 @@ app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = True
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-live_lag = 0
 
 
 def save_settings():
@@ -577,7 +576,7 @@ def get_live_audio():
         raise RuntimeError('No Output Device Found')
 
     def system_sound():
-        global daemon_command, live_lag
+        global daemon_command
         # live system sound generator
         p = pyaudio.PyAudio()
         _format = pyaudio.paInt16
@@ -595,17 +594,12 @@ def get_live_audio():
         print('sending data')
         first_run = True
         while True:
-            # TODO: timeout the stream.read() and return empty data?
+            # TODO: figure out how to stop chromecast from buffering stream
             if first_run:
                 data = wav_header + stream.read(chunk)
                 first_run = False
             else:
-                if live_lag:
-                    print('live lag:', live_lag)
-                    for _ in range(int(sample_rate / chunk * live_lag * 0.9)):
-                        stream.read(chunk)
-                    live_lag = 0
-                data = stream.read(chunk)
+                data = stream.read(chunk)  # records latest audio; not old audio
             yield data
     return Response(system_sound())
 
@@ -750,7 +744,7 @@ def after_play(artists: str, title, autoplay, switching_device):
 
 
 def stream_live_audio(switching_device=False):
-    global track_position, track_start, track_end, track_length, playing_live, live_lag
+    global track_position, track_start, track_end, track_length, playing_live
     if cast is None:
         tray.ShowMessage('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
         return False
@@ -774,12 +768,10 @@ def stream_live_audio(switching_device=False):
         print(url)
         mc.play_media(f'{url}', 'audio/x-wav;codec=pcm', metadata=metadata, thumb=f'{url}thumbnail.png')
         mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
-        start_time = time.time()
         while not mc.status.player_is_playing:
             print('waiting for chromecast to start playing')
             time.sleep(0.2)
             mc.update_status()
-        live_lag = time.time() - start_time
         playing_live = True
         track_length = 108800  # 3 hour default
         track_position = 0
@@ -1237,7 +1229,7 @@ def activate_main_window(selected_tab='tab_queue'):
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
                 metadata = url_metadata['LIVE']
-                position, length = track_length - live_lag, track_length
+                position, length = track_length, track_length
             else:
                 metadata = get_uri_info(music_queue[0])
                 position, length = get_track_position(), metadata['length']
