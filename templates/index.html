@@ -47,7 +47,7 @@
 <!--                <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>-->
                 <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
                 <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
-                <li><a onclick="showModal('queue')" href="/#music-queue" class="list__link">
+                <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
                     <svg width="20" height="20">
                         <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z"
                               class="style-scope yt-icon"></path>
@@ -160,14 +160,15 @@
 <script>
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
-    const modals = {};
     const settingToggles = document.getElementsByClassName('setting');
     const searchBar = document.getElementById('searchBar');
 
-    modals['queue'] = document.getElementById('queue-modal');
+    // modals
+    const modals = {};
+    modals['queue']     = document.getElementById('queue-modal');
     modals['playlists'] = document.getElementById('playlists-modal');
-    modals['files'] = document.getElementById('files-modal');
-    modals['settings'] = document.getElementById('settings-modal');
+    modals['files']     = document.getElementById('files-modal');
+    modals['settings']  = document.getElementById('settings-modal');
 
     function showModal(option) {
         modals[option].style.display = 'block';
@@ -202,6 +203,11 @@
         document.getElementById('wrapper').style.filter = '';
     }
 
+    function getHash() {
+        try { return window.location.hash.slice(1); }
+        catch (err) { return ''; }
+    }
+
     window.onclick = event => {  // close modal
         if (Object.values(modals).includes(event.target)) {
             closeModals();
@@ -211,14 +217,11 @@
     window.addEventListener('hashchange', e => {
         hashVal = getHash();
         if (hashVal == '') closeModals();
-        else {
-            try { showModal(hashVal); } catch (TypeError) {}
-        }
+        else try { showModal(hashVal); } catch (TypeError) {};
     });
 
     window.onkeydown = event => {
         modalDisplays = Object.values(modals).map(el => el.style.display);
-        // console.log(event.key);
         if (event.key == 'Escape' && modalDisplays.includes('block')) closeModals();
         //  else if (!modalDisplays.includes('block')) {
                 // list--buttons
@@ -231,11 +234,6 @@
         //     }
         // }
         // add playback control
-    }
-
-    function getHash() {
-        try { return window.location.hash.slice(1); }
-        catch (err) { return ''; }
     }
 
     window.onload = () => {
@@ -293,8 +291,7 @@
     }
 
     function changeDevice() {
-        deviceIndex = parseInt(document.getElementById("devices").value);
-        console.log(deviceIndex);
+        deviceIndex = parseInt(document.getElementById('devices').value);
         fetch('/change-device/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
