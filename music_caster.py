@@ -1213,7 +1213,7 @@ def background_tasks():
                             if _volume and settings['muted']: change_settings('muted', False)
                             if active_windows['main']:
                                 if _volume and settings['muted']:
-                                    main_window['mute'].Update(data=VOLUME_IMG)
+                                    main_window['mute'].Update(image_data=VOLUME_IMG)
                                 main_window['volume_slider'].Update(_volume)
                 elif playing_status in {'PAUSED', 'PLAYING'}: daemon_command = 'Stop'
             cast_last_checked = time.time()
@@ -1266,7 +1266,8 @@ def activate_main_window(selected_tab='tab_queue'):
                                           timer, title, artist, album_cover_data=album_cover_data,
                                           track_length=length, track_position=position)
         else:
-            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE, timer)
+            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE, timer,
+                                          album_cover_data=resize_img(DEFAULT_IMG_DATA).decode())
         main_window = Sg.Window('Music Caster', main_gui_layout,
                                 icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,
                                 use_default_focus=False, location=window_location)
@@ -1430,7 +1431,7 @@ def read_main_window():
             new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
             change_settings('volume', new_volume)
             if settings['muted']:
-                main_window['mute'].Update(data=VOLUME_IMG)
+                main_window['mute'].Update(image_data=VOLUME_IMG)
                 change_settings('muted', False)
             update_volume(new_volume)
         main_window.Refresh()
@@ -1494,10 +1495,10 @@ def read_main_window():
     elif main_event in {'mute', 'm:77'}:  # toggle mute
         muted = change_settings('muted', not settings['muted'])
         if muted:
-            main_window['mute'].Update(data=VOLUME_MUTED_IMG)
+            main_window['mute'].Update(image_data=VOLUME_MUTED_IMG)
             update_volume(0)
         else:
-            main_window['mute'].Update(data=VOLUME_IMG)
+            main_window['mute'].Update(image_data=VOLUME_IMG)
             update_volume(settings['volume'])
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
         with suppress(AttributeError, IndexError):

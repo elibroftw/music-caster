@@ -236,14 +236,17 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     # main side for album cover, track title, track artist, and music controls
-    pr_button = {'image_data': pause_resume_img, 'border_width': 0, 'metadata': playing_status}
-    next_btn = {'image_data': NEXT_BUTTON_IMG, 'border_width': 0, 'metadata': playing_status, 'tooltip': 'next_track'}
-    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, border_width=0, tooltip='previous track'),
-                      Sg.Button(key='pause/resume', **pr_button),
+    pr_button = {'border_width': 0, 'metadata': playing_status, 'button_color': (bg, bg)}
+    next_btn = {'border_width': 0, 'tooltip': 'next_track', 'button_color': (bg, bg)}
+    prev_btn = {'border_width': 0, 'tooltip': 'previous track', 'button_color': (bg, bg)}
+    repeat_btn = {'border_width': 0, 'tooltip': repeat_tooltip, 'button_color': (bg, bg)}
+    mute_btn = {'border_width': 0, 'tooltip': 'mute / unmute', 'button_color': (bg, bg)}
+    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **prev_btn),
+                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **pr_button),
                       # TODO: stop button
-                      Sg.Button(key='next', **next_btn),
-                      Sg.Button(key='repeat', image_data=repeat_img, tooltip=repeat_tooltip, border_width=0),
-                      Sg.Image(data=v_slider_img, tooltip='Mute/Unmute', key='mute', enable_events=True),
+                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **next_btn),
+                      Sg.Button(key='repeat', image_data=repeat_img, **repeat_btn),
+                      Sg.Button(key='mute', image_data=v_slider_img, **mute_btn),
                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                 disable_number_display=True, enable_events=True, background_color=accent_color,
                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
@@ -333,8 +336,8 @@ def create_settings(version, settings, qr_code):
          Sg.Checkbox('Save Queue Between Sessions', default=settings['save_queue_sessions'], key='save_queue_sessions',
                      background_color=bg, font=FONT_NORMAL, enable_events=True, size=(23, 5), pad=((0, 5), (5, 5)))]
     ], pad=((0, 0), (5, 0)))
-    qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'image_data': qr_code, 'border_width': 0}
-    qr_code_col = Sg.Column([[Sg.Button(**qr_code__params, key='web_gui')]], pad=(0, 0))
+    qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
+    qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))
     email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': 'Send me an email'}
     add_music_folder = {'button_text': 'Add Music Folder', 'font': FONT_NORMAL, 'enable_events': True, 'size': (15, 1)}
     open_settings_file = {'font': FONT_NORMAL, 'enable_events': True, 'size': (15, 1)}
