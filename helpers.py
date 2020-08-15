@@ -2,13 +2,15 @@ import time
 from contextlib import suppress
 import datetime
 from functools import wraps
+import io
 import os
 import platform
 from math import floor
 import winreg as wr
-
+import base64
 import pyqrcode
 import PySimpleGUI as Sg
+from PIL import Image
 import socket
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
@@ -148,10 +150,84 @@ def create_progress_bar_text(position, length) -> (str, str):  #
     return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'
 
 
+def is_os_64bit():
+    return platform.machine().endswith('64')
+
+
+def add_reg_handlers(path_to_exe):
+    """ Register Music Caster as a program to open audio files and folders """
+    # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
+    # TODO: use arg parser
+    path_to_exe = path_to_exe.replace('/', '\\')
+    classes_path = 'SOFTWARE\\Classes\\'
+    key_name_ext = 'MusicCaster_file'
+    write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
+    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
+    # create handlers
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Audio File')
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\DefaultIcon', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, path_to_exe)  # define icon location
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\open', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Play')
+        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
+    command_path = f'{classes_path}{key_name_ext}\\shell\\open\\command'
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+    # TODO: queue file
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\queue', 0, write_access) as key:
+    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Queue file in Music Caster')
+    #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
+    #     wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
+    # command_path = f'{classes_path}{key_name_ext}\\shell\\queue\\command'
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
+    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+    # set file handlers
+    for ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav', '.mpeg'}:
+        key_path = f'{classes_path}{ext}'
+        try:
+            # check if key exists
+            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _: pass
+        except (WindowsError, FileNotFoundError):
+            # create key if it does not exist
+            with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:
+                # set as default program unless .mp4 because that's a video format
+                if ext != '.mp4':
+                    wr.SetValueEx(key, None, 0, wr.REG_SZ, 'MusicCaster_file')
+        # add to Open With (prompts user to set default program)
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
+            wr.SetValueEx(key, key_name_ext, 0, wr.REG_NONE, b'')
+    # set open folder in Music Caster
+    play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Play with Music Caster')
+        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+    # TODO: queue folder
+    # queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, access) as key:
+    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Queue Folder in Music Caster')
+    #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
+    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, access) as key:
+    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --queue_folders "%1"')
+
+
+def resize_img(base64data, new_size=(255, 255)) -> bytes:
+    """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
+    base64data = base64data.encode() if type(base64data) == str else base64data
+    data = base64.b64decode(base64data)
+    data = io.BytesIO(data)
+    img: Image = Image.open(data)
+    img = img.resize(new_size, Image.ANTIALIAS)
+    data = io.BytesIO()
+    img.save(data, format='PNG', quality=95)
+    return base64.b64encode(data.getvalue())
+
+
 # GUI LAYOUTS
-# noinspection PyUnusedLocal
 def create_main(tracks, listbox_selected, playing_status, settings, version, qr_code, timer, title='Nothing Playing',
-                artist='', album_cover_data=None, track_length=0, track_position=0):
+                artist='', album_cover_data: str = None, track_length=0, track_position=0):
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
@@ -181,13 +257,14 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
                                      disable_number_display=True, disabled=artist == '',
                                      tooltip='Scroll mousewheel', pad=((8, 8), (10, 0))),
                            Sg.Text(time_left, size=text_size, font=FONT_NORMAL, key='time_left', pad=((5, 0), (10, 0)))]
-    # album_cover = [Sg.Image(data=album_cover_data, pad=(0, 0), size=(255, 255),
-    #                         key='album_cover')] if album_cover_data else []
-    # album_cover = [Sg.Image(data=WINDOW_ICON, pad=(0, 0), size=(255, 255), key='album_cover')]
-    # use album_cover once I get a resizing lib
-    main_side = Sg.Column([  # album_cover,
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (70, 10)), size=(35, 0), justification='center')],
-        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((0, 0), (0, 30)), size=(35, 0), justification='center')],
+    title_top_pad = 10 + (album_cover_data is None) * 60   # 10 or 70
+    artist_bot_pad = 10 + (album_cover_data is None) * 20  # 10 or 30
+    main_side = Sg.Column([
+        [Sg.Image(data=album_cover_data, pad=(0, 0), size=(255, 255), key='album_cover')] if album_cover_data else [],
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (title_top_pad, 10)),
+                 size=(26, 0), justification='center')],
+        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((0, 0), (0, artist_bot_pad)),
+                 size=(26, 0), justification='center')],
         music_controls, progress_bar_layout], element_justification='center', pad=((5, 5), (5, 5)))
     # tabs side is for music queue, queue controls, and later, the music library
     # tab 1 is the queue, tab 2 will be the library
@@ -214,8 +291,10 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
+
+    listbox_height = 11 + (album_cover_data is not None) * 7  # 11 or 21
     queue_tab_layout = [queue_controls, [
-        Sg.Listbox(tracks, default_values=listbox_selected, size=(64, 11),
+        Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
                    select_mode=Sg.SELECT_MODE_SINGLE,
                    text_color=fg, key='queue', font=FONT_NORMAL,
                    bind_return_key=True),
@@ -228,8 +307,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     # TODO: library_tab = Sg.Tab()
     tabs_side = Sg.TabGroup([[queue_tab, timer_tab, settings_tab]], title_color=fg, border_width=0, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
-                            tab_background_color=bg,
-                            selected_title_color=bg, background_color=bg)
+                            tab_background_color=bg, selected_title_color=bg, background_color=bg)
 
     return [[main_side, tabs_side]] if settings['flip_main_window'] else [[tabs_side, main_side]]
 
@@ -348,66 +426,3 @@ def create_play_url_window(combo_value='Play Immediately'):
                Sg.Combo(combo_values, default_value=combo_value, key='combo_choice')],
               [Sg.Input(key='url', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)]]
     return layout
-
-
-def is_os_64bit():
-    return platform.machine().endswith('64')
-
-
-def add_reg_handlers(path_to_exe):
-    """ Register Music Caster as a program to open audio files and folders """
-    # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
-    # TODO: use arg parser
-    # TODO: queue file option
-    # TODO: queue folder option
-    path_to_exe = path_to_exe.replace('/', '\\')
-    classes_path = 'SOFTWARE\\Classes\\'
-    key_name_ext = 'MusicCaster_file'
-    write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
-    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
-    # create handlers
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Audio File')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\DefaultIcon', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, path_to_exe)  # define icon location
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\open', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Play')
-        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-    command_path = f'{classes_path}{key_name_ext}\\shell\\open\\command'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
-    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{key_name_ext}\\shell\\queue', 0, write_access) as key:
-    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Queue file in Music Caster')
-    #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    #     wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-    # command_path = f'{classes_path}{key_name_ext}\\shell\\queue\\command'
-    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
-    # set file handlers
-    for ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav', '.mpeg'}:
-        key_path = f'{classes_path}{ext}'
-        try:
-            # check if key exists
-            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _: pass
-        except (WindowsError, FileNotFoundError):
-            # create key if it does not exist
-            with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:
-                # set as default program unless .mp4 because that's a video format
-                if ext != '.mp4':
-                    wr.SetValueEx(key, None, 0, wr.REG_SZ, 'MusicCaster_file')
-        # add to Open With (prompts user to set default program)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
-            wr.SetValueEx(key, key_name_ext, 0, wr.REG_NONE, b'')
-    # set open folder in Music Caster
-    play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Play with Music Caster')
-        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
-    # queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'
-    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, access) as key:
-    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Queue Folder in Music Caster')
-    #     wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    # with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, access) as key:
-    #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --queue_folders "%1"')

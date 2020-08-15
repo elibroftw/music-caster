@@ -7,7 +7,6 @@ import mutagen.id3
 from helpers import get_metadata
 from pychromecast import get_chromecasts
 
-print(get_chromecasts())
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(0), time.time() - timer)
@@ -138,17 +137,18 @@ Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_
                           button_color=(theme['background'], theme['accent']),
                           border_width=1, slider_border_width=1, progress_meter_border_depth=0)
 
-play_url_window = Sg.Window('Play URL', create_play_url_window(), finalize=True)
-
-play_url_window.Read(timeout=8000)  # 10 second timeout
-play_url_window.Close()
-
-
 songs_list, selected_value = create_songs_list()
 QR_CODE = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
-other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE, time.time() + 999,
-                                really_long_tile, 'Martin')
+
+# album cover test
+default_album_cover = resize_img(DEFAULT_IMG_DATA).decode()
+
+main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
+              'album_cover_data': default_album_cover}
+
+other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE,
+                                time.time() + 999, **main_attrs)
 
 main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout,
                                 icon=WINDOW_ICON, return_keyboard_events=True,
@@ -178,11 +178,16 @@ for main_window in {main_window1}:
 
 # Timer GUI
 
+# URL GUI
+play_url_window = Sg.Window('Play URL', create_play_url_window(), finalize=True, return_keyboard_events=True)
+play_url_window.TKroot.focus_force()
+play_url_window.Read(timeout=1500)  # 1.5 second timeout
+play_url_window.Close()
+
 # Playlists GUI
 
 pl_editor_layout = create_playlist_editor(settings, 'test')
 pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, return_keyboard_events=True)
-
 pl_editor_window.Finalize()
 pl_editor_window.TKroot.focus_force()
 window_active = True

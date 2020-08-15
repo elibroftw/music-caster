@@ -1,6 +1,7 @@
-VERSION = '4.61.1'
+VERSION = '4.62.0'
 UPDATE_MESSAGE = """
 [Feature] Cast Live System Audio
+[Feature] Album Cover in GUI
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -32,7 +33,6 @@ import zipfile
 # 3rd party imports
 from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
 from mutagen.aac import AAC
-# from PIL import Image
 import PySimpleGUIWx as SgWx
 import pyaudio
 import wx
@@ -259,8 +259,23 @@ def get_album_cover(file_path: str) -> tuple:  # mime: str, data: str / (None, N
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
-                return tags[tag].mime, base64.b64encode(tags[tag].data).decode('utf-8')
+                return tags[tag].mime, base64.b64encode(tags[tag].data).decode()  # 'utf-8'
     return None, None
+
+
+def get_current_album_cover():
+    if playing_live: return LIVE_AUDIO_ART
+    uri = music_queue[0]
+    if uri.startswith('http'):
+        if 'art_data' in url_metadata: return url_metadata['art_data']
+        try:
+            art_src = url_metadata[uri]['art']
+            art_data = base64.b64encode(requests.get(art_src).content)
+            url_metadata['art_data'] = art_data
+            return art_data
+        except KeyError: return DEFAULT_IMG_DATA
+    art = get_album_cover(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
+    return DEFAULT_IMG_DATA if art is None else art
 
 
 def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
@@ -433,10 +448,8 @@ def index():  # web GUI
     if playing_live: metadata = url_metadata['LIVE']
     elif playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError): metadata = get_uri_info(music_queue[0])
-    if playing_live: art = LIVE_AUDIO_ART.decode()
-    else:
-        try: art = url_metadata[music_queue[0]]['art']
-        except KeyError: art = get_album_cover(music_queue[0])[1] if music_queue else DEFAULT_IMG_DATA.decode()
+    art = get_current_album_cover()
+    if type(art) == bytes: art = art.decode()
     art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
@@ -1245,7 +1258,7 @@ def activate_main_window(selected_tab='tab_queue'):
                 metadata = get_uri_info(music_queue[0])
                 position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
-            album_cover_data = None if playing_live else get_album_cover(music_queue[0])[1]
+            album_cover_data = resize_img(get_current_album_cover()).decode()
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
@@ -1736,9 +1749,11 @@ def read_main_window():
         main_window['time_elapsed'].Update(value='0:00')
         main_window['time_left'].Update(value='0:00')
     p_r_button.metadata = playing_status
-    if gui_title != title:
+    if gui_title != title:  # usually if music stops playing or another track starts playing
         main_window['title'].Update(value=title)
         main_window['artist'].Update(value=artist)
+        album_cover_data = resize_img(get_current_album_cover()).decode()
+        main_window['album_cover'].Update(data=album_cover_data)
         update_lb_mq = True
     if update_lb_mq:
         lb_tracks = create_track_list()[0]
@@ -2012,20 +2027,20 @@ try:
 
     menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders, 'Playlists',
-                        tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
+                        'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
-                        tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders,
+                        'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders, 'Playlists',
-                        tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders,
+                        'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     IPV4 = get_ipv4()
     QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
