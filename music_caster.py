@@ -1,4 +1,4 @@
-VERSION = '4.61.0'
+VERSION = '4.61.1'
 UPDATE_MESSAGE = """
 [Feature] Cast Live System Audio
 """
@@ -430,13 +430,13 @@ def index():  # web GUI
             change_settings('shuffle', not settings['shuffle'])
         return redirect('/')
     metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-    if playing_live:
-        metadata = url_metadata['LIVE']
+    if playing_live: metadata = url_metadata['LIVE']
     elif playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError): metadata = get_uri_info(music_queue[0])
-    try: art = metadata['art']
-    except KeyError: art = get_album_cover(music_queue[0])[1] if music_queue else None
-    if art is None: art = DEFAULT_IMG_DATA.decode()
+    if playing_live: art = LIVE_AUDIO_ART.decode()
+    else:
+        try: art = url_metadata[music_queue[0]]['art']
+        except KeyError: art = get_album_cover(music_queue[0])[1] if music_queue else DEFAULT_IMG_DATA.decode()
     art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
@@ -755,37 +755,41 @@ def stream_live_audio(switching_device=False):
         return False
     else:
         stop()
-        # TODO: mute computer audio
         ipv4_address = get_ipv4()
         url = f'http://{ipv4_address}:{PORT}/live/'
         _volume = 0 if settings['muted'] else settings['volume'] / 100
         cast.wait(timeout=WAIT_TIMEOUT)
-        cast.set_volume(_volume)
-        mc = cast.media_controller
-        if mc.status.player_is_playing or mc.status.player_is_paused:
-            mc.stop()
-            mc.block_until_active(WAIT_TIMEOUT)
-        title = 'Live Audio'
-        artist = platform.node()
-        album = 'Music Caster'
-        metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-        mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png', stream_type='LIVE')
-        mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
-        start_time = time.time()
-        playing_live = True
-        while not mc.status.player_is_playing:
-            print('waiting for chromecast to start playing')
-            time.sleep(0.2)
-            mc.update_status()
-        live_lag = time.time() - start_time
-        mc.play()  # force chromecast device to start playing
-        track_length = 108800  # 3 hour default
-        track_position = 0
-        track_start = time.time() - track_position
-        track_end = track_start + track_length
-        url_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album, 'art': LIVE_AUDIO_ART.decode()}
-        after_play(artist, title, True, switching_device)
-        return True
+        try:
+            cast.set_volume(_volume)
+            mc = cast.media_controller
+            if mc.status.player_is_playing or mc.status.player_is_paused:
+                mc.stop()
+                mc.block_until_active(WAIT_TIMEOUT)
+            title = 'Live Audio'
+            artist = platform.node()
+            album = 'Music Caster'
+            metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            url_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album}
+            mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png', stream_type='LIVE')
+            mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
+            start_time = time.time()
+            playing_live = True
+            while not mc.status.player_is_playing:
+                print('waiting for chromecast to start playing')
+                time.sleep(0.2)
+                mc.update_status()
+            live_lag = time.time() - start_time
+            mc.play()  # force chromecast device to start playing
+            track_length = 108800  # 3 hour default
+            track_position = 0
+            track_start = time.time() - track_position
+            track_end = track_start + track_length
+            after_play(artist, title, True, switching_device)
+            return True
+        except NotConnected:
+            if internet_available(): tray.ShowMessage('Music Caster', 'ERROR: No Internet Connection')
+            else: tray.ShowMessage('Music Caster', 'ERROR: Could not connect to Chromecast')
+            return False
 
 
 def play_url_generic(src, ext, title, artist, album, length, position=0,
@@ -1712,7 +1716,7 @@ def read_main_window():
                 progress_bar.Update(track_position, range=(0, track_length), disabled=False, visible=True)
             update_progress_bar_text = True
             progress_bar_last_update = time.time() - track_position + int(track_position)
-        else:
+        elif not playing_live:
             playing_status = 'NOT PLAYING'
     if update_progress_bar_text:
         elapsed_time_text, time_left_text = create_progress_bar_text(track_position, track_length)
