@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.1.0
+AudioPlayer v2.1.1
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -44,7 +44,7 @@ class AudioPlayer:
         self.play(file_path, start_playing=False)
 
     def pause(self):
-        if not self.__is_paused and self.is_playing():
+        if not self.__is_paused and self.player.is_playing():
             self.player.pause()
             while self.player.is_playing(): pass
             self.__is_paused = True
