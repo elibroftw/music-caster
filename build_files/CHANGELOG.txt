@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.62.0
+- [Feature] Album art in main window
+
 4.61.1
 - [Fix] GUI when playing live audio
 
