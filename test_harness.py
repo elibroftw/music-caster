@@ -1,6 +1,5 @@
 from helpers import *
 import base64
-from mutagen.easyid3 import EasyID3
 from pathlib import Path
 from contextlib import suppress
 import mutagen.id3
@@ -131,11 +130,11 @@ settings = {
 
 theme = settings['theme']
 Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
-                          background_color=theme['background'], text_element_background_color=theme['background'],
-                          element_background_color=theme['background'], scrollbar_color=theme['background'],
-                          input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
-                          button_color=(theme['background'], theme['accent']),
-                          border_width=1, slider_border_width=1, progress_meter_border_depth=0)
+              background_color=theme['background'], text_element_background_color=theme['background'],
+              element_background_color=theme['background'], scrollbar_color=theme['background'],
+              input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
+              button_color=(theme['background'], theme['accent']),
+              border_width=1, slider_border_width=1, progress_meter_border_depth=0)
 
 songs_list, selected_value = create_songs_list()
 QR_CODE = create_qr_code(2001)
@@ -151,8 +150,8 @@ other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings,
                                 time.time() + 999, **main_attrs)
 
 main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout,
-                                icon=WINDOW_ICON, return_keyboard_events=True,
-                                use_default_focus=False, location=(None, None))
+                         icon=WINDOW_ICON, return_keyboard_events=True,
+                         use_default_focus=False)
 for main_window in {main_window1}:
     main_window.Finalize()
     main_window.TKroot.focus_force()
