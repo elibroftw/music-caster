@@ -1,7 +1,7 @@
 VERSION = '4.62.0'
 UPDATE_MESSAGE = """
 [Feature] Cast Live System Audio
-[Feature] Album Cover in GUI
+[UI] Album Cover in Main Window
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
