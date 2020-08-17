@@ -1,4 +1,4 @@
-VERSION = '4.62.1'
+VERSION = '4.62.2'
 UPDATE_MESSAGE = """
 [UI] Album Cover in Main Window
 """
@@ -265,16 +265,18 @@ def get_album_cover(file_path: str) -> tuple:  # mime: str, data: str / (None, N
 
 def get_current_album_cover():
     if playing_live: return LIVE_AUDIO_ART
-    uri = music_queue[0]
-    if uri.startswith('http'):
-        if 'art_data' in url_metadata: return url_metadata['art_data']
-        try:
-            art_src = url_metadata[uri]['art']
-            art_data = base64.b64encode(requests.get(art_src).content)
-            url_metadata['art_data'] = art_data
-            return art_data
-        except KeyError: return DEFAULT_IMG_DATA
-    art = get_album_cover(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
+    art = None
+    if music_queue:
+        uri = music_queue[0]
+        if uri.startswith('http'):
+            if 'art_data' in url_metadata: return url_metadata['art_data']
+            try:
+                art_src = url_metadata[uri]['art']
+                art_data = base64.b64encode(requests.get(art_src).content)
+                url_metadata['art_data'] = art_data
+                return art_data
+            except KeyError: return DEFAULT_IMG_DATA
+        art = get_album_cover(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
     return DEFAULT_IMG_DATA if art is None else art
 
 

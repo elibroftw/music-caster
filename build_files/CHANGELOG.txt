@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.62.2
+- [Fix] Main GUI
+
 4.62.1
 - [Fix] Live Audio uses default output device now
 - [Fix] Live Audio follows default output device
