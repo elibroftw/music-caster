@@ -1,6 +1,5 @@
-VERSION = '4.62.0'
+VERSION = '4.62.1'
 UPDATE_MESSAGE = """
-[Feature] Cast Live System Audio
 [UI] Album Cover in Main Window
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
@@ -64,10 +63,11 @@ EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
+STREAM_CHUNK = 1024
 PRESSED_KEYS = set()
 show_pygame_error = update_devices = settings_file_in_use = False
 update_available = False
-settings_last_modified, last_press = 0, time.time()
+settings_last_modified, last_press = 0, time.time() + 5
 active_windows = {'main': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
 main_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
@@ -573,51 +573,57 @@ def gen_header(sample_rate, bits_per_sample, channels):
     return o
 
 
+def get_output_device(pa, look_for):
+    for i in range(pa.get_device_count()):
+        device_info = pa.get_device_info_by_index(i)
+        host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
+        if (host_api_info['name'] == 'Windows WASAPI' and device_info['maxOutputChannels'] > 0
+                and device_info['name'] == look_for):
+            channels = min(device_info['maxOutputChannels'], 2)
+            return int(device_info['defaultSampleRate']), channels, device_info['index']
+    raise RuntimeError('No Output Device Found')
+
+
+def create_stream(pa, sample_rate, channels, input_device_index, chunk=1024):
+    _format = pyaudio.paInt16
+    return pa.open(format=_format, channels=channels, as_loopback=True, rate=sample_rate, input=True,
+                   input_device_index=input_device_index, frames_per_buffer=chunk)
+
+
 @app.route('/live/')
 def get_live_audio():
     # send system live audio to chromecast
-    # TODO: quality option: 1 for WAV, 2 for MP3 320, 3 for MP3 192, 4 for MP3 128
-
-    def get_output_device(pa):
-        for i in range(pa.get_device_count()):
-            device_info = pa.get_device_info_by_index(i)
-            host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
-            if (host_api_info['name'] == 'Windows WASAPI' and
-                    device_info['name'].count('Steam') == 0 and device_info['maxOutputChannels'] > 0):
-                return device_info
-        raise RuntimeError('No Output Device Found')
 
     def system_sound():
         global daemon_command, live_lag
+        # TODO: detect and send silence
         # live system sound generator
         p = pyaudio.PyAudio()
         _format = pyaudio.paInt16
-        chunk = 1024
         bits_per_sample = 16
         # get output device
-        device_info = get_output_device(p)
-        sample_rate = int(device_info['defaultSampleRate'])
-        channels = device_info['maxOutputChannels']
-        if channels > 2: channels = 2
-        wav_header = gen_header(sample_rate, bits_per_sample, channels)
-        stream = p.open(format=_format, channels=channels, as_loopback=True,
-                        rate=sample_rate, input=True, input_device_index=device_info['index'],
-                        frames_per_buffer=chunk)
-        first_run = True
-        last_sleep = time.time()
+        look_for_device = get_default_output_device()
+        sample_rate, channels, device_index = get_output_device(p, look_for_device)
+        stream = create_stream(p, sample_rate, channels, device_index, STREAM_CHUNK)
+        last_sleep = 0  # doubles as a first_run
         while True:
-            # TODO: figure out how to stop chromecast from buffering stream
-            if first_run:
-                data = wav_header + stream.read(chunk)
-                first_run = False
+            if last_sleep == 0:
+                wav_header = gen_header(sample_rate, bits_per_sample, channels)
+                data = wav_header + stream.read(STREAM_CHUNK)
+                last_sleep = time.time()
             else:
-                if live_lag > 0.25 and time.time() - last_sleep > 1:
+                if live_lag > 0.3 and time.time() - last_sleep > 1:
                     # don't sleep consecutively
-                    sleep_for = min(live_lag * 0.9, 0.25)  # * 0.9 because some buffering is okay
+                    sleep_for = min(live_lag * 0.9, 0.3)
                     live_lag -= sleep_for
                     time.sleep(sleep_for)
                     last_sleep = time.time()
-                data = stream.read(chunk)  # records latest audio; not old audio
+                temp_device = get_default_output_device()  # check if output device has changed
+                if look_for_device != temp_device:
+                    look_for_device = temp_device
+                    stream.close()
+                    stream = create_stream(p, *get_output_device(p, look_for_device), STREAM_CHUNK)
+                data = stream.read(STREAM_CHUNK)  # gets the live system audio
             yield data
     return Response(system_sound())
 
@@ -783,16 +789,17 @@ def stream_live_audio(switching_device=False):
             album = 'Music Caster'
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
             url_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album}
-            mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png', stream_type='LIVE')
+            # mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png', stream_type='LIVE')
+            mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png')
             mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
             start_time = time.time()
             playing_live = True
             while not mc.status.player_is_playing:
                 print('waiting for chromecast to start playing')
-                time.sleep(0.2)
+                time.sleep(0.1)
                 mc.update_status()
-            live_lag = time.time() - start_time
             mc.play()  # force chromecast device to start playing
+            live_lag = time.time() - start_time
             track_length = 108800  # 3 hour default
             track_position = 0
             track_start = time.time() - track_position
@@ -1145,7 +1152,9 @@ def stop():
         if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
             mc.stop()
-            while mc.is_playing or mc.is_paused: time.sleep(0.1)
+            until_time = time.time() + 5  # 5 seconds
+            while (mc.is_playing or mc.is_paused) and time.time() > until_time: time.sleep(0.1)
+            if mc.is_playing or mc.is_paused: cast.quit_app()
     else: audio_player.stop()
     track_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
@@ -1224,11 +1233,12 @@ def on_press(key):
     global last_press, daemon_command
     key = str(key)
     PRESSED_KEYS.add(key)
-    if (len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS and
-            ('Key.ctrl_l' in PRESSED_KEYS or 'Key.ctrl_r' in PRESSED_KEYS) and
-            ('Key.shift' in PRESSED_KEYS or 'Key.shift_r' in PRESSED_KEYS) and
-            ('Key.alt_l' in PRESSED_KEYS or 'Key.alt_r' in PRESSED_KEYS)):
-        daemon_command = '__ACTIVATED__'
+    valid_shortcut = len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS
+    ctrl_clicked = 'Key.ctrl_l' in PRESSED_KEYS or 'Key.ctrl_r' in PRESSED_KEYS
+    shift_clicked = 'Key.shift' in PRESSED_KEYS or 'Key.shift_r' in PRESSED_KEYS
+    alt_clicked = 'Key.alt_l' in PRESSED_KEYS or 'Key.alt_r' in PRESSED_KEYS
+    # Ctrl + Alt + Shift + M open up main window
+    if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked: daemon_command = '__ACTIVATED__'
     if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
     if key == '<179>':
         if playing_status == 'PLAYING': daemon_command = 'Pause'

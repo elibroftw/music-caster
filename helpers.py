@@ -213,6 +213,29 @@ def add_reg_handlers(path_to_exe):
     #     wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --queue_folders "%1"')
 
 
+def get_default_output_device():
+    """ returns the PyAudio formatted name of the default output device """
+    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
+    audio_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
+    audio_key = wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, audio_path, 0, read_access)
+    num_devices = wr.QueryInfoKey(audio_key)[0]
+    active_last_used, active_device_name = -1, None
+    for i in range(num_devices):
+        device_key_path = f'{audio_path}\\{wr.EnumKey(audio_key, i)}'
+        device_key = wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, device_key_path, 0, read_access)
+        if wr.QueryValueEx(device_key, 'DeviceState')[0] == 1:  # if enabled
+            properties_path = f'{device_key_path}\\Properties'
+            properties = wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, properties_path, 0, read_access)
+            device_name = wr.QueryValueEx(properties, '{b3f8fa53-0004-438e-9003-51a46e139bfc},6')[0]
+            device_type = wr.QueryValueEx(properties, '{a45c254e-df1c-4efd-8020-67d146a850e0},2')[0]
+            pa_name = f'{device_type} ({device_name})'  # name shown in PyAudio
+            last_used = wr.QueryValueEx(device_key, 'Level:0')[0]
+            if last_used > active_last_used:  # the bigger the number, the more recent it was used
+                active_last_used = last_used
+                active_device_name = pa_name
+    return active_device_name
+
+
 def resize_img(base64data, new_size=(255, 255)) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
     base64data = base64data.encode() if type(base64data) == str else base64data

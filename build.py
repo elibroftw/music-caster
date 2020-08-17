@@ -20,12 +20,13 @@ args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
+MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
 # https://stackoverflow.com/questions/418896/how-to-redirect-output-to-a-file-and-stdout
 shutil.rmtree('dist/Music Caster', True)
 with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
-MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
 def update_spec_files(debug_option):
@@ -82,11 +83,15 @@ with open('build_files/setup_script.iss', 'r+') as f:
     f.seek(0)
     f.writelines(lines)
     f.truncate()
+
 if args.versioning: sys.exit()
 if args.debug: update_spec_files(True)
 print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
-subprocess.check_call('pip install build_files\PyAudio-0.2.11-cp38-cp38-win32.whl --force', stdout=subprocess.DEVNULL)
+try:
+    subprocess.check_call(f'pip install build_files\\{pyaudio_whl} --force', stdout=subprocess.DEVNULL)
+except subprocess.CalledProcessError:
+    print(f'WARNING: {pyaudio_whl} could not be installed with --force')
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
