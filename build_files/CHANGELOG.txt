@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.2
+- [Fix] Play tracks
+
 4.63.1
 - [Fix] Settings tooltip
 

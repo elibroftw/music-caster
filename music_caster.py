@@ -1,4 +1,4 @@
-VERSION = '4.63.1'
+VERSION = '4.63.2'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -908,17 +908,10 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         return
     title, artist, album = get_metadata_wrapped(uri)
     # update metadata of track in case something changed
-    all_tracks[uri] = {**all_tracks[uri], 'artist': artist, 'title': title, 'album': album, 'length': track_length}
     try:
-        metadata = all_tracks[uri]
-        title, artist, album = metadata['title'], metadata['artist'], metadata['album']
+        all_tracks[uri] = {**all_tracks[uri], 'artist': artist, 'title': title, 'album': album, 'length': track_length}
     except KeyError:
-        try:
-            all_tracks[uri]['length'] = track_length
-        except HeaderNotFoundError:
-            tray.ShowMessage('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
-            next_track()
-            return
+        all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
