@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.1
+- [Fix] Settings tooltip
+
 4.63.0
 - [Fix] Playing an updated file
 - [UI] Vertical UI

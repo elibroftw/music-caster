@@ -1,4 +1,4 @@
-VERSION = '4.63.0'
+VERSION = '4.63.1'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode

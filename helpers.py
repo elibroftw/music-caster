@@ -413,7 +413,8 @@ def create_settings(version, settings, qr_code):
                      tooltip='Shows main content vertically', key='vertical_gui',
                      size=(23, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5)))],
         [Sg.Checkbox('Show Album Art', default=settings['show_album_art'], key='show_album_art',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
+                     tooltip='Show Album Art on Main Window', background_color=bg,
+                     font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
          Sg.Checkbox('Mini Mode on Top', default=settings['mini_on_top'], key='mini_on_top', size=(23, 5),
                      tooltip='Keep Mini Mode on Top', background_color=bg, font=FONT_NORMAL, enable_events=True,
                      pad=((0, 5), (5, 5)))]
