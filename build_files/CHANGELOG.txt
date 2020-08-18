@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.0
+- [Fix] Playing an updated file
+- [UI] Vertical UI
+- [UI] Mini mode UI
+- [UI] Album art is optional
+
 4.62.2
 - [Fix] Main GUI
 

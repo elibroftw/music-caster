@@ -1,6 +1,7 @@
-VERSION = '4.62.2'
+VERSION = '4.63.0'
 UPDATE_MESSAGE = """
-[UI] Album Cover in Main Window
+[UI] More UI options
+[UI] Mini Mode
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -101,6 +102,7 @@ settings = {  # default settings
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
+    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
     'music_directories': [home_music_dir], 'playlists': {},
@@ -254,7 +256,7 @@ def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
     return length, sample_rate
 
 
-def get_album_cover(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
+def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
@@ -263,7 +265,7 @@ def get_album_cover(file_path: str) -> tuple:  # mime: str, data: str / (None, N
     return None, None
 
 
-def get_current_album_cover():
+def get_current_album_art():
     if playing_live: return LIVE_AUDIO_ART
     art = None
     if music_queue:
@@ -275,9 +277,9 @@ def get_current_album_cover():
                 art_data = base64.b64encode(requests.get(art_src).content)
                 url_metadata['art_data'] = art_data
                 return art_data
-            except KeyError: return DEFAULT_IMG_DATA
-        art = get_album_cover(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
-    return DEFAULT_IMG_DATA if art is None else art
+            except KeyError: return DEFAULT_ART
+        art = get_album_art(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
+    return DEFAULT_ART if art is None else art
 
 
 def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
@@ -450,7 +452,7 @@ def index():  # web GUI
     if playing_live: metadata = url_metadata['LIVE']
     elif playing_status in {'PLAYING', 'PAUSED'}:
         with suppress(KeyError, IndexError): metadata = get_uri_info(music_queue[0])
-    art = get_current_album_cover()
+    art = get_current_album_art()
     if type(art) == bytes: art = art.decode()
     art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
@@ -535,8 +537,8 @@ def get_file():
         file_path = request.args['path']
         if os.path.isfile(file_path) and valid_music_file(file_path):
             if request.args.get('thumbnail_only', False):
-                mime_type, img_data = get_album_cover(file_path)
-                if mime_type is None: mime_type, img_data = 'image/png', DEFAULT_IMG_DATA
+                mime_type, img_data = get_album_art(file_path)
+                if mime_type is None: mime_type, img_data = 'image/png', DEFAULT_ART
                 else: img_data = base64.b64decode(img_data)
                 ext = mime_type.split('/')[1]
                 return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
@@ -756,7 +758,7 @@ def after_play(artists: str, title, autoplay, switching_device):
     # artists is comma separated string
     playing_text = f"{artists.split(', ')[0]} - {title}"
     if autoplay:
-        if settings['notifications'] and not switching_device:
+        if settings['notifications'] and not switching_device and not active_windows['main']:
             tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
         playing_status = 'PLAYING'
         tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
@@ -899,14 +901,19 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     uri = uri.replace('\\', '/')
     playing_live = False
     try:
+        track_length, sample_rate = get_length_and_sample_rate(uri)
+    except HeaderNotFoundError:
+        tray.ShowMessage('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
+        next_track()
+        return
+    title, artist, album = get_metadata_wrapped(uri)
+    # update metadata of track in case something changed
+    all_tracks[uri] = {**all_tracks[uri], 'artist': artist, 'title': title, 'album': album, 'length': track_length}
+    try:
         metadata = all_tracks[uri]
-        track_length, sample_rate = metadata['length'], metadata['sample_rate']
         title, artist, album = metadata['title'], metadata['artist'], metadata['album']
-    except KeyError:  # not in all_track so add to all tracks
-        title, artist, album = get_metadata_wrapped(uri)
-        all_tracks[uri] = {'artist': artist, 'title': title, 'album': album}
+    except KeyError:
         try:
-            track_length, sample_rate = get_length_and_sample_rate(uri)
             all_tracks[uri]['length'] = track_length
         except HeaderNotFoundError:
             tray.ShowMessage('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
@@ -1262,6 +1269,9 @@ def activate_main_window(selected_tab='tab_queue'):
         active_windows['main'] = True
         window_location = get_window_location('main')
         lb_tracks, selected_value = create_track_list()
+        mini_mode = settings['mini_mode']
+        size = (125, 125) if mini_mode else (255, 255)
+        album_art_data = resize_img(get_current_album_art(), size).decode()
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
                 metadata = url_metadata['LIVE']
@@ -1270,30 +1280,30 @@ def activate_main_window(selected_tab='tab_queue'):
                 metadata = get_uri_info(music_queue[0])
                 position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
-            album_cover_data = resize_img(get_current_album_cover()).decode()
             if get_ipv4() != IPV4:
                 IPV4 = get_ipv4()
                 QR_CODE = create_qr_code(PORT)
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE,
-                                          timer, title, artist, album_cover_data=album_cover_data,
-                                          track_length=length, track_position=position)
+                                          timer, title, artist, album_art_data=album_art_data, track_length=length,
+                                          track_position=position, mini=mini_mode)
         else:
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE, timer,
-                                          album_cover_data=resize_img(DEFAULT_IMG_DATA).decode())
-        main_window = Sg.Window('Music Caster', main_gui_layout,
-                                icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,
-                                use_default_focus=False, location=window_location)
-        main_window['queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
+                                          album_art_data=album_art_data, mini=mini_mode)
+        main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
+                                icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,  use_default_focus=False,
+                                keep_on_top=mini_mode and settings['mini_on_top'], location=window_location)
+        if not settings['mini_mode']:
+            main_window['queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
+            main_window['queue'].bind('<Enter>', '_mouse_enter')
+            main_window['queue'].bind('<Leave>', '_mouse_leave')
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
         main_window['progressbar'].bind('<Enter>', '_mouse_enter')
         main_window['progressbar'].bind('<Leave>', '_mouse_leave')
-        main_window['queue'].bind('<Enter>', '_mouse_enter')
-        main_window['queue'].bind('<Leave>', '_mouse_leave')
         set_save_position_callback(main_window, 'main')
-    main_window[selected_tab].Select()
-    if selected_tab == 'tab_timer':
-        main_window['minutes'].SetFocus()
+    if not settings['mini_mode']:
+        main_window[selected_tab].Select()
+        if selected_tab == 'tab_timer': main_window['minutes'].SetFocus()
     main_window.TKroot.focus_force()
     main_window.Normal()
 
@@ -1513,7 +1523,7 @@ def read_main_window():
             main_window['mute'].Update(image_data=VOLUME_IMG)
             update_volume(settings['volume'])
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
-        with suppress(AttributeError, IndexError):
+        with suppress(AttributeError, IndexError, KeyError):
             if main_window.FindElementWithFocus() == main_window['queue']:
                 move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
                 new_i = main_window['queue'].GetListValues().index(main_values['queue'][0]) + move
@@ -1615,6 +1625,11 @@ def read_main_window():
         Thread(target=folder_action, kwargs={'action': main_values['folder_option']}).start()
     elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
     elif main_event == 'url_actions': activate_play_url()
+    elif main_event == 'mini_mode':
+        change_settings('mini_mode', not settings['mini_mode'])
+        active_windows['main'] = False
+        main_window.Close()
+        activate_main_window()
     elif main_event == 'clear_queue':
         reset_progress()
         main_window['queue'].Update(values=[])
@@ -1650,7 +1665,7 @@ def read_main_window():
         Thread(target=webbrowser.open, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
                         'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
-                        'save_queue_sessions'}:
+                        'save_queue_sessions', 'flip_main_window', 'vertical_gui', 'show_album_art', 'mini_on_top'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
         elif main_event == 'save_queue_sessions':
@@ -1673,6 +1688,11 @@ def read_main_window():
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
                 elif not main_value: rich_presence.clear()
+        elif main_event in {'show_album_art', 'vertical_gui', 'flip_main_window'}:
+            # re-render main GUI
+            active_windows['main'] = False
+            main_window.Close()
+            activate_main_window('tab_settings')
     elif main_event == 'remove_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
@@ -1748,11 +1768,6 @@ def read_main_window():
         elapsed_time_text, time_left_text = create_progress_bar_text(track_position, track_length)
         main_window['time_elapsed'].Update(value=elapsed_time_text)
         main_window['time_left'].Update(value=time_left_text)
-        # metadata = music_meta_data[music_queue[0]]
-        # main_window['album_cover'].Update(data=metadata['album_cover_data'])
-    lb_music_queue: Sg.Listbox = main_window['queue']
-    dq_len = len(done_queue)
-    update_lb_mq = len(lb_music_queue.get_list_values()) != len(music_queue) + len(next_queue) + dq_len
     if playing_status == 'PLAYING' and p_r_button.metadata != 'PLAYING':
         p_r_button.Update(image_data=PAUSE_BUTTON_IMG)
     elif playing_status == 'PAUSED' and p_r_button.metadata != 'PAUSED':
@@ -1765,12 +1780,14 @@ def read_main_window():
     if gui_title != title:  # usually if music stops playing or another track starts playing
         main_window['title'].Update(value=title)
         main_window['artist'].Update(value=artist)
-        album_cover_data = resize_img(get_current_album_cover()).decode()
-        main_window['album_cover'].Update(data=album_cover_data)
-        update_lb_mq = True
-    if update_lb_mq:
-        lb_tracks = create_track_list()[0]
-        lb_music_queue.Update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
+        size = (125, 125) if settings['mini_mode'] else (255, 255)
+        album_art_data = resize_img(get_current_album_art(), size).decode()
+        main_window['album_art'].Update(data=album_art_data)
+        if not settings['mini_mode']:
+            dq_len = len(done_queue)
+            lb_music_queue: Sg.Listbox = main_window['queue']
+            lb_tracks = create_track_list()[0]
+            lb_music_queue.Update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     return True
 
 

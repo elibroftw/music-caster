@@ -113,7 +113,7 @@ music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {'artist': _artist, 'title': _title
 metadata = music_meta_data[file_path]
 artist, title = metadata['artist'].split(', ')[0], metadata['title']
 now_playing_text = f'{artist} - {title}'
-album_cover_data = metadata.get('art', None)
+album_art_data = metadata.get('art', None)
 done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]
 music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
@@ -123,6 +123,7 @@ settings = {
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
+    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
     'music_directories': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
@@ -141,10 +142,12 @@ QR_CODE = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
 
 # album cover test
-default_album_cover = resize_img(DEFAULT_IMG_DATA).decode()
+mini_mode = False
+size = (125, 125) if mini_mode else (255, 255)
+default_album_art = resize_img(DEFAULT_ART, size).decode()
 
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
-              'album_cover_data': default_album_cover}
+              'album_art_data': default_album_art, 'mini': mini_mode}
 
 other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE,
                                 time.time() + 999, **main_attrs)
