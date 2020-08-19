@@ -1,4 +1,4 @@
-VERSION = '4.63.2'
+VERSION = '4.63.3'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -32,7 +32,6 @@ import webbrowser  # takes 0.05 seconds
 import zipfile
 # 3rd party imports
 from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
-from mutagen.aac import AAC
 import PySimpleGUIWx as SgWx
 import pyaudio
 import wx
@@ -235,27 +234,6 @@ def handle_exception(exception, restart_program=False):
         sys.exit()
 
 
-def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
-    if file_path.lower().endswith('.wav'):
-        a = WavInfoReader(file_path)
-        sample_rate = a.fmt.sample_rate
-        length = a.data.frame_count / sample_rate
-    elif file_path.lower().endswith('.wma'):
-        try:
-            audio_info = mutagen.File(file_path).info
-            length, sample_rate = audio_info.length, audio_info.sample_rate
-        except AttributeError:
-            audio_info = AAC(file_path).info
-            length, sample_rate = audio_info.length, audio_info.sample_rate
-    elif file_path.lower().endswith('.opus'):
-        audio_info = mutagen.File(file_path).info
-        length, sample_rate = audio_info.length, 48000
-    else:
-        audio_info = mutagen.File(file_path).info
-        length, sample_rate = audio_info.length, audio_info.sample_rate
-    return length, sample_rate
-
-
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
     tags = mutagen.File(file_path)
     if tags is not None:
@@ -298,7 +276,19 @@ def get_uri_info(uri):
     #   if file/url is not in all_track. e.g. links
     uri = uri.replace('\\', '/')
     try: return all_tracks[uri]
-    except KeyError: return url_metadata[uri]
+    except KeyError:
+        try:
+            return url_metadata[uri]
+        except KeyError:
+            title, artist, album = get_metadata_wrapped(uri)
+            if title == 'Unknown Title' or artist == 'Unknown Artist':
+                sort_key = os.path.splitext(os.path.basename(uri))[0]
+            else: sort_key = f'{title} - {artist}'
+            metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+            length, sample_rate = get_length_and_sample_rate(uri)  # should not raise an error
+            metadata['length'] = length
+            metadata['sample_rate'] = sample_rate
+            all_tracks[uri] = metadata
 
 
 def index_all_tracks(update_global=True, ignore_files: list = None):
@@ -321,9 +311,6 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         else:
                             sort_key = f'{title} - {artist}'
                         metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
-                        length, sample_rate = get_length_and_sample_rate(file_path)
-                        metadata['length'] = length
-                        metadata['sample_rate'] = sample_rate
                         if use_temp: all_tracks_temp[file_path] = metadata
                         else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
@@ -902,9 +889,9 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     playing_live = False
     try:
         track_length, sample_rate = get_length_and_sample_rate(uri)
-    except HeaderNotFoundError:
+    except InvalidAudioFile:
         tray.ShowMessage('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
-        next_track()
+        if music_queue: play(music_queue[0])
         return
     title, artist, album = get_metadata_wrapped(uri)
     # update metadata of track in case something changed
@@ -1450,7 +1437,7 @@ def read_main_window():
                 change_settings('muted', False)
             update_volume(new_volume)
         main_window.Refresh()
-    if main_event in {'j', 'l'} and main_values['tab_group'] != 'tab_timer':
+    if main_event in {'j', 'l'} and (settings['mini_mode'] or main_values['tab_group'] != 'tab_timer'):
         if playing_status in {'PLAYING', 'PAUSED'}:
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             get_track_position()

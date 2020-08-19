@@ -14,10 +14,12 @@ from PIL import Image
 import socket
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
+
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
 import re
 import mutagen
+from mutagen.aac import AAC, AACError
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
@@ -47,9 +49,37 @@ def timing(f):
     return wrapper
 
 
-def get_metadata(file_path: str) -> tuple:  # title, artist, album
+class InvalidAudioFile(Exception): pass
+
+
+def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
+    # throws InvalidAudioFile if file is invalid
+    try:
+        if file_path.lower().endswith('.wav'):
+            a = WavInfoReader(file_path)
+            sample_rate = a.fmt.sample_rate
+            length = a.data.frame_count / sample_rate
+        elif file_path.lower().endswith('.wma'):
+            try:
+                audio_info = mutagen.File(file_path).info
+                length, sample_rate = audio_info.length, audio_info.sample_rate
+            except AttributeError:
+                audio_info = AAC(file_path).info
+                length, sample_rate = audio_info.length, audio_info.sample_rate
+        elif file_path.lower().endswith('.opus'):
+            audio_info = mutagen.File(file_path).info
+            length, sample_rate = audio_info.length, 48000
+        else:
+            audio_info = mutagen.File(file_path).info
+            length, sample_rate = audio_info.length, audio_info.sample_rate
+        return length, sample_rate
+    except (AttributeError, HeaderNotFoundError, AACError):
+        raise InvalidAudioFile(f'{file_path} is an invalid audio file')
+
+
+def get_metadata(file_path: str, as_dict=False):  # title, artist, album
     file_path = file_path.lower()
-    _title, _artist, _album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+    title, artist, album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError):
         if file_path.endswith('.mp3'):
             audio = EasyID3(file_path)
@@ -59,13 +89,15 @@ def get_metadata(file_path: str) -> tuple:  # title, artist, album
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
         elif file_path.endswith('.wma'):
-            audio = {'title': [_title], 'artist': [_artist], 'album': [_album]}
+            audio = {'title': [title], 'artist': [artist], 'album': [album]}
         else:
             audio = mutagen.File(file_path)
-        _title = audio.get('title', ['Unknown Title'])[0]
-        _album = audio.get('album', ['Unknown Album'])[0]
-        with suppress(KeyError, TypeError): _artist = ', '.join(audio['artist'])
-    return _title, _artist, _album
+        title = audio.get('title', ['Unknown Title'])[0]
+        album = audio.get('album', ['Unknown Album'])[0]
+        with suppress(KeyError, TypeError): artist = ', '.join(audio['artist'])
+    if as_dict:
+        return {'title': title, 'artist': artist, 'album': album}
+    return title, artist, album
 
 
 def fix_path(path, by_os=True):

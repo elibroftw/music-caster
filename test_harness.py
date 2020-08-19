@@ -6,6 +6,8 @@ import mutagen.id3
 from helpers import get_metadata
 from pychromecast import get_chromecasts
 
+with suppress(InvalidAudioFile):
+    get_length_and_sample_rate('audio_player.py')  # should fail
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(0), time.time() - timer)
@@ -123,7 +125,7 @@ settings = {
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
-    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False,
+    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
     'music_directories': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},

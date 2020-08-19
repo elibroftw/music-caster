@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.3
+- [Fix] Seeking in mini-mode
+- [Fix] Metadata
+
 4.63.2
 - [Fix] Play tracks
 
