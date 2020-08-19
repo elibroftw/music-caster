@@ -1,4 +1,4 @@
-VERSION = '4.63.4'
+VERSION = '4.63.5'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -566,17 +566,6 @@ def gen_header(sample_rate, bits_per_sample, channels):
     return o
 
 
-def get_output_device(pa, look_for):
-    for i in range(pa.get_device_count()):
-        device_info = pa.get_device_info_by_index(i)
-        host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
-        if (host_api_info['name'] == 'Windows WASAPI' and device_info['maxOutputChannels'] > 0
-                and device_info['name'] == look_for):
-            channels = min(device_info['maxOutputChannels'], 2)
-            return int(device_info['defaultSampleRate']), channels, device_info['index']
-    raise RuntimeError('No Output Device Found')
-
-
 def create_stream(pa, sample_rate, channels, input_device_index, chunk=1024):
     _format = pyaudio.paInt16
     return pa.open(format=_format, channels=channels, as_loopback=True, rate=sample_rate, input=True,
@@ -617,6 +606,7 @@ def get_live_audio():
                     stream.close()
                     stream = create_stream(p, *get_output_device(p, look_for_device), STREAM_CHUNK)
                 data = stream.read(STREAM_CHUNK)  # gets the live system audio
+            print(data)
             yield data
     return Response(system_sound())
 
@@ -770,6 +760,7 @@ def stream_live_audio(switching_device=False):
         url = f'http://{ipv4_address}:{PORT}/live/'
         _volume = 0 if settings['muted'] else settings['volume'] / 100
         cast.wait(timeout=WAIT_TIMEOUT)
+        print(url)
         try:
             cast.set_volume(_volume)
             mc = cast.media_controller

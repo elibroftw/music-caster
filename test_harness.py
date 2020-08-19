@@ -1,3 +1,5 @@
+import pyaudio
+
 from helpers import *
 import base64
 from pathlib import Path
@@ -6,6 +8,9 @@ import mutagen.id3
 from helpers import get_metadata
 from pychromecast import get_chromecasts
 
+
+p = pyaudio.PyAudio()
+print(get_default_output_device())
 with suppress(InvalidAudioFile):
     get_length_and_sample_rate('audio_player.py')  # should fail
 music_metadata = {}

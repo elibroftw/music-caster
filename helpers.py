@@ -188,6 +188,17 @@ def is_os_64bit():
     return platform.machine().endswith('64')
 
 
+def get_output_device(pa, look_for):
+    for i in range(pa.get_device_count()):
+        device_info = pa.get_device_info_by_index(i)
+        host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
+        if (host_api_info['name'] == 'Windows WASAPI' and device_info['maxOutputChannels'] > 0
+                and device_info['name'] == look_for):
+            channels = min(device_info['maxOutputChannels'], 2)
+            return int(device_info['defaultSampleRate']), channels, device_info['index']
+    raise RuntimeError('No Output Device Found')
+
+
 def add_reg_handlers(path_to_exe):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
