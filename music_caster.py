@@ -1,4 +1,4 @@
-VERSION = '4.63.5'
+VERSION = '4.63.6'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -760,7 +760,6 @@ def stream_live_audio(switching_device=False):
         url = f'http://{ipv4_address}:{PORT}/live/'
         _volume = 0 if settings['muted'] else settings['volume'] / 100
         cast.wait(timeout=WAIT_TIMEOUT)
-        print(url)
         try:
             cast.set_volume(_volume)
             mc = cast.media_controller
@@ -1477,7 +1476,8 @@ def read_main_window():
     elif main_event in {'repeat', 'r:82'}:
         cycle_repeat()
     elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
-          and main_values['tab_group'] == 'tab_queue'):  # User scrubbed volume bar or pressed [while on Tab 1]
+          and (settings['mini_mode'] or main_values['tab_group'] == 'tab_queue')):
+        # User scrubbed volume bar or pressed (while on Tab 1 or in mini mode)
         delta = 0
         if main_event.isdigit():
             new_volume = int(main_event) * 10

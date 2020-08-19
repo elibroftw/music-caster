@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.6
+- [Fix] Volume scrubbing in mini mode
+
 4.63.4
 - [Fix] Metadata again
 - [Fix] If files don't exist
