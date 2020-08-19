@@ -1,4 +1,4 @@
-VERSION = '4.63.3'
+VERSION = '4.63.4'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -89,7 +89,7 @@ playing_url = playing_live = False
 live_lag = 0.0
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 # seconds but using time()
-playing_status = 'NOT PLAYING'
+playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
 SHORTCUT_PATH = ''
 DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'
@@ -285,10 +285,12 @@ def get_uri_info(uri):
                 sort_key = os.path.splitext(os.path.basename(uri))[0]
             else: sort_key = f'{title} - {artist}'
             metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
-            length, sample_rate = get_length_and_sample_rate(uri)  # should not raise an error
-            metadata['length'] = length
-            metadata['sample_rate'] = sample_rate
+            with suppress(InvalidAudioFile):
+                length, sample_rate = get_length_and_sample_rate(uri)
+                metadata['length'] = length
+                metadata['sample_rate'] = sample_rate
             all_tracks[uri] = metadata
+            return metadata
 
 
 def index_all_tracks(update_global=True, ignore_files: list = None):
@@ -707,7 +709,7 @@ def format_file(uri: str):
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
         return f'{artist} - {title}'
-    except KeyError:  # show something useful instead of Unknown - Unknown
+    except (TypeError, KeyError):  # show something useful instead of Unknown - Unknown
         if uri.startswith('http'): return uri
         base = os.path.basename(uri)
         return os.path.splitext(base)[0]
@@ -764,7 +766,6 @@ def stream_live_audio(switching_device=False):
         tray.ShowMessage('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
         return False
     else:
-        stop()
         ipv4_address = get_ipv4()
         url = f'http://{ipv4_address}:{PORT}/live/'
         _volume = 0 if settings['muted'] else settings['volume'] / 100
@@ -788,7 +789,7 @@ def stream_live_audio(switching_device=False):
             while not mc.status.player_is_playing:
                 print('waiting for chromecast to start playing')
                 time.sleep(0.1)
-                mc.update_status()
+                with suppress(UnsupportedNamespace): mc.update_status()
             mc.play()  # force chromecast device to start playing
             live_lag = time.time() - start_time
             track_length = 108800  # 3 hour default
@@ -1142,8 +1143,9 @@ def stop():
             mc = cast.media_controller
             mc.stop()
             until_time = time.time() + 5  # 5 seconds
-            while (mc.is_playing or mc.is_paused) and time.time() > until_time: time.sleep(0.1)
-            if mc.is_playing or mc.is_paused: cast.quit_app()
+            status = mc.status
+            while (status.player_is_playing or status.player_is_paused) and time.time() > until_time: time.sleep(0.1)
+            if status.player_is_playing or status.player_is_paused: cast.quit_app()
     else: audio_player.stop()
     track_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
@@ -1184,7 +1186,7 @@ def background_tasks():
     global cast, cast_last_checked, track_start, track_end, track_position, daemon_command, settings_last_modified
     while True:
         # SETTINGS_LAST_MODIFIED
-        if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # updates last modified
+        if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
         refresh_tray()
         if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
             with suppress(UnsupportedNamespace):
@@ -1192,15 +1194,15 @@ def background_tasks():
                     mc = cast.media_controller
                     mc.update_status()
                     is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                    is_stopped = mc.status.player_is_idle  # buffering is okay
                     new_track_position = mc.status.adjusted_current_time
                     # handle scrubbing of music from the home app
                     track_start = time.time() - new_track_position
                     track_end = time.time() + track_length - new_track_position
                     track_position = new_track_position
-                    if is_paused and playing_status not in {'PAUSED', 'NOT PLAYING'}: daemon_command = 'Pause'
-                    elif is_playing and playing_status not in {'PLAYING', 'NOT PLAYING'}:
-                        daemon_command = 'Resume'
-                    elif not (is_playing or is_paused) and playing_status != 'NOT PLAYING':
+                    if is_paused and playing_status == 'PLAYING': daemon_command = 'Pause'
+                    elif is_playing and playing_status == 'PAUSED': daemon_command = 'Resume'
+                    elif is_stopped and playing_status != 'NOT PLAYING':
                         daemon_command = 'Stop'
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)

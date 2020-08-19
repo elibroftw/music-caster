@@ -14,51 +14,78 @@ print('is_already_running():', is_already_running(0), time.time() - timer)
 print('get_mac():', get_mac())
 
 
-def format_file(path: str):
+def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
     try:
-        metadata = music_metadata[path]
+        return get_metadata(file_path)
+    except mutagen.MutagenError:
+        try:
+            metadata = music_metadata[file_path]
+            return metadata['title'], metadata['artist'], metadata['album']
+        except KeyError:
+            return 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+
+
+def get_uri_info(uri):
+    # get metadata from all_track and resort to url_metadata if not found in music_metadata
+    #   if file/url is not in all_track. e.g. links
+    uri = uri.replace('\\', '/')
+    try: return music_metadata[uri]
+    except KeyError:
+        title, artist, album = get_metadata_wrapped(uri)
+        if title == 'Unknown Title' or artist == 'Unknown Artist':
+            sort_key = os.path.splitext(os.path.basename(uri))[0]
+        else: sort_key = f'{title} - {artist}'
+        metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+        with suppress(InvalidAudioFile):
+            length, sample_rate = get_length_and_sample_rate(uri)
+            metadata['length'] = length
+            metadata['sample_rate'] = sample_rate
+        music_metadata[uri] = metadata
+        return metadata
+
+
+def format_file(uri: str):
+    try:
+        metadata = get_uri_info(uri)
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
         return f'{artist} - {title}'
-    except KeyError:
-        if path.startswith('http'): return path
-        base = os.path.basename(path)
+    except (TypeError, KeyError):  # show something useful instead of Unknown - Unknown
+        if uri.startswith('http'): return uri
+        base = os.path.basename(uri)
         return os.path.splitext(base)[0]
 
 
-def create_songs_list():
-    # TODO: use metadata and song names or just one artist name
-    """:returns the formatted song queue, and the selected value (currently playing)"""
-    songs = []
+def create_track_list():
+    """:returns the formatted tracks queue, and the selected value (currently playing)"""
+    tracks = []
     dq_len = len(done_queue)
     mq_start = len(next_queue) + 1
     selected_value = None
-    # format: Index. Artists - Song Name
-    for i, path in enumerate(done_queue):
-        formatted_track = format_file(path)
+    # format: Index. Artists - Title
+    for i, uri in enumerate(done_queue):
+        formatted_track = format_file(uri)
         formatted_item = f'-{dq_len - i}. {formatted_track}'
-        songs.append(formatted_item)
+        tracks.append(formatted_item)
     if music_queue:
         formatted_track = format_file(music_queue[0])
         formatted_item = f' {0}. {formatted_track}'
-        songs.append(formatted_item)
+        tracks.append(formatted_item)
         selected_value = formatted_item
-    for i, path in enumerate(next_queue):
-        formatted_track = format_file(path)
+    for i, uri in enumerate(next_queue):
+        formatted_track = format_file(uri)
         formatted_item = f' {i + 1}. {formatted_track}'
-        songs.append(formatted_item)
-    for i, path in enumerate(music_queue[1:]):
-        formatted_track = format_file(path)
+        tracks.append(formatted_item)
+    for i, uri in enumerate(music_queue[1:]):
+        formatted_track = format_file(uri)
         formatted_item = f' {i + mq_start}. {formatted_track}'
-        songs.append(formatted_item)
-    return songs, selected_value
+        tracks.append(formatted_item)
+    return tracks, selected_value
 
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
 # MUSIC_FILE_WITHOUT_ALBUM_ART = r''
 SAMPLE_MUSIC_FILES = [
-    r"C:\Users\maste\OneDrive\Music\Dreamville, J. Cole, Lute, DaBaby - Under The Sun.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Jaded.mp3",
     r"C:\Users\maste\OneDrive\Music\deadmau5 - My Pet Coelacanth.mp3",
     r"C:\Users\maste\OneDrive\Music\deadmau5 - Not Exactly.mp3",
     r"C:\Users\maste\OneDrive\Music\deadmau5 - Phantoms Can't Hang.mp3",
@@ -139,7 +166,7 @@ Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_
               button_color=(theme['background'], theme['accent']),
               border_width=1, slider_border_width=1, progress_meter_border_depth=0)
 
-songs_list, selected_value = create_songs_list()
+songs_list, selected_value = create_track_list()
 QR_CODE = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
 

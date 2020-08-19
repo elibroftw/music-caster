@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.4
+- [Fix] Metadata again
+- [Fix] If files don't exist
+- [Fix] Live Audio
+
 4.63.3
 - [Fix] Seeking in mini-mode
 - [Fix] Metadata

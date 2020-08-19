@@ -19,6 +19,7 @@ from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
 import re
 import mutagen
+from mutagen import MutagenError
 from mutagen.aac import AAC, AACError
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
@@ -73,7 +74,7 @@ def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
             audio_info = mutagen.File(file_path).info
             length, sample_rate = audio_info.length, audio_info.sample_rate
         return length, sample_rate
-    except (AttributeError, HeaderNotFoundError, AACError):
+    except (AttributeError, HeaderNotFoundError, AACError, MutagenError):
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
@@ -537,10 +538,10 @@ def create_playlist_editor(settings, playlist_name=''):
     return layout
 
 
-def create_play_url_window(combo_value='Play Immediately'):
+def create_play_url_window(combo_value='Play Immediately', default_text=''):
     # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
     combo_values = ['Play Immediately', 'Queue', 'Play Next']
     layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL),
                Sg.Combo(combo_values, default_value=combo_value, key='combo_choice')],
-              [Sg.Input(key='url', font=FONT_NORMAL), Sg.Submit(font=FONT_NORMAL)]]
+              [Sg.Input(key='url', font=FONT_NORMAL, default_text=default_text), Sg.Submit(font=FONT_NORMAL)]]
     return layout
