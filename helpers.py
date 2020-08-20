@@ -323,7 +323,7 @@ def create_main_mini(playing_status, settings, title, artist, album_art_data, tr
     progress_bar_layout = [Sg.Text(time_elapsed, size=text_size, font=FONT_NORMAL, key='time_elapsed',
                                    pad=((0, 2), (5, 0)), justification='right'),
                            Sg.Slider(range=(0, track_length), default_value=track_position,
-                                     orientation='h', size=(17, 10), key='progressbar',
+                                     orientation='h', size=(17, 10), key='progress_bar',
                                      enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
                                      disable_number_display=True, disabled=artist == '',
                                      tooltip='Scroll mousewheel', pad=((7, 7), (5, 0))),
@@ -365,17 +365,21 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
     time_elapsed, time_left = create_progress_bar_text(track_position, track_length)
     text_size = (5, 1)
+    bot_pad = (settings['vertical_gui'] and not settings['show_album_art']) * 30
     progress_bar_layout = [Sg.Text(time_elapsed, size=text_size, font=FONT_NORMAL, key='time_elapsed',
-                                   pad=((0, 5), (10, 0)), justification='right'),
+                                   pad=((0, 5), (10, bot_pad)), justification='right'),
                            Sg.Slider(range=(0, track_length), default_value=track_position,
-                                     orientation='h', size=(30, 10), key='progressbar',
+                                     orientation='h', size=(30, 10), key='progress_bar',
                                      enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
                                      disable_number_display=True, disabled=artist == '',
-                                     tooltip='Scroll mousewheel', pad=((8, 8), (10, 0))),
-                           Sg.Text(time_left, size=text_size, font=FONT_NORMAL, key='time_left', pad=((5, 0), (10, 0)))]
+                                     tooltip='Scroll mousewheel', pad=((8, 8), (10, bot_pad))),
+                           Sg.Text(time_left, size=text_size, font=FONT_NORMAL, key='time_left',
+                                   pad=((5, 0), (10, bot_pad)))]
     if not settings['show_album_art']: album_art_data = None
-    title_top_pad = 10 + (album_art_data is None) * 60   # 10 or 70
-    artist_bot_pad = 10 + (album_art_data is None) * 20  # 10 or 30
+    title_top_pad = 10 + (album_art_data is None) * 100 - (settings['vertical_gui'] and album_art_data is None) * 30
+    # 10, 110, or 0
+    artist_bot_pad = 10 + (album_art_data is None) * 20 - 20 * (album_art_data is None and settings['vertical_gui'])
+    # 10 or 30
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
         [Sg.Image(data=album_art_data, pad=(0, 0), size=(255, 255), key='album_art')] if album_art_data else [],
@@ -389,6 +393,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     file_options = ['Play File(s)', 'Play File(s) Next', 'Queue File(s)']
     folder_opts = ['Play Folder', 'Play Folder Next', 'Queue Folder']  # TODO: queue folders
     playlist_names = list(settings['playlists'].keys())
+
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value='Play File(s)', key='file_option', size=(14, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)))],
@@ -396,13 +401,17 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
         Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
                    [Sg.Button('Play Folder', font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
-        Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
-                             size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists')],
-                   [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
-                              size=(14, 1), pad=(5, (9, 0)))]]),
+        # optional playlist column
         Sg.Column([[Sg.Button('URL Actions', font=FONT_NORMAL, key='url_actions', size=(10, 1), enable_events=True)],
                    [Sg.Button('Mini Mode', font=FONT_NORMAL, key='mini_mode', size=(10, 1), enable_events=True)]]),
     ]
+    if playlist_names:
+        playlist_col = Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
+                                            size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists')],
+                                  [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
+                                             size=(14, 1), pad=(5, (9, 0)))]])
+        queue_controls.insert(2, playlist_col)
+
     listbox_controls = [
         # TODO: save queue to playlist
         [Sg.Button('CQ', key='clear_queue', tooltip='Clear the queue', size=(3, 1))],
@@ -410,7 +419,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
-    listbox_height = 11 + (album_art_data is not None) * 7  # 11 or 21
+    listbox_height = 14 + (album_art_data is not None) * 4  # 11 or 21
     queue_tab_layout = [queue_controls, [
         Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
                    select_mode=Sg.SELECT_MODE_SINGLE,

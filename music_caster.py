@@ -1,4 +1,4 @@
-VERSION = '4.63.6'
+VERSION = '4.63.7'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -43,7 +43,6 @@ import pypresence
 from pypresence import PyPresenceException
 import pythoncom
 import requests
-from wavinfo import WavInfoReader  # until mutagen supports .wav
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
@@ -101,7 +100,7 @@ settings = {  # default settings
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
-    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
+    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
     'music_directories': [home_music_dir], 'playlists': {},
@@ -1140,7 +1139,7 @@ def stop():
     track_position = 0
     tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     if active_windows['main'] and main_window.Title == 'Music Caster':
-        main_window['progressbar'].Update(disabled=True, value=0)
+        main_window['progress_bar'].Update(disabled=True, value=0)
 
 
 def next_track(from_timeout=False):
@@ -1270,8 +1269,8 @@ def activate_main_window(selected_tab='tab_queue'):
             main_window['queue'].bind('<Leave>', '_mouse_leave')
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
-        main_window['progressbar'].bind('<Enter>', '_mouse_enter')
-        main_window['progressbar'].bind('<Leave>', '_mouse_leave')
+        main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
+        main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         set_save_position_callback(main_window, 'main')
     if not settings['mini_mode']:
         main_window[selected_tab].Select()
@@ -1385,7 +1384,7 @@ def reset_mouse_hover():
 
 def reset_progress():
     # NOTE: needs to be in main thread
-    main_window['progressbar'].Update(value=0)
+    main_window['progress_bar'].Update(value=0)
     main_window['time_elapsed'].Update(value='00:00')
     main_window['time_left'].Update(value='00:00')
     main_window.Refresh()
@@ -1414,13 +1413,13 @@ def read_main_window():
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
         delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
-        if mouse_hover == 'progressbar':
+        if mouse_hover == 'progress_bar':
             if playing_status in {'PLAYING', 'PAUSED'}:
                 get_track_position()
                 new_position = min(max(track_position + delta, 0), track_length)
-                main_window['progressbar'].Update(value=new_position)
-                main_values['progressbar'] = new_position
-                main_event = 'progressbar'
+                main_window['progress_bar'].Update(value=new_position)
+                main_values['progress_bar'] = new_position
+                main_event = 'progress_bar'
         elif mouse_hover in {'', 'volume_slider'}:  # not in another tab
             new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
             change_settings('volume', new_volume)
@@ -1434,9 +1433,9 @@ def read_main_window():
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             get_track_position()
             new_position = min(max(track_position + delta, 0), track_length)
-            main_window['progressbar'].Update(value=new_position)
-            main_values['progressbar'] = new_position
-            main_event = 'progressbar'
+            main_window['progress_bar'].Update(value=new_position)
+            main_values['progress_bar'] = new_position
+            main_event = 'progress_bar'
             main_window.Refresh()
     if main_event == '__TIMEOUT__': pass
     elif main_event == '1:49': main_window['tab_queue'].Select()
@@ -1448,7 +1447,7 @@ def read_main_window():
     elif main_event == '3:51': main_window['tab_settings'].Select()
     elif main_event.endswith('mouse_enter'):
         mouse_hover = '_'.join(main_event.split('_')[:-2])
-    elif main_event in {'progressbar_mouse_leave', 'queue_mouse_leave'}:
+    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave'}:
         mouse_hover = ''
     elif main_event in {'locate_file', 'e:69'}:
         with suppress(IndexError):
@@ -1616,13 +1615,13 @@ def read_main_window():
     elif main_event == 'locate_file':
         Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
     # elif main_event == 'library':  # TODO
-    elif main_event == 'progressbar':
+    elif main_event == 'progress_bar':
         if playing_status == 'NOT PLAYING':
-            main_window['progressbar'].Update(disabled=True, value=0, visible=False)
+            main_window['progress_bar'].Update(disabled=True, value=0)
             # maybe even make it invisible?
             return
         else:
-            new_position = main_values['progressbar']
+            new_position = main_values['progress_bar']
             track_position = new_position
             if cast is not None:
                 cast.media_controller.seek(new_position)
@@ -1729,10 +1728,10 @@ def read_main_window():
 
     if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
         if music_queue:
-            progress_bar = main_window['progressbar']
+            progress_bar = main_window['progress_bar']
             with suppress(ZeroDivisionError):
                 get_track_position()
-                progress_bar.Update(track_position, range=(0, track_length), disabled=False, visible=True)
+                progress_bar.Update(track_position, range=(0, track_length), disabled=False)
             update_progress_bar_text = True
             progress_bar_last_update = time.time() - track_position + int(track_position)
         elif not playing_live:
@@ -1754,8 +1753,9 @@ def read_main_window():
         main_window['title'].Update(value=title)
         main_window['artist'].Update(value=artist)
         size = (125, 125) if settings['mini_mode'] else (255, 255)
-        album_art_data = resize_img(get_current_album_art(), size).decode()
-        main_window['album_art'].Update(data=album_art_data)
+        if settings['show_album_art']:
+            album_art_data = resize_img(get_current_album_art(), size).decode()
+            main_window['album_art'].Update(data=album_art_data)
         if not settings['mini_mode']:
             dq_len = len(done_queue)
             lb_music_queue: Sg.Listbox = main_window['queue']
