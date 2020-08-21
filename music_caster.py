@@ -1,4 +1,4 @@
-VERSION = '4.63.8'
+VERSION = '4.63.9'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -1446,10 +1446,12 @@ def read_main_window():
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_settings': main_window['auto_update'].SetFocus()
     elif main_event == '3:51': main_window['tab_settings'].Select()
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'volume_slider_mouse_enter'}:
-        if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'}: main_window.grab_any_where_off()
+        if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
+            main_window.grab_any_where_off()
         mouse_hover = '_'.join(main_event.split('_')[:-2])
     elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'volume_slider_mouse_leave'}:
-        if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'}: main_window.grab_any_where_on()
+        if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
+            main_window.grab_any_where_on()
         mouse_hover = '' if main_event != 'volume_slider_mouse_leave' else mouse_hover
     elif main_event in {'locate_file', 'e:69'}:
         with suppress(IndexError):

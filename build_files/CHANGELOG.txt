@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.63.9
+- [Fix] Main Window UX
+
 4.63.8
 - [Fix] Mini mode sliders
 
