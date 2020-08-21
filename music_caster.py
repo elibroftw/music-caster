@@ -1,4 +1,4 @@
-VERSION = '4.63.7'
+VERSION = '4.63.8'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -138,9 +138,9 @@ def refresh_folders():
 
 def refresh_tray():
     refresh_folders()
-    if playing_status == 'PLAYING': tray.Update(menu=menu_def_2)
-    elif playing_status == 'PAUSED': tray.Update(menu=menu_def_3)
-    else: tray.Update(menu=menu_def_1)
+    if playing_status == 'PLAYING': tray.update(menu=menu_def_2)
+    elif playing_status == 'PAUSED': tray.update(menu=menu_def_3)
+    else: tray.update(menu=menu_def_1)
 
 
 def change_settings(settings_key, new_value):
@@ -163,7 +163,7 @@ def change_settings(settings_key, new_value):
                 else:
                     repeat_img = REPEAT_ALL_IMG
                     new_tooltip = "Repeat track"
-                main_window['repeat'].Update(image_data=repeat_img)
+                main_window['repeat'].update(image_data=repeat_img)
                 main_window['repeat'].SetTooltip(new_tooltip)
             if settings['notifications']:
                 if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off', time=5000)
@@ -188,7 +188,7 @@ def save_queues():
 
 def update_volume(new_vol):
     """new_vol: float[0, 100]"""
-    if active_windows['main']: main_window['volume_slider'].Update(value=new_vol)
+    if active_windows['main']: main_window['volume_slider'].update(value=new_vol)
     new_vol = new_vol / 100
     audio_player.set_volume(new_vol)
     if cast is not None:
@@ -739,8 +739,8 @@ def after_play(artists: str, title, autoplay, switching_device):
         if settings['notifications'] and not switching_device and not active_windows['main']:
             tray.ShowMessage('Music Caster', 'Playing: ' + playing_text, time=500)
         playing_status = 'PLAYING'
-        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
-    else: tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+        tray.update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
+    else: tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
     if settings['discord_rpc']:
@@ -1032,7 +1032,7 @@ def folder_action(action='Play Folder'):
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         if active_windows['main']:
             gui_queue = create_track_list()[0]
-            main_window['queue'].Update(values=gui_queue)
+            main_window['queue'].update(values=gui_queue)
         del temp_queue
         main_last_event = '__TIMEOUT__'
     else: main_last_event = 'folder_action'
@@ -1090,7 +1090,7 @@ def pause():
                 rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                      large_text='Paused', small_image='logo', small_text='Music Caster')
     except UnsupportedNamespace: stop()
-    tray.Update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+    tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
 
 
 def resume():
@@ -1116,7 +1116,7 @@ def resume():
             with suppress(py_presence_errors):
                 rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                      large_text='Playing', small_image='logo', small_text='Music Caster')
-        tray.Update(menu=menu_def_2, data_base64=FILLED_ICON)
+        tray.update(menu=menu_def_2, data_base64=FILLED_ICON)
     except (UnsupportedNamespace, NotConnected):
         if music_queue: play(music_queue[0], position=track_position)
 
@@ -1137,9 +1137,9 @@ def stop():
             if status.player_is_playing or status.player_is_paused: cast.quit_app()
     else: audio_player.stop()
     track_position = 0
-    tray.Update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
+    tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
     if active_windows['main'] and main_window.Title == 'Music Caster':
-        main_window['progress_bar'].Update(disabled=True, value=0)
+        main_window['progress_bar'].update(disabled=True, value=0)
 
 
 def next_track(from_timeout=False):
@@ -1202,8 +1202,8 @@ def background_tasks():
                             if _volume and settings['muted']: change_settings('muted', False)
                             if active_windows['main']:
                                 if _volume and settings['muted']:
-                                    main_window['mute'].Update(image_data=VOLUME_IMG)
-                                main_window['volume_slider'].Update(_volume)
+                                    main_window['mute'].update(image_data=VOLUME_IMG)
+                                main_window['volume_slider'].update(_volume)
                 elif playing_status in {'PAUSED', 'PLAYING'}: daemon_command = 'Stop'
             cast_last_checked = time.time()
         time.sleep(5)
@@ -1264,7 +1264,7 @@ def activate_main_window(selected_tab='tab_queue'):
                                 icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,  use_default_focus=False,
                                 keep_on_top=mini_mode and settings['mini_on_top'], location=window_location)
         if not settings['mini_mode']:
-            main_window['queue'].Update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
+            main_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
             main_window['queue'].bind('<Enter>', '_mouse_enter')
             main_window['queue'].bind('<Leave>', '_mouse_leave')
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
@@ -1384,9 +1384,9 @@ def reset_mouse_hover():
 
 def reset_progress():
     # NOTE: needs to be in main thread
-    main_window['progress_bar'].Update(value=0)
-    main_window['time_elapsed'].Update(value='00:00')
-    main_window['time_left'].Update(value='00:00')
+    main_window['progress_bar'].update(value=0)
+    main_window['time_elapsed'].update(value='00:00')
+    main_window['time_left'].update(value='00:00')
     main_window.Refresh()
 
 
@@ -1417,14 +1417,14 @@ def read_main_window():
             if playing_status in {'PLAYING', 'PAUSED'}:
                 get_track_position()
                 new_position = min(max(track_position + delta, 0), track_length)
-                main_window['progress_bar'].Update(value=new_position)
+                main_window['progress_bar'].update(value=new_position)
                 main_values['progress_bar'] = new_position
                 main_event = 'progress_bar'
         elif mouse_hover in {'', 'volume_slider'}:  # not in another tab
             new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
             change_settings('volume', new_volume)
             if settings['muted']:
-                main_window['mute'].Update(image_data=VOLUME_IMG)
+                main_window['mute'].update(image_data=VOLUME_IMG)
                 change_settings('muted', False)
             update_volume(new_volume)
         main_window.Refresh()
@@ -1433,7 +1433,7 @@ def read_main_window():
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             get_track_position()
             new_position = min(max(track_position + delta, 0), track_length)
-            main_window['progress_bar'].Update(value=new_position)
+            main_window['progress_bar'].update(value=new_position)
             main_values['progress_bar'] = new_position
             main_event = 'progress_bar'
             main_window.Refresh()
@@ -1441,14 +1441,16 @@ def read_main_window():
     elif main_event == '1:49': main_window['tab_queue'].Select()
     elif main_event == '2:50' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':
         main_window['tab_timer'].Select()
-        main_window['minutes'].SetFocus()
+        main_window['minutes'].set_focus()
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue': main_window['file_action'].SetFocus()
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_settings': main_window['auto_update'].SetFocus()
     elif main_event == '3:51': main_window['tab_settings'].Select()
     elif main_event.endswith('mouse_enter'):
+        if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'}: main_window.grab_any_where_off()
         mouse_hover = '_'.join(main_event.split('_')[:-2])
-    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave'}:
-        mouse_hover = ''
+    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'volume_slider_mouse_leave'}:
+        if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'}: main_window.grab_any_where_on()
+        mouse_hover = '' if main_event != 'volume_slider_mouse_leave' else mouse_hover
     elif main_event in {'locate_file', 'e:69'}:
         with suppress(IndexError):
             selected_file_index = int(main_values['queue'][0].split('.', 1)[0])
@@ -1489,10 +1491,10 @@ def read_main_window():
     elif main_event in {'mute', 'm:77'}:  # toggle mute
         muted = change_settings('muted', not settings['muted'])
         if muted:
-            main_window['mute'].Update(image_data=VOLUME_MUTED_IMG)
+            main_window['mute'].update(image_data=VOLUME_MUTED_IMG)
             update_volume(0)
         else:
-            main_window['mute'].Update(image_data=VOLUME_IMG)
+            main_window['mute'].update(image_data=VOLUME_IMG)
             update_volume(settings['volume'])
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
         with suppress(AttributeError, IndexError, KeyError):
@@ -1500,7 +1502,7 @@ def read_main_window():
                 move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
                 new_i = main_window['queue'].GetListValues().index(main_values['queue'][0]) + move
                 new_i = min(max(new_i, 0), len(music_queue) - 1)
-                main_window['queue'].Update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+                main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         selected_file_index = main_window['queue'].GetListValues().index(main_value[0])
         if done_queue and selected_file_index < len(done_queue):
@@ -1517,7 +1519,7 @@ def read_main_window():
         if music_queue: play(music_queue[0])
         updated_list = create_track_list()[0]
         dq_len = len(done_queue)
-        main_window['queue'].Update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
+        main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
     elif main_event == 'move_up' and main_values['queue']:
         # index_to_move = int(main_values['queue'][0].split('.', 1)[0])
         index_to_move = main_window['queue'].GetListValues().index(main_values['queue'][0])
@@ -1546,7 +1548,7 @@ def read_main_window():
             music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
         else: new_i = max(new_i, 0)
         updated_list = create_track_list()[0]
-        main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
+        main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
     elif main_event == 'move_down' and main_values['queue']:
         index_to_move = main_window['queue'].GetListValues().index(main_values['queue'][0])
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
@@ -1573,7 +1575,7 @@ def read_main_window():
                 mq_i = new_i - dq_len - nq_len
                 music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
             updated_list = create_track_list()[0]
-            main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'remove' and main_values['queue']:
         index_to_remove = main_window['queue'].GetListValues().index(main_values['queue'][0])
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
@@ -1588,9 +1590,9 @@ def read_main_window():
             music_queue.pop(index_to_remove - dq_len - nq_len)
         updated_list = create_track_list()[0]
         new_i = min(len(updated_list), index_to_remove)
-        main_window['queue'].Update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif main_event == 'file_option': main_window['file_action'].Update(text=main_values['file_option'])
-    elif main_event == 'folder_option': main_window['folder_action'].Update(text=main_values['folder_option'])
+        main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+    elif main_event == 'file_option': main_window['file_action'].update(text=main_values['file_option'])
+    elif main_event == 'folder_option': main_window['folder_action'].update(text=main_values['folder_option'])
     elif main_event == 'file_action':
         Thread(target=file_action, kwargs={'action': main_values['file_option']}).start()
     elif main_event == 'folder_action':
@@ -1604,7 +1606,7 @@ def read_main_window():
         activate_main_window()
     elif main_event == 'clear_queue':
         reset_progress()
-        main_window['queue'].Update(values=[])
+        main_window['queue'].update(values=[])
         if playing_status in {'PLAYING', 'PAUSED'}: stop()
         music_queue.clear()
         next_queue.clear()
@@ -1617,7 +1619,7 @@ def read_main_window():
     # elif main_event == 'library':  # TODO
     elif main_event == 'progress_bar':
         if playing_status == 'NOT PLAYING':
-            main_window['progress_bar'].Update(disabled=True, value=0)
+            main_window['progress_bar'].update(disabled=True, value=0)
             # maybe even make it invisible?
             return
         else:
@@ -1644,9 +1646,9 @@ def read_main_window():
             if main_value: save_queues()
             else: change_settings('queues', {'done': [], 'music': [], 'next': []})
             change_settings('populate_queue_startup', False)
-            main_window['populate_queue_startup'].Update(value=False)
+            main_window['populate_queue_startup'].update(value=False)
         elif main_event in 'populate_queue_startup':
-            main_window['save_queue_sessions'].Update(value=False)
+            main_window['save_queue_sessions'].update(value=False)
             change_settings('save_queue_sessions', False)
         elif main_event == 'discord_rpc':
             with suppress(py_presence_errors):
@@ -1669,14 +1671,14 @@ def read_main_window():
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
             music_directories.remove(selected_item)
-            main_window['music_dirs'].Update(music_directories)
+            main_window['music_dirs'].update(music_directories)
             refresh_tray()
             save_settings()
             index_all_tracks()
     elif main_event == 'add_folder':
         if main_value not in music_directories and os.path.exists(main_value):
             music_directories.append(main_value)
-            main_window['music_dirs'].Update(music_directories)
+            main_window['music_dirs'].update(music_directories)
             refresh_tray()
             save_settings()
             index_all_tracks()
@@ -1688,9 +1690,9 @@ def read_main_window():
             Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
     # timer
     elif main_event == 'cancel_timer':
-        main_window['timer_text'].Update(value='No Timer Set')
-        main_window['timer_error'].Update(visible=False)
-        main_window['cancel_timer'].Update(visible=False)
+        main_window['timer_text'].update(value='No Timer Set')
+        main_window['timer_error'].update(visible=False)
+        main_window['cancel_timer'].update(visible=False)
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
           and main_values['tab_group'] == 'tab_timer'):
         try:
@@ -1712,14 +1714,14 @@ def read_main_window():
             timer_set_to = datetime.now() + timedelta(minutes=seconds // 60)
             if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
             else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
-            main_window['timer_text'].Update(value=f'Timer set for {timer_set_to}')
-            main_window['cancel_timer'].Update(visible=True)
-            main_window['timer_error'].Update(visible=False)
+            main_window['timer_text'].update(value=f'Timer set for {timer_set_to}')
+            main_window['cancel_timer'].update(visible=True)
+            main_window['timer_error'].update(visible=False)
         except ValueError:
             for i in range(3):
-                main_window['timer_error'].Update(visible=True, text_color='#ffcccb')
+                main_window['timer_error'].update(visible=True, text_color='#ffcccb')
                 main_window.Read(10)
-                main_window['timer_error'].Update(text_color='red')
+                main_window['timer_error'].update(text_color='red')
                 main_window.Read(10)
     elif main_event in {'shut_off', 'hibernate', 'sleep', 'other_daemon_actions'}:
         change_settings('timer_hibernate_computer', main_values['hibernate'])
@@ -1731,36 +1733,36 @@ def read_main_window():
             progress_bar = main_window['progress_bar']
             with suppress(ZeroDivisionError):
                 get_track_position()
-                progress_bar.Update(track_position, range=(0, track_length), disabled=False)
+                progress_bar.update(track_position, range=(0, track_length), disabled=False)
             update_progress_bar_text = True
             progress_bar_last_update = time.time() - track_position + int(track_position)
         elif not playing_live:
             playing_status = 'NOT PLAYING'
     if update_progress_bar_text:
         elapsed_time_text, time_left_text = create_progress_bar_text(track_position, track_length)
-        main_window['time_elapsed'].Update(value=elapsed_time_text)
-        main_window['time_left'].Update(value=time_left_text)
+        main_window['time_elapsed'].update(value=elapsed_time_text)
+        main_window['time_left'].update(value=time_left_text)
     if playing_status == 'PLAYING' and p_r_button.metadata != 'PLAYING':
-        p_r_button.Update(image_data=PAUSE_BUTTON_IMG)
+        p_r_button.update(image_data=PAUSE_BUTTON_IMG)
     elif playing_status == 'PAUSED' and p_r_button.metadata != 'PAUSED':
-        p_r_button.Update(image_data=PLAY_BUTTON_IMG)
+        p_r_button.update(image_data=PLAY_BUTTON_IMG)
     elif playing_status == 'NOT PLAYING' and p_r_button.metadata != 'NOT PLAYING':
-        if p_r_button.metadata == 'PLAYING': p_r_button.Update(image_data=PLAY_BUTTON_IMG)
-        main_window['time_elapsed'].Update(value='0:00')
-        main_window['time_left'].Update(value='0:00')
+        if p_r_button.metadata == 'PLAYING': p_r_button.update(image_data=PLAY_BUTTON_IMG)
+        main_window['time_elapsed'].update(value='0:00')
+        main_window['time_left'].update(value='0:00')
     p_r_button.metadata = playing_status
     if gui_title != title:  # usually if music stops playing or another track starts playing
-        main_window['title'].Update(value=title)
-        main_window['artist'].Update(value=artist)
+        main_window['title'].update(value=title)
+        main_window['artist'].update(value=artist)
         size = (125, 125) if settings['mini_mode'] else (255, 255)
         if settings['show_album_art']:
             album_art_data = resize_img(get_current_album_art(), size).decode()
-            main_window['album_art'].Update(data=album_art_data)
+            main_window['album_art'].update(data=album_art_data)
         if not settings['mini_mode']:
             dq_len = len(done_queue)
             lb_music_queue: Sg.Listbox = main_window['queue']
             lb_tracks = create_track_list()[0]
-            lb_music_queue.Update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
+            lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     return True
 
 
@@ -1778,10 +1780,10 @@ def read_playlist_selector_window():
             save_settings()
         playlist_names = tuple(settings['playlists'].keys())
         default_playlist_name = playlist_names[0] if playlist_names else ''
-        pl_selector_window['playlist_combo'].Update(value=default_playlist_name, values=playlist_names)
+        pl_selector_window['playlist_combo'].update(value=default_playlist_name, values=playlist_names)
         pl_selector_window.Refresh()
         if active_windows['main']:
-            main_window['playlists'].Update(value=default_playlist_name, values=playlist_names)
+            main_window['playlists'].update(value=default_playlist_name, values=playlist_names)
         tray_playlists.clear()
         tray_playlists.append('Create/Edit a Playlist')
         tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
@@ -1801,14 +1803,14 @@ def read_playlist_selector_window():
         if pl_name == '': pl_editor_window['playlist_name'].SetFocus()
         else:
             pl_editor_window['tracks'].SetFocus()
-            pl_editor_window['tracks'].Update(set_to_index=0)
+            pl_editor_window['tracks'].update(set_to_index=0)
         active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
     elif pl_selector_event in {'Up:38', 'Down:40'}:
         with suppress(KeyError, IndexError, ValueError):
             pl_selector_combo = pl_selector_window['playlist_combo']
             pl_index = pl_selector_combo.Values.index(pl_selector_values['playlist_combo'])
             new_index = max(pl_index + {'Up:38': -1, 'Down:40': 1}[pl_selector_event], 0)
-            pl_selector_combo.Update(value=pl_selector_combo.Values[new_index])
+            pl_selector_combo.update(value=pl_selector_combo.Values[new_index])
 
 
 def read_playlist_editor_window():
@@ -1829,7 +1831,7 @@ def read_playlist_editor_window():
         playlists[pl_name] = pl_files
         if active_windows['main']:
             playlist_names = tuple(playlists.keys())
-            main_window['playlists'].Update(value=playlist_names[0], values=playlist_names)
+            main_window['playlists'].update(value=playlist_names[0], values=playlist_names)
         save_settings()
         active_windows['playlist_editor'] = False
         pl_editor_window.Close()
@@ -1844,7 +1846,7 @@ def read_playlist_editor_window():
                 new_i = to_move - 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
                 formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                pl_editor_window['tracks'].Update(values=formatted_tracks, set_to_index=new_i,
+                pl_editor_window['tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                   scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
         if pl_editor_values['tracks']:
@@ -1853,7 +1855,7 @@ def read_playlist_editor_window():
                 new_i = to_move + 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
                 formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                pl_editor_window['tracks'].Update(values=formatted_tracks, set_to_index=new_i,
+                pl_editor_window['tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                   scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'Add tracks', 'f:70'}:
         fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
@@ -1865,19 +1867,19 @@ def read_playlist_editor_window():
             pl_editor_window.Normal()
             formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1  # - len(new_files)
-            pl_editor_window['tracks'].Update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            pl_editor_window['tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'Remove track', 'r:82'}:  # r:82 is Ctrl + R
         if pl_editor_values['tracks']:
             index_to_rm = pl_editor_window['tracks'].GetListValues().index(pl_editor_values['tracks'][0])
             with suppress(ValueError): pl_files.pop(index_to_rm)
             formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
             new_i = max(index_to_rm - 1, 0)
-            pl_editor_window['tracks'].Update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            pl_editor_window['tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif pl_editor_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'} and pl_editor_values['tracks']:
         move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
         new_i = pl_editor_window['tracks'].GetListValues().index(pl_editor_values['tracks'][0]) + move
         new_i = min(max(new_i, 0), len(pl_files) - 1)
-        pl_editor_window['tracks'].Update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+        pl_editor_window['tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     if open_pl_selector:
         active_windows['playlist_selector'] = True
         window_location = get_window_location('playlist_selector')
@@ -1958,7 +1960,7 @@ def auto_update():
                 if os.path.exists(UNINSTALLER):
                     temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                     temp_tray.ShowMessage('Music Caster', f'Downloading update v{latest_ver}', time=5000)
-                    temp_tray.Update(tooltip=f'Downloading update v{latest_ver}')
+                    temp_tray.update(tooltip=f'Downloading update v{latest_ver}')
                     download(setup_dl_link, 'MC_Installer.exe')
                     temp_tray.Hide()
                     temp_tray.Close()
