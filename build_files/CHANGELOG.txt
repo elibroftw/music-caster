@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.63.8
 - [Fix] Mini mode sliders
+- [UI] Check for updates periodically
 
 4.63.7
 - [UI] Playlist drop-down only shows if playlists exist
