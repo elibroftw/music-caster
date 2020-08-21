@@ -1,4 +1,4 @@
-VERSION = '4.63.9'
+VERSION = '4.63.10'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -154,6 +154,8 @@ def change_settings(settings_key, new_value):
             repeat_menu[2] = 'Repeat Off ✓' if new_value is None else 'Repeat Off'
             refresh_tray()
             if active_windows['main']:
+                # TODO: move to read_main_window
+                #  so that I can call next_track and prev_track on a non-main thread
                 if new_value is None:
                     repeat_img = REPEAT_OFF_IMG
                     new_tooltip = 'Repeat'
@@ -163,8 +165,10 @@ def change_settings(settings_key, new_value):
                 else:
                     repeat_img = REPEAT_ALL_IMG
                     new_tooltip = "Repeat track"
-                main_window['repeat'].update(image_data=repeat_img)
-                main_window['repeat'].SetTooltip(new_tooltip)
+                repeat_button: Sg.Button = main_window['repeat']
+                repeat_button.metadata = new_value
+                repeat_button.update(image_data=repeat_img)
+                repeat_button.set_tooltip(new_tooltip)
             if settings['notifications']:
                 if new_value is None: tray.ShowMessage('Music Caster', 'Repeat set to Off', time=5000)
                 elif new_value: tray.ShowMessage('Music Caster', 'Repeat set to One', time=5000)
@@ -270,7 +274,7 @@ def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
             return 'Unknown Title', 'Unknown Artist', 'Unknown Album'
 
 
-def get_uri_info(uri):
+def get_uri_metadata(uri):
     # get metadata from all_track and resort to url_metadata if not found in all_tracks
     #   if file/url is not in all_track. e.g. links
     uri = uri.replace('\\', '/')
@@ -290,6 +294,12 @@ def get_uri_info(uri):
                 metadata['sample_rate'] = sample_rate
             all_tracks[uri] = metadata
             return metadata
+
+
+def get_current_metadata():
+    if playing_live: return url_metadata['LIVE']
+    elif music_queue: return get_uri_metadata(music_queue[0])
+    else: return {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
 
 
 def index_all_tracks(update_global=True, ignore_files: list = None):
@@ -407,7 +417,7 @@ def page_not_found(_):
 
 # use socket io?
 @app.route('/', methods=['GET', 'POST'])
-def index():  # web GUI
+def web_index():  # web GUI
     global music_queue, playing_status, all_tracks, daemon_command
     if request.method == 'POST':
         for k, v in active_windows.items():  # Opens up GUI
@@ -421,10 +431,9 @@ def index():  # web GUI
         return 'Music Caster'
     if request.args:
         if 'play' in request.args:
-            if playing_status == 'PAUSED': resume()
-            elif music_queue: play(music_queue[0])
+            if not resume() and music_queue: play(music_queue[0])
             else: play_all()
-        elif 'pause' in request.args and playing_status == 'PLAYING': pause()
+        elif 'pause' in request.args: pause()  # resume == play
         elif 'next' in request.args:
             daemon_command = 'Next Track'
             time.sleep(0.1)
@@ -436,10 +445,7 @@ def index():  # web GUI
         elif 'shuffle' in request.args:
             change_settings('shuffle', not settings['shuffle'])
         return redirect('/')
-    metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-    if playing_live: metadata = url_metadata['LIVE']
-    elif playing_status in {'PLAYING', 'PAUSED'}:
-        with suppress(KeyError, IndexError): metadata = get_uri_info(music_queue[0])
+    metadata = get_current_metadata()
     art = get_current_album_art()
     if type(art) == bytes: art = art.decode()
     art = f'data:image/png;base64,{art}'
@@ -694,7 +700,7 @@ def change_device(selected_index):
 
 def format_file(uri: str):
     try:
-        metadata = get_uri_info(uri)
+        metadata = get_uri_metadata(uri)
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
         return f'{artist} - {title}'
@@ -1070,58 +1076,66 @@ def get_track_position():
 
 
 def pause():
+    """ can be called from a non-main thread """
     global tray, playing_status, track_position
-    try:
-        if cast is None:
-            track_position = time.time() - track_start
-            audio_player.pause()
-        else:
-            if internet_available():
-                mc = cast.media_controller
-                mc.update_status()
-                mc.pause()
-                while not mc.status.player_is_paused: time.sleep(0.1)
-                track_position = mc.status.adjusted_current_time
-        playing_status = 'PAUSED'
-        if settings['discord_rpc'] and (music_queue or playing_live):
-            metadata = url_metadata['LIVE'] if playing_live else get_uri_info(music_queue[0])
-            title, artist = metadata['title'], metadata['artist']
-            with suppress(py_presence_errors):
-                rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
-                                     large_text='Paused', small_image='logo', small_text='Music Caster')
-    except UnsupportedNamespace: stop()
-    tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+    if playing_status == 'PLAYING':
+        try:
+            if cast is None:
+                track_position = time.time() - track_start
+                audio_player.pause()
+            else:
+                if internet_available():
+                    mc = cast.media_controller
+                    mc.update_status()
+                    mc.pause()
+                    while not mc.status.player_is_paused: time.sleep(0.1)
+                    track_position = mc.status.adjusted_current_time
+            playing_status = 'PAUSED'
+            if settings['discord_rpc'] and (music_queue or playing_live):
+                metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
+                title, artist = metadata['title'], metadata['artist']
+                with suppress(py_presence_errors):
+                    rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
+                                         large_text='Paused', small_image='logo', small_text='Music Caster')
+        except UnsupportedNamespace: stop()
+        tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+        return True
+    return False
 
 
 def resume():
     global tray, playing_status, track_end, track_position, track_start
-    try:
-        if cast is None: audio_player.resume()
-        else:
-            mc = cast.media_controller
-            mc.update_status()
-            mc.play()
-            mc.block_until_active()
-            while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
-            track_position = mc.status.adjusted_current_time
-        track_start = time.time() - track_position
-        track_end = track_start + track_length
-        playing_status = 'PLAYING'
-        if playing_live:
-            metadata = url_metadata['LIVE']
-            title, artist = metadata['title'], metadata['artist']
-        else:
-            title, artist = get_metadata_wrapped(music_queue[0])[:2]
-        if settings['discord_rpc']:
-            with suppress(py_presence_errors):
-                rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
-                                     large_text='Playing', small_image='logo', small_text='Music Caster')
-        tray.update(menu=menu_def_2, data_base64=FILLED_ICON)
-    except (UnsupportedNamespace, NotConnected):
-        if music_queue: play(music_queue[0], position=track_position)
+    if playing_status == 'PAUSED':
+        try:
+            if cast is None: audio_player.resume()
+            else:
+                mc = cast.media_controller
+                mc.update_status()
+                mc.play()
+                mc.block_until_active()
+                while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
+                track_position = mc.status.adjusted_current_time
+            track_start = time.time() - track_position
+            track_end = track_start + track_length
+            playing_status = 'PLAYING'
+            metadata = get_current_metadata()
+            artist, title = metadata['artist'].split(', ')[0], metadata['title']
+            if settings['discord_rpc']:
+                with suppress(py_presence_errors):
+                    rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
+                                         large_text='Playing', small_image='logo', small_text='Music Caster')
+            tray.update(menu=menu_def_2, data_base64=FILLED_ICON)
+        except (UnsupportedNamespace, NotConnected):
+            if music_queue: play(music_queue[0], position=track_position)
+        return True
+    return False
 
 
 def stop():
+    """
+    can be called from a non-main thread
+    note: does not check if playing_status is not 'NOT PLAYING'
+    """
     global playing_status, cast, track_position, playing_live
     playing_status = 'NOT PLAYING'
     playing_live = False
@@ -1138,8 +1152,6 @@ def stop():
     else: audio_player.stop()
     track_position = 0
     tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
-    if active_windows['main'] and main_window.Title == 'Music Caster':
-        main_window['progress_bar'].update(disabled=True, value=0)
 
 
 def next_track(from_timeout=False):
@@ -1147,10 +1159,12 @@ def next_track(from_timeout=False):
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
         playing_status = 'NOT PLAYING'
     elif playing_status != 'NOT PLAYING' and not playing_live and (next_queue or music_queue):
+        # if repeat all or repeat is off or empty queue or not manual next
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
             if music_queue: done_queue.append(music_queue.pop(0))
             if next_queue: music_queue.insert(0, next_queue.pop(0))
+            # if queue is empty but repeat is all AND there are songs in the done_queue
             if not music_queue and settings['repeat'] is False and done_queue:
                 music_queue.extend(done_queue)
                 done_queue.clear()
@@ -1189,10 +1203,9 @@ def background_tasks():
                     track_start = time.time() - new_track_position
                     track_end = time.time() + track_length - new_track_position
                     track_position = new_track_position
-                    if is_paused and playing_status == 'PLAYING': daemon_command = 'Pause'
-                    elif is_playing and playing_status == 'PAUSED': daemon_command = 'Resume'
-                    elif is_stopped and playing_status != 'NOT PLAYING':
-                        daemon_command = 'Stop'
+                    if is_paused: pause()  # checks if playing status equals 'PLAYING'
+                    elif is_playing: resume()
+                    elif is_stopped and playing_status != 'NOT PLAYING': stop()
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)
                     if _volume != cast_volume:
@@ -1220,9 +1233,8 @@ def on_press(key):
     # Ctrl + Alt + Shift + M open up main window
     if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked: daemon_command = '__ACTIVATED__'
     if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
-    if key == '<179>':
-        if playing_status == 'PLAYING': daemon_command = 'Pause'
-        elif playing_status == 'PAUSED': daemon_command = 'Resume'
+    if key == '<179>' and playing_status != 'NOT PLAYING':
+        if not pause(): resume()
     elif key == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Track'
     elif key == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Track'
     elif key == '<178>': stop()
@@ -1238,9 +1250,10 @@ def activate_main_window(selected_tab='tab_queue'):
     # selected_tab can be 'tab_queue', 'tab_settings', or 'tab_timer'
     if not active_windows['main']:
         active_windows['main'] = True
-        window_location = get_window_location('main')
         lb_tracks, selected_value = create_track_list()
         mini_mode = settings['mini_mode']
+        save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
+        window_location = get_window_location(save_window_loc_key)
         size = (125, 125) if mini_mode else (255, 255)
         album_art_data = resize_img(get_current_album_art(), size).decode()
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
@@ -1248,7 +1261,7 @@ def activate_main_window(selected_tab='tab_queue'):
                 metadata = url_metadata['LIVE']
                 position, length = track_length, track_length
             else:
-                metadata = get_uri_info(music_queue[0])
+                metadata = get_uri_metadata(music_queue[0])
                 position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
             if get_ipv4() != IPV4:
@@ -1271,7 +1284,7 @@ def activate_main_window(selected_tab='tab_queue'):
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
-        set_save_position_callback(main_window, 'main')
+        set_save_position_callback(main_window, save_window_loc_key)
     if not settings['mini_mode']:
         main_window[selected_tab].Select()
         if selected_tab == 'tab_timer': main_window['minutes'].SetFocus()
@@ -1406,10 +1419,21 @@ def read_main_window():
     p_r_button = main_window['pause/resume']
     gui_title = main_window['title'].DisplayText
     update_progress_bar_text, artist, title = False, '', 'Nothing Playing'
-    if playing_status in {'PAUSED', 'PLAYING'}:
-        with suppress(KeyError, IndexError):
-            metadata = url_metadata['LIVE'] if playing_live else get_uri_info(music_queue[0])
-            artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
+    if playing_status in {'PAUSED', 'PLAYING'} and (playing_live or music_queue):
+        metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
+        artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
+    if gui_title != title:  # usually if music stops playing or another track starts playing
+        main_window['title'].update(value=title)
+        main_window['artist'].update(value=artist)
+        size = (125, 125) if settings['mini_mode'] else (255, 255)
+        if settings['show_album_art']:
+            album_art_data = resize_img(get_current_album_art(), size).decode()
+            main_window['album_art'].update(data=album_art_data)
+        if not settings['mini_mode']:
+            dq_len = len(done_queue)
+            lb_music_queue: Sg.Listbox = main_window['queue']
+            lb_tracks = create_track_list()[0]
+            lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
         delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
@@ -1622,7 +1646,6 @@ def read_main_window():
     elif main_event == 'progress_bar':
         if playing_status == 'NOT PLAYING':
             main_window['progress_bar'].update(disabled=True, value=0)
-            # maybe even make it invisible?
             return
         else:
             new_position = main_values['progress_bar']
@@ -1655,11 +1678,8 @@ def read_main_window():
         elif main_event == 'discord_rpc':
             with suppress(py_presence_errors):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
-                    if playing_live:
-                        metadata = url_metadata['LIVE']
-                        title, artist = metadata['title'], metadata['artist']
-                    else:
-                        title, artist = get_metadata_wrapped(music_queue[0])[:2]
+                    metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
+                    artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
                     rich_presence.connect()
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
@@ -1730,15 +1750,17 @@ def read_main_window():
         change_settings('timer_sleep_computer', main_values['sleep'])
         change_settings('timer_shut_off_computer', main_values['shut_off'])
 
-    if playing_status in {'PLAYING', 'PAUSED'} and time.time() - progress_bar_last_update > 1:
-        if music_queue:
-            progress_bar = main_window['progress_bar']
+    if time.time() - progress_bar_last_update > 1:
+        progress_bar: Sg.Slider = main_window['progress_bar']
+        if playing_status == 'NOT PLAYING': progress_bar.Update(0, disabled=True)
+        elif music_queue:
             with suppress(ZeroDivisionError):
                 get_track_position()
                 progress_bar.update(track_position, range=(0, track_length), disabled=False)
             update_progress_bar_text = True
             progress_bar_last_update = time.time() - track_position + int(track_position)
         elif not playing_live:
+            print('"elif not playing_live" in update progress bar ran')
             playing_status = 'NOT PLAYING'
     if update_progress_bar_text:
         elapsed_time_text, time_left_text = create_progress_bar_text(track_position, track_length)
@@ -1753,18 +1775,6 @@ def read_main_window():
         main_window['time_elapsed'].update(value='0:00')
         main_window['time_left'].update(value='0:00')
     p_r_button.metadata = playing_status
-    if gui_title != title:  # usually if music stops playing or another track starts playing
-        main_window['title'].update(value=title)
-        main_window['artist'].update(value=artist)
-        size = (125, 125) if settings['mini_mode'] else (255, 255)
-        if settings['show_album_art']:
-            album_art_data = resize_img(get_current_album_art(), size).decode()
-            main_window['album_art'].update(data=album_art_data)
-        if not settings['mini_mode']:
-            dq_len = len(done_queue)
-            lb_music_queue: Sg.Listbox = main_window['queue']
-            lb_tracks = create_track_list()[0]
-            lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     return True
 
 
