@@ -1445,7 +1445,7 @@ def read_main_window():
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue': main_window['file_action'].SetFocus()
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_settings': main_window['auto_update'].SetFocus()
     elif main_event == '3:51': main_window['tab_settings'].Select()
-    elif main_event.endswith('mouse_enter'):
+    elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'volume_slider_mouse_enter'}:
         if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'}: main_window.grab_any_where_off()
         mouse_hover = '_'.join(main_event.split('_')[:-2])
     elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'volume_slider_mouse_leave'}:
