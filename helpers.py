@@ -5,7 +5,7 @@ from functools import wraps
 import io
 import os
 import platform
-from math import floor
+from math import floor, ceil
 import winreg as wr
 import base64
 import pyqrcode
@@ -176,9 +176,11 @@ def get_repeat_img_et_tooltip(repeat_setting):
 
 def create_progress_bar_text(position, length) -> (str, str):  #
     """":return: time_elapsed_text, time_left_text"""
-    time_left = length - position
-    mins_elapsed, mins_left = floor(position / 60), floor(time_left / 60)
-    secs_elapsed, secs_left = floor(position % 60), floor(time_left % 60)
+    position = floor(position)
+    time_left = round(length) - position
+    mins_elapsed, mins_left = floor(position / 60), time_left // 60
+    secs_left = time_left % 60
+    secs_elapsed = floor(position % 60)
     if secs_left < 10: secs_left = f'0{secs_left}'
     if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
     return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'

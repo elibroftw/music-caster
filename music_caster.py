@@ -1407,7 +1407,7 @@ def read_main_window():
     global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update,\
         track_start, track_end, timer, main_window
     # make if statements into dict mapping
-    main_event, main_values = main_window.Read(timeout=10)
+    main_event, main_values = main_window.Read(timeout=1)
     if (main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action'}
             or main_values is None):
         active_windows['main'] = False
@@ -1546,6 +1546,7 @@ def read_main_window():
         updated_list = create_track_list()[0]
         dq_len = len(done_queue)
         main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
+        reset_progress()
     elif main_event == 'move_up' and main_values['queue']:
         # index_to_move = int(main_values['queue'][0].split('.', 1)[0])
         index_to_move = main_window['queue'].GetListValues().index(main_values['queue'][0])
@@ -1750,7 +1751,7 @@ def read_main_window():
         change_settings('timer_sleep_computer', main_values['sleep'])
         change_settings('timer_shut_off_computer', main_values['shut_off'])
 
-    if time.time() - progress_bar_last_update > 1:
+    if time.time() - progress_bar_last_update > 0.5:
         progress_bar: Sg.Slider = main_window['progress_bar']
         if playing_status == 'NOT PLAYING': progress_bar.Update(0, disabled=True)
         elif music_queue:
@@ -1758,7 +1759,7 @@ def read_main_window():
                 get_track_position()
                 progress_bar.update(track_position, range=(0, track_length), disabled=False)
             update_progress_bar_text = True
-            progress_bar_last_update = time.time() - track_position + int(track_position)
+            progress_bar_last_update = time.time()
         elif not playing_live:
             print('"elif not playing_live" in update progress bar ran')
             playing_status = 'NOT PLAYING'
