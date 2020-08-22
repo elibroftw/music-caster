@@ -1,4 +1,4 @@
-VERSION = '4.63.11'
+VERSION = latest_version = '4.63.11'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -1068,7 +1068,7 @@ def internet_available(host='8.8.8.8', port=53, timeout=3):
 
 
 def get_track_position():
-    global tray, track_position, cast
+    global track_position
     if cast is not None:
         if internet_available():
             try:
@@ -1198,7 +1198,8 @@ def prev_track():
 
 
 def background_tasks():
-    global cast, cast_last_checked, track_start, track_end, track_position, daemon_command, settings_last_modified
+    global cast_last_checked, update_last_checked, track_start, track_end, track_position, \
+        daemon_command, settings_last_modified, latest_version
     while True:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
