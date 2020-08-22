@@ -1228,7 +1228,7 @@ def background_tasks():
                                 if _volume and settings['muted']:
                                     main_window['mute'].update(image_data=VOLUME_IMG)
                                 main_window['volume_slider'].update(_volume)
-                elif playing_status in {'PAUSED', 'PLAYING'}: stop('background tasks different APP')
+                elif playing_status in {'PAUSED', 'PLAYING'}: stop('background tasks; app not running')
             cast_last_checked = time.time()
         time.sleep(5)
 
