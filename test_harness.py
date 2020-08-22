@@ -12,7 +12,7 @@ from pychromecast import get_chromecasts
 p = pyaudio.PyAudio()
 print(get_default_output_device())
 with suppress(InvalidAudioFile):
-    get_length_and_sample_rate('audio_player.py')  # should fail
+    get_length_and_sample_rate('audio_player.py')  # should raise an error but not crash program
 music_metadata = {}
 timer = time.time()
 print('is_already_running():', is_already_running(0), time.time() - timer)

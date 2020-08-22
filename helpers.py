@@ -14,13 +14,12 @@ from PIL import Image
 import socket
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
-
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
 import re
 import mutagen
 from mutagen import MutagenError
-from mutagen.aac import AAC, AACError
+from mutagen.aac import AAC
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
@@ -28,8 +27,6 @@ from mutagen.mp3 import HeaderNotFoundError
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-# FUTURE: C++ JPG TO PNG
-# https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
 # CONSTANTS
 FONT_NORMAL = 'SourceSans', 11
 FONT_SMALL = 'SourceSans', 10
@@ -74,7 +71,7 @@ def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
             audio_info = mutagen.File(file_path).info
             length, sample_rate = audio_info.length, audio_info.sample_rate
         return length, sample_rate
-    except (AttributeError, HeaderNotFoundError, AACError, MutagenError):
+    except (AttributeError, HeaderNotFoundError, MutagenError):
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
@@ -176,9 +173,11 @@ def get_repeat_img_et_tooltip(repeat_setting):
 
 def create_progress_bar_text(position, length) -> (str, str):  #
     """":return: time_elapsed_text, time_left_text"""
-    time_left = length - position
-    mins_elapsed, mins_left = floor(position / 60), floor(time_left / 60)
-    secs_elapsed, secs_left = floor(position % 60), floor(time_left % 60)
+    position = floor(position)
+    time_left = round(length) - position
+    mins_elapsed, mins_left = floor(position / 60), time_left // 60
+    secs_left = time_left % 60
+    secs_elapsed = floor(position % 60)
     if secs_left < 10: secs_left = f'0{secs_left}'
     if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
     return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'
@@ -304,17 +303,12 @@ def create_main_mini(playing_status, settings, title, artist, album_art_data, tr
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeating_track = settings['repeat']
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
-    prev_btn = {'border_width': 0, 'tooltip': 'previous track', 'button_color': (bg, bg), 'pad': ((0, 4), (5, 5))}
-    pr_button = {'border_width': 0, 'metadata': playing_status, 'button_color': (bg, bg), 'pad': (4, 5)}
-    next_btn = {'border_width': 0, 'tooltip': 'next_track', 'button_color': (bg, bg), 'pad': (4, 5)}
-    repeat_btn = {'border_width': 0, 'tooltip': repeat_tooltip, 'button_color': (bg, bg), 'pad': (4, 5)}
-    mute_btn = {'border_width': 0, 'tooltip': 'mute / unmute', 'button_color': (bg, bg), 'pad': (4, 5)}
-    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **prev_btn),
-                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **pr_button),
-                      # TODO: stop button
-                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **next_btn),
-                      Sg.Button(key='repeat', image_data=repeat_img, **repeat_btn),
-                      Sg.Button(key='mute', image_data=v_slider_img, **mute_btn),
+    img_button = {'border_width': 0, 'button_color': (bg, bg)}
+    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
+                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
+                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
+                      Sg.Button(key='repeat', image_data=repeat_img, **img_button, tooltip=repeat_tooltip),
+                      Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute / unmute'),
                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                 disable_number_display=True, enable_events=True, background_color=accent_color,
                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
@@ -329,7 +323,8 @@ def create_main_mini(playing_status, settings, title, artist, album_art_data, tr
                                      tooltip='Scroll mousewheel', pad=((7, 7), (5, 0))),
                            Sg.Text(time_left, size=text_size, font=FONT_NORMAL, justification='left',
                                    key='time_left', pad=((2, 0), (5, 0))),
-                           Sg.Button('□', key='mini_mode', size=(1, 1), font=FONT_SMALL, enable_events=True, pad=(0, 0))]
+                           Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button,
+                                     size=(1, 1), enable_events=True, tooltip='restore window', pad=(0, 0))]
     right_side = Sg.Col([
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=(0, 0), size=(26, 0), justification='right')],
         [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=(0, 0), size=(26, 0), justification='right')],
@@ -349,17 +344,13 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeating_track = settings['repeat']
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
-    pr_button = {'border_width': 0, 'metadata': playing_status, 'button_color': (bg, bg)}
-    next_btn = {'border_width': 0, 'tooltip': 'next_track', 'button_color': (bg, bg)}
-    prev_btn = {'border_width': 0, 'tooltip': 'previous track', 'button_color': (bg, bg)}
-    repeat_btn = {'border_width': 0, 'tooltip': repeat_tooltip, 'button_color': (bg, bg)}
-    mute_btn = {'border_width': 0, 'tooltip': 'mute / unmute', 'button_color': (bg, bg)}
-    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **prev_btn),
-                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **pr_button),
+    img_button = {'border_width': 0, 'button_color': (bg, bg)}
+    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
+                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
                       # TODO: stop button
-                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **next_btn),
-                      Sg.Button(key='repeat', image_data=repeat_img, **repeat_btn),
-                      Sg.Button(key='mute', image_data=v_slider_img, **mute_btn),
+                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
+                      Sg.Button(key='repeat', image_data=repeat_img, **img_button, tooltip=repeat_tooltip),
+                      Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute / unmute'),
                       Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                                 disable_number_display=True, enable_events=True, background_color=accent_color,
                                 text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
@@ -414,8 +405,8 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
 
     listbox_controls = [
         # TODO: save queue to playlist
-        [Sg.Button('CQ', key='clear_queue', tooltip='Clear the queue', size=(3, 1))],
-        [Sg.Button('LF', key='locate_file', tooltip='Locate file in explorer', size=(3, 1))],
+        [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip='Clear the queue')],
+        [Sg.Button(key='locate_file', image_data=LOCATE_FILE, **img_button, tooltip='Locate file in explorer')],
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
