@@ -881,7 +881,8 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
 
 
 def play(uri, position=0, autoplay=True, switching_device=False):
-    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update, playing_live
+    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update, playing_live,\
+        cast_last_checked
     while not os.path.exists(uri):
         if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
         music_queue.remove(uri)
@@ -919,6 +920,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
                 mc.block_until_active(WAIT_TIMEOUT)
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
             ext = uri.split('.')[-1]
+            cast_last_checked = time.time() + 10  # make sure background_tasks doesn't interfere when switching devices
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
             mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
@@ -1144,7 +1146,6 @@ def stop(stopped_from: str):
     note: does not check if playing_status is not 'NOT PLAYING'
     """
     global playing_status, cast, track_position, playing_live
-    print(f'Stopped from {stopped_from}')
     app_log.info(f'Stopped from {stopped_from}')
     playing_status = 'NOT PLAYING'
     playing_live = False
