@@ -19,6 +19,7 @@ import io
 import json
 from json import JSONDecodeError
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import pprint
 from random import shuffle
@@ -46,12 +47,14 @@ import requests
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
-import logging
-from logging.handlers import RotatingFileHandler
-log_format = '%(asctime)s %(levelname)s (%(lineno)d): %(message)s'
-log_handler = RotatingFileHandler('music_caster.log', mode='a', maxBytes=5242880, backupCount=1)
-logging.basicConfig(handlers=[log_handler], level=logging.INFO, format=log_format)
-# arg parser
+log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
+log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
+log_handler.setFormatter(log_format)
+app_log = logging.getLogger('music_caster')
+app_log.setLevel(logging.INFO)
+app_log.addHandler(log_handler)
+app_log.propagate = False  # disable console output
+# TODO: arg parser
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
 parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
@@ -887,7 +890,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         position = 0
     uri = uri.replace('\\', '/')
     playing_live = False
-    logging.info(f'play({uri}, {position}, {autoplay}, {switching_device})')
+    app_log.info(f'play({uri}, {position}, {autoplay}, {switching_device})')
     try:
         track_length, sample_rate = get_length_and_sample_rate(uri)
     except InvalidAudioFile:
@@ -1142,7 +1145,7 @@ def stop(stopped_from: str):
     """
     global playing_status, cast, track_position, playing_live
     print(f'Stopped from {stopped_from}')
-    logging.info(f'Stopped from {stopped_from}')
+    app_log.info(f'Stopped from {stopped_from}')
     playing_status = 'NOT PLAYING'
     playing_live = False
     if settings['discord_rpc']:
@@ -1162,7 +1165,7 @@ def stop(stopped_from: str):
 
 def next_track(from_timeout=False):
     global playing_status
-    logging.info(f'next_track(from_timeout={from_timeout})')
+    app_log.info(f'next_track(from_timeout={from_timeout})')
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
         playing_status = 'NOT PLAYING'
     elif playing_status != 'NOT PLAYING' and not playing_live and (next_queue or music_queue):
@@ -1181,7 +1184,7 @@ def next_track(from_timeout=False):
 
 def prev_track():
     global playing_status
-    logging.info('prev_track()')
+    app_log.info('prev_track()')
     if playing_status != 'NOT PLAYING' and not playing_live:
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
         else:

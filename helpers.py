@@ -5,7 +5,7 @@ from functools import wraps
 import io
 import os
 import platform
-from math import floor, ceil
+from math import floor
 import winreg as wr
 import base64
 import pyqrcode
@@ -14,13 +14,12 @@ from PIL import Image
 import socket
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
-
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
 import re
 import mutagen
 from mutagen import MutagenError
-from mutagen.aac import AAC, AACError
+from mutagen.aac import AAC
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
@@ -28,8 +27,6 @@ from mutagen.mp3 import HeaderNotFoundError
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-# FUTURE: C++ JPG TO PNG
-# https://stackoverflow.com/questions/13739463/how-do-you-convert-a-jpg-to-png-in-c-on-windows-8
 # CONSTANTS
 FONT_NORMAL = 'SourceSans', 11
 FONT_SMALL = 'SourceSans', 10
@@ -74,7 +71,7 @@ def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
             audio_info = mutagen.File(file_path).info
             length, sample_rate = audio_info.length, audio_info.sample_rate
         return length, sample_rate
-    except (AttributeError, HeaderNotFoundError, AACError, MutagenError):
+    except (AttributeError, HeaderNotFoundError, MutagenError):
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
