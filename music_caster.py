@@ -2005,7 +2005,7 @@ def auto_update(auto_start=True):
                     download(setup_dl_link, 'MC_Installer.exe')
                     temp_tray.hide()
                     temp_tray.close()
-                    with open('update.bat', 'w'):
+                    with open('update.bat', 'w') as f:
                         f.write('MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
                         if auto_start: f.write(' && "Music Caster.exe"')
                     Popen('update.bat')
