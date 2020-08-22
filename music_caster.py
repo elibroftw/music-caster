@@ -1,4 +1,4 @@
-VERSION = '4.63.10'
+VERSION = '4.63.11'
 UPDATE_MESSAGE = """
 [UI] More UI options
 [UI] Mini Mode
@@ -1406,8 +1406,8 @@ def reset_mouse_hover():
 def reset_progress():
     # NOTE: needs to be in main thread
     main_window['progress_bar'].update(value=0)
-    main_window['time_elapsed'].update(value='00:00')
-    main_window['time_left'].update(value='00:00')
+    main_window['time_elapsed'].update(value='0:00')
+    main_window['time_left'].update(value='0:00')
     main_window.Refresh()
 
 
