@@ -4,6 +4,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Better keyboard pause/resume handling
 - [Fix] Save Mini-mode position
 - [Fix] Progress bar text
+- [UI] Converted 3 buttons into images
 
 4.63.9
 - [Fix] Main Window UX

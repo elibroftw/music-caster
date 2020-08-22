@@ -46,6 +46,11 @@ import requests
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
+import logging
+from logging.handlers import RotatingFileHandler
+log_format = '%(asctime)s %(levelname)s (%(lineno)d): %(message)s'
+log_handler = RotatingFileHandler('music_caster.log', mode='a', maxBytes=5242880, backupCount=1)
+logging.basicConfig(handlers=[log_handler], level=logging.INFO, format=log_format)
 # arg parser
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
@@ -232,7 +237,7 @@ def handle_exception(exception, restart_program=False):
             tray.ShowMessage('Music Caster', 'An error occurred, restarting now', time=5000)
             time.sleep(5)
         with suppress(Exception):
-            stop()
+            stop('error handling')
         if IS_FROZEN: os.startfile('Music Caster.exe')
         sys.exit()
 
@@ -782,7 +787,6 @@ def stream_live_audio(switching_device=False):
             start_time = time.time()
             playing_live = True
             while not mc.status.player_is_playing:
-                print('waiting for chromecast to start playing')
                 time.sleep(0.1)
                 with suppress(UnsupportedNamespace): mc.update_status()
             mc.play()  # force chromecast device to start playing
@@ -883,6 +887,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         position = 0
     uri = uri.replace('\\', '/')
     playing_live = False
+    logging.info(f'play({uri}, {position}, {autoplay}, {switching_device})')
     try:
         track_length, sample_rate = get_length_and_sample_rate(uri)
     except InvalidAudioFile:
@@ -916,7 +921,6 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
             start_time = time.time()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
-                print('waiting for chromecast to start playing')
                 time.sleep(0.2)
                 if time.time() - start_time > 5: break  # show error?
             progress_bar_last_update = time.time()
@@ -1131,12 +1135,14 @@ def resume():
     return False
 
 
-def stop():
+def stop(stopped_from: str):
     """
     can be called from a non-main thread
     note: does not check if playing_status is not 'NOT PLAYING'
     """
     global playing_status, cast, track_position, playing_live
+    print(f'Stopped from {stopped_from}')
+    logging.info(f'Stopped from {stopped_from}')
     playing_status = 'NOT PLAYING'
     playing_live = False
     if settings['discord_rpc']:
@@ -1156,6 +1162,7 @@ def stop():
 
 def next_track(from_timeout=False):
     global playing_status
+    logging.info(f'next_track(from_timeout={from_timeout})')
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
         playing_status = 'NOT PLAYING'
     elif playing_status != 'NOT PLAYING' and not playing_live and (next_queue or music_queue):
@@ -1169,11 +1176,12 @@ def next_track(from_timeout=False):
                 music_queue.extend(done_queue)
                 done_queue.clear()
         if music_queue: play(music_queue[0])
-        else: stop()  # repeat is off / no tracks in queue
+        else: stop('next track')  # repeat is off / no tracks in queue
 
 
 def prev_track():
     global playing_status
+    logging.info('prev_track()')
     if playing_status != 'NOT PLAYING' and not playing_live:
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
         else:
@@ -1205,7 +1213,7 @@ def background_tasks():
                     track_position = new_track_position
                     if is_paused: pause()  # checks if playing status equals 'PLAYING'
                     elif is_playing: resume()
-                    elif is_stopped and playing_status != 'NOT PLAYING': stop()
+                    elif is_stopped and playing_status != 'NOT PLAYING': stop('background tasks')
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)
                     if _volume != cast_volume:
@@ -1217,7 +1225,7 @@ def background_tasks():
                                 if _volume and settings['muted']:
                                     main_window['mute'].update(image_data=VOLUME_IMG)
                                 main_window['volume_slider'].update(_volume)
-                elif playing_status in {'PAUSED', 'PLAYING'}: daemon_command = 'Stop'
+                elif playing_status in {'PAUSED', 'PLAYING'}: stop('background tasks different APP')
             cast_last_checked = time.time()
         time.sleep(5)
 
@@ -1237,7 +1245,7 @@ def on_press(key):
         if not pause(): resume()
     elif key == '<176>' and playing_status != 'NOT PLAYING': daemon_command = 'Next Track'
     elif key == '<177>' and playing_status != 'NOT PLAYING': daemon_command = 'Previous Track'
-    elif key == '<178>': stop()
+    elif key == '<178>': stop('keyboard shortcut')
     last_press = time.time()
 
 
@@ -1336,7 +1344,7 @@ def exit_program():
     tray.Hide()
     with suppress(UnsupportedNamespace):
         if cast is None:
-            stop()
+            stop('exit program')
         elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING':
             cast.quit_app()
     with suppress(py_presence_errors):
@@ -1375,7 +1383,7 @@ def other_tray_actions(_tray_item):
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
     elif timer and time.time() > timer:
-        stop()
+        stop('timer')
         timer = 0
         if settings['timer_shut_off_computer']:
             if platform.system() == 'Windows': os.system('shutdown /p /f')
@@ -1426,7 +1434,7 @@ def read_main_window():
         main_window['title'].update(value=title)
         main_window['artist'].update(value=artist)
         size = (125, 125) if settings['mini_mode'] else (255, 255)
-        if settings['show_album_art']:
+        if settings['show_album_art'] or settings['mini_mode']:
             album_art_data = resize_img(get_current_album_art(), size).decode()
             main_window['album_art'].update(data=album_art_data)
         if not settings['mini_mode']:
@@ -1634,7 +1642,7 @@ def read_main_window():
     elif main_event == 'clear_queue':
         reset_progress()
         main_window['queue'].update(values=[])
-        if playing_status in {'PLAYING', 'PAUSED'}: stop()
+        if playing_status in {'PLAYING', 'PAUSED'}: stop('clear queue')
         music_queue.clear()
         next_queue.clear()
         done_queue.clear()
