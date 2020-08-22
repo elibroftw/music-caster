@@ -927,7 +927,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         except (pychromecast.error.NotConnected, OSError) as _e:
             if _e == OSError: handle_exception(_e)
             tray.ShowMessage('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
-            with suppress(pychromecast.error.UnsupportedNamespace): stop()
+            with suppress(pychromecast.error.UnsupportedNamespace): stop('play')
             return
     track_position = position
     track_start = time.time() - track_position
@@ -1073,7 +1073,7 @@ def get_track_position():
                 track_position = mc.status.adjusted_current_time
             except (UnsupportedNamespace, NotConnected):
                 track_position = time.time() - track_start
-        else: stop()
+        else: stop('get_track_position')
     elif playing_status in {'PLAYING', 'PAUSED'}:
         track_position = audio_player.get_pos()
     return track_position
@@ -1101,7 +1101,7 @@ def pause():
                 with suppress(py_presence_errors):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
-        except UnsupportedNamespace: stop()
+        except UnsupportedNamespace: stop('pause')
         tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
         return True
     return False
