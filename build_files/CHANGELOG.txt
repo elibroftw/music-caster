@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.0
+- [Feature] Save queue as playlist
+- [Optimization] Better next and prev track from keyboard shortcuts
+- [Fix] Mini-mode keyboard shortcuts
+
 4.63.11
 - [Fix] Reset progress
 - [Fix] Switching device bug
