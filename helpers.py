@@ -376,6 +376,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     file_options = ['Play File(s)', 'Play File(s) Next', 'Queue File(s)']
     folder_opts = ['Play Folder', 'Play Folder Next', 'Queue Folder']  # TODO: queue folders
     playlist_names = list(settings['playlists'].keys())
+    # TODO: Move to controls tab
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value='Play File(s)', key='file_option', size=(14, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)))],
@@ -388,10 +389,10 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
                              visible=not not playlist_names)],
                    [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
                               visible=not not playlist_names, size=(14, 1), pad=(5, (9, 0)))]]),
-        Sg.Column([[Sg.Button('URL Actions', font=FONT_NORMAL, key='url_actions', size=(10, 1), enable_events=True)],
-                   [Sg.Button('Mini Mode', font=FONT_NORMAL, key='mini_mode', size=(10, 1), enable_events=True)]]),
+        Sg.Column([[Sg.Button('URL', font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)]])
     ]
     listbox_controls = [
+        [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip='Launch mini mode')],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip='Clear the queue')],
         [Sg.Button(key='save_queue', image_data=SAVE_QUEUE, **img_button, tooltip='Save queue to playlist')],
         [Sg.Button(key='locate_file', image_data=LOCATE_FILE, **img_button, tooltip='Locate file in explorer')],
@@ -426,6 +427,7 @@ def create_checkbox(name, key, settings, is_left=False):
 
 
 def create_settings(version, settings, qr_code):
+    # TODO: reorganize
     fg, bg = settings['theme']['text'], settings['theme']['background']
     checkbox_col = Sg.Column([
         [create_checkbox('Auto Update', 'auto_update', settings, True),
@@ -525,9 +527,10 @@ def create_playlist_editor(settings, paths, playlist_name=''):
 
 
 def create_play_url_window(combo_value='Play Immediately', default_text=''):
-    # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
-    combo_values = ['Play Immediately', 'Queue', 'Play Next']
-    layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL),
-               Sg.Combo(combo_values, default_value=combo_value, key='combo_choice')],
+    # TODO: integrate into main window
+    layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL)],
+              [Sg.Radio('Play Immediately', 'url_option', combo_value == 'Play Immediately', key='play_immediately'),
+              Sg.Radio('Queue', 'url_option', combo_value == 'Queue', key='queue'),
+              Sg.Radio('Play Next', 'url_option', combo_value == 'Play Next', key='play_next')],
               [Sg.Input(key='url', font=FONT_NORMAL, default_text=default_text), Sg.Submit(font=FONT_NORMAL)]]
     return layout

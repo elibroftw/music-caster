@@ -1941,10 +1941,10 @@ def read_play_url_window():
         active_windows['play_url'] = False
         play_url_window.Close()
         url_to_play = play_url_values['url']
-        if play_url_values['combo_choice'] == 'Play Immediately' or not music_queue and not next_queue:
+        if play_url_values['play_immediately'] or not music_queue and not next_queue:
             music_queue.insert(0, url_to_play)
             play(url_to_play)
-        elif play_url_values['combo_choice'] == 'Queue':
+        elif play_url_values['queue']:
             music_queue.append(url_to_play)
             if len(music_queue) == 1: play(url_to_play)
         else: next_queue.append(url_to_play)  # Add to Next Queue
