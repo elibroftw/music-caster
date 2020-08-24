@@ -45,7 +45,8 @@ if DEBUG:
     print('Installer:', setup_dl_link)
 elif os.path.exists('unins000.exe'):
     download(setup_dl_link, 'MC_Installer.exe')
-    Popen('MC_Installer.exe /VERYSILENT /CLOSEAPPLICATIONS /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"')
+    Popen('MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon" && "Music Caster.exe"',
+          shell=True)
 else:  # Portable
     if not os.path.exists('Portable'):
         download(portable_dl_link, 'Portable.zip')
