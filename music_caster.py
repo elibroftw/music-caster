@@ -1353,7 +1353,6 @@ def locate_file():
 
 
 def exit_program():
-    tray.Hide()
     with suppress(UnsupportedNamespace):
         if cast is None:
             stop('exit program')
@@ -1362,7 +1361,8 @@ def exit_program():
     with suppress(py_presence_errors):
         rich_presence.close()
     auto_update(False)
-    sys.exit()
+    tray.Hide()
+    sys.exit()  # since auto_update might not sys.exit()
 
 
 def play_playlist(playlist_name):
@@ -2000,7 +2000,7 @@ def auto_update(auto_start=True):
             if settings.get('DEBUG', False) or not setup_dl_link: return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
-                    temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
+                    temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON) if auto_start else tray
                     temp_tray.show_message('Music Caster', f'Downloading update v{latest_ver}', time=5000)
                     temp_tray.update(tooltip=f'Downloading update v{latest_ver}')
                     download(setup_dl_link, 'MC_Installer.exe')
