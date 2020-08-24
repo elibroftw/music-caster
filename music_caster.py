@@ -2171,7 +2171,7 @@ try:
         'Resume': resume,
         'Next Track': next_track,
         'Previous Track': prev_track,
-        'Stop': stop,
+        'Stop': lambda: stop('tray'),
         'web_play_files': lambda: 'pass',
         'Repeat One': lambda: change_settings('repeat', True),
         'Repeat All': lambda: change_settings('repeat', False),

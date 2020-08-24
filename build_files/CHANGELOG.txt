@@ -9,6 +9,7 @@ Music Caster by Elijah Lopez Changelog
 - [Optimization] Better next and prev track from keyboard shortcuts
 - [Fix] Mini-mode keyboard shortcuts
 - [Fix] Mini-mode not respecting show album art setting
+- [Fix] Stop from tray
 
 4.63.11
 - [Fix] Reset progress
