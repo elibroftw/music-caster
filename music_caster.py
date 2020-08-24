@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.1'
+VERSION = latest_version = '4.64.2'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1009,7 +1009,7 @@ def file_action(action='Play File(s)'):
                 playing_status = 'PLAYING'
                 next_track()
         else: raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
-        main_last_event = '__TIMEOUT__'
+        main_last_event = Sg.TIMEOUT_KEY
         update_lb_queue = True
     else: main_last_event = 'file_action'
 
@@ -1054,7 +1054,7 @@ def folder_action(action='Play Folder'):
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
         update_lb_queue = True
-        main_last_event = '__TIMEOUT__'
+        main_last_event = Sg.TIMEOUT_KEY
     else: main_last_event = 'folder_action'
 
 
@@ -1435,7 +1435,7 @@ def read_main_window():
         main_window.close()
         return False
     main_value = main_values.get(main_event)
-    if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != '__TIMEOUT__':
+    if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
         main_last_event = main_event
     p_r_button = main_window['pause/resume']
     gui_title = main_window['title'].DisplayText
@@ -1450,12 +1450,9 @@ def read_main_window():
         if settings['show_album_art'] or settings['mini_mode']:
             album_art_data = resize_img(get_current_album_art(), size).decode()
             main_window['album_art'].update(data=album_art_data)
-        if not settings['mini_mode']:
-            dq_len = len(done_queue)
-            lb_music_queue: Sg.Listbox = main_window['queue']
-            lb_tracks = create_track_list()[0]
-            lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
-    elif update_lb_queue:
+        update_lb_queue = True
+    elif update_lb_queue and not settings['mini_mode']:
+        update_lb_queue = False
         dq_len = len(done_queue)
         lb_music_queue: Sg.Listbox = main_window['queue']
         lb_tracks = create_track_list()[0]
@@ -1490,7 +1487,7 @@ def read_main_window():
             main_values['progress_bar'] = new_position
             main_event = 'progress_bar'
             main_window.refresh()
-    if main_event == '__TIMEOUT__': pass
+    if main_event == Sg.TIMEOUT_KEY: pass
     elif main_event == '1:49': main_window['tab_queue'].select()
     elif main_event == '2:50' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':
         main_window['tab_timer'].select()
@@ -1550,12 +1547,12 @@ def read_main_window():
             main_window['mute'].set_tooltip('mute')
             update_volume(settings['volume'])
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
-        with suppress(AttributeError, IndexError, KeyError):
-            if settings['mini_mode'] and main_window.FindElementWithFocus() == main_window['queue']:
-                move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
-                new_i = main_window['queue'].get_list_values().index(main_values['queue'][0]) + move
-                new_i = min(max(new_i, 0), len(music_queue) - 1)
-                main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+        # with suppress(AttributeError, IndexError, KeyError):
+        if not settings['mini_mode'] and main_window.FindElementWithFocus() == main_window['queue']:
+            move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
+            new_i = main_window['queue'].get_list_values().index(main_values['queue'][0]) + move
+            new_i = min(max(new_i, 0), len(music_queue) - 1)
+            main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         selected_file_index = main_window['queue'].get_list_values().index(main_value[0])
         if done_queue and selected_file_index < len(done_queue):
@@ -1874,7 +1871,7 @@ def read_playlist_editor_window():
     global pl_files, pl_editor_last_event, pl_name, tray_playlists, pl_selector_window
     pl_editor_event, pl_editor_values = pl_editor_window.read(timeout=5)
     open_pl_selector = False
-    if pl_editor_event == '__TIMEOUT__': pass
+    if pl_editor_event == Sg.TIMEOUT_KEY: pass
     elif pl_editor_event in {None, 'Escape:27', 'Cancel'} and pl_editor_last_event not in {'Add tracks', 'f:70'}:
         active_windows['playlist_editor'] = False
         pl_editor_window.close()
