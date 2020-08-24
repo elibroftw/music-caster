@@ -1973,12 +1973,12 @@ def create_shortcut(_shortcut_path):
     if not settings.get('DEBUG', False): Thread(target=_threaded, daemon=True).start()
 
 
-def get_latest_release(latest_version):
-    """ Returns either False or {latest_ersion: link to the latest setup} """
+def get_latest_release(ver):
+    """ Returns either False or {ver: cached link to the latest setup} """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     release = requests.get(releases_url).json()
     latest_ver = release['tag_name'][1:]
-    _version = [int(x) for x in latest_version.split('.')]
+    _version = [int(x) for x in ver.split('.')]
     compare_ver = [int(x) for x in latest_ver.split('.')]
     if compare_ver > _version:
         for asset in release['assets']:
