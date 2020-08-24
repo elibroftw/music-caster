@@ -346,8 +346,7 @@ def create_main_mini(playing_status, settings, title, artist, album_art_data, tr
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=(0, 0), size=(26, 0), justification='right')],
         [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=(0, 0), size=(26, 0), justification='right')],
         music_controls, progress_bar_layout], element_justification='right', pad=(0, 0))
-    layout = [[album_art, right_side]]
-    return layout
+    return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
 def create_main(tracks, listbox_selected, playing_status, settings, version, qr_code, timer, title='Nothing Playing',
