@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.0'
+VERSION = latest_version = '4.64.1'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -93,6 +93,7 @@ pl_files = []  # keep track of paths when editing playlists
 chromecasts, device_names = [], ['✓ Local device']
 music_directories, window_locations = [], {}
 music_queue, done_queue, next_queue = [], [], []
+update_lb_queue = False
 mouse_hover = ''
 daemon_command = ''
 playing_url = playing_live = False
@@ -991,7 +992,7 @@ def select_and_play_folder():
 
 def file_action(action='Play File(s)'):
     # actions = 'Play File(s)', 'Play File(s) Next', 'Queue File(s)'
-    global music_queue, next_queue, playing_status, main_last_event
+    global music_queue, next_queue, playing_status, main_last_event, update_lb_queue
     fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
     if fd.ShowModal() != wx.ID_CANCEL:
@@ -1009,6 +1010,7 @@ def file_action(action='Play File(s)'):
                 next_track()
         else: raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
         main_last_event = '__TIMEOUT__'
+        update_lb_queue = True
     else: main_last_event = 'file_action'
 
 
@@ -1025,7 +1027,7 @@ def play_next():
 
 
 def folder_action(action='Play Folder'):
-    global music_queue, next_queue, playing_status, main_last_event
+    global music_queue, next_queue, playing_status, main_last_event, update_lb_queue
     # actions: 'Play Folder', 'Play Folder Next', 'Queue Folder'
     dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
@@ -1051,6 +1053,7 @@ def folder_action(action='Play Folder'):
             if start_playing and music_queue: play(music_queue[0])
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
+        update_lb_queue = True
         main_last_event = '__TIMEOUT__'
     else: main_last_event = 'folder_action'
 
@@ -1423,7 +1426,7 @@ def reset_progress():
 
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update,\
-        track_start, track_end, timer, main_window, pl_files, pl_editor_window
+        track_start, track_end, timer, main_window, pl_files, pl_editor_window, update_lb_queue
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
     if (main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action'}
@@ -1452,6 +1455,11 @@ def read_main_window():
             lb_music_queue: Sg.Listbox = main_window['queue']
             lb_tracks = create_track_list()[0]
             lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
+    elif update_lb_queue:
+        dq_len = len(done_queue)
+        lb_music_queue: Sg.Listbox = main_window['queue']
+        lb_tracks = create_track_list()[0]
+        lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     if settings['repeat'] != main_window['repeat'].metadata: update_repeat_button()  # if repeat settings do not match
     # handle events here
     if main_event.startswith('MouseWheel'):

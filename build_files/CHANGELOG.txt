@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.1
+- [Fix] Main GUI queue rendering
+
 4.64.0
 - [Feature] Save queue as a playlist
 - [Feature] Update on exit
