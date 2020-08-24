@@ -144,3 +144,4 @@ if args.start:
 if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
 print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
+print('Last commit id: ' + subprocess.getoutput('git log --format="%H" -n 1'))

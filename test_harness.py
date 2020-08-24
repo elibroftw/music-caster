@@ -181,7 +181,7 @@ size = (125, 125) if mini_mode else (255, 255)
 default_album_art = resize_img(DEFAULT_ART, size).decode()
 
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
-              'album_art_data': default_album_art, 'mini': mini_mode}
+              'album_art_data': default_album_art}
 
 other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE,
                                 time.time() + 999, **main_attrs)
@@ -222,7 +222,7 @@ play_url_window.Close()
 
 # Playlists GUI
 
-pl_editor_layout = create_playlist_editor(settings, 'test')
+pl_editor_layout = create_playlist_editor(settings, settings['playlists'].get('test', []), 'test')
 pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, return_keyboard_events=True)
 pl_editor_window.Finalize()
 pl_editor_window.TKroot.focus_force()

@@ -201,7 +201,7 @@ def get_output_device(pa, look_for):
 def add_reg_handlers(path_to_exe):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
-    # TODO: use arg parser
+    # TODO: combine with arg parser
     path_to_exe = path_to_exe.replace('/', '\\')
     classes_path = 'SOFTWARE\\Classes\\'
     key_name_ext = 'MusicCaster_file'
@@ -293,79 +293,70 @@ def resize_img(base64data, new_size=(255, 255)) -> bytes:
 
 
 # GUI LAYOUTS
-def create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position):
-    # album_art_data is 125 x 125
-    album_art = Sg.Col([[Sg.Image(data=album_art_data, key='album_art')]], element_justification='left', pad=(0, 0))
-    accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
+def get_music_controls(settings, playing_status):
+    # TODO: stop button
+    accent_color, bg = settings['theme']['accent'], settings['theme']['background']
+    img_button = {'border_width': 0, 'button_color': (bg, bg)}
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
-    repeating_track = settings['repeat']
-    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
-    img_button = {'border_width': 0, 'button_color': (bg, bg)}
-    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
-                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
-                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
-                      Sg.Button(key='repeat', image_data=repeat_img, **img_button, tooltip=repeat_tooltip),
-                      Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute / unmute'),
-                      Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
-                                disable_number_display=True, enable_events=True, background_color=accent_color,
-                                text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
+    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(settings['repeat'])
+    repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': repeat_tooltip}
+    return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
+            Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
+            Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
+            Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
+            Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute' if is_muted else 'unmute'),
+            Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
+                      disable_number_display=True, enable_events=True, background_color=accent_color,
+                      text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
+
+
+def get_progress_layout(settings, track_position, track_length, playing_status):
     time_elapsed, time_left = create_progress_bar_text(track_position, track_length)
     text_size = (5, 1)
-    progress_bar_layout = [Sg.Text(time_elapsed, size=text_size, font=FONT_NORMAL, key='time_elapsed',
-                                   pad=((0, 2), (5, 0)), justification='right'),
-                           Sg.Slider(range=(0, track_length), default_value=track_position,
-                                     orientation='h', size=(17, 10), key='progress_bar',
-                                     enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
-                                     disable_number_display=True, disabled=artist == '',
-                                     tooltip='Scroll mousewheel', pad=((7, 7), (5, 0))),
-                           Sg.Text(time_left, size=text_size, font=FONT_NORMAL, justification='left',
-                                   key='time_left', pad=((2, 0), (5, 0))),
-                           Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button,
-                                     size=(1, 1), enable_events=True, tooltip='restore window', pad=(0, 0))]
+    bot_pad = (settings['vertical_gui'] and not settings['show_album_art']) * 30
+    accent_color, bg = settings['theme']['accent'], settings['theme']['background']
+    mini_mode = settings['mini_mode']
+    time_elapsed_pad = ((0, 2), (5, 0)) if mini_mode else ((0, 5), (10, bot_pad))
+    time_left_pad = ((2, 0), (5, 0)) if mini_mode else ((5, 0), (10, bot_pad))
+    progress_layout = [Sg.Text(time_elapsed, key='time_elapsed', pad=time_elapsed_pad, justification='right',
+                               size=text_size, font=FONT_NORMAL),
+                       Sg.Slider(range=(0, track_length), default_value=track_position,
+                                 orientation='h', size=(17 if mini_mode else 30, 10), key='progress_bar',
+                                 enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
+                                 disable_number_display=True, disabled=playing_status == 'NOT PLAYING',
+                                 tooltip='Scroll mousewheel',
+                                 pad=((7, 7), (5, 0)) if mini_mode else ((8, 8), (10, bot_pad))),
+                       Sg.Text(time_left, key='time_left', pad=time_left_pad, justification='left',
+                               size=text_size, font=FONT_NORMAL)]
+    if mini_mode:
+        progress_layout.append(Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, size=(1, 1), enable_events=True,
+                                         border_width=0, button_color=(bg, bg), tooltip='restore window', pad=(0, 0)))
+    return progress_layout
+
+
+def create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position):
+    # album_art_data is 125 x 125
+    album_art = Sg.Col([[Sg.Image(data=album_art_data, key='album_art')]], element_justification='left', pad=(0, 0))
+    music_controls = get_music_controls(settings, playing_status)
+    progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     right_side = Sg.Col([
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=(0, 0), size=(26, 0), justification='right')],
         [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=(0, 0), size=(26, 0), justification='right')],
         music_controls, progress_bar_layout], element_justification='right', pad=(0, 0))
-    layout = [[album_art, right_side]]
-    return layout
+    return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
 def create_main(tracks, listbox_selected, playing_status, settings, version, qr_code, timer, title='Nothing Playing',
-                artist='', album_art_data: str = None, track_length=0, track_position=0, mini=False):
-    if mini: return create_main_mini(playing_status, settings, title, artist, album_art_data, track_length,
-                                     track_position)
+                artist='', album_art_data: str = None, track_length=0, track_position=0):
+    if settings['mini_mode']:
+        return create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
-    is_muted = settings['muted']
-    volume = 0 if is_muted else settings['volume']
-    v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
-    pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
-    repeating_track = settings['repeat']
-    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(repeating_track)
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
-    music_controls = [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
-                      Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
-                      # TODO: stop button
-                      Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
-                      Sg.Button(key='repeat', image_data=repeat_img, **img_button, tooltip=repeat_tooltip),
-                      Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute / unmute'),
-                      Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
-                                disable_number_display=True, enable_events=True, background_color=accent_color,
-                                text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
-    time_elapsed, time_left = create_progress_bar_text(track_position, track_length)
-    text_size = (5, 1)
-    bot_pad = (settings['vertical_gui'] and not settings['show_album_art']) * 30
-    progress_bar_layout = [Sg.Text(time_elapsed, size=text_size, font=FONT_NORMAL, key='time_elapsed',
-                                   pad=((0, 5), (10, bot_pad)), justification='right'),
-                           Sg.Slider(range=(0, track_length), default_value=track_position,
-                                     orientation='h', size=(30, 10), key='progress_bar',
-                                     enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
-                                     disable_number_display=True, disabled=artist == '',
-                                     tooltip='Scroll mousewheel', pad=((8, 8), (10, bot_pad))),
-                           Sg.Text(time_left, size=text_size, font=FONT_NORMAL, key='time_left',
-                                   pad=((5, 0), (10, bot_pad)))]
+    music_controls = get_music_controls(settings, playing_status)
+    progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     if not settings['show_album_art']: album_art_data = None
     title_top_pad = 10 + (album_art_data is None) * 100 - (settings['vertical_gui'] and album_art_data is None) * 30
     # 10, 110, or 0
@@ -384,7 +375,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     file_options = ['Play File(s)', 'Play File(s) Next', 'Queue File(s)']
     folder_opts = ['Play Folder', 'Play Folder Next', 'Queue Folder']  # TODO: queue folders
     playlist_names = list(settings['playlists'].keys())
-
+    # TODO: Move to controls tab
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value='Play File(s)', key='file_option', size=(14, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)))],
@@ -392,20 +383,17 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
         Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
                    [Sg.Button('Play Folder', font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
-        # optional playlist column
-        Sg.Column([[Sg.Button('URL Actions', font=FONT_NORMAL, key='url_actions', size=(10, 1), enable_events=True)],
-                   [Sg.Button('Mini Mode', font=FONT_NORMAL, key='mini_mode', size=(10, 1), enable_events=True)]]),
+        Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
+                             size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists',
+                             visible=not not playlist_names)],
+                   [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
+                              visible=not not playlist_names, size=(14, 1), pad=(5, (9, 0)))]]),
+        Sg.Column([[Sg.Button('URL', font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)]])
     ]
-    if playlist_names:
-        playlist_col = Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
-                                            size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists')],
-                                  [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
-                                             size=(14, 1), pad=(5, (9, 0)))]])
-        queue_controls.insert(2, playlist_col)
-
     listbox_controls = [
-        # TODO: save queue to playlist
+        [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip='Launch mini mode')],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip='Clear the queue')],
+        [Sg.Button(key='save_queue', image_data=SAVE_QUEUE, **img_button, tooltip='Save queue to playlist')],
         [Sg.Button(key='locate_file', image_data=LOCATE_FILE, **img_button, tooltip='Locate file in explorer')],
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
@@ -430,39 +418,29 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
     return [[main_part, tabs_part]] if settings['flip_main_window'] else [[tabs_part, main_part]]
 
 
+def create_checkbox(name, key, settings, is_left=False):
+    bg = settings['theme']['background']
+    size = (20, 5) if is_left else (23, 5)
+    checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
+    return Sg.Checkbox(name, default=settings[key], key=key, **checkbox, size=size)
+
+
 def create_settings(version, settings, qr_code):
+    # TODO: reorganize
     fg, bg = settings['theme']['text'], settings['theme']['background']
     checkbox_col = Sg.Column([
-        [Sg.Checkbox('Auto Update', default=settings['auto_update'], key='auto_update', background_color=bg,
-                     font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Discord Presence', default=settings['discord_rpc'], key='discord_rpc', background_color=bg,
-                     font=FONT_NORMAL, enable_events=True, size=(13, 5), pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Notifications', default=settings['notifications'], key='notifications', background_color=bg,
-                     font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Run on Startup', default=settings['run_on_startup'], key='run_on_startup', background_color=bg,
-                     font=FONT_NORMAL, enable_events=True, size=(13, 5), pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Save Window Positions', default=settings['save_window_positions'], key='save_window_positions',
-                     size=(20, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Shuffle Playlists', default=settings['shuffle_playlists'], key='shuffle_playlists',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(13, 5), pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Populate Queue on Startup', default=settings['populate_queue_startup'],
-                     tooltip='Populates Queue From Folders on Startup', key='populate_queue_startup',
-                     size=(20, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Save Queue Between Sessions', default=settings['save_queue_sessions'], key='save_queue_sessions',
-                     background_color=bg, font=FONT_NORMAL, enable_events=True, size=(23, 5), pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Main Content Left', default=settings['flip_main_window'],
-                     tooltip='Move Content to The Left', key='flip_main_window',
-                     size=(20, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Vertical Main GUI', default=settings['vertical_gui'],
-                     tooltip='Shows main content vertically', key='vertical_gui',
-                     size=(23, 5), background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((0, 5), (5, 5)))],
-        [Sg.Checkbox('Show Album Art', default=settings['show_album_art'], key='show_album_art',
-                     tooltip='Show Album Art on Main Window', background_color=bg,
-                     font=FONT_NORMAL, enable_events=True, size=(20, 5), pad=((0, 5), (5, 5))),
-         Sg.Checkbox('Mini Mode on Top', default=settings['mini_on_top'], key='mini_on_top', size=(23, 5),
-                     tooltip='Keep Mini Mode on Top', background_color=bg, font=FONT_NORMAL, enable_events=True,
-                     pad=((0, 5), (5, 5)))]
-    ], pad=((0, 0), (5, 0)))
+        [create_checkbox('Auto Update', 'auto_update', settings, True),
+         create_checkbox('Discord Presence', 'discord_rpc', settings)],
+        [create_checkbox('Notifications', 'notifications', settings, True),
+         create_checkbox('Run on Startup', 'run_on_startup', settings)],
+        [create_checkbox('Save Window Positions', 'save_window_positions', settings, True),
+         create_checkbox('Shuffle Playlists', 'shuffle_playlists', settings)],
+        [create_checkbox('Populate Queue on Startup', 'populate_queue_startup', settings, True),
+         create_checkbox('Save Queue Between Sessions', 'save_queue_sessions', settings)],
+        [create_checkbox('Left-Side Music Controls', 'flip_main_window', settings, True),
+         create_checkbox('Vertical Main GUI', 'vertical_gui', settings)],
+        [create_checkbox('Show Album Art', 'show_album_art', settings, True),
+         create_checkbox('Mini Mode on Top', 'mini_on_top', settings)]], pad=((0, 0), (5, 0)))
     qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
     qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))
     email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': 'Send me an email'}
@@ -493,22 +471,19 @@ def create_timer(settings, timer):
     timer_text = f'Timer set for {timer_date}' if timer else 'No Timer Set'
     # wait for last track to finish setting
     cancel_button = Sg.Button('Cancel Timer', key='cancel_timer', visible=timer != 0)
+    defaults = {'text_color': fg, 'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True}
     layout = [
-        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=shut_off, key='shut_off', text_color=fg,
-                  background_color=bg, font=FONT_NORMAL, enable_events=True, pad=((5, 5), (20, 5)))],
-        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate, key='hibernate',
-                  text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
-        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep, key='sleep',
-                  text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
-        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='other_daemon_actions',
-                  text_color=fg, background_color=bg, font=FONT_NORMAL, enable_events=True)],
+        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=shut_off, key='shut_off', **defaults)],
+        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate, key='hibernate', **defaults)],
+        [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep, key='sleep', **defaults)],
+        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='other_daemon_actions', **defaults)],
         [Sg.Text('Enter minutes or HH:MM', tooltip='Press enter once done', font=FONT_NORMAL),
          Sg.Input(key='minutes', font=FONT_NORMAL, size=(11, 1)),
          Sg.Button('Submit', font=FONT_NORMAL, key='timer_submit')],
         [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=FONT_NORMAL, visible=False, key='timer_error')],
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1)), cancel_button]
     ]
-    return layout
+    return [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]]
 
 
 def create_playlist_selector(settings):
@@ -522,8 +497,7 @@ def create_playlist_selector(settings):
     return layout
 
 
-def create_playlist_editor(settings, playlist_name=''):
-    paths = settings['playlists'].get(playlist_name, [])
+def create_playlist_editor(settings, paths, playlist_name=''):
     fg, bg = settings['theme']['text'], settings['theme']['background']
     tracks = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
     move_up_params = {'size': (11, 1), 'tooltip': 'Ctrl + U', 'font': FONT_NORMAL, 'enable_events': True}
@@ -535,8 +509,10 @@ def create_playlist_editor(settings, playlist_name=''):
                          size=(11, 1), font=FONT_NORMAL, enable_events=True)]
     layout = [[
         Sg.Text('Playlist name', font=FONT_NORMAL, size=(12, 1), justification='center'),
-        Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL),
-        Sg.Submit('Save', key='Save', tooltip='Ctrl + S', font=FONT_NORMAL, size=(6, 1), pad=((14, 5), (5, 5))),
+        Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL, enable_events=True),
+        # TODO: save image
+        Sg.Submit('Save', key='save', tooltip='Ctrl + S', font=FONT_NORMAL, disabled=playlist_name == '',
+                  size=(6, 1), pad=((14, 5), (5, 5))),
         Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=FONT_NORMAL, enable_events=True, size=(3, 1))],
         [Sg.Frame('', [add_tracks,
                        [Sg.Button('Remove track', key='Remove track', tooltip='Ctrl + R', font=FONT_NORMAL,
@@ -550,9 +526,10 @@ def create_playlist_editor(settings, playlist_name=''):
 
 
 def create_play_url_window(combo_value='Play Immediately', default_text=''):
-    # checkbox for queue/play immediately https://www.youtube.com/watch?v=kPC_evpbwDM
-    combo_values = ['Play Immediately', 'Queue', 'Play Next']
-    layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL),
-               Sg.Combo(combo_values, default_value=combo_value, key='combo_choice')],
+    # TODO: integrate into main window
+    layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL)],
+              [Sg.Radio('Play Immediately', 'url_option', combo_value == 'Play Immediately', key='play_immediately'),
+              Sg.Radio('Queue', 'url_option', combo_value == 'Queue', key='queue'),
+              Sg.Radio('Play Next', 'url_option', combo_value == 'Play Next', key='play_next')],
               [Sg.Input(key='url', font=FONT_NORMAL, default_text=default_text), Sg.Submit(font=FONT_NORMAL)]]
     return layout
