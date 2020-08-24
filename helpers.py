@@ -34,7 +34,6 @@ FONT_TITLE = 'Helvetica', 14
 FONT_ARTIST = 'Helvetica', 12
 FONT_LINK = 'SourceSans', 11, 'underline'
 LINK_COLOR = '#3ea6ff'
-# TODO: add right click menus for list boxes
 
 
 def timing(f):
@@ -400,6 +399,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, qr_
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
     listbox_height = 14 + (album_art_data is not None) * 4  # 11 or 21
     queue_tab_layout = [queue_controls, [
+        # TODO: add right click menus for list boxes
         Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
                    select_mode=Sg.SELECT_MODE_SINGLE,
                    text_color=fg, key='queue', font=FONT_NORMAL,

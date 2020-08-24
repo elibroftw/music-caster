@@ -2,6 +2,8 @@ Music Caster by Elijah Lopez Changelog
 
 4.64.0
 - [Feature] Save queue as a playlist
+- [Feature] Update on exit
+- [Feature] Notify when updates available
 - [UI] Better play URL window
 - [UI] Move Mini Mode button above clear queue
 - [Optimization] Better next and prev track from keyboard shortcuts

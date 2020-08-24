@@ -1198,7 +1198,8 @@ def prev_track():
 
 
 def background_tasks():
-    global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified
+    global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified,\
+        update_last_checked, latest_version
     while True:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
@@ -1991,14 +1992,14 @@ def create_shortcut(_shortcut_path):
     if not settings.get('DEBUG', False): Thread(target=_threaded, daemon=True).start()
 
 
-def get_latest_release(ver):
+def get_latest_release(ver, force=False):
     """ Returns either False or {ver: cached link to the latest setup} """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     release = requests.get(releases_url).json()
     latest_ver = release['tag_name'][1:]
     _version = [int(x) for x in ver.split('.')]
     compare_ver = [int(x) for x in latest_ver.split('.')]
-    if compare_ver > _version:
+    if compare_ver > _version or force:
         for asset in release['assets']:
             # check if setup exists
             if 'exe' in asset['name']:
@@ -2010,8 +2011,8 @@ def auto_update(auto_start=True):
     global update_available
     try:
         if not settings['auto_update'] and not settings.get('DEBUG', False): return
-        release = get_latest_release(VERSION)
-        if release or not IS_FROZEN or settings.get('DEBUG', False):
+        release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', False)))
+        if release:
             latest_ver = release['version']
             setup_dl_link = release['setup']
             print('Installer Link:', setup_dl_link)
