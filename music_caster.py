@@ -48,13 +48,6 @@ import requests
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
-log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
-log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
-log_handler.setFormatter(log_format)
-app_log = logging.getLogger('music_caster')
-app_log.setLevel(logging.INFO)
-app_log.addHandler(log_handler)
-app_log.propagate = False  # disable console output
 # TODO: arg parser
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
@@ -66,6 +59,13 @@ MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opu
 DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
+log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
+log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
+log_handler.setFormatter(log_format)
+app_log = logging.getLogger('music_caster')
+app_log.setLevel(logging.INFO)
+app_log.addHandler(log_handler)
+app_log.propagate = False  # disable console output
 EMAIL = 'elijahllopezz@gmail.com'
 EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
