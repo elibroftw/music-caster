@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 4.64.4
-- [Fix] Improved behaviour with unresponsive chromecast pt. 1
+- [Fix] Improved behaviour with unresponsive devices pt. 1
 - [Fix] Improved debugging
 
 4.64.3
