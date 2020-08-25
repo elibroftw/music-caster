@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.3'
+VERSION = latest_version = '4.64.4'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -48,7 +48,7 @@ import requests
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
-# TODO: arg parser
+# TODO: better arg parser
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
 parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
@@ -232,9 +232,12 @@ def handle_exception(exception, restart_program=False):
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
     mac = get_mac()
+    if playing_url: playing_uri = 'url'
+    elif playing_live: playing_uri = 'live'
+    else: playing_uri = 'file' if music_queue else 'none'
     payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
                'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program,
-               'OS': platform.platform(), 'TIME': _current_time}
+               'OS': platform.platform(), 'TIME': _current_time, 'PLAYING_TYPE': playing_uri}
     try:
         with open(f'{starting_dir}/error.log', 'r') as _f:
             content = _f.read()
@@ -308,10 +311,12 @@ def get_uri_metadata(uri):
                 sort_key = os.path.splitext(os.path.basename(uri))[0]
             else: sort_key = f'{title} - {artist}'
             metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
-            with suppress(InvalidAudioFile):
-                length, sample_rate = get_length_and_sample_rate(uri)
+            try:
+                length = get_length(uri)
                 metadata['length'] = length
-                metadata['sample_rate'] = sample_rate
+            except InvalidAudioFile:
+                app_log.error(f'Could not get length for {uri}')
+                tray.show_message('Music Caster', f'ERROR: is {uri} a valid audio file?')
             all_tracks[uri] = metadata
             return metadata
 
@@ -704,7 +709,6 @@ def change_device(selected_index):
         cast = new_device
         volume = 0 if settings['muted'] else settings['volume']
         change_settings('previous_device', None if cast is None else str(cast.uuid))
-        # TODO: fix Chromecast is connection error
         with suppress(AttributeError): cast.wait(timeout=WAIT_TIMEOUT)
         update_volume(volume)
         if playing_status in {'PAUSED', 'PLAYING'}:
@@ -792,7 +796,7 @@ def stream_live_audio(switching_device=False):
             url_metadata['LIVE'] = {'artist': artist, 'title': title, 'album': album}
             # mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png', stream_type='LIVE')
             mc.play_media(f'{url}', 'audio/wav', metadata=metadata, thumb=f'{url}thumbnail.png')
-            mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
+            mc.block_until_active(WAIT_TIMEOUT)
             start_time = time.time()
             playing_live = True
             while not mc.status.player_is_playing:
@@ -824,7 +828,7 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
         mc.block_until_active(WAIT_TIMEOUT)
     mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                   current_time=position, autoplay=autoplay)
-    mc.block_until_active()
+    mc.block_until_active(WAIT_TIMEOUT)
     start_time = time.time()
     while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
         print('waiting for chromecast to start playing', title)
@@ -849,7 +853,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
-        metadata = {'title': title, 'artist': artist, 'length': 0, 'album': album, 'src': url}
+        metadata = {'title': title, 'artist': artist, 'length': 108000, 'album': album, 'src': url}
         url_metadata[url.replace('\\', '/')] = metadata
         track_length = 108000  # 3 hour default
         return play_url_generic(url, ext, title, artist, album, track_length, position=position,
@@ -888,7 +892,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
 
 def play(uri, position=0, autoplay=True, switching_device=False):
     global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update, playing_live,\
-        cast_last_checked
+        cast_last_checked, playing_url
     while not os.path.exists(uri):
         if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
         music_queue.remove(uri)
@@ -896,10 +900,10 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         else: return
         position = 0
     uri = uri.replace('\\', '/')
-    playing_live = False
+    playing_url = playing_live = False
     app_log.info(f'play({uri}, {position}, {autoplay}, {switching_device})')
     try:
-        track_length, sample_rate = get_length_and_sample_rate(uri)
+        track_length = get_length(uri)
     except InvalidAudioFile:
         tray.show_message('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
         if music_queue: play(music_queue[0])
@@ -929,14 +933,14 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             cast_last_checked = time.time() + 10  # make sure background_tasks doesn't interfere when switching devices
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
-            mc.block_until_active()  # TODO: timeout=WAIT_TIMEOUT?
+            mc.block_until_active(WAIT_TIMEOUT)
             start_time = time.time()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
                 time.sleep(0.2)
-                if time.time() - start_time > 5: break  # show error?
+                if time.time() - start_time > 5: break
             progress_bar_last_update = time.time()
+            # TODO: what if it never started playing; show error? at break?
         except (pychromecast.error.NotConnected, OSError) as _e:
-            if _e == OSError: handle_exception(_e)
             tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
             with suppress(pychromecast.error.UnsupportedNamespace): stop('play')
             return
@@ -996,8 +1000,10 @@ def file_action(action='Play File(s)'):
     fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
     if fd.ShowModal() != wx.ID_CANCEL:
+        paths = fd.GetPaths()
+        app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
         if action == 'Play File(s)':
-            play_all(fd.GetPaths())
+            play_all(paths)
         elif action == 'Queue File(s)':
             _start_playing = not music_queue
             music_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
@@ -1019,6 +1025,7 @@ def play_file():
 
 
 def queue_file():
+    # TODO: add to tray menu
     file_action('Queue File(s)')
 
 
@@ -1036,6 +1043,7 @@ def folder_action(action='Play Folder'):
         for _f in iglob(f'{folder_path}/**/*.*', recursive=True):
             if valid_music_file(_f): temp_queue.append(_f)
         if settings['shuffle_playlists']: shuffle(temp_queue)
+        app_log.info(f'folder_action(action={action}), len(lst) is {len(temp_queue)}')
         if action == 'Play Folder':
             music_queue.clear()
             done_queue.clear()
@@ -1125,7 +1133,7 @@ def resume():
                 mc = cast.media_controller
                 mc.update_status()
                 mc.play()
-                mc.block_until_active()
+                mc.block_until_active(WAIT_TIMEOUT)
                 while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
                 track_position = mc.status.adjusted_current_time
             track_start = time.time() - track_position
@@ -1149,10 +1157,10 @@ def stop(stopped_from: str):
     can be called from a non-main thread
     note: does not check if playing_status is not 'NOT PLAYING'
     """
-    global playing_status, cast, track_position, playing_live
+    global playing_status, cast, track_position, playing_live, playing_url
     app_log.info(f'Stopped from {stopped_from}')
     playing_status = 'NOT PLAYING'
-    playing_live = False
+    playing_live = playing_url = False
     if settings['discord_rpc']:
         with suppress(py_presence_errors): rich_presence.clear()
     if cast is not None:
@@ -1993,7 +2001,7 @@ def create_shortcut(_shortcut_path):
             elif not settings['run_on_startup'] and shortcut_exists:
                 os.remove(_shortcut_path)
         except Exception as _e:
-            handle_exception(_e)
+            handle_exception(_e)  # since I have no idea what the error could be
     if not settings.get('DEBUG', False): Thread(target=_threaded, daemon=True).start()
 
 
@@ -2042,11 +2050,10 @@ def auto_update(auto_start=True):
             else:
                 update_available = f'Update v{latest_ver} is available'
     except requests.ConnectionError: pass
-    except Exception as _e: handle_exception(_e)
 
 
 def send_info():
-    with suppress(requests.exceptions.ConnectionError):
+    with suppress(requests.ConnectionError):
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION})
 
 
@@ -2061,7 +2068,7 @@ def quit_if_running():
         r_text = ''
         port = PORT
         while port <= 2003 and not r_text:
-            with suppress(requests.exceptions.InvalidSchema, requests.exceptions.ConnectionError):
+            with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
                 if args.path:  # a file was opened with MC
                     r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'path': args.path}).text
                 else: r_text = requests.post(f'http://127.0.0.1:{port}/').text
@@ -2084,7 +2091,6 @@ if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.e
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 rmtree('Update', ignore_errors=True)
 try:
-    # TODO: Set as default music file handler (See MODIFY REGISTRY in helpers.py)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
         while True:
@@ -2132,7 +2138,7 @@ try:
             tray.show_message('Music Caster', 'ERROR: No local audio device found', time=5000)
         if settings['update_message'] != UPDATE_MESSAGE:
             tray.show_message('Music Caster Updated', UPDATE_MESSAGE, time=5000)
-    if update_available:
+    if update_available and IS_FROZEN:
         tray.show_message('Music Caster', update_available, time=5000)
     change_settings('update_message', UPDATE_MESSAGE)
     temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])

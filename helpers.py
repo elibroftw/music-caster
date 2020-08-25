@@ -49,27 +49,26 @@ def timing(f):
 class InvalidAudioFile(Exception): pass
 
 
-def get_length_and_sample_rate(file_path):  # length in seconds, sample rate
+def get_length(file_path):  # length in seconds
     # throws InvalidAudioFile if file is invalid
     try:
         if file_path.lower().endswith('.wav'):
             a = WavInfoReader(file_path)
-            sample_rate = a.fmt.sample_rate
-            length = a.data.frame_count / sample_rate
+            length = a.data.frame_count / a.fmt.sample_rate
         elif file_path.lower().endswith('.wma'):
             try:
                 audio_info = mutagen.File(file_path).info
-                length, sample_rate = audio_info.length, audio_info.sample_rate
+                length = audio_info.length
             except AttributeError:
                 audio_info = AAC(file_path).info
-                length, sample_rate = audio_info.length, audio_info.sample_rate
+                length = audio_info.length
         elif file_path.lower().endswith('.opus'):
             audio_info = mutagen.File(file_path).info
-            length, sample_rate = audio_info.length, 48000
+            length = audio_info.length
         else:
             audio_info = mutagen.File(file_path).info
-            length, sample_rate = audio_info.length, audio_info.sample_rate
-        return length, sample_rate
+            length = audio_info.length
+        return length
     except (AttributeError, HeaderNotFoundError, MutagenError):
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
