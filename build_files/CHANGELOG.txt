@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.5
+- [Fix] Offline playback
+- [Fix] Starting with arguments
+- [Fix] Settings modal Web GUI
+
 4.64.4
 - [Fix] Improved behaviour with unresponsive devices pt. 1
 - [Fix] Improved debugging

@@ -114,8 +114,9 @@ def get_ipv4() -> str:
 def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
 
 
-def create_qr_code(port):
-    qr_code = pyqrcode.create(f'http://{get_ipv4()}:{port}')
+def create_qr_code(port, ipv4=None):
+    ipv4 = ipv4 or get_ipv4()
+    qr_code = pyqrcode.create(f'http://{ipv4}:{port}')
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
 
 
@@ -347,8 +348,8 @@ def create_main_mini(playing_status, settings, title, artist, album_art_data, tr
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
-def create_main(tracks, listbox_selected, playing_status, settings, version, qr_code, timer, title='Nothing Playing',
-                artist='', album_art_data: str = None, track_length=0, track_position=0):
+def create_main(tracks, listbox_selected, playing_status, settings, version, timer, title='Nothing Playing',
+                artist='', qr_code=None, album_art_data: str = None, track_length=0, track_position=0):
     if settings['mini_mode']:
         return create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
@@ -435,7 +436,7 @@ def create_settings(version, settings, qr_code):
         [create_checkbox('Save Window Positions', 'save_window_positions', settings, True),
          create_checkbox('Shuffle Playlists', 'shuffle_playlists', settings)],
         [create_checkbox('Populate Queue on Startup', 'populate_queue_startup', settings, True),
-         create_checkbox('Save Queue Between Sessions', 'save_queue_sessions', settings)],
+         create_checkbox('Persistent Queue', 'save_queue_sessions', settings)],
         [create_checkbox('Left-Side Music Controls', 'flip_main_window', settings, True),
          create_checkbox('Vertical Main GUI', 'vertical_gui', settings)],
         [create_checkbox('Show Album Art', 'show_album_art', settings, True),
@@ -448,7 +449,7 @@ def create_settings(version, settings, qr_code):
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', font=FONT_NORMAL),
          Sg.Text('elijahllopezz@gmail.com', **email_params, click_submits=True, key='email')],
-        [checkbox_col, qr_code_col],
+        [checkbox_col, qr_code_col] if qr_code else [checkbox_col],
         [Sg.Listbox(settings['music_directories'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
          Sg.Frame('', [

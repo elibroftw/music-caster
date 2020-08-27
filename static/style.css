@@ -255,6 +255,10 @@ a {
     text-align: center;
 }
 
+.modal-content > ul {
+    padding: 0;
+}
+
 h2 {
     width: 80%;
     font-size: x-large;

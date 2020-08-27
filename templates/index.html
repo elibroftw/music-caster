@@ -10,9 +10,11 @@
 <meta name="msapplication-TileColor" content="#ededed">
 <meta name="msapplication-config" content="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/browserconfig.xml">
 <meta name="theme-color" content="#ededed">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{%- if not settings.get('DEBUG', False) %}
 <meta http-equiv="refresh" content="30">
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.1.6">
+{% endif %}
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.1.8">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -107,7 +109,7 @@
 <div id="settings-modal" class="modal">
     <div class="modal-content">
         <h2>Settings</h2>
-        <ul>
+        <ul style="list-style: none">
             <li data-key='auto_update' title="Auto Update" class="modalRow setting" onclick="toggleSetting(this)">
                 Auto Update
                 <label class="switch">
@@ -145,7 +147,7 @@
                     <span class="slider round"></span>
                 </label></li>
             <li data-key='save_queue_sessions' title="Save Queue Between Sessions" class="modalRow setting" onclick="toggleSetting(this)">
-                Save Queue Between Sessions
+                Persistent Queue
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>

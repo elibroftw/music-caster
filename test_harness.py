@@ -171,7 +171,7 @@ Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_
               border_width=1, slider_border_width=1, progress_meter_border_depth=0)
 
 songs_list, selected_value = create_track_list()
-QR_CODE = create_qr_code(2001)
+qr_code = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
 
 # album cover test
@@ -182,7 +182,7 @@ default_album_art = resize_img(DEFAULT_ART, size).decode()
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art}
 
-other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', QR_CODE,
+other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', qr_code,
                                 time.time() + 999, **main_attrs)
 
 main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout,

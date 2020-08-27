@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.4'
+VERSION = latest_version = '4.64.5'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -779,8 +779,7 @@ def stream_live_audio(switching_device=False):
         tray.show_message('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
         return False
     else:
-        ipv4_address = get_ipv4()
-        url = f'http://{ipv4_address}:{PORT}/live/'
+        url = f'http://{get_ipv4()}:{PORT}/live/'
         _volume = 0 if settings['muted'] else settings['volume'] / 100
         cast.wait(timeout=WAIT_TIMEOUT)
         try:
@@ -919,9 +918,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
     else:
         try:
-            ipv4_address = get_ipv4()
             url_args = urllib.parse.urlencode({'path': uri})
-            url = f'http://{ipv4_address}:{PORT}/file?{url_args}'
+            url = f'http://{get_ipv4()}:{PORT}/file?{url_args}'
             cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
             mc = cast.media_controller
@@ -1227,7 +1225,7 @@ def background_tasks():
                     track_start = time.time() - new_track_position
                     track_end = time.time() + track_length - new_track_position
                     track_position = new_track_position
-                    if is_paused: pause()  # checks if playing status equals 'PLAYING'
+                    if is_paused: pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing: resume()
                     elif is_stopped and playing_status != 'NOT PLAYING': stop('background tasks')
                     _volume = settings['volume']
@@ -1278,7 +1276,7 @@ def on_release(key):
 
 
 def activate_main_window(selected_tab='tab_queue'):
-    global active_windows, main_window, IPV4, QR_CODE
+    global active_windows, main_window
     # selected_tab can be 'tab_queue', 'tab_settings', or 'tab_timer'
     if not active_windows['main']:
         active_windows['main'] = True
@@ -1288,6 +1286,8 @@ def activate_main_window(selected_tab='tab_queue'):
         window_location = get_window_location(save_window_loc_key)
         size = (125, 125) if mini_mode else (255, 255)
         album_art_data = resize_img(get_current_album_art(), size).decode()
+        try: qr_code = create_qr_code(PORT)
+        except OSError: qr_code = None  # long time without internet
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
                 metadata = url_metadata['LIVE']
@@ -1296,15 +1296,12 @@ def activate_main_window(selected_tab='tab_queue'):
                 metadata = get_uri_metadata(music_queue[0])
                 position, length = get_track_position(), metadata['length']
             artist, title = metadata['artist'].split(', ')[0], metadata['title']
-            if get_ipv4() != IPV4:
-                IPV4 = get_ipv4()
-                QR_CODE = create_qr_code(PORT)
-            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE,
-                                          timer, title, artist, album_art_data=album_art_data, track_length=length,
+            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer, title,
+                                          artist, qr_code=qr_code, album_art_data=album_art_data, track_length=length,
                                           track_position=position)
         else:
-            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, QR_CODE, timer,
-                                          album_art_data=album_art_data)
+            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
+                                          qr_code=qr_code, album_art_data=album_art_data)
         main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
                                 icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,  use_default_focus=False,
                                 keep_on_top=mini_mode and settings['mini_on_top'], location=window_location)
@@ -2081,7 +2078,7 @@ load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)
 init_ydl_thread.start()
 audio_player = AudioPlayer()
-auto_update()
+if len(sys.argv) == 1: auto_update()  # try to update if no starting arguments were supplied
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
@@ -2122,8 +2119,6 @@ try:
                         'Resume'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    IPV4 = get_ipv4()
-    QR_CODE = create_qr_code(PORT)
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     with suppress(py_presence_errors): rich_presence.connect()
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
