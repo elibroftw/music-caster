@@ -206,5 +206,5 @@ if args.upload:
                   headers=headers, json={'body': body, 'draft': False})
     if not VERSION.endswith('.0'):
         # delete old release if not a new major build
-        requests.delete(f'{github_api}/repos/{username}/music-caster/releases/{old_release_id}')
+        requests.delete(f'{github_api}/repos/{username}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')

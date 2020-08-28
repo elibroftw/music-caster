@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.7
+- [Fix] Automated uploading
+
 4.64.6
 - [Fix] Improved local audio player
 - [Fix] Improved logging

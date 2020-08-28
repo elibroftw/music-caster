@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.6'
+VERSION = latest_version = '4.64.7'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
