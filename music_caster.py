@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.5'
+VERSION = latest_version = '4.64.6'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1101,7 +1101,8 @@ def pause():
         try:
             if cast is None:
                 track_position = time.time() - track_start
-                audio_player.pause()
+                if audio_player.pause(): app_log.info('paused local audio player')
+                else: app_log.info(f'could not pause local audio player')
             else:
                 if internet_available():
                     mc = cast.media_controller
@@ -1109,6 +1110,7 @@ def pause():
                     mc.pause()
                     while not mc.status.player_is_paused: time.sleep(0.1)
                     track_position = mc.status.adjusted_current_time
+                    app_log.info('paused cast device')
             playing_status = 'PAUSED'
             if settings['discord_rpc'] and (music_queue or playing_live):
                 metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
@@ -1126,7 +1128,9 @@ def resume():
     global tray, playing_status, track_end, track_position, track_start
     if playing_status == 'PAUSED':
         try:
-            if cast is None: audio_player.resume()
+            if cast is None:
+                if audio_player.resume(): app_log.info('resumed playback')
+                else: app_log.info('failed to resume')
             else:
                 mc = cast.media_controller
                 mc.update_status()
@@ -1800,7 +1804,7 @@ def read_main_window():
 
     if time.time() - progress_bar_last_update > 0.5:
         progress_bar: Sg.Slider = main_window['progress_bar']
-        if playing_status == 'NOT PLAYING': progress_bar.Update(0, disabled=True)
+        if playing_status == 'NOT PLAYING': progress_bar.update(0, disabled=True)
         elif music_queue:
             with suppress(ZeroDivisionError):
                 get_track_position()

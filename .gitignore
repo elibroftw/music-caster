@@ -6,6 +6,7 @@ build/
 dist/
 images/
 test_files/
+.env
 settings.json
 settings.json.bak
 PySimpleGUI.py

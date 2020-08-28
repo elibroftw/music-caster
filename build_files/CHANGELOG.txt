@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.6
+- [Fix] Improved local audio player
+- [Fix] Improved logging
+
 4.64.5
 - [Fix] Offline playback
 - [Fix] Starting with arguments
@@ -129,7 +133,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Discord Presence Errors
 - [Fix] Better Registry Modifications
 
-4.60.0
+4.60.0 (August 2020)
 - [Feature] Register Music Caster in the registry as a program to open audio files and folders
 
 4.59.5
@@ -636,4 +640,5 @@ Music Caster by Elijah Lopez Changelog
 4.17.25
 - Fixed chromecast buffering bug that would screw up when the next song would start playing
 
+Wow you scrolled all the way to the end.
 Pre v4.17.25 changes found here https://github.com/elibroftw/music-caster/releases?after=v4.17.25

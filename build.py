@@ -11,12 +11,15 @@ from glob import glob
 from distutils.dir_util import copy_tree
 try: from music_caster import VERSION
 except RuntimeError as e: VERSION = str(e)
+import requests
+
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
 parser.add_argument('--versioning', default=False, action='store_true')
 parser.add_argument('--vers', default=False, action='store_true')
 parser.add_argument('--start', default=False, action='store_true', help='Auto launch portable MC after building')
+parser.add_argument('--upload', default=False, action='store_true', help='Upload to GitHub as a draft after building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -146,3 +149,27 @@ if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
 print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
 print('Last commit id: ' + subprocess.getoutput('git log --format="%H" -n 1'))
+if args.upload:
+    # create a release
+    with open('.env') as f:
+        line = f.readline()
+        while line:
+            k, v = line.split('=', 1)
+            os.environ[k] = v
+            line = f.readline()
+    header = {'Authorization': os.getenv('github'), 'Accept': 'application/vnd.github.v3+json'}
+    github_api = 'https://api.github.com'
+    releases_url = f'{github_api}/repos/elibroftw/music-caster/releases/latest'
+    release = requests.get(releases_url).json()
+    new_release = {
+        'tag_name': f'v{VERSION}',
+        'target_commitish': "master",
+        'name': f'Music Caster v{VERSION}',
+        'body': release['body'],
+        'draft': True,
+        'prerelease': False
+    }
+    r = requests.post(f'{github_api}/repos/elibroftw/music-caster/releases', json=new_release)
+    upload_url = r.json()['upload_url']
+    time.sleep(1)  # prevent rate abuse
+    # requests.post(f'{upload_url}')
