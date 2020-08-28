@@ -203,8 +203,8 @@ if args.upload:
                       headers={**headers, 'Content-Type': 'application/octet-stream'})
     body = add_new_changes(body)
     requests.post(f'{github_api}/repos/{username}/music-caster/releases/{release_id}',
-                  headers=headers, json={'body': body, 'draft': False, 'prerelease': True})
+                  headers=headers, json={'body': body, 'draft': False})
     if not VERSION.endswith('.0'):
-        # delete old releases if not a new major build
+        # delete old release if not a new major build
         requests.delete(f'{github_api}/repos/{username}/music-caster/releases/{old_release_id}')
     print(f'Published Release v{VERSION}')
