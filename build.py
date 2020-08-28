@@ -180,7 +180,8 @@ if args.upload:
     releases_url = f'{github_api}/repos/{username}/music-caster/releases/latest'
     old_release = requests.get(releases_url).json()
     old_release_id = old_release['id']
-    body = '' if VERSION.endswith('.0') else old_release['body']  # fresh changes if new major version
+    body = '' if VERSION.endswith('.0') else old_release['body']
+    # chain changelog if not a major release
     new_release = {
         'tag_name': f'v{VERSION}',
         'target_commitish': 'master',
@@ -203,4 +204,7 @@ if args.upload:
     body = add_new_changes(body)
     requests.post(f'{github_api}/repos/{username}/music-caster/releases/{release_id}',
                   headers=headers, json={'body': body, 'draft': False, 'prerelease': True})
+    if not VERSION.endswith('.0'):
+        # delete old releases if not a new major build
+        requests.delete(f'{github_api}/repos/{username}/music-caster/releases/{old_release_id}')
     print(f'Published Release v{VERSION}')
