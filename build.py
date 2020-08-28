@@ -2,7 +2,7 @@ import time
 import subprocess
 import os
 import shutil
-import zipfile
+from zipfile import ZipFile
 import sys
 from contextlib import suppress
 from datetime import datetime
@@ -33,6 +33,32 @@ with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 
 
+def read_env(env_file='.env'):
+    with open(env_file) as f:
+        env_line = f.readline()
+        while env_line:
+            k, v = env_line.split('=', 1)
+            os.environ[k] = v.strip()
+            env_line = f.readline()
+
+
+def add_new_changes(prev_changes):
+    new_changes = ''
+    with open('build_files/CHANGELOG.txt') as f:
+        line = f.readline().strip()
+        break_at_newline = False
+        while True:
+            if line == VERSION:
+                break_at_newline = True
+            elif break_at_newline:
+                if line == '':
+                    break
+                else:
+                    new_changes += f'\n{line}'
+            line = f.readline().strip()
+    return prev_changes + new_changes
+
+
 def update_spec_files(debug_option):
     with open('build_files/mc_portable.spec', 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
@@ -52,6 +78,16 @@ def update_spec_files(debug_option):
         _f.seek(0)
         _f.write(new_spec)
         _f.truncate()
+
+
+def create_zip(zip_filename, files_to_zip):
+    with ZipFile(zip_filename, 'w') as zf:
+        for file in files_to_zip:
+            try:
+                if type(file) == tuple: zf.write(*file)
+                else: zf.write(file)
+            except FileNotFoundError:
+                print(f'{file} not found')
 
 
 print('Updating versions of build files')
@@ -90,12 +126,14 @@ with open('build_files/setup_script.iss', 'r+') as f:
 
 if args.versioning or args.vers: sys.exit()
 if args.debug: update_spec_files(True)
+
 print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
 try:
     subprocess.check_call(f'pip install build_files\\{pyaudio_whl} --force', stdout=subprocess.DEVNULL)
 except subprocess.CalledProcessError:
     print(f'WARNING: {pyaudio_whl} could not be installed with --force')
+
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
@@ -110,37 +148,21 @@ except FileNotFoundError: s4 = None
 s1.wait()
 if args.debug: update_spec_files(False)
 
-files = ['static/style.css', 'templates/index.html']
 for _dir in {'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(_dir)
 
 copy_tree('vlc', 'dist/vlc')
 
-for file in files:
+for file in ['static/style.css', 'templates/index.html']:
     shutil.copyfile(file, 'dist/' + file)
 
-with zipfile.ZipFile('dist/Portable.zip', 'w') as zf:
-    zf.write('dist/Music Caster.exe', 'Music Caster.exe')
-    zf.write('dist/Updater.exe', 'Updater.exe')
-    zf.write('templates/index.html')
-    zf.write('static/style.css')
-    zf.write('build_files/CHANGELOG.txt', 'CHANGELOG.txt')
-    for f in glob('vlc/**/*.*', recursive=True):
-        zf.write(f)
-
+create_zip('dist/Portable.zip', [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/index.html',
+                                 'static/style.css', ('dist/Updater.exe', 'Updater.exe'),
+                                 ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + glob('vlc/**/*.*', recursive=True))
 print('Created dist/Portable.zip')
-
-with zipfile.ZipFile('dist/Source Files Condensed.zip', 'w') as zf:
-    zf.write('music_caster.py')
-    zf.write('helpers.py')
-    zf.write('b64_images.py')
-    zf.write('updater.py')
-    zf.write('resources/Music Caster.ico', 'icon.ico')
-    zf.write('templates/index.html')
-    zf.write('static/style.css')
-    zf.write('requirements.txt')
-    with suppress(FileNotFoundError): zf.write('settings.json')
-
+create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
+                                               'requirements.txt', ('resources/Music Caster.ico', 'icon.ico'),
+                                               'templates/index.html', 'static/style.css', 'settings.json'])
 print('Created dist/Source Files Condensed.zip')
 if args.start:
     print('Launching Music Caster.exe')
@@ -150,26 +172,35 @@ else: print('WARNING: could not create an installer: iscc is not installed or is
 print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
 print('Last commit id: ' + subprocess.getoutput('git log --format="%H" -n 1'))
 if args.upload:
-    # create a release
-    with open('.env') as f:
-        line = f.readline()
-        while line:
-            k, v = line.split('=', 1)
-            os.environ[k] = v
-            line = f.readline()
-    header = {'Authorization': os.getenv('github'), 'Accept': 'application/vnd.github.v3+json'}
+    read_env()
+    github = os.getenv('github')
+    headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
+    username = 'elibroftw'
     github_api = 'https://api.github.com'
-    releases_url = f'{github_api}/repos/elibroftw/music-caster/releases/latest'
-    release = requests.get(releases_url).json()
+    releases_url = f'{github_api}/repos/{username}/music-caster/releases/latest'
+    old_release = requests.get(releases_url).json()
+    old_release_id = old_release['id']
+    body = '' if VERSION.endswith('.0') else old_release['body']  # fresh changes if new major version
     new_release = {
         'tag_name': f'v{VERSION}',
-        'target_commitish': "master",
+        'target_commitish': 'master',
         'name': f'Music Caster v{VERSION}',
-        'body': release['body'],
+        'body': '',
         'draft': True,
         'prerelease': False
     }
-    r = requests.post(f'{github_api}/repos/elibroftw/music-caster/releases', json=new_release)
-    upload_url = r.json()['upload_url']
-    time.sleep(1)  # prevent rate abuse
-    # requests.post(f'{upload_url}')
+    r = requests.post(f'{github_api}/repos/{username}/music-caster/releases', json=new_release, headers=headers)
+    release = r.json()
+    upload_url = release['upload_url'][:-13]
+    release_id = release['id']
+    # upload assets
+    for file in ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+        with open(f'dist/{file}', 'rb') as f:
+            data = f.read()
+        print(f'Uploading dist/{file}...')
+        requests.post(upload_url, data=data, params={'name': file},
+                      headers={**headers, 'Content-Type': 'application/octet-stream'})
+    body = add_new_changes(body)
+    requests.post(f'{github_api}/repos/{username}/music-caster/releases/{release_id}',
+                  headers=headers, json={'body': body, 'draft': False, 'prerelease': True})
+    print(f'Published Release v{VERSION}')
