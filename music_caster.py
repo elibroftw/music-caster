@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.13'
+VERSION = latest_version = '4.64.14'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -2041,6 +2041,7 @@ def auto_update(auto_start=True):
         if release:
             latest_ver = release['version']
             setup_dl_link = release['setup']
+            app_log.info(f'Update found: v{latest_ver}, auto_start={auto_start}')
             print('Installer Link:', setup_dl_link)
             if settings.get('DEBUG', False) or not setup_dl_link: return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
