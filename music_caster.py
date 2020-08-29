@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.12'
+VERSION = latest_version = '4.64.13'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -60,7 +60,8 @@ DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
 log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
-log_handler = RotatingFileHandler('music_caster.log', mode='w', maxBytes=5242880, backupCount=1, encoding='UTF-8')
+with suppress(FileNotFoundError): os.remove('music_caster.log')
+log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
 log_handler.setFormatter(log_format)
 app_log = logging.getLogger('music_caster')
 app_log.setLevel(logging.INFO)
