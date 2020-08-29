@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.7'
+VERSION = latest_version = '4.64.8'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1374,7 +1374,7 @@ def exit_program():
             cast.quit_app()
     with suppress(py_presence_errors):
         rich_presence.close()
-    auto_update(False)
+    if not settings.get('DEBUG', False): auto_update(False)
     sys.exit()  # since auto_update might not sys.exit()
 
 
@@ -1455,8 +1455,8 @@ def read_main_window():
     if gui_title != title:  # usually if music stops playing or another track starts playing
         main_window['title'].update(value=title)
         main_window['artist'].update(value=artist)
-        size = (125, 125) if settings['mini_mode'] else (255, 255)
-        if settings['show_album_art'] or settings['mini_mode']:
+        if settings['show_album_art']:
+            size = (125, 125) if settings['mini_mode'] else (255, 255)
             album_art_data = resize_img(get_current_album_art(), size).decode()
             main_window['album_art'].update(data=album_art_data)
         update_lb_queue = True
@@ -2123,8 +2123,11 @@ try:
                         'Resume'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+    print('Connecting to Discord')
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
-    with suppress(py_presence_errors): rich_presence.connect()
+    if settings['discord_rpc']:
+        with suppress(py_presence_errors): rich_presence.connect()
+    print('Connected to Discord')
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
@@ -2149,7 +2152,7 @@ try:
     cast_last_checked = time.time()
     Thread(target=background_tasks, daemon=True).start()
     Thread(target=start_chromecast_discovery, daemon=True).start()
-    if args.path is not None:
+    if args.path:
         if os.path.isfile(args.path): play_all([args.path])
         elif os.path.isdir(args.path): play_folder([args.path])
     elif settings['save_queue_sessions']:

@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.8
+- [Fix] Album art mini mode
+- [Fix] Persistent Queues
+
 4.64.7
 - [Fix] Automated uploading
 
