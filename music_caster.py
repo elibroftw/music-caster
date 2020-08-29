@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.9'
+VERSION = latest_version = '4.64.10'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -757,6 +757,7 @@ def create_track_list():
 
 def after_play(artists: str, title, autoplay, switching_device):
     global playing_status, cast_last_checked
+    app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
     # artists is comma separated string
     playing_text = f"{artists.split(', ')[0]} - {title}"
     if autoplay:
@@ -900,7 +901,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         position = 0
     uri = uri.replace('\\', '/')
     playing_url = playing_live = False
-    app_log.info(f'play({uri}, {position}, {autoplay}, {switching_device})')
+    cleaned_uri = 'some_file.' + uri.split('.')[-1]  # clean uri for log
+    app_log.info(f'play: {cleaned_uri}, position={position}, autoplay={autoplay}, switching_device={switching_device}')
     try:
         track_length = get_length(uri)
     except InvalidAudioFile:
@@ -921,24 +923,24 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{PORT}/file?{url_args}'
             cast.wait(timeout=WAIT_TIMEOUT)
+            cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
             cast.set_volume(_volume)
             mc = cast.media_controller
-            if mc.status.player_is_playing or mc.status.player_is_paused:
-                mc.stop()
-                mc.block_until_active(WAIT_TIMEOUT)
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
             ext = uri.split('.')[-1]
-            cast_last_checked = time.time() + 10  # make sure background_tasks doesn't interfere when switching devices
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
-            mc.block_until_active(WAIT_TIMEOUT)
+            t1 = time.time()
+            mc.block_until_active(WAIT_TIMEOUT + 1)
+            if time.time() - t1 > WAIT_TIMEOUT:
+                app_log.info('play: FAILED TO BLOCK UNTIL ACTIVE')
             start_time = time.time()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
                 time.sleep(0.2)
-                if time.time() - start_time > 5: break
+                if time.time() - start_time > WAIT_TIMEOUT: break
+            app_log.info('play: mc.status.player_state=')
             progress_bar_last_update = time.time()
-            # TODO: what if it never started playing; show error? at break?
-        except (pychromecast.error.NotConnected, OSError) as _e:
+        except (pychromecast.error.NotConnected, OSError):
             tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
             with suppress(pychromecast.error.UnsupportedNamespace): stop('play')
             return
@@ -1041,7 +1043,7 @@ def folder_action(action='Play Folder'):
         for _f in iglob(f'{folder_path}/**/*.*', recursive=True):
             if valid_music_file(_f): temp_queue.append(_f)
         if settings['shuffle_playlists']: shuffle(temp_queue)
-        app_log.info(f'folder_action(action={action}), len(lst) is {len(temp_queue)}')
+        app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         if action == 'Play Folder':
             music_queue.clear()
             done_queue.clear()
