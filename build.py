@@ -53,7 +53,7 @@ def add_new_changes(prev_changes):
             elif break_at_newline:
                 if line == '':
                     break
-                else:
+                elif line not in new_changes:
                     new_changes += f'\n{line}'
             line = f.readline().strip()
     return prev_changes + new_changes

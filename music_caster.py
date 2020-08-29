@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.8'
+VERSION = latest_version = '4.64.9'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1289,7 +1289,7 @@ def activate_main_window(selected_tab='tab_queue'):
         save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
         window_location = get_window_location(save_window_loc_key)
         size = (125, 125) if mini_mode else (255, 255)
-        album_art_data = resize_img(get_current_album_art(), size).decode()
+        album_art_data = resize_img(get_current_album_art(), size).decode() if settings['show_album_art'] else None
         try: qr_code = create_qr_code(PORT)
         except OSError: qr_code = None  # long time without internet
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
