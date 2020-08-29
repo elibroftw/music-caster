@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.10'
+VERSION = latest_version = '4.64.11'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1156,7 +1156,7 @@ def resume():
     return False
 
 
-def stop(stopped_from: str):
+def stop(stopped_from: str, stop_cast=True):
     """
     can be called from a non-main thread
     note: does not check if playing_status is not 'NOT PLAYING'
@@ -1170,11 +1170,19 @@ def stop(stopped_from: str):
     if cast is not None:
         if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
-            mc.stop()
-            until_time = time.time() + 5  # 5 seconds
-            status = mc.status
-            while (status.player_is_playing or status.player_is_paused) and time.time() > until_time: time.sleep(0.1)
-            if status.player_is_playing or status.player_is_paused: cast.quit_app()
+            if stop_cast:
+                mc.stop()
+                until_time = time.time() + 5  # 5 seconds
+                status = mc.status
+                while ((status.player_is_playing or status.player_is_paused)
+                       and time.time() > until_time): time.sleep(0.1)
+                if status.player_is_playing or status.player_is_paused: cast.quit_app()
+            else:  # only when background tasks calls stop()
+                # check if background tasks is wrong
+                mc.update_status()
+                if mc.is_playing(): playing_status = 'PLAYING'
+                elif mc.is_paused(): playing_status = 'PAUSED'
+                return
     else: audio_player.stop()
     track_position = 0
     tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
@@ -1224,16 +1232,17 @@ def background_tasks():
                 if cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller
                     mc.update_status()
-                    is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-                    is_stopped = mc.status.player_is_idle  # buffering is okay
-                    new_track_position = mc.status.adjusted_current_time
-                    # handle scrubbing of music from the home app
-                    track_start = time.time() - new_track_position
-                    track_end = time.time() + track_length - new_track_position
-                    track_position = new_track_position
+                    is_playing, is_paused = mc.status.player_is_playing(), mc.status.player_is_paused()
+                    is_stopped = mc.status.player_is_idle()  # buffering is okay
+                    if not is_stopped:
+                        new_track_position = mc.status.adjusted_current_time
+                        # handle scrubbing of music from the home app
+                        track_start = time.time() - new_track_position
+                        track_end = time.time() + track_length - new_track_position
+                        track_position = new_track_position
                     if is_paused: pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing: resume()
-                    elif is_stopped and playing_status != 'NOT PLAYING': stop('background tasks')
+                    elif is_stopped and playing_status != 'NOT PLAYING': stop('background tasks', False)
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)
                     if _volume != cast_volume:
