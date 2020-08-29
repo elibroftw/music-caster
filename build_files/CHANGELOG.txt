@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.12
+- [Fix] Better logging (smaller log file)
+
 4.64.11
 - [Fix] Premature stopping
 
