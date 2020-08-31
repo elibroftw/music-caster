@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.16'
+VERSION = latest_version = '4.64.17'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -59,14 +59,6 @@ MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opu
 DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
-log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
-with suppress(FileNotFoundError): os.remove('music_caster.log')
-log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
-log_handler.setFormatter(log_format)
-app_log = logging.getLogger('music_caster')
-app_log.setLevel(logging.INFO)
-app_log.addHandler(log_handler)
-app_log.propagate = False  # disable console output
 EMAIL = 'elijahllopezz@gmail.com'
 EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
@@ -2077,20 +2069,39 @@ def init_youtube_dl():  # 1 - 1.4 seconds
     ydl = YoutubeDL()
 
 
+def activate_instance(port):
+    r_text = ''
+    while port <= 2003 and not r_text:
+        with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
+            if args.path:  # a file was opened with MC
+                r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'path': args.path}).text
+            else:
+                r_text = requests.post(f'http://127.0.0.1:{port}/').text
+        port += 1
+
+
 def quit_if_running():
     if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2) or DEBUG:
         print('Another instance of Music Caster was found' if not DEBUG else '')
-        r_text = ''
-        port = PORT
-        while port <= 2003 and not r_text:
-            with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
-                if args.path:  # a file was opened with MC
-                    r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'path': args.path}).text
-                else: r_text = requests.post(f'http://127.0.0.1:{port}/').text
-            port += 1
+        activate_instance(PORT)
         if IS_FROZEN and not DEBUG: sys.exit()
 
 
+log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
+try:
+    os.remove('music_caster.log')
+except FileNotFoundError: pass
+except PermissionError:
+    if IS_FROZEN or DEBUG:
+        activate_instance(PORT)
+        sys.exit()
+# NOTE: PermissionError implies program is already running
+log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
+log_handler.setFormatter(log_format)
+app_log = logging.getLogger('music_caster')
+app_log.setLevel(logging.INFO)
+app_log.addHandler(log_handler)
+app_log.propagate = False  # disable console output
 quit_if_running()
 load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)

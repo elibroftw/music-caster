@@ -7,7 +7,7 @@ import sys
 from contextlib import suppress
 from datetime import datetime
 import argparse
-from glob import glob
+from glob import glob, iglob
 from distutils.dir_util import copy_tree
 try: from music_caster import VERSION
 except RuntimeError as e: VERSION = str(e)
@@ -28,6 +28,7 @@ start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
 
 shutil.rmtree('dist/Music Caster', True)
@@ -143,11 +144,15 @@ print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
 except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" build_files/mc_portable.spec')
-try: s2 = subprocess.Popen('pyinstaller build_files/updater.spec')
-except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" build_files/updater.spec')
+updater_release_path = r'Music Caster Updater\Music Caster Updater\bin\x86\Release\netcoreapp3.1'
+shutil.rmtree(updater_release_path, True)
+subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build '
+                      f'/p:Configuration=Release /p:PlatformTarget=x86')
+# try: s2 = subprocess.Popen('pyinstaller build_files/updater.spec')
+# except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" build_files/updater.spec')
 try: subprocess.check_call('pyinstaller build_files/mc_onedir.spec')
 except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" build_files/mc_onedir.spec')
-s2.wait()
+# s2.wait()
 try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
 except FileNotFoundError: s4 = None
 s1.wait()
@@ -161,9 +166,12 @@ copy_tree('vlc', 'dist/vlc')
 for res_file in ['static/style.css', 'templates/index.html']:
     shutil.copyfile(res_file, 'dist/' + res_file)
 
-create_zip('dist/Portable.zip', [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/index.html',
-                                 'static/style.css', ('dist/Updater.exe', 'Updater.exe'),
-                                 ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + glob('vlc/**/*.*', recursive=True))
+
+portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/index.html', 'static/style.css',
+                  ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + glob('vlc/**/*.*', recursive=True) + \
+                 [(f, os.path.basename(f)) for f in iglob(f'{updater_release_path}/*.*')]
+# [('dist/Updater.exe', 'Updater.exe')]
+create_zip('dist/Portable.zip', portable_files)
 print('Created dist/Portable.zip')
 create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
                                                'requirements.txt', ('resources/Music Caster.ico', 'icon.ico'),
@@ -200,11 +208,11 @@ if args.up or args.upload or args.publish or args.publish:
     upload_url = release['upload_url'][:-13]
     release_id = release['id']
     # upload assets
-    for file in ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip'):
-        with open(f'dist/{file}', 'rb') as f:
+    for dist_file in ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+        with open(f'dist/{dist_file}', 'rb') as f:
             data = f.read()
-        print(f'Uploading dist/{file}...')
-        requests.post(upload_url, data=data, params={'name': file},
+        print(f'Uploading dist/{dist_file}...')
+        requests.post(upload_url, data=data, params={'name': dist_file},
                       headers={**headers, 'Content-Type': 'application/octet-stream'})
     requests.post(f'{github_api}/repos/{username}/music-caster/releases/{release_id}',
                   headers=headers, json={'body': body, 'draft': False})

@@ -338,7 +338,8 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
 
 def create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position):
     # album_art_data is 125 x 125
-    album_art = Sg.Col([[Sg.Image(data=album_art_data, key='album_art')]], element_justification='left', pad=(0, 0))
+    album_art = Sg.Col([[Sg.Image(data=album_art_data, key='album_art', pad=(0, 0))]],
+                       element_justification='left', pad=(0, 0))
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     right_side = Sg.Col([
