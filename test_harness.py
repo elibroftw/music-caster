@@ -177,7 +177,7 @@ really_long_tile = 'extremely long convoluted title that tests max length'
 # album cover test
 mini_mode = False
 size = (125, 125) if mini_mode else (255, 255)
-default_album_art = resize_img(DEFAULT_ART, size).decode()
+default_album_art = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
 
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art}

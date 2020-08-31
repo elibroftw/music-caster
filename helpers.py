@@ -279,13 +279,24 @@ def get_default_output_device():
     return active_device_name
 
 
-def resize_img(base64data, new_size=(255, 255)) -> bytes:
+def resize_img(base64data, bg, new_size=(255, 255)) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
-    base64data = base64data.encode() if type(base64data) == str else base64data
-    data = base64.b64decode(base64data)
-    data = io.BytesIO(data)
-    img: Image = Image.open(data)
-    img = img.resize(new_size, Image.ANTIALIAS)
+    if type(base64data) == str: base64data = base64data.encode()
+    img_data = io.BytesIO(base64.b64decode(base64data))
+    art_img: Image = Image.open(img_data)
+    w, h = art_img.size
+    if w == h:
+        img = art_img.resize(new_size, Image.ANTIALIAS)
+    else:
+        ratio = h / w if w > h else w / h
+        to_change = 1 if w > h else 0
+        ratio_size = list(new_size)
+        ratio_size[to_change] = round(new_size[to_change] * ratio)
+        art_img = art_img.resize(ratio_size, Image.ANTIALIAS)
+        paste_width = (new_size[0] - ratio_size[0]) // 2
+        paste_height = (new_size[1] - ratio_size[1]) // 2
+        img = Image.new('RGB', new_size, color=bg)
+        img.paste(art_img, (paste_width, paste_height))
     data = io.BytesIO()
     img.save(data, format='PNG', quality=95)
     return base64.b64encode(data.getvalue())

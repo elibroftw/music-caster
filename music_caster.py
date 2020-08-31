@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.18'
+VERSION = latest_version = '4.64.19'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1225,8 +1225,8 @@ def background_tasks():
                 if cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller
                     mc.update_status()
-                    is_playing, is_paused = mc.status.player_is_playing(), mc.status.player_is_paused()
-                    is_stopped = mc.status.player_is_idle()  # buffering is okay
+                    is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                    is_stopped = mc.status.player_is_idle  # buffering is okay
                     if not is_stopped:
                         new_track_position = mc.status.adjusted_current_time
                         # handle scrubbing of music from the home app
@@ -1293,7 +1293,8 @@ def activate_main_window(selected_tab='tab_queue'):
         save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
         window_location = get_window_location(save_window_loc_key)
         size = (125, 125) if mini_mode else (255, 255)
-        album_art_data = resize_img(get_current_album_art(), size).decode() if settings['show_album_art'] else None
+        album_art_data = resize_img(get_current_album_art(), settings['theme']['background'],
+                                    size).decode() if settings['show_album_art'] else None
         try: qr_code = create_qr_code(PORT)
         except OSError: qr_code = None  # long time without internet
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
@@ -1461,7 +1462,7 @@ def read_main_window():
         main_window['artist'].update(value=artist)
         if settings['show_album_art']:
             size = (125, 125) if settings['mini_mode'] else (255, 255)
-            album_art_data = resize_img(get_current_album_art(), size).decode()
+            album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
             main_window['album_art'].update(data=album_art_data)
         update_lb_queue = True
     elif update_lb_queue and not settings['mini_mode']:
@@ -2093,10 +2094,10 @@ try:
     os.remove('music_caster.log')
 except FileNotFoundError: pass
 except PermissionError:
+    # music_caster.log being open for write implies that an instance is already running
     if IS_FROZEN or DEBUG:
         activate_instance(PORT)
         sys.exit()
-# NOTE: PermissionError implies program is already running
 log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
 log_handler.setFormatter(log_format)
 app_log = logging.getLogger('music_caster')
