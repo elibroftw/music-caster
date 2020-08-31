@@ -16,18 +16,20 @@ import requests
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
-parser.add_argument('--versioning', default=False, action='store_true')
-parser.add_argument('--vers', default=False, action='store_true')
+parser.add_argument('--versioning', default=False, action='store_true', help='Updates build file versions')
+parser.add_argument('--ver', default=False, action='store_true', help='Updates build file versions')
 parser.add_argument('--start', default=False, action='store_true', help='Auto launch portable MC after building')
-parser.add_argument('--upload', default=False, action='store_true', help='Upload to GitHub as a draft after building')
+parser.add_argument('--upload', default=False, action='store_true', help='Upload and Publish to GitHub after building')
+parser.add_argument('--up', default=False, action='store_true', help='Upload and Publish to GitHub after building')
+parser.add_argument('--publish', default=False, action='store_true', help='Upload and Publish to GitHub after building')
+parser.add_argument('--release', default=False, action='store_true', help='Upload and Publish to GitHub after building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-# https://stackoverflow.com/questions/418896/how-to-redirect-output-to-a-file-and-stdout
+
 shutil.rmtree('dist/Music Caster', True)
 with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
@@ -40,6 +42,7 @@ def read_env(env_file='.env'):
             k, v = env_line.split('=', 1)
             os.environ[k] = v.strip()
             env_line = f.readline()
+    return os.environ
 
 
 def add_new_changes(prev_changes):
@@ -53,7 +56,7 @@ def add_new_changes(prev_changes):
             elif break_at_newline:
                 if line == '':
                     break
-                elif line not in new_changes:
+                elif line not in prev_changes:
                     new_changes += f'\n{line}'
             line = f.readline().strip()
     return prev_changes + new_changes
@@ -80,6 +83,43 @@ def update_spec_files(debug_option):
         _f.truncate()
 
 
+def update_versions():
+    """ Update versions of version file and installer script """
+    version_file = 'build_files/mc_version_info.txt'
+    installer_script = 'build_files/setup_script.iss'
+    with open(version_file, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('    prodvers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    prodvers=({version}, 0),\n'
+            elif line.startswith('    filevers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    filevers=({version}, 0),\n'
+            elif line.startswith("        StringStruct('FileVersion"):
+                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
+            elif line.startswith("        StringStruct('LegalCopyright'"):
+                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
+            elif line.startswith("        StringStruct('ProductVersion"):
+                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+    with open(installer_script, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('#define MyAppVersion'):
+                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
+            elif line.startswith('OutputBaseFilename'):
+                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+
 def create_zip(zip_filename, files_to_zip):
     with ZipFile(zip_filename, 'w') as zf:
         for file in files_to_zip:
@@ -90,50 +130,15 @@ def create_zip(zip_filename, files_to_zip):
                 print(f'{file} not found')
 
 
-print('Updating versions of build files')
-# UPDATE VERSIONS OF version file and installer script
-with open('build_files/mc_version_info.txt', 'r+') as f:
-    lines = f.readlines()
-    for i, line in enumerate(lines):
-        if line.startswith('    prodvers'):
-            version = ', '.join(VERSION.split('.'))
-            lines[i] = f'    prodvers=({version}, 0),\n'
-        elif line.startswith('    filevers'):
-            version = ', '.join(VERSION.split('.'))
-            lines[i] = f'    filevers=({version}, 0),\n'
-        elif line.startswith("        StringStruct('FileVersion"):
-            lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
-        elif line.startswith("        StringStruct('LegalCopyright'"):
-            lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
-        elif line.startswith("        StringStruct('ProductVersion"):
-            lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
-            break
-    f.seek(0)
-    f.writelines(lines)
-    f.truncate()
-
-with open('build_files/setup_script.iss', 'r+') as f:
-    lines = f.readlines()
-    for i, line in enumerate(lines):
-        if line.startswith('#define MyAppVersion'):
-            lines[i] = f'#define MyAppVersion "{VERSION}"\n'
-        elif line.startswith('OutputBaseFilename'):
-            lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
-            break
-    f.seek(0)
-    f.writelines(lines)
-    f.truncate()
-
-if args.versioning or args.vers: sys.exit()
+update_versions()
+print('Updated versions of build files')
+if args.versioning or args.ver: sys.exit()
 if args.debug: update_spec_files(True)
 
 print('Installing dependencies...')
 subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
-try:
-    subprocess.check_call(f'pip install build_files\\{pyaudio_whl} --force', stdout=subprocess.DEVNULL)
-except subprocess.CalledProcessError:
-    print(f'WARNING: {pyaudio_whl} could not be installed with --force')
-
+try: subprocess.check_call(f'pip install build_files\\{pyaudio_whl} --force', stdout=subprocess.DEVNULL)
+except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with --force')
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
@@ -148,13 +153,13 @@ except FileNotFoundError: s4 = None
 s1.wait()
 if args.debug: update_spec_files(False)
 
-for _dir in {'dist/static', 'dist/templates'}:
-    with suppress(OSError): os.mkdir(_dir)
+for folder in {'dist/static', 'dist/templates'}:
+    with suppress(OSError): os.mkdir(folder)
 
 copy_tree('vlc', 'dist/vlc')
 
-for file in ['static/style.css', 'templates/index.html']:
-    shutil.copyfile(file, 'dist/' + file)
+for res_file in ['static/style.css', 'templates/index.html']:
+    shutil.copyfile(res_file, 'dist/' + res_file)
 
 create_zip('dist/Portable.zip', [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/index.html',
                                  'static/style.css', ('dist/Updater.exe', 'Updater.exe'),
@@ -171,9 +176,8 @@ if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
 print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
 print('Last commit id: ' + subprocess.getoutput('git log --format="%H" -n 1'))
-if args.upload:
-    read_env()
-    github = os.getenv('github')
+if args.up or args.upload or args.publish or args.publish:
+    github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
     username = 'elibroftw'
     github_api = 'https://api.github.com'
@@ -208,3 +212,4 @@ if args.upload:
         # delete old release if not a new major build
         requests.delete(f'{github_api}/repos/{username}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
+    print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')

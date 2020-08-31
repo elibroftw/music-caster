@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.14'
+VERSION = latest_version = '4.64.15'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1307,11 +1307,11 @@ def activate_main_window(selected_tab='tab_queue'):
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
                 metadata = url_metadata['LIVE']
-                position, length = track_length, track_length
+                position = track_length
             else:
                 metadata = get_uri_metadata(music_queue[0])
-                position, length = get_track_position(), metadata['length']
-            artist, title = metadata['artist'].split(', ')[0], metadata['title']
+                position = get_track_position()
+            length, artist, title = track_length, metadata['artist'].split(', ')[0], metadata['title']
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer, title,
                                           artist, qr_code=qr_code, album_art_data=album_art_data, track_length=length,
                                           track_position=position)

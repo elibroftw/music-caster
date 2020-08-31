@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.15
+- [Fix] Main GUI length parameter
+
 4.64.14
 - [Fix] Better logging
 
