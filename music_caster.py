@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.15'
+VERSION = latest_version = '4.64.16'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -2046,16 +2046,17 @@ def auto_update(auto_start=True):
             if settings.get('DEBUG', False) or not setup_dl_link: return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
                 if os.path.exists(UNINSTALLER):
+                    # only show message on startup to not confuse the user
+                    cmd = 'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
+                    temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                     if auto_start:
-                        # only show message on startup to not confuse the user
-                        temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
+                        cmd += ' && "Music Caster.exe"'  # auto start is True when updating on startup
                         temp_tray.show_message('Music Caster', f'Downloading update v{latest_ver}', time=5000)
                         temp_tray.update(tooltip=f'Downloading update v{latest_ver}')
-                        download(setup_dl_link, 'MC_Installer.exe')
-                        temp_tray.hide()
-                        temp_tray.close()
-                    cmd = 'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
-                    if auto_start: cmd += ' && "Music Caster.exe"'  # auto start if updating on startup
+                    else: temp_tray.hide()
+                    download(setup_dl_link, 'MC_Installer.exe')
+                    temp_tray.hide()
+                    temp_tray.close()
                     Popen(cmd, shell=True)
                 else:
                     os.startfile('Updater.exe')
