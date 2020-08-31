@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.18
+- [Fix] Update on exit
+
 4.64.17
 - [UI] Better Mini Mode
 - [Optimization] Portable updater in C#
