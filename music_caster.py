@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.20'
+VERSION = latest_version = '4.64.21'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -1083,7 +1083,8 @@ def get_track_position():
                 track_position = mc.status.adjusted_current_time
             except (UnsupportedNamespace, NotConnected):
                 track_position = time.time() - track_start
-        else: stop('get_track_position')
+        else:
+            track_position = time.time() - track_start
     elif playing_status in {'PLAYING', 'PAUSED'}:
         track_position = audio_player.get_pos()
     return track_position
