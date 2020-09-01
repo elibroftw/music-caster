@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.19'
+VERSION = latest_version = '4.64.20'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -265,7 +265,7 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
 def get_current_album_art():
     if playing_live: return LIVE_AUDIO_ART
     art = None
-    if music_queue:
+    if playing_status != 'NOT PLAYING' and music_queue:
         uri = music_queue[0]
         if uri.startswith('http'):
             if 'art_data' in url_metadata: return url_metadata['art_data']
