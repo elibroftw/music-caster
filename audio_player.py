@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.2.0
+AudioPlayer v2.2.1
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -41,10 +41,9 @@ class AudioPlayer:
         """
         m = self.vlc_instance.media_new(file_path)  # Path
         self.player.set_media(m)
-        self.set_pos(start_from)
         self.player.play()
         if not start_playing: self.player.pause()
-        # self.set_pos(start_from)
+        self.set_pos(start_from)
         if volume is not None: self.set_volume(volume)
 
     def load(self, file_path):
