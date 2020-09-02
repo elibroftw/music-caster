@@ -33,9 +33,11 @@ Music Caster supports media keys.
 There is a web GUI accessible through the settings window (click or scan the QR code)
 
 ## Limitations and Known Issues
-- Note that Chromecasts only support the AAC version of WMA files
-- Emoji support; the GUI might not work. There's always settings.json + WEB GUI though
+- Chromecasts only support the AAC version of WMA files
+- Lack of emoji support (the GUI might not work). There's always settings.json + WEB GUI though
 - Play and Queue multiple folders not supported yet
+- Windows false positive (I'm not sure why)
+  - See [VirusTotal scan](https://www.virustotal.com/gui/file-analysis/Nzc2ZGE5YTA1NTA1YTM3N2NkMjVkZjhjZWY4NjNlYjM6MTU5OTA1OTQ3OA==/detection)
 - [Road Map](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy
@@ -49,7 +51,7 @@ What is sent to me when an error is encountered?
 'MAC': MAC,                           // error unqiueness
 'FATAL': restart_program,             // if the error crashed the program
 'OS': platform.platform(),
-'TIME': current_time 
+'TIME': current_time
 ```
 In addition, I collect MAC and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
@@ -67,7 +69,7 @@ I love keyboard shortcuts, they make us more productive.
 | A | Main | Decrease Volume by 5%
 | D | Main | Increase Volume by 5%
 | # | Main | Set Volume to # * 10%
-| K | Main | Pause / Resume / Start Playing 
+| K | Main | Pause / Resume / Start Playing
 | J | Main | Rewind 5 seconds
 | L | Main | Fast-forward 5 seconds
 | Ctrl + R | Main | Cycle Repeat
