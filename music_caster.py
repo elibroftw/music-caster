@@ -971,21 +971,12 @@ def play_folder(folders):
     done_queue.clear()
     for _folder in folders:
         for _file in glob.iglob(f'{glob.escape(_folder)}/**/*.*', recursive=True):
-            print(_file)
             if valid_music_file(_file): music_queue.append(_file)
     if settings['shuffle_playlists']: shuffle(music_queue)
     if music_queue: play(music_queue[0])
     elif next_queue:
         playing_status = 'PLAYING'
         next_track()
-
-
-def select_and_play_folder():
-    # TODO: multi folder support
-    dlg = wx.DirDialog(None, 'Choose folder to play', DEFAULT_DIR, style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
-    if dlg.ShowModal() != wx.ID_CANCEL:
-        path_to_folder = dlg.GetPath()
-        play_folder([path_to_folder])
 
 
 def file_action(action='Play File(s)'):
@@ -1410,7 +1401,7 @@ def other_tray_actions(_tray_item):
         play_playlist(tray_item[4:])
     elif _tray_item.startswith('PF: '):  # play folder
         if tray_item == 'PF: Select Folder(s)':
-            Thread(target=select_and_play_folder).start()
+            Thread(target=folder_action).start()
         else:
             play_folder([music_directories[tray_folders.index(tray_item) - 1]])
     elif playing_status == 'PLAYING' and time.time() > track_end:

@@ -1,6 +1,6 @@
 flask~=1.1.2
 mutagen~=1.44
-Pillow~=7.1.0
+Pillow~=7.1
 pychromecast~=4.2.3
 PyInstaller~=3.6
 pynput~=1.4.5
