@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.64.25
+- [Feature] Multi dir support
+- [Fix] Weird looking folder selection
+
 4.64.24
 - [Fix] File action GUI queue population (not noticeable)
 

@@ -1,8 +1,8 @@
-VERSION = latest_version = '4.64.24'
+VERSION = latest_version = '4.64.25'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
-[Feature] Update on exit
-[Feature] Notify when updates available
+[Feature] Update notifications and on exit
+[Feature] MultiDir Selection
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -37,6 +37,7 @@ from flask import Flask, jsonify, render_template, request, redirect, send_file,
 import PySimpleGUIWx as SgWx
 import pyaudio
 import wx
+import wx.lib.agw.multidirdialog as mdd
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
@@ -966,12 +967,14 @@ def play_all(starting_files: list = None, queue_only=False):
 
 
 def play_folder(folders):
-    global playing_status
+    global playing_status, update_lb_queue
     music_queue.clear()
     done_queue.clear()
+    app_log.info(f'play_folder: len(folders) = {len(folders)}')
     for _folder in folders:
         for _file in glob.iglob(f'{glob.escape(_folder)}/**/*.*', recursive=True):
             if valid_music_file(_file): music_queue.append(_file)
+    update_lb_queue = True
     if settings['shuffle_playlists']: shuffle(music_queue)
     if music_queue: play(music_queue[0])
     elif next_queue:
@@ -1021,12 +1024,30 @@ def play_next():
 def folder_action(action='Play Folder'):
     global music_queue, next_queue, playing_status, main_last_event, update_lb_queue
     # actions: 'Play Folder', 'Play Folder Next', 'Queue Folder'
-    dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
-    if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
-        folder_path = dlg.GetPath()
+    # NOTE: Issues with Wx.CallAfter: freezes any open windows, that's why I have to close them and then reopen
+    dlg = mdd.MultiDirDialog(None, title='Select Folders', defaultPath=DEFAULT_DIR, pos=wx.GetMousePosition(),
+                             agwStyle=mdd.DD_MULTIPLE | mdd.DD_DIR_MUST_EXIST)
+    half_way = wx.GetMousePosition()[1] - dlg.GetSize()[1] // 2
+    dlg.SetPosition((dlg.GetPosition()[0], half_way))
+    dlg.SetSize(dlg.GetSize()[0] * 3, dlg.GetSize()[1])
+    open_main = False
+    for window in active_windows:
+        if active_windows[window]:
+            active_windows[window] = False
+            if window == 'main': open_main = True
+            {'main': main_window, 'playlist_selector': pl_selector_window,
+             'playlist_editor': pl_editor_window, 'play_url': play_url_window}[window].close()
+
+    if dlg.ShowModal() != wx.ID_CANCEL:
         temp_queue = []
-        for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
-            if valid_music_file(_f): temp_queue.append(_f)
+        folder_paths = dlg.GetPaths()
+        for folder_path in folder_paths:
+            drive, rest = folder_path.split('\\', 1)
+            drive = drive.split('(')[-1][:-1]
+            folder_path = drive + '/' + rest
+            if os.path.exists(folder_path):
+                for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
+                    if valid_music_file(_f): temp_queue.append(_f)
         if settings['shuffle_playlists']: shuffle(temp_queue)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         update_lb_queue = True
@@ -1049,6 +1070,7 @@ def folder_action(action='Play Folder'):
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
     else: main_last_event = 'folder_action'
+    if open_main: activate_main_window()
 
 
 def internet_available(host='8.8.8.8', port=53, timeout=3):
@@ -1400,10 +1422,9 @@ def other_tray_actions(_tray_item):
     elif _tray_item.startswith('PL: '):  # playlist
         play_playlist(tray_item[4:])
     elif _tray_item.startswith('PF: '):  # play folder
-        if tray_item == 'PF: Select Folder(s)':
-            Thread(target=folder_action).start()
+        if tray_item == 'PF: Select Folder(s)': wx.CallAfter(folder_action)
         else:
-            play_folder([music_directories[tray_folders.index(tray_item) - 1]])
+            Thread(target=play_folder, args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
     elif timer and time.time() > timer:
@@ -1654,7 +1675,7 @@ def read_main_window():
     elif main_event == 'file_action':
         Thread(target=file_action, kwargs={'action': main_values['file_option']}).start()
     elif main_event == 'folder_action':
-        Thread(target=folder_action, kwargs={'action': main_values['folder_option']}).start()
+        wx.CallAfter(folder_action, action=main_values['folder_option'])
     elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
     elif main_event == 'url_actions': activate_play_url()
     elif main_event == 'mini_mode':
@@ -2151,6 +2172,8 @@ try:
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
+    # active_windows = {'main': activate_main_window, 'playlist_selector': activate_playlist_selector,
+    #                   'playlist_editor': activate_playlist_editor, 'play_url': activate_play_url}
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
@@ -2217,9 +2240,9 @@ try:
     }
     while True:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
+        tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
         daemon_command = ''
-        tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         if active_windows['main']: read_main_window()
         if active_windows['playlist_selector']: read_playlist_selector_window()
         if active_windows['playlist_editor']: read_playlist_editor_window()
