@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.0
+- [Feature] URL actions links pasted by default
+
 4.64.25
 - [Feature] Multi dir support
 - [Fix] Weird looking folder selection

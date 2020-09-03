@@ -214,7 +214,7 @@ for main_window in {main_window1}:
 # Timer GUI
 
 # URL GUI
-play_url_window = Sg.Window('Play URL', create_play_url_window(), finalize=True, return_keyboard_events=True)
+play_url_window = Sg.Window('Play URL', create_play_url(), finalize=True, return_keyboard_events=True)
 play_url_window.TKroot.focus_force()
 play_url_window.Read(timeout=1500)  # 1.5 second timeout
 play_url_window.Close()

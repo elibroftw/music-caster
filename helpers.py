@@ -347,7 +347,7 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
     return progress_layout
 
 
-def create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position):
+def create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position):
     # album_art_data is 125 x 125
     album_art = Sg.Col([[Sg.Image(data=album_art_data, key='album_art', pad=(0, 0))]],
                        element_justification='left', pad=(0, 0))
@@ -363,7 +363,7 @@ def create_main_mini(playing_status, settings, title, artist, album_art_data, tr
 def create_main(tracks, listbox_selected, playing_status, settings, version, timer, title='Nothing Playing',
                 artist='', qr_code=None, album_art_data: str = None, track_length=0, track_position=0):
     if settings['mini_mode']:
-        return create_main_mini(playing_status, settings, title, artist, album_art_data, track_length, track_position)
+        return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     music_controls = get_music_controls(settings, playing_status)
@@ -537,7 +537,7 @@ def create_playlist_editor(settings, paths, playlist_name=''):
     return layout
 
 
-def create_play_url_window(combo_value='Play Immediately', default_text=''):
+def create_play_url(combo_value='Play Immediately', default_text=''):
     # TODO: integrate into main window
     layout = [[Sg.Text('Enter URL (YouTube or *.ext src)', font=FONT_NORMAL)],
               [Sg.Radio('Play Immediately', 'url_option', combo_value == 'Play Immediately', key='play_immediately'),

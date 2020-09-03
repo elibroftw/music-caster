@@ -19,3 +19,4 @@ zeroconf==0.24.5
 # windows only v
 pypiwin32==223
 memory_profiler
+pyperclip

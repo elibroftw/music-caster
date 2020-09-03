@@ -1,8 +1,7 @@
-VERSION = latest_version = '4.64.25'
+VERSION = latest_version = '4.65.0'
 UPDATE_MESSAGE = """
-[Feature] Save queue as playlist
-[Feature] Update notifications and on exit
 [Feature] MultiDir Selection
+[Feature] URL actions links pasted by default
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 # helper files
@@ -42,6 +41,7 @@ import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
 import pynput.keyboard
+import pyperclip
 import pypresence
 from pypresence import PyPresenceException
 import pythoncom
@@ -1365,7 +1365,10 @@ def activate_play_url(combo_value='Play Immediately'):
     # combo_values = ['Play Immediately', 'Queue', 'Play Next']
     global play_url_window
     if not active_windows['play_url']:
-        active_windows['play_url'], play_url_layout = True, create_play_url_window(combo_value=combo_value)
+        clipboard_txt: str = pyperclip.paste()
+        if not clipboard_txt.startswith('http'): clipboard_txt = ''
+        play_url_layout = create_play_url(combo_value=combo_value, default_text=clipboard_txt)
+        active_windows['play_url'] = True
         window_location = get_window_location('play_url')
         play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
                                     finalize=True, return_keyboard_events=True, location=window_location)
