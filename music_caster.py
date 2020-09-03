@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.1'
+VERSION = latest_version = '4.65.2'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -1024,27 +1024,30 @@ def play_next():
 def folder_action(action='Play Folder'):
     global music_queue, next_queue, playing_status, main_last_event, update_lb_queue
     # actions: 'Play Folder', 'Play Folder Next', 'Queue Folder'
-    # NOTE: Issues with Wx.CallAfter: freezes any open windows, that's why I have to close them and then reopen
-    dlg = mdd.MultiDirDialog(None, title='Select Folders', defaultPath=DEFAULT_DIR, pos=wx.GetMousePosition(),
-                             agwStyle=mdd.DD_MULTIPLE | mdd.DD_DIR_MUST_EXIST)
-    half_way = wx.GetMousePosition()[1] - dlg.GetSize()[1] // 2
-    dlg.SetPosition((dlg.GetPosition()[0], half_way))
-    dlg.SetSize(dlg.GetSize()[0] * 3, dlg.GetSize()[1])
-    open_main = False
-    for window in active_windows:
-        if active_windows[window]:
-            active_windows[window] = False
-            if window == 'main': open_main = True
-            {'main': main_window, 'playlist_selector': pl_selector_window,
-             'playlist_editor': pl_editor_window, 'play_url': play_url_window}[window].close()
-
-    if dlg.ShowModal() != wx.ID_CANCEL:
+    # multi dir support code. Issues with it though
+    # dlg = mdd.MultiDirDialog(None, title='Select Folders', defaultPath=DEFAULT_DIR, pos=wx.GetMousePosition(),
+    #                          agwStyle=mdd.DD_MULTIPLE | mdd.DD_DIR_MUST_EXIST)
+    # half_way = wx.GetMousePosition()[1] - dlg.GetSize()[1] // 2
+    # dlg.SetPosition((dlg.GetPosition()[0], half_way))
+    # dlg.SetSize(dlg.GetSize()[0] * 3, dlg.GetSize()[1])
+    # issues with multi dir support: freezes any open windows, that's why I have to close them and then reopen
+    # open_main = False
+    # for window in active_windows:
+    #     if active_windows[window]:
+    #         active_windows[window] = False
+    #         if window == 'main': open_main = True
+    #         {'main': main_window, 'playlist_selector': pl_selector_window,
+    #          'playlist_editor': pl_editor_window, 'play_url': play_url_window}[window].close()
+    dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
+    if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         temp_queue = []
-        folder_paths = dlg.GetPaths()
+        # folder_paths = dlg.GetPaths()
+        folder_paths = [dlg.GetPath()]
         for folder_path in folder_paths:
-            drive, rest = folder_path.split('\\', 1)
-            drive = drive.split('(')[-1][:-1]
-            folder_path = drive + '/' + rest
+            # multi support
+            # drive, rest = folder_path.split('\\', 1)
+            # drive = drive.split('(')[-1][:-1]
+            # folder_path = drive + '/' + rest
             if os.path.exists(folder_path):
                 for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
                     if valid_music_file(_f): temp_queue.append(_f)
@@ -1070,7 +1073,7 @@ def folder_action(action='Play Folder'):
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
     else: main_last_event = 'folder_action'
-    if open_main: activate_main_window()
+    # if open_main: activate_main_window()
 
 
 def internet_available(host='8.8.8.8', port=53, timeout=3):
