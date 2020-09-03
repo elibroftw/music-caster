@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.22'
+VERSION = latest_version = '4.64.23'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 # noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
 from functools import cmp_to_key
-from glob import iglob
+import glob
 import io
 import json
 from json import JSONDecodeError
@@ -330,7 +330,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
         use_temp = not not all_tracks
         all_tracks_temp = {}
         for directory in music_directories:
-            for file_path in iglob(f'{directory}/**/*.*', recursive=True):
+            for file_path in glob.iglob(f'{glob.escape(directory)}/**/*.*', recursive=True):
                 file_path = file_path.replace('\\', '/')
                 if file_path not in ignore_files and valid_music_file(file_path):
                     with suppress(HeaderNotFoundError):
@@ -970,7 +970,8 @@ def play_folder(folders):
     music_queue.clear()
     done_queue.clear()
     for _folder in folders:
-        for _file in iglob(f'{_folder}/**/*.*', recursive=True):
+        for _file in glob.iglob(f'{glob.escape(_folder)}/**/*.*', recursive=True):
+            print(_file)
             if valid_music_file(_file): music_queue.append(_file)
     if settings['shuffle_playlists']: shuffle(music_queue)
     if music_queue: play(music_queue[0])
@@ -1033,10 +1034,12 @@ def folder_action(action='Play Folder'):
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         folder_path = dlg.GetPath()
         temp_queue = []
-        for _f in iglob(f'{folder_path}/**/*.*', recursive=True):
+        for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
             if valid_music_file(_f): temp_queue.append(_f)
         if settings['shuffle_playlists']: shuffle(temp_queue)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
+        update_lb_queue = True
+        main_last_event = Sg.TIMEOUT_KEY
         if action == 'Play Folder':
             music_queue.clear()
             done_queue.clear()
@@ -1054,8 +1057,6 @@ def folder_action(action='Play Folder'):
             if start_playing and music_queue: play(music_queue[0])
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
-        update_lb_queue = True
-        main_last_event = Sg.TIMEOUT_KEY
     else: main_last_event = 'folder_action'
 
 

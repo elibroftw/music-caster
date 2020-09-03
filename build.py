@@ -7,7 +7,7 @@ import sys
 from contextlib import suppress
 from datetime import datetime
 import argparse
-from glob import glob, iglob
+import glob
 from distutils.dir_util import copy_tree
 try: from music_caster import VERSION
 except RuntimeError as e: VERSION = str(e)
@@ -168,8 +168,8 @@ for res_file in ['static/style.css', 'templates/index.html']:
 
 
 portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/index.html', 'static/style.css',
-                  ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + glob('vlc/**/*.*', recursive=True) + \
-                 [(f, os.path.basename(f)) for f in iglob(f'{updater_release_path}/*.*')]
+                  ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + glob.glob('vlc/**/*.*', recursive=True) + \
+                 [(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(updater_release_path)}/*.*')]
 # [('dist/Updater.exe', 'Updater.exe')]
 create_zip('dist/Portable.zip', portable_files)
 print('Created dist/Portable.zip')
