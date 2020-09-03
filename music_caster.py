@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.64.23'
+VERSION = latest_version = '4.64.24'
 UPDATE_MESSAGE = """
 [Feature] Save queue as playlist
 [Feature] Update on exit
@@ -996,6 +996,8 @@ def file_action(action='Play File(s)'):
     if fd.ShowModal() != wx.ID_CANCEL:
         paths = fd.GetPaths()
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
+        update_lb_queue = True
+        main_last_event = Sg.TIMEOUT_KEY
         if action == 'Play File(s)':
             play_all(paths)
         elif action == 'Queue File(s)':
@@ -1009,8 +1011,6 @@ def file_action(action='Play File(s)'):
                 playing_status = 'PLAYING'
                 next_track()
         else: raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
-        main_last_event = Sg.TIMEOUT_KEY
-        update_lb_queue = True
     else: main_last_event = 'file_action'
 
 
