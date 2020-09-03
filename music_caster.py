@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.0'
+VERSION = latest_version = '4.65.1'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -68,7 +68,7 @@ PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
 STREAM_CHUNK = 1024
 PRESSED_KEYS = set()
 show_pygame_error = update_devices = settings_file_in_use = False
-update_available = False
+update_available = exit_flag = False
 settings_last_modified, last_press = 0, time.time() + 5
 update_last_checked = time.time()  # check every hour
 active_windows = {'main': False, 'playlist_selector': False,
@@ -177,7 +177,7 @@ def save_queues():
         save_settings()
 
     if save_queue_thread is None or not save_queue_thread.is_alive():
-        save_queue_thread = Thread(target=_save_queue)
+        save_queue_thread = Thread(target=_save_queue, name='SaveQueue')
         save_queue_thread.start()
 
 
@@ -326,7 +326,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
     global indexing_tracks_thread, all_tracks
     if ignore_files is None: ignore_files = []
 
-    def _index_tracks():
+    def _index_library():
         global all_tracks
         use_temp = not not all_tracks
         all_tracks_temp = {}
@@ -352,10 +352,10 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
             for ignore_file in ignore_files: temp_tracks.pop(ignore_file, None)
         return temp_tracks
     if indexing_tracks_thread is None:
-        indexing_tracks_thread = Thread(target=_index_tracks, daemon=True)
+        indexing_tracks_thread = Thread(target=_index_library, daemon=True, name='IndexLibrary')
         indexing_tracks_thread.start()
     elif not indexing_tracks_thread.is_alive():  # force reindex
-        indexing_tracks_thread = Thread(target=_index_tracks, daemon=True)
+        indexing_tracks_thread = Thread(target=_index_library, daemon=True, name='IndexLibrary')
         indexing_tracks_thread.start()
 
 
@@ -527,7 +527,7 @@ def change_settings_web():
 
 @app.route('/refresh-devices/')
 def refresh_devices_web():
-    Thread(target=start_chromecast_discovery, daemon=True).start(),
+    Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
     return 'true'
 
 
@@ -1193,7 +1193,7 @@ def stop(stopped_from: str, stop_cast=True):
                 return
     else: audio_player.stop()
     track_position = 0
-    tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
+    if not exit_flag: tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 
 
 def next_track(from_timeout=False):
@@ -1230,8 +1230,8 @@ def prev_track():
 
 def background_tasks():
     global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified,\
-        update_last_checked, latest_version
-    while True:
+        update_last_checked, latest_version, exit_flag
+    while not exit_flag:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
         refresh_tray()
@@ -1389,15 +1389,19 @@ def locate_file():
 
 
 def exit_program():
-    tray.Hide()
+    global exit_flag
+    exit_flag = True
+    for window in active_windows:
+        if active_windows[window]:
+            active_windows[window] = False
+            {'main': main_window, 'playlist_selector': pl_selector_window,
+             'playlist_editor': pl_editor_window, 'play_url': play_url_window}[window].close()
+    tray.hide()
     with suppress(UnsupportedNamespace):
-        if cast is None:
-            stop('exit program')
-        elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status != 'NOT PLAYING':
-            cast.quit_app()
-    with suppress(py_presence_errors):
-        rich_presence.close()
-    if not settings.get('DEBUG', False): auto_update(False)
+        if cast is None: stop('exit program')
+        elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
+    with suppress(py_presence_errors): rich_presence.close()
+    auto_update(False)
     sys.exit()  # since auto_update might not sys.exit()
 
 
@@ -1427,7 +1431,8 @@ def other_tray_actions(_tray_item):
     elif _tray_item.startswith('PF: '):  # play folder
         if tray_item == 'PF: Select Folder(s)': wx.CallAfter(folder_action)
         else:
-            Thread(target=play_folder, args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
+            Thread(target=play_folder, name='PlayFolder',
+                   args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
     elif timer and time.time() > timer:
@@ -1676,7 +1681,7 @@ def read_main_window():
     elif main_event == 'file_option': main_window['file_action'].update(text=main_values['file_option'])
     elif main_event == 'folder_option': main_window['folder_action'].update(text=main_values['folder_option'])
     elif main_event == 'file_action':
-        Thread(target=file_action, kwargs={'action': main_values['file_option']}).start()
+        Thread(target=file_action, name='FileAction', kwargs={'action': main_values['file_option']}).start()
     elif main_event == 'folder_action':
         wx.CallAfter(folder_action, action=main_values['folder_option'])
     elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
@@ -2000,7 +2005,7 @@ def read_play_url_window():
 
 def create_shortcut(_shortcut_path):
     """ creates shortcut if run_on_startup else removes existing shortcut """
-    def _threaded():
+    def _create_shortcut():
         try:
             shortcut_exists = os.path.exists(_shortcut_path)
             if settings['run_on_startup'] and not shortcut_exists:
@@ -2025,7 +2030,7 @@ def create_shortcut(_shortcut_path):
                 os.remove(_shortcut_path)
         except Exception as _e:
             handle_exception(_e)  # since I have no idea what the error could be
-    if not settings.get('DEBUG', False): Thread(target=_threaded, daemon=True).start()
+    if not settings.get('DEBUG', False): Thread(target=_create_shortcut, name='CreateShortcut', daemon=True).start()
 
 
 def get_latest_release(ver, force=False):
@@ -2123,11 +2128,11 @@ app_log.addHandler(log_handler)
 app_log.propagate = False  # disable console output
 quit_if_running()
 load_settings()
-init_ydl_thread = Thread(target=init_youtube_dl, daemon=True)
+init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
 init_ydl_thread.start()
 audio_player = AudioPlayer()
 if len(sys.argv) == 1: auto_update()  # try to update if no starting arguments were supplied
-if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True).start()
+if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)
@@ -2136,17 +2141,18 @@ if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.e
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 rmtree('Update', ignore_errors=True)
 try:
+    start = time.time()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
         while True:
             if not s.connect_ex(('localhost', PORT)) == 0:  # if port is not occupied
                 try:  # start server with the unoccupied PORT
                     server_kwargs = {'host': '0.0.0.0', 'port': PORT, 'threaded': True}
-                    Thread(target=app.run, daemon=True, kwargs=server_kwargs).start()
+                    Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                     break
                 except OSError: PORT += 1
             else: PORT += 1
-    print('Running on port', PORT)
+    print(f'Running on port {PORT} (Time Taken: {round(time.time() - start, 1)}s)')
     repeat_menu = ['Repeat All ✓' if settings['repeat'] is False else 'Repeat All',
                    'Repeat One ✓' if settings['repeat'] else 'Repeat One',
                    'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']
@@ -2196,8 +2202,8 @@ try:
     if settings['save_queue_sessions'] and settings['populate_queue_startup']:  # mutually exclusive
         change_settings('populate_queue_startup', False)
     cast_last_checked = time.time()
-    Thread(target=background_tasks, daemon=True).start()
-    Thread(target=start_chromecast_discovery, daemon=True).start()
+    Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
+    Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
     if args.path:
         if os.path.isfile(args.path): play_all([args.path])
         elif os.path.isdir(args.path): play_folder([args.path])
@@ -2214,7 +2220,7 @@ try:
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
         'Refresh Library': index_all_tracks,
-        'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True).start(),
+        'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start(),
         # isdigit should be an if statement
         'Settings': lambda: activate_main_window('tab_settings'),
         'Create/Edit a Playlist': create_edit_playlists,
@@ -2225,9 +2231,9 @@ try:
         'Play URL': activate_play_url,
         'Queue URL': lambda: activate_play_url('Queue'),
         'Play URL Next': lambda: activate_play_url('Play Next'),
-        'Play File(s)': lambda: Thread(target=play_file).start(),
+        'Play File(s)': lambda: Thread(target=play_file, name='PlayFile').start(),
         'Play All': play_all,
-        'Play File Next': lambda: Thread(target=play_next).start(),
+        'Play File Next': lambda: Thread(target=play_next, name='PlayNext').start(),
         'Pause': pause,
         'Resume': resume,
         'Next Track': next_track,
