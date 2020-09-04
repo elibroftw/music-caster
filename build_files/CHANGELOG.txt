@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.3
+- [Fix] Switch device LIVE audio
+
 4.65.2
 - [Fix] Roll back multi folder dialog
 

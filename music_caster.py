@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.2'
+VERSION = latest_version = '4.65.3'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -678,7 +678,7 @@ def start_chromecast_discovery():
 
 
 def change_device(selected_index):
-    global cast
+    global cast, playing_status
     if selected_index == 0: new_device = None
     else:
         try: new_device = chromecasts[selected_index - 1]
@@ -707,7 +707,8 @@ def change_device(selected_index):
         update_volume(volume)
         if playing_status in {'PAUSED', 'PLAYING'}:
             do_autoplay = False if playing_status == 'PAUSED' else True
-            play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
+            if not playing_live: play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
+            elif not stream_live_audio(True): playing_status = 'NOT PLAYING'
 
 
 def format_file(uri: str):
@@ -772,6 +773,7 @@ def stream_live_audio(switching_device=False):
     global track_position, track_start, track_end, track_length, playing_live, live_lag
     if cast is None:
         tray.show_message('Music Caster', 'ERROR: Not connected to a cast device', time=5000)
+        playing_live = False
         return False
     else:
         url = f'http://{get_ipv4()}:{PORT}/live/'
