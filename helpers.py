@@ -73,6 +73,11 @@ def get_length(file_path):  # length in seconds
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
+def valid_color_code(code):
+    match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', code)
+    return match
+
+
 def get_metadata(file_path: str, as_dict=False):  # title, artist, album
     file_path = file_path.lower()
     title, artist, album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'

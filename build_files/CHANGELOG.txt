@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.4
+- [Fix] Validate color codes in settings
+
 4.65.3
 - [Fix] Switch device LIVE audio
 

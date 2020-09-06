@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.3'
+VERSION = latest_version = '4.65.4'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -100,7 +100,7 @@ SHORTCUT_PATH = ''
 DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
 
-
+DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'}
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
@@ -108,7 +108,7 @@ settings = {  # default settings
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-    'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
+    'theme': DEFAULT_THEME.copy(),
     'music_directories': [home_music_dir], 'playlists': {},
     'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
@@ -393,13 +393,13 @@ def load_settings():  # up to 0.4 seconds
         with open(settings_file) as json_file:
             try: loaded_settings = json.load(json_file)
             except json.decoder.JSONDecodeError: loaded_settings = {}
-            overwrite_settings = False
+            _save_settings = False
             for setting_name, setting_value in tuple(loaded_settings.items()):
                 loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
             for setting_name, setting_value in settings.items():
                 if setting_name not in loaded_settings:
                     loaded_settings[setting_name] = setting_value
-                    overwrite_settings = True
+                    _save_settings = True
             settings = loaded_settings
             playlists = settings['playlists']
             tray_playlists.clear()  # global variable
@@ -415,6 +415,11 @@ def load_settings():  # up to 0.4 seconds
             del _temp
             DEFAULT_DIR = music_directories[0]
             theme = settings['theme']
+            for k, v in theme.copy():
+                # validate settings file color codes
+                if not valid_color_code(v):
+                    _save_settings = True
+                    theme[k] = DEFAULT_THEME[k]
             Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
                           background_color=theme['background'], text_element_background_color=theme['background'],
                           element_background_color=theme['background'], scrollbar_color=theme['background'],
@@ -422,7 +427,7 @@ def load_settings():  # up to 0.4 seconds
                           button_color=(theme['background'], theme['accent']),
                           border_width=1, slider_border_width=1, progress_meter_border_depth=0)
         settings_file_in_use = False
-        if overwrite_settings: save_settings()
+        if _save_settings: save_settings()
     else:
         save_settings()
         load_settings()
