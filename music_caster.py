@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.4'
+VERSION = latest_version = '4.65.5'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -415,7 +415,7 @@ def load_settings():  # up to 0.4 seconds
             del _temp
             DEFAULT_DIR = music_directories[0]
             theme = settings['theme']
-            for k, v in theme.copy():
+            for k, v in theme.copy().items():
                 # validate settings file color codes
                 if not valid_color_code(v):
                     _save_settings = True
