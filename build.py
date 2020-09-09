@@ -174,7 +174,7 @@ portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/inde
 create_zip('dist/Portable.zip', portable_files)
 print('Created dist/Portable.zip')
 create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
-                                               'requirements.txt', ('resources/Music Caster.ico', 'icon.ico'),
+                                               'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
                                                'templates/index.html', 'static/style.css', 'settings.json'])
 print('Created dist/Source Files Condensed.zip')
 if args.start:

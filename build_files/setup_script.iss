@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.65.6"
+#define MyAppVersion "4.65.7"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -28,7 +28,7 @@ OutputDir={#SourcePath}\..\dist
 OutputBaseFilename=Music Caster Setup
 UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
-SetupIconFile="..\resources\Music Caster.ico"
+SetupIconFile="..\resources\Music Caster Icon.ico"
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.7
+- [Misc] Updated icon
+
 4.65.6
 - [Fix] Play URL Next from tray if something is playing
 
