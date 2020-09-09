@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.5'
+VERSION = latest_version = '4.65.6'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -2175,13 +2175,13 @@ try:
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders,
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL next'], 'Folders', tray_folders,
+                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     print('Connecting to Discord')
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
