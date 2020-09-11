@@ -29,9 +29,6 @@ YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-shutil.rmtree('dist/Music Caster', True)
-with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
-with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 
 
 def read_env(env_file='.env'):
@@ -133,6 +130,10 @@ update_versions()
 print('Updated versions of build files')
 if args.versioning or args.v: sys.exit()
 if args.debug: update_spec_files(True)
+
+shutil.rmtree('dist/Music Caster', True)
+with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
+with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 
 print('Installing dependencies...')
 pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
