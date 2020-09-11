@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.7'
+VERSION = latest_version = '4.65.8'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default

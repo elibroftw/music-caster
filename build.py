@@ -17,7 +17,7 @@ import requests
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', default=False, action='store_true')
 parser.add_argument('--versioning', default=False, action='store_true', help='Updates build file versions')
-parser.add_argument('--ver', default=False, action='store_true', help='Updates build file versions')
+parser.add_argument('--v', default=False, action='store_true', help='Updates build file versions')
 parser.add_argument('--start', default=False, action='store_true', help='Auto launch portable MC after building')
 parser.add_argument('--upload', default=False, action='store_true', help='Upload and Publish to GitHub after building')
 parser.add_argument('--up', default=False, action='store_true', help='Upload and Publish to GitHub after building')
@@ -29,8 +29,6 @@ YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-
 shutil.rmtree('dist/Music Caster', True)
 with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
@@ -133,13 +131,17 @@ def create_zip(zip_filename, files_to_zip):
 
 update_versions()
 print('Updated versions of build files')
-if args.versioning or args.ver: sys.exit()
+if args.versioning or args.v: sys.exit()
 if args.debug: update_spec_files(True)
 
 print('Installing dependencies...')
+pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
+pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
 subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
-try: subprocess.check_call(f'pip install build_files\\{pyaudio_whl} --force', stdout=subprocess.DEVNULL)
-except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with --force')
+try: subprocess.check_call(f'pip install build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
+except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
+try: subprocess.check_call(f'pip install "build_files\\{pyinstaller_whl}"', stdout=subprocess.DEVNULL)
+except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')

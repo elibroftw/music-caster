@@ -10,6 +10,8 @@ If you enjoyed this product a lot feel free to donate at http://elopez.me/donate
 
 ## [Download Here (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 
+[VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)
+
 ## Demo
 
 [![Watch the demo](https://img.youtube.com/vi/MtkhqV1w3WE/maxresdefault.jpg)](https://youtu.be/MtkhqV1w3WE)
@@ -36,8 +38,6 @@ There is a web GUI accessible through the settings window (click or scan the QR 
 - Chromecasts only support the AAC version of WMA files
 - Lack of emoji support (the GUI might not work). There's always settings.json + WEB GUI though
 - Play and Queue multiple folders not supported yet
-- Windows false positive (I'm not sure why)
-  - See [VirusTotal scan](https://www.virustotal.com/gui/file-analysis/Nzc2ZGE5YTA1NTA1YTM3N2NkMjVkZjhjZWY4NjNlYjM6MTU5OTA1OTQ3OA==/detection)
 - [Road Map](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.8
+- [Fix] Antivirus False Positives
+
 4.65.7
 - [Misc] Updated icon
 
