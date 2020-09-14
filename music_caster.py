@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.8'
+VERSION = latest_version = '4.65.9'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -75,7 +75,7 @@ active_windows = {'main': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
 main_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
 main_last_event = pl_editor_last_event = None
-py_presence_errors = (AttributeError, RuntimeError, PyPresenceException, JSONDecodeError)
+py_presence_errors = (AttributeError, RuntimeError, PyPresenceException, JSONDecodeError, PermissionError)
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 stop_discovery = None  # function
