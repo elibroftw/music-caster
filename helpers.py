@@ -73,6 +73,15 @@ def get_length(file_path):  # length in seconds
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
+def natural_key(string):
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string)]
+
+
+def natural_key_file(string):
+    string = os.path.splitext(os.path.basename(string))[0]
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string)]
+
+
 def valid_color_code(code):
     match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', code)
     return match

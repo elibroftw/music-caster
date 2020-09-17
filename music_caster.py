@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.9'
+VERSION = latest_version = '4.65.10'
 UPDATE_MESSAGE = """
 [Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
@@ -1059,6 +1059,7 @@ def folder_action(action='Play Folder'):
                 for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
                     if valid_music_file(_f): temp_queue.append(_f)
         if settings['shuffle_playlists']: shuffle(temp_queue)
+        else: temp_queue.sort(key=natural_key_file)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         update_lb_queue = True
         main_last_event = Sg.TIMEOUT_KEY
