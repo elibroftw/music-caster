@@ -1,6 +1,5 @@
-VERSION = latest_version = '4.65.10'
+VERSION = latest_version = '4.65.11'
 UPDATE_MESSAGE = """
-[Feature] MultiDir Selection
 [Feature] URL actions links pasted by default
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
@@ -731,13 +730,13 @@ def format_file(uri: str):
 def create_track_list():
     """:returns the formatted tracks queue, and the selected value (currently playing)"""
     tracks = []
-    dq_len = len(done_queue)
     mq_start = len(next_queue) + 1
     selected_value = None
     # format: Index. Artists - Title
     for i, uri in enumerate(done_queue):
         formatted_track = format_file(uri)
-        formatted_item = f'-{dq_len - i}. {formatted_track}'
+        i = len(done_queue) - i
+        formatted_item = f'-{i}. {formatted_track}'
         tracks.append(formatted_item)
     if music_queue:
         formatted_track = format_file(music_queue[0])
@@ -746,11 +745,15 @@ def create_track_list():
         selected_value = formatted_item
     for i, uri in enumerate(next_queue):
         formatted_track = format_file(uri)
-        formatted_item = f' {i + 1}. {formatted_track}'
+        i += 1
+        spacing = ' ' if i < 10 else ''
+        formatted_item = f'{spacing}{i}. {formatted_track}'
         tracks.append(formatted_item)
     for i, uri in enumerate(music_queue[1:]):
         formatted_track = format_file(uri)
-        formatted_item = f' {i + mq_start}. {formatted_track}'
+        i += mq_start
+        spacing = ' ' if i < 10 else ''
+        formatted_item = f'{spacing}{i}. {formatted_track}'
         tracks.append(formatted_item)
     return tracks, selected_value
 
@@ -923,7 +926,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         try:
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{PORT}/file?{url_args}'
-            cast.wait(timeout=WAIT_TIMEOUT)
+            with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
             cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
             cast.set_volume(_volume)
             mc = cast.media_controller

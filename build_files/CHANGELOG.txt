@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.11
+- [UI] Improved queue look
+
 4.65.10
 - [Fix] Better folder action sorting
 
