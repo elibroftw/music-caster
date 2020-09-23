@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.11'
+VERSION = latest_version = '4.65.12'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 """

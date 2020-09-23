@@ -90,7 +90,7 @@ def valid_color_code(code):
 def get_metadata(file_path: str, as_dict=False):  # title, artist, album
     file_path = file_path.lower()
     title, artist, album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
-    with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError):
+    with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
             audio = EasyID3(file_path)
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
