@@ -107,6 +107,8 @@ def get_metadata(file_path: str, as_dict=False):  # title, artist, album
         with suppress(KeyError, TypeError): artist = ', '.join(audio['artist'])
     if as_dict:
         return {'title': title, 'artist': artist, 'album': album}
+    if title is None: title = 'Unknown Title'
+    if artist is None: artist = 'Unknown Artist'
     return title, artist, album
 
 

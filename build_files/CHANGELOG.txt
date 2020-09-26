@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.13
+- [Fix] main window queue bug
+
 4.65.12
 - [Fix] .wav file bug
 
