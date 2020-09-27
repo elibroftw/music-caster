@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.13'
+VERSION = latest_version = '4.65.14'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 """
@@ -44,6 +44,7 @@ import pyperclip
 import pypresence
 from pypresence import PyPresenceException
 import pythoncom
+from PIL import UnidentifiedImageError
 import requests
 import win32com.client
 import winshell
@@ -1498,7 +1499,10 @@ def read_main_window():
         main_window['artist'].update(value=artist)
         if settings['show_album_art']:
             size = (125, 125) if settings['mini_mode'] else (255, 255)
-            album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+            try:
+                album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+            except (UnidentifiedImageError, OSError):
+                album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
             main_window['album_art'].update(data=album_art_data)
         update_lb_queue = True
     elif update_lb_queue and not settings['mini_mode']:
