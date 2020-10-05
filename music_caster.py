@@ -1,12 +1,17 @@
-VERSION = latest_version = '4.65.14'
+VERSION = latest_version = '4.65.15'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 """
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
+import argparse
+parser = argparse.ArgumentParser(description='Music Caster')
+parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
+parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths provided to queue')
+parser.add_argument('paths', nargs='*', default=[], help='paths of file or folders you want to play/queue')
+args = parser.parse_args()
 # helper files
 from helpers import *
 from audio_player import AudioPlayer
-import argparse
 import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -49,11 +54,7 @@ import requests
 import win32com.client
 import winshell
 from youtube_dl import YoutubeDL
-# TODO: better arg parser
-parser = argparse.ArgumentParser(description='Music Caster')
-parser.add_argument('path', nargs='?', default='', help='path of file/dir you want to play')
-parser.add_argument('--debug', default=False, action='store_true', help='allows > 1 instance + no info sent')
-args = parser.parse_args()
+
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
                    '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
@@ -499,7 +500,7 @@ def play_file_page():
         if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
             play_all([_file_or_dir])
         elif os.path.isdir(_file_or_dir):
-            play_folder([_file_or_dir])
+            play_paths([_file_or_dir])
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -676,7 +677,7 @@ def start_chromecast_discovery():
     if stop_discovery is not None: stop_discovery()
     chromecasts.clear()
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-    time.sleep(10.1)
+    time.sleep(WAIT_TIMEOUT + 1)
     stop_discovery()
     if not device_names: device_names.append(f'✓ Local device')
     refresh_tray()
@@ -977,20 +978,35 @@ def play_all(starting_files: list = None, queue_only=False):
             next_track()
 
 
-def play_folder(folders):
+def play_paths(paths, add_to_queue=False):
     global playing_status, update_lb_queue
-    music_queue.clear()
-    done_queue.clear()
-    app_log.info(f'play_folder: len(folders) = {len(folders)}')
-    for _folder in folders:
-        for _file in glob.iglob(f'{glob.escape(_folder)}/**/*.*', recursive=True):
-            if valid_music_file(_file): music_queue.append(_file)
+    """
+    Appends all music files in the provided paths (path of folders or files) to a temp list,
+        which is shuffled if shuffled is enabled in settings,
+        and then extends music_queue
+    If add_to_queue is false, the music queue and done queue are cleared,
+        before files are added to the music_queue
+    """
+    if not add_to_queue:
+        music_queue.clear()
+        done_queue.clear()
+    app_log.info(f'play_folder: len(folders) = {len(paths)}, add_to_queue = {add_to_queue}')
+    temp_queue = []
+    for path in paths:
+        path = path.rstrip('\\').rstrip('/')
+        if os.path.isfile(path):
+            if valid_music_file(path): temp_queue.append(path)
+        else:
+            for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
+                if valid_music_file(_file): temp_queue.append(_file)
     update_lb_queue = True
-    if settings['shuffle_playlists']: shuffle(music_queue)
-    if music_queue: play(music_queue[0])
-    elif next_queue:
-        playing_status = 'PLAYING'
-        next_track()
+    if settings['shuffle_playlists']: shuffle(temp_queue)
+    music_queue.extend(temp_queue)
+    if not add_to_queue:
+        if music_queue: play(music_queue[0])
+        elif next_queue:
+            playing_status = 'PLAYING'
+            next_track()
 
 
 def file_action(action='Play File(s)'):
@@ -1446,7 +1462,7 @@ def other_tray_actions(_tray_item):
     elif _tray_item.startswith('PF: '):  # play folder
         if tray_item == 'PF: Select Folder(s)': wx.CallAfter(folder_action)
         else:
-            Thread(target=play_folder, name='PlayFolder',
+            Thread(target=play_paths, name='PlayFolder',
                    args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
@@ -2115,8 +2131,8 @@ def activate_instance(port):
     r_text = ''
     while port <= 2003 and not r_text:
         with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
-            if args.path:  # a file was opened with MC
-                r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'path': args.path}).text
+            if args.paths:  # MC was supplied a path to a folder/file
+                r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'paths': args.paths}).text
             else:
                 r_text = requests.post(f'http://127.0.0.1:{port}/').text
         port += 1
@@ -2149,7 +2165,7 @@ load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
 init_ydl_thread.start()
 audio_player = AudioPlayer()
-if len(sys.argv) == 1: auto_update()  # try to update if no starting arguments were supplied
+if len(sys.argv) == 1: auto_update()  # check for update and update if no starting arguments were supplied
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
@@ -2222,9 +2238,9 @@ try:
     cast_last_checked = time.time()
     Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
     Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
-    if args.path:
-        if os.path.isfile(args.path): play_all([args.path])
-        elif os.path.isdir(args.path): play_folder([args.path])
+    if args.paths:
+        while stop_discovery is not None: time.sleep(0.3)
+        play_paths(args.paths, add_to_queue=args.queue)
     elif settings['save_queue_sessions']:
         queues = settings['queues']
         done_queue.extend(queues.get('done', []))

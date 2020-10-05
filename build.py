@@ -15,14 +15,11 @@ import requests
 
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
-parser.add_argument('--debug', default=False, action='store_true')
-parser.add_argument('--versioning', default=False, action='store_true', help='Updates build file versions')
-parser.add_argument('--v', default=False, action='store_true', help='Updates build file versions')
-parser.add_argument('--start', default=False, action='store_true', help='Auto launch portable MC after building')
-parser.add_argument('--upload', default=False, action='store_true', help='Upload and Publish to GitHub after building')
-parser.add_argument('--up', default=False, action='store_true', help='Upload and Publish to GitHub after building')
-parser.add_argument('--publish', default=False, action='store_true', help='Upload and Publish to GitHub after building')
-parser.add_argument('--release', default=False, action='store_true', help='Upload and Publish to GitHub after building')
+parser.add_argument('--debug', '-d', default=False, action='store_true')
+parser.add_argument('--versioning', '-v', default=False, action='store_true', help="Only update build files' version")
+parser.add_argument('--start', '-s', default=False, action='store_true', help='Auto launch portable MC after building')
+parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
+                    help='Upload and Publish to GitHub after building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -128,8 +125,9 @@ def create_zip(zip_filename, files_to_zip):
 
 update_versions()
 print('Updated versions of build files')
-if args.versioning or args.v: sys.exit()
+if args.versioning: sys.exit()
 if args.debug: update_spec_files(True)
+if args.upload: print('Will upload to GitHub after building')
 
 shutil.rmtree('dist/Music Caster', True)
 with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
@@ -187,7 +185,7 @@ if s4 is not None: s4.wait()  # Wait for inno script to finish
 else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
 print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
 print('Last commit id: ' + subprocess.getoutput('git log --format="%H" -n 1'))
-if args.up or args.upload or args.publish or args.publish:
+if args.upload:
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
     username = 'elibroftw'

@@ -216,7 +216,6 @@ def get_output_device(pa, look_for):
 def add_reg_handlers(path_to_exe):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
-    # TODO: combine with arg parser
     path_to_exe = path_to_exe.replace('/', '\\')
     classes_path = 'SOFTWARE\\Classes\\'
     key_name_ext = 'MusicCaster_file'
