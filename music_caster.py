@@ -1,7 +1,8 @@
-VERSION = latest_version = '4.65.15'
+VERSION = latest_version = '4.65.16'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
-"""
+[Feature] Command Line Arguments
+""".strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
 parser = argparse.ArgumentParser(description='Music Caster')
@@ -2224,7 +2225,10 @@ try:
     if settings['notifications']:
         if show_pygame_error:
             tray.show_message('Music Caster', 'ERROR: No local audio device found', time=5000)
-        if settings['update_message'] != UPDATE_MESSAGE:
+        if settings['update_message'] == '':
+            welcome_msg = 'Thanks for installing Music Caster.\nMusic Caster is running in the tray.'
+            tray.show_message('Music Caster', welcome_msg, time=5000)
+        elif settings['update_message'] != UPDATE_MESSAGE:
             tray.show_message('Music Caster Updated', UPDATE_MESSAGE, time=5000)
     if update_available and IS_FROZEN:
         tray.show_message('Music Caster', update_available, time=5000)

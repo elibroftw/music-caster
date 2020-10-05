@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.16
+- [Fix] Added first run notification
+
 4.65.15
 - [Fix] Improved command line
 
