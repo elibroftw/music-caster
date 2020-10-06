@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.21'
+VERSION = latest_version = '4.65.22'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -509,10 +509,10 @@ def play_file_page():
     global music_queue, playing_status, last_play_command
     request_args = request.args if request.method == 'GET' else request.form
     from_explorer = time.time() - last_play_command < 0.5
-    add_to_queue = request_args.get('queue', 'false').lower() == 'true' or from_explorer
+    queue_only = request_args.get('queue', 'false').lower() == 'true' or from_explorer
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
-    if 'paths' in request_args: play_paths(request_args.getlist('paths'), add_to_queue=add_to_queue,
+    if 'paths' in request_args: play_paths(request_args.getlist('paths'), queue_only=queue_only,
                                            from_explorer=from_explorer)
     return redirect('/') if request.method == 'GET' else 'true'
 
@@ -990,21 +990,23 @@ def play_all(starting_files: list = None, queue_only=False):
             next_track()
 
 
-def play_paths(paths, add_to_queue=False, from_explorer=False):
+def play_paths(paths, queue_only=False, from_explorer=False):
     global playing_status, update_lb_queue
     """
     Appends all music files in the provided paths/names (folders, files, playlist names) to a temp list,
         which is shuffled if shuffled is enabled in settings, and then extends music_queue.
         Note: file/folder paths take precedence over playlist name
-    If add_to_queue is false, the music queue and done queue are cleared,
+    If queue_only is false, the music queue and done queue are cleared,
         before files are added to the music_queue
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
         except for the track that is currently playing
     """
-    if not add_to_queue:
+    if len(paths) == 1 and os.path.isfile(paths[0]) and not from_explorer:
+        return play_all(paths, queue_only=queue_only)
+    if not queue_only:
         music_queue.clear()
         done_queue.clear()
-    app_log.info(f'play_paths: len(paths) = {len(paths)}, add_to_queue = {add_to_queue}')
+    app_log.info(f'play_paths: len(paths) = {len(paths)}, queue_only = {queue_only}')
     temp_queue = []
     for path in paths:
         invalid_path = True
@@ -1027,7 +1029,7 @@ def play_paths(paths, add_to_queue=False, from_explorer=False):
         # remove all but first track if from_explorer
         for i in range(1, len(music_queue) * from_explorer): del music_queue[i]
     music_queue.extend(temp_queue)
-    if not add_to_queue:
+    if not queue_only:
         if music_queue: play(music_queue[0])
         elif next_queue:
             playing_status = 'PLAYING'
@@ -2271,7 +2273,7 @@ try:
     if args.paths:
         # wait until previous device has been found or if it hasn't been found
         while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
-        play_paths(args.paths, add_to_queue=args.queue)
+        play_paths(args.paths, queue_only=args.queue)
     elif settings['save_queue_sessions']:
         queues = settings['queues']
         done_queue.extend(queues.get('done', []))

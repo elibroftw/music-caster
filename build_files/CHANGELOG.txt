@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.22
+- [Fix] Play / queue from explorer
+
 4.65.21
 - [Feature] Command line supports playlist names
 
