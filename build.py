@@ -190,12 +190,17 @@ if args.upload:
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
     username = 'elibroftw'
     github_api = 'https://api.github.com'
-    releases_url = f'{github_api}/repos/{username}/music-caster/releases/latest'
-    old_release = requests.get(releases_url).json()
+
+    # check if tag vVERSION does not exist
+    r = requests.get(f'{github_api}/repos/{username}/music-caster/releases/tags/v{VERSION}', headers=headers)
+    if r.status_code != 404: print(f'ERROR: Tag v{VERSION} already exists')
+
+    old_release = requests.get(f'{github_api}/repos/{username}/music-caster/releases/latest').json()
     old_release_id = old_release['id']
     body = '' if VERSION.endswith('.0') else old_release['body']
     body = add_new_changes(body)
-    # chain changelog if not a major release
+    #  chain changelog if not a major release
+
     new_release = {
         'tag_name': f'v{VERSION}',
         'target_commitish': 'master',
