@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.18'
+VERSION = latest_version = '4.65.19'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -71,6 +71,7 @@ STREAM_CHUNK = 1024
 PRESSED_KEYS = set()
 show_pygame_error = update_devices = settings_file_in_use = False
 update_available = exit_flag = False
+last_play_command = 0  # last call to /play/
 settings_last_modified, last_press = 0, time.time() + 5
 update_last_checked = time.time()  # check every hour
 active_windows = {'main': False, 'playlist_selector': False,
@@ -98,7 +99,6 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 # seconds but using time()
 playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
-SHORTCUT_PATH = ''
 DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'
 settings_file = f'{starting_dir}/settings.json'
 
@@ -506,9 +506,11 @@ def web_index():  # web GUI
 
 @app.route('/play/', methods=['GET', 'POST'])
 def play_file_page():
-    global music_queue, playing_status
+    global music_queue, playing_status, last_play_command
     request_args = request.args if request.method == 'GET' else request.form
-    add_to_queue = request_args.get('queue', 'false').lower() == 'true'
+    add_to_queue = request_args.get('queue', 'false').lower() == 'true' or time.time() - last_play_command < 0.5
+    # < 0.5 because that's how fast Windows would open each instance of MC
+    last_play_command = time.time()
     if 'paths' in request_args: play_paths(request_args.getlist('paths'), add_to_queue=add_to_queue)
     return redirect('/') if request.method == 'GET' else 'true'
 

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.19
+- [Fix] Play / queue from explorer for multiple files
+
 4.65.18
 - [Fix] Play / queue from explorer
 
