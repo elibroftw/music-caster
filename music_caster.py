@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.16'
+VERSION = latest_version = '4.65.17'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
