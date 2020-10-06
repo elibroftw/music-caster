@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.17'
+VERSION = latest_version = '4.65.18'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -508,7 +508,8 @@ def web_index():  # web GUI
 def play_file_page():
     global music_queue, playing_status
     request_args = request.args if request.method == 'GET' else request.form
-    if 'paths' in request_args: play_paths(request_args['paths'], add_to_queue=request_args.get('queue', False))
+    add_to_queue = request_args.get('queue', 'false').lower() == 'true'
+    if 'paths' in request_args: play_paths(request_args.getlist('paths'), add_to_queue=add_to_queue)
     return redirect('/') if request.method == 'GET' else 'true'
 
 

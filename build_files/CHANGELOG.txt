@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.18
+- [Fix] Play / queue from explorer
+
 4.65.17
 - [Feature] Folder cover override option
 - [Feature] Queue from explorer
