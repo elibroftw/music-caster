@@ -1,10 +1,9 @@
 """
-AudioPlayer v2.2.1
+AudioPlayer v2.2.2
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
 
-from contextlib import suppress
 import os
 import sys
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -17,9 +16,20 @@ class AudioPlayer:
     __slots__ = 'vlc_instance', 'player'
 
     @staticmethod
-    def percent_to_db(percent):
-        with suppress(ValueError): return round(20 * math.log(percent, 10), 3)
-        return -100
+    def percent_to_db_percent(percent: float):
+        """
+        :param percent: float [0, 1]
+        """
+        try:
+            return round(20 * math.log(percent * 100, 10), 3) / 40
+        except ValueError:
+            return 0
+
+    @staticmethod
+    def db_percent_to_percent(db: float):
+        """ :param db: float [0, 40]"""
+        if db == 0: return 0
+        return round((10 ** (2 * db)) / 100, 2)
 
     def __init__(self):
         self.vlc_instance = vlc.Instance()
@@ -83,14 +93,14 @@ class AudioPlayer:
         :param volume: float[0, 1]
         Capped at 1 to prevent distortion
         """
-        self.player.audio_set_volume(int(volume * 100))
+        self.player.audio_set_volume(int(self.percent_to_db_percent(volume) * 100))
 
     def get_volume(self):
         """
         get the volume of the output
         :return float [0, 1]
         """
-        return self.player.audio_get_volume() / 100
+        return self.db_percent_to_percent(self.player.audio_get_volume() / 5 * 2)
 
     def set_pos(self, position, units='seconds'):
         """position is in seconds from start"""

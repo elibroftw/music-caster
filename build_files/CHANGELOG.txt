@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.20
+- [Fix] Playing at launch
+- [Fix] Better local volume control
+
 4.65.19
 - [Fix] Play / queue from explorer for multiple files
 

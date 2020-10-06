@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.19'
+VERSION = latest_version = '4.65.20'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -81,7 +81,6 @@ main_last_event = pl_editor_last_event = None
 py_presence_errors = (AttributeError, RuntimeError, PyPresenceException, JSONDecodeError, PermissionError)
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
-stop_discovery = None  # function
 playlists, all_tracks, url_metadata = {}, {}, {}
 # playlist_name: [], formatted_name: file path, file: {artist: str, title: str}
 tray_playlists, tray_folders = ['Create/Edit a Playlist'], []
@@ -125,6 +124,7 @@ app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = True
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+stop_discovery = lambda: None  # this is for the chromecast discover function
 
 
 def save_settings():
@@ -508,10 +508,12 @@ def web_index():  # web GUI
 def play_file_page():
     global music_queue, playing_status, last_play_command
     request_args = request.args if request.method == 'GET' else request.form
-    add_to_queue = request_args.get('queue', 'false').lower() == 'true' or time.time() - last_play_command < 0.5
+    from_explorer = time.time() - last_play_command < 0.5
+    add_to_queue = request_args.get('queue', 'false').lower() == 'true' or from_explorer
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
-    if 'paths' in request_args: play_paths(request_args.getlist('paths'), add_to_queue=add_to_queue)
+    if 'paths' in request_args: play_paths(request_args.getlist('paths'), add_to_queue=add_to_queue,
+                                           from_explorer=from_explorer)
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -666,9 +668,7 @@ def chromecast_sorter(cc1: pychromecast.Chromecast, cc2: pychromecast.Chromecast
 def chromecast_callback(chromecast):
     global update_devices, cast, chromecasts
     previous_device = settings['previous_device']
-    if str(chromecast.uuid) == previous_device and cast != chromecast:
-        cast = chromecast
-        cast.wait(timeout=WAIT_TIMEOUT)
+    if str(chromecast.uuid) == previous_device and cast != chromecast: cast = chromecast
     if chromecast.uuid not in [_cc.uuid for _cc in chromecasts]:
         chromecasts.append(chromecast)
         # chromecasts.sort(key=lambda _cc: (_cc.device.model_name, type, _cc.name, _cc.uuid))
@@ -690,6 +690,7 @@ def start_chromecast_discovery():
     stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     time.sleep(WAIT_TIMEOUT + 1)
     stop_discovery()
+    stop_discovery = None
     if not device_names: device_names.append(f'✓ Local device')
     refresh_tray()
 
@@ -955,7 +956,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
                 time.sleep(0.2)
                 if time.time() - start_time > WAIT_TIMEOUT: break
-            app_log.info('play: mc.status.player_state=')
+            app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             progress_bar_last_update = time.time()
         except (pychromecast.error.NotConnected, OSError):
             tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
@@ -989,7 +990,7 @@ def play_all(starting_files: list = None, queue_only=False):
             next_track()
 
 
-def play_paths(paths, add_to_queue=False):
+def play_paths(paths, add_to_queue=False, from_explorer=False):
     global playing_status, update_lb_queue
     """
     Appends all music files in the provided paths (path of folders or files) to a temp list,
@@ -997,11 +998,13 @@ def play_paths(paths, add_to_queue=False):
         and then extends music_queue
     If add_to_queue is false, the music queue and done queue are cleared,
         before files are added to the music_queue
+    If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
+        except for the track that is currently playing
     """
     if not add_to_queue:
         music_queue.clear()
         done_queue.clear()
-    app_log.info(f'play_folder: len(folders) = {len(paths)}, add_to_queue = {add_to_queue}')
+    app_log.info(f'play_paths: len(paths) = {len(paths)}, add_to_queue = {add_to_queue}')
     temp_queue = []
     for path in paths:
         path = path.rstrip('\\').rstrip('/')
@@ -1011,7 +1014,12 @@ def play_paths(paths, add_to_queue=False):
             for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
                 if valid_music_file(_file): temp_queue.append(_file)
     update_lb_queue = True
-    if settings['shuffle_playlists']: shuffle(temp_queue)
+    if settings['shuffle_playlists']:
+        # if from_explorer make temp_queue all files already in queue
+        temp_queue = music_queue[1:] * from_explorer + temp_queue
+        shuffle(temp_queue)
+        # remove all but first track if from_explorer
+        for i in range(1, len(music_queue) * from_explorer): del music_queue[i]
     music_queue.extend(temp_queue)
     if not add_to_queue:
         if music_queue: play(music_queue[0])
@@ -2255,7 +2263,8 @@ try:
     Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
     Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
     if args.paths:
-        while stop_discovery is not None: time.sleep(0.3)
+        # wait until previous device has been found or if it hasn't been found
+        while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
         play_paths(args.paths, add_to_queue=args.queue)
     elif settings['save_queue_sessions']:
         queues = settings['queues']
