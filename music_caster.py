@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.22'
+VERSION = latest_version = '4.65.23'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -7,7 +7,8 @@ if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
-parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths provided to queue')
+parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths are queued')
+parser.add_argument('--update', '-u', default=False, action='store_true', help='allow updating')
 parser.add_argument('paths', nargs='*', default=[], help='list of files/dirs/playlists to play/queue')
 args = parser.parse_args()
 # helper files
@@ -1459,7 +1460,7 @@ def exit_program():
         if cast is None: stop('exit program')
         elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
     with suppress(py_presence_errors): rich_presence.close()
-    auto_update(False)
+    if settings['auto_update']: auto_update(False)
     sys.exit()  # since auto_update might not sys.exit()
 
 
@@ -2112,7 +2113,6 @@ def get_latest_release(ver, force=False):
 def auto_update(auto_start=True):
     global update_available
     try:
-        if not settings['auto_update'] and not settings.get('DEBUG', False): return
         release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', False)))
         if release:
             latest_ver = release['version']
@@ -2125,7 +2125,8 @@ def auto_update(auto_start=True):
                     # only show message on startup to not confuse the user
                     cmd = 'MC_Installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
                     if auto_start:
-                        cmd += ' && "Music Caster.exe"'  # auto start is True when updating on startup
+                        cmd_args = ' '.join(sys.argv[1:])
+                        cmd += f' && "Music Caster.exe" {cmd_args}'  # auto start is True when updating on startup
                         temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                         temp_tray.show_message('Music Caster', f'Downloading update v{latest_ver}', time=5000)
                         temp_tray.update(tooltip=f'Downloading update v{latest_ver}')
@@ -2193,7 +2194,8 @@ load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
 init_ydl_thread.start()
 audio_player = AudioPlayer()
-if len(sys.argv) == 1: auto_update()  # check for update and update if no starting arguments were supplied
+# check for update and update if no starting arguments were supplied or if the update flag was used
+if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'

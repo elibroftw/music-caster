@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.23
+- [Fix] Improved command-line argument updating
+
 4.65.22
 - [Fix] Play / queue from explorer
 
