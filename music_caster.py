@@ -108,7 +108,8 @@ settings = {  # default settings
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
-    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
+    'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
+    'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': DEFAULT_THEME.copy(),
     'music_directories': [home_music_dir], 'playlists': {},
@@ -257,6 +258,17 @@ def handle_exception(exception, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
+    folder = os.path.dirname(file_path)
+    png_cover = os.path.join(folder, 'cover.png')
+    jpg_cover = os.path.join(folder, 'cover,jpg')
+    jpeg_cover = os.path.join(folder, 'cover,jpeg')
+    for folder_cover in (png_cover, jpg_cover, jpeg_cover):
+        if os.path.exists(folder_cover):
+            data = io.BytesIO()
+            im = Image.open(folder_cover)
+            ext = folder_cover.rsplit('.', 1)
+            im.save(data, format=ext, quality=95)
+            return ext, base64.b64encode(data.getvalue())
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
@@ -496,12 +508,7 @@ def web_index():  # web GUI
 def play_file_page():
     global music_queue, playing_status
     request_args = request.args if request.method == 'GET' else request.form
-    if 'path' in request_args:
-        _file_or_dir = request_args['path']
-        if os.path.isfile(_file_or_dir) and valid_music_file(_file_or_dir):
-            play_all([_file_or_dir])
-        elif os.path.isdir(_file_or_dir):
-            play_paths([_file_or_dir])
+    if 'paths' in request_args: play_paths(request_args['paths'], add_to_queue=request_args.get('queue', False))
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -2133,7 +2140,8 @@ def activate_instance(port):
     while port <= 2003 and not r_text:
         with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
             if args.paths:  # MC was supplied a path to a folder/file
-                r_text = requests.post(f'http://127.0.0.1:{port}/play/', data={'paths': args.paths}).text
+                r_text = requests.post(f'http://127.0.0.1:{port}/play/',
+                                       data={'paths': args.paths, 'queue': args.queue}).text
             else:
                 r_text = requests.post(f'http://127.0.0.1:{port}/').text
         port += 1
@@ -2171,7 +2179,8 @@ if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name=
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 create_shortcut(SHORTCUT_PATH)
-if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe')
+if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe',
+                                                 add_folder_context=settings['folder_context_menu'])
 
 with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
 rmtree('Update', ignore_errors=True)

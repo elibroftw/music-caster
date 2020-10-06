@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.17
+- [Feature] Folder cover override option
+- [Feature] Queue from explorer
+- [Fix] Remove folder context menu
+- [Fix] Play from explorer
+
 4.65.16
 - [Fix] Added first run notification
 
