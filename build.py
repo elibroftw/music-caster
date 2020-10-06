@@ -217,7 +217,7 @@ if args.upload:
     for dist_file in ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip'):
         with open(f'dist/{dist_file}', 'rb') as f:
             data = f.read()
-        print(f'Uploading dist/{dist_file}...')
+        print(f'Uploading {dist_file}...')
         requests.post(upload_url, data=data, params={'name': dist_file},
                       headers={**headers, 'Content-Type': 'application/octet-stream'})
     requests.post(f'{github_api}/repos/{username}/music-caster/releases/{release_id}',

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.20'
+VERSION = latest_version = '4.65.21'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -8,7 +8,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
 parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths provided to queue')
-parser.add_argument('paths', nargs='*', default=[], help='paths of file or folders you want to play/queue')
+parser.add_argument('paths', nargs='*', default=[], help='list of files/dirs/playlists to play/queue')
 args = parser.parse_args()
 # helper files
 from helpers import *
@@ -993,9 +993,9 @@ def play_all(starting_files: list = None, queue_only=False):
 def play_paths(paths, add_to_queue=False, from_explorer=False):
     global playing_status, update_lb_queue
     """
-    Appends all music files in the provided paths (path of folders or files) to a temp list,
-        which is shuffled if shuffled is enabled in settings,
-        and then extends music_queue
+    Appends all music files in the provided paths/names (folders, files, playlist names) to a temp list,
+        which is shuffled if shuffled is enabled in settings, and then extends music_queue.
+        Note: file/folder paths take precedence over playlist name
     If add_to_queue is false, the music queue and done queue are cleared,
         before files are added to the music_queue
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
@@ -1007,12 +1007,18 @@ def play_paths(paths, add_to_queue=False, from_explorer=False):
     app_log.info(f'play_paths: len(paths) = {len(paths)}, add_to_queue = {add_to_queue}')
     temp_queue = []
     for path in paths:
-        path = path.rstrip('\\').rstrip('/')
-        if os.path.isfile(path):
-            if valid_music_file(path): temp_queue.append(path)
-        else:
-            for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
-                if valid_music_file(_file): temp_queue.append(_file)
+        invalid_path = True
+        if os.path.exists(path):
+            path = path.rstrip('\\').rstrip('/')
+            if os.path.isfile(path):
+                invalid_path = False
+                if valid_music_file(path): temp_queue.append(path)
+            else:
+                for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
+                    if valid_music_file(_file):
+                        invalid_path = False
+                        temp_queue.append(_file)
+        if invalid_path: temp_queue.extend(settings['playlists'].get(path, []))
     update_lb_queue = True
     if settings['shuffle_playlists']:
         # if from_explorer make temp_queue all files already in queue
