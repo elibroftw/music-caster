@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.65.23'
+VERSION = latest_version = '4.65.24'
 UPDATE_MESSAGE = """
 [Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
@@ -32,6 +32,7 @@ from random import shuffle
 from shutil import copyfileobj, rmtree
 import sys
 from threading import Thread
+from win32com.universal import com_error
 import traceback
 import urllib.parse
 from urllib.parse import urlsplit
@@ -79,7 +80,8 @@ active_windows = {'main': False, 'playlist_selector': False,
                   'playlist_editor': False, 'play_url': False}
 main_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
 main_last_event = pl_editor_last_event = None
-py_presence_errors = (AttributeError, RuntimeError, PyPresenceException, JSONDecodeError, PermissionError)
+py_presence_errors = (AttributeError, RuntimeError, PermissionError, UnicodeDecodeError,
+                      PyPresenceException, JSONDecodeError)
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 playlists, all_tracks, url_metadata = {}, {}, {}
@@ -1490,7 +1492,7 @@ def other_tray_actions(_tray_item):
     elif _tray_item.startswith('PF: '):  # play folder
         if tray_item == 'PF: Select Folder(s)': wx.CallAfter(folder_action)
         else:
-            Thread(target=play_paths, name='PlayFolder',
+            Thread(target=play_paths, name='PlayFolder', daemon=True,
                    args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
@@ -1743,7 +1745,8 @@ def read_main_window():
     elif main_event == 'file_option': main_window['file_action'].update(text=main_values['file_option'])
     elif main_event == 'folder_option': main_window['folder_action'].update(text=main_values['folder_option'])
     elif main_event == 'file_action':
-        Thread(target=file_action, name='FileAction', kwargs={'action': main_values['file_option']}).start()
+        Thread(target=file_action, name='FileAction', daemon=True,
+               kwargs={'action': main_values['file_option']}).start()
     elif main_event == 'folder_action':
         wx.CallAfter(folder_action, action=main_values['folder_option'])
     elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
@@ -1799,9 +1802,9 @@ def read_main_window():
             track_start = time.time() - track_position
             track_end = track_start + track_length
     # settings
-    elif main_event == 'email': Thread(target=webbrowser.open, args=[EMAIL_URL]).start()
+    elif main_event == 'email': Thread(target=webbrowser.open, daemon=True, args=[EMAIL_URL]).start()
     elif main_event == 'web_gui':
-        Thread(target=webbrowser.open, args=[f'http://{get_ipv4()}:{PORT}']).start()
+        Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
                         'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
                         'save_queue_sessions', 'flip_main_window', 'vertical_gui', 'show_album_art', 'mini_on_top'}:
@@ -2068,7 +2071,7 @@ def read_play_url_window():
 def create_shortcut(_shortcut_path):
     """ creates shortcut if run_on_startup else removes existing shortcut """
     def _create_shortcut():
-        try:
+        with suppress(com_error):
             shortcut_exists = os.path.exists(_shortcut_path)
             if settings['run_on_startup'] and not shortcut_exists:
                 # noinspection PyUnresolvedReferences
@@ -2090,9 +2093,7 @@ def create_shortcut(_shortcut_path):
                 shortcut.save()
             elif not settings['run_on_startup'] and shortcut_exists:
                 os.remove(_shortcut_path)
-        except Exception as _e:
-            handle_exception(_e)  # since I have no idea what the error could be
-    if not settings.get('DEBUG', False): Thread(target=_create_shortcut, name='CreateShortcut', daemon=True).start()
+    if not settings.get('DEBUG', False): Thread(target=_create_shortcut, name='CreateShortcut').start()
 
 
 def get_latest_release(ver, force=False):
@@ -2199,13 +2200,12 @@ if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
 # Access startup folder by entering "Startup" in Explorer address bar
 SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
-create_shortcut(SHORTCUT_PATH)
-if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe',
-                                                 add_folder_context=settings['folder_context_menu'])
-
-with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
-rmtree('Update', ignore_errors=True)
 try:
+    create_shortcut(SHORTCUT_PATH)
+    if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe',
+                                                     add_folder_context=settings['folder_context_menu'])
+    with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
+    rmtree('Update', ignore_errors=True)
     start = time.time()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
@@ -2300,9 +2300,9 @@ try:
         'Play URL': activate_play_url,
         'Queue URL': lambda: activate_play_url('Queue'),
         'Play URL Next': lambda: activate_play_url('Play Next'),
-        'Play File(s)': lambda: Thread(target=play_file, name='PlayFile').start(),
+        'Play File(s)': lambda: Thread(target=file_action, daemon=True, name='PlayFile').start(),
         'Play All': play_all,
-        'Play File Next': lambda: Thread(target=play_next, name='PlayNext').start(),
+        'Play File Next': lambda: Thread(target=play_next, name='PlayNext', daemon=True).start(),
         'Pause': pause,
         'Resume': resume,
         'Next Track': next_track,

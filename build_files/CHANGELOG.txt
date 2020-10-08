@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.65.24
+- [Fix] Random crashes
+- [Fix] Discord Rich Presence
+
 4.65.23
 - [Fix] Improved command-line argument updating
 
