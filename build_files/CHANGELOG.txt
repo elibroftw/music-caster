@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.66.0
+- [Feature] Exit command
+- [Feature] Shutdown API
+
 4.65.24
 - [Fix] Random crashes
 - [Fix] Discord Rich Presence

@@ -1,6 +1,5 @@
-VERSION = latest_version = '4.65.24'
+VERSION = latest_version = '4.66.0'
 UPDATE_MESSAGE = """
-[Feature] URL actions links pasted by default
 [Feature] Command Line Arguments
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
@@ -9,6 +8,8 @@ parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
 parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths are queued')
 parser.add_argument('--update', '-u', default=False, action='store_true', help='allow updating')
+parser.add_argument('--exit', '-x', default=False, action='store_true',
+                    help='exits any existing instance (including self)')
 parser.add_argument('paths', nargs='*', default=[], help='list of files/dirs/playlists to play/queue')
 args = parser.parse_args()
 # helper files
@@ -521,7 +522,7 @@ def play_file_page():
 
 
 @app.route('/metadata/')
-def send_metadata():
+def api_get_metadata():
     try:
         file_path = music_queue[0].replace('\\', '/')
         metadata = all_tracks.get(file_path, url_metadata[file_path])
@@ -531,7 +532,14 @@ def send_metadata():
 
 
 @app.route('/running/')
-def running():
+def api_running():
+    return 'true'
+
+
+@app.route('/exit/', methods=['GET', 'POST'])
+def api_exit():
+    global daemon_command
+    daemon_command = 'Exit'
     return 'true'
 
 
@@ -2160,7 +2168,9 @@ def activate_instance(port):
     r_text = ''
     while port <= 2003 and not r_text:
         with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
-            if args.paths:  # MC was supplied a path to a folder/file
+            if args.exit:
+                r_text = requests.post(f'http://127.0.0.1:{port}/exit/').text
+            elif args.paths:  # MC was supplied a path to a folder/file
                 r_text = requests.post(f'http://127.0.0.1:{port}/play/',
                                        data={'paths': args.paths, 'queue': args.queue}).text
             else:
@@ -2173,6 +2183,7 @@ def quit_if_running():
         print('Another instance of Music Caster was found' if not DEBUG else '')
         activate_instance(PORT)
         if IS_FROZEN and not DEBUG: sys.exit()
+    return False
 
 
 log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
@@ -2190,7 +2201,7 @@ app_log = logging.getLogger('music_caster')
 app_log.setLevel(logging.INFO)
 app_log.addHandler(log_handler)
 app_log.propagate = False  # disable console output
-quit_if_running()
+quit_if_running() or (args.exit and sys.exit())  # quit if running or if --exit was supplied to command line
 load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
 init_ydl_thread.start()
