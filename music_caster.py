@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.68.0'
+VERSION = latest_version = '4.68.1'
 UPDATE_MESSAGE = """
 [New] Queue all button
 [New] Show track number
@@ -116,7 +116,7 @@ settings = {  # default settings
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-    'theme': DEFAULT_THEME.copy(), 'file_format': '&artist - &title',
+    'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title',
     'music_directories': [home_music_dir], 'playlists': {},
     'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
@@ -752,7 +752,7 @@ def format_file(uri: str):
         metadata = get_uri_metadata(uri)
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
-        formatted = settings['file_format'].replace('&artist', artist).replace('&title', title)
+        formatted = settings['track_format'].replace('&artist', artist).replace('&title', title)
         try: number = metadata['track_number']
         except KeyError: number = ''
         if '&trck' in formatted:
