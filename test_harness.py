@@ -180,10 +180,10 @@ size = (125, 125) if mini_mode else (255, 255)
 default_album_art = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
 
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
-              'album_art_data': default_album_art}
+              'album_art_data': default_album_art, 'qr_code': qr_code}
 
-other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', qr_code,
-                                time.time() + 999, **main_attrs)
+other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
+                                **main_attrs)
 
 main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout,
                          icon=WINDOW_ICON, return_keyboard_events=True,

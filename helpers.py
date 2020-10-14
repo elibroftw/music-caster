@@ -87,6 +87,11 @@ def valid_color_code(code):
     return match
 
 
+def get_track_number(file_path: str):
+    """ :raises KeyError, TypeError, MutagenError """
+    return mutagen.File(file_path, easy=True)['tracknumber']
+
+
 def get_metadata(file_path: str, as_dict=False):  # title, artist, album
     file_path = file_path.lower()
     title, artist, album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
@@ -438,7 +443,8 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                              visible=not not playlist_names)],
                    [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
                               visible=not not playlist_names, size=(14, 1), pad=(5, (9, 0)))]]),
-        Sg.Column([[Sg.Button('URL', font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)]])
+        Sg.Column([[Sg.Button('URL', font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)],
+                   [Sg.Button('Queue All', font=FONT_NORMAL, key='queue_all', size=(9, 1), enable_events=True)]])
     ]
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip='Launch mini mode')],
@@ -494,6 +500,7 @@ def create_settings(version, settings, qr_code):
          create_checkbox('Mini Mode on Top', 'mini_on_top', settings)],
         [create_checkbox('Use cover.* for album art', 'folder_cover_override', settings, True),
          create_checkbox('Folder context menu', 'folder_context_menu', settings)],
+        [create_checkbox('Show track number', 'show_track_number', settings, True)],
     ], pad=((0, 0), (5, 0)))
     qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
     qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))

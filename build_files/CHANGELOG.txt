@@ -1,5 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+4.67.0
+- [Feature] Queue all button
+- [Feature] Show track number
+- [Fix] Play file queueing 1+ files
+- [Fix] Enable folder cover override
+- [Fix] Disable folder context menu
+
 4.66.0
 - [Feature] Exit command
 - [Feature] Shutdown API

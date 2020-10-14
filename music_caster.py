@@ -1,6 +1,7 @@
-VERSION = latest_version = '4.66.0'
+VERSION = latest_version = '4.67.0'
 UPDATE_MESSAGE = """
-[Feature] Command Line Arguments
+[New] Queue all button
+[New] Show track number
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -52,6 +53,7 @@ import pynput.keyboard
 import pyperclip
 import pypresence
 from pypresence import PyPresenceException
+import threading
 import pythoncom
 from PIL import UnidentifiedImageError
 import requests
@@ -111,7 +113,7 @@ settings = {  # default settings
     'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
-    'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
+    'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': DEFAULT_THEME.copy(),
@@ -264,15 +266,16 @@ def handle_exception(exception, restart_program=False):
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
     folder = os.path.dirname(file_path)
     png_cover = os.path.join(folder, 'cover.png')
-    jpg_cover = os.path.join(folder, 'cover,jpg')
-    jpeg_cover = os.path.join(folder, 'cover,jpeg')
-    for folder_cover in (png_cover, jpg_cover, jpeg_cover):
-        if os.path.exists(folder_cover):
-            data = io.BytesIO()
-            im = Image.open(folder_cover)
-            ext = folder_cover.rsplit('.', 1)
-            im.save(data, format=ext, quality=95)
-            return ext, base64.b64encode(data.getvalue())
+    jpg_cover = os.path.join(folder, 'cover.jpg')
+    jpeg_cover = os.path.join(folder, 'cover.jpeg')
+    if settings['folder_cover_override']:
+        for folder_cover in (png_cover, jpg_cover, jpeg_cover):
+            if os.path.exists(folder_cover):
+                data = io.BytesIO()
+                im = Image.open(folder_cover)
+                ext = folder_cover.rsplit('.', 1)
+                im.save(data, format=ext, quality=95)
+                return ext, base64.b64encode(data.getvalue())
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
@@ -342,12 +345,14 @@ def get_current_metadata():
 def index_all_tracks(update_global=True, ignore_files: list = None):
     # returns the music library dict or starts building the library
     global indexing_tracks_thread, all_tracks
-    if ignore_files is None: ignore_files = []
+    if ignore_files is None: ignore_files = set()
 
     def _index_library():
         global all_tracks
+        nonlocal  ignore_files
         use_temp = not not all_tracks
         all_tracks_temp = {}
+        ignore_files = set(ignore_files)
         for directory in music_directories:
             for file_path in glob.iglob(f'{glob.escape(directory)}/**/*.*', recursive=True):
                 file_path = file_path.replace('\\', '/')
@@ -359,6 +364,9 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         else:
                             sort_key = f'{title} - {artist}'
                         metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+                        with suppress(KeyError, TypeError, MutagenError, IndexError):
+                            track_number = get_track_number(file_path)[0].split('/', 1)[0]
+                            metadata['track_number'] = track_number
                         if use_temp: all_tracks_temp[file_path] = metadata
                         else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
@@ -366,8 +374,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
 
     if not update_global:
         temp_tracks = all_tracks.copy()
-        if ignore_files:
-            for ignore_file in ignore_files: temp_tracks.pop(ignore_file, None)
+        for ignore_file in ignore_files: temp_tracks.pop(ignore_file, None)
         return temp_tracks
     if indexing_tracks_thread is None:
         indexing_tracks_thread = Thread(target=_index_library, daemon=True, name='IndexLibrary')
@@ -745,6 +752,10 @@ def format_file(uri: str):
         metadata = get_uri_metadata(uri)
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
+        if settings['show_track_number']:
+            with suppress(KeyError):
+                number = metadata['track_number']
+                return f'{artist} - {title} (#{number})'
         return f'{artist} - {title}'
     except (TypeError, KeyError):  # show something useful instead of Unknown - Unknown
         if uri.startswith('http'): return uri
@@ -941,9 +952,14 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     title, artist, album = get_metadata_wrapped(uri)
     # update metadata of track in case something changed
     try:
-        all_tracks[uri] = {**all_tracks[uri], 'artist': artist, 'title': title, 'album': album, 'length': track_length}
+        all_tracks[uri] = {**all_tracks[uri], 'artist': artist, 'title': title,
+                           'album': album, 'length': track_length}
     except KeyError:
         all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
+    with suppress(KeyError, TypeError, MutagenError, IndexError):
+        # update track number if it changed
+        track_number = get_track_number(uri)[0].split('/', 1)[0]
+        all_tracks[uri]['track_number'] = track_number
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
@@ -999,6 +1015,14 @@ def play_all(starting_files: list = None, queue_only=False):
         elif next_queue:
             playing_status = 'PLAYING'
             next_track()
+
+
+def queue_all():
+    global update_lb_queue
+    temp_lst = list(index_all_tracks(update_global=False, ignore_files=music_queue).keys())
+    shuffle(temp_lst)
+    music_queue.extend(temp_lst)
+    update_lb_queue = True
 
 
 def play_paths(paths, queue_only=False, from_explorer=False):
@@ -1058,7 +1082,10 @@ def file_action(action='Play File(s)'):
         update_lb_queue = True
         main_last_event = Sg.TIMEOUT_KEY
         if action == 'Play File(s)':
-            play_all(paths)
+            music_queue.clear()
+            done_queue.clear()
+            music_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
+            if music_queue: play(music_queue[0])
         elif action == 'Queue File(s)':
             _start_playing = not music_queue
             music_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
@@ -1548,6 +1575,10 @@ def read_main_window():
     if playing_status in {'PAUSED', 'PLAYING'} and (playing_live or music_queue):
         metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
         artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
+        if settings['show_track_number']:
+            with suppress(KeyError):
+                track_number = metadata['track_number']
+                title = f'{track_number}. {title}'
     if gui_title != title:  # usually if music stops playing or another track starts playing
         main_window['title'].update(value=title)
         main_window['artist'].update(value=artist)
@@ -1759,6 +1790,13 @@ def read_main_window():
         wx.CallAfter(folder_action, action=main_values['folder_option'])
     elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
     elif main_event == 'url_actions': activate_play_url()
+    elif main_event == 'queue_all':
+        already_queueing = False
+        for thread in threading.enumerate():
+            if thread.name == 'QueueAll' and thread.is_alive():
+                already_queueing = True
+                break
+        if not already_queueing: Thread(target=queue_all, name='QueueAll', daemon=True).start()
     elif main_event == 'mini_mode':
         change_settings('mini_mode', not settings['mini_mode'])
         active_windows['main'] = False
@@ -1813,9 +1851,10 @@ def read_main_window():
     elif main_event == 'email': Thread(target=webbrowser.open, daemon=True, args=[EMAIL_URL]).start()
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
-    elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup',
-                        'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
-                        'save_queue_sessions', 'flip_main_window', 'vertical_gui', 'show_album_art', 'mini_on_top'}:
+    elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
+                        'folder_context_menu', 'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
+                        'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
+                        'show_album_art'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
         elif main_event == 'save_queue_sessions':
