@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.68.1'
+VERSION = latest_version = '4.68.2'
 UPDATE_MESSAGE = """
 [New] Queue all button
 [New] Show track number
@@ -326,6 +326,7 @@ def get_uri_metadata(uri):
                 sort_key = os.path.splitext(os.path.basename(uri))[0]
             else: sort_key = f'{title} - {artist}'
             metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+            with suppress(KeyError, TypeError, MutagenError): metadata['number'] = get_track_number(uri)
             try:
                 length = get_length(uri)
                 metadata['length'] = length
@@ -348,8 +349,8 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
     if ignore_files is None: ignore_files = set()
 
     def _index_library():
-        global all_tracks
-        nonlocal  ignore_files
+        global all_tracks, update_lb_queue
+        nonlocal ignore_files
         use_temp = not not all_tracks
         all_tracks_temp = {}
         ignore_files = set(ignore_files)
@@ -371,6 +372,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
+        update_lb_queue = True
 
     if not update_global:
         temp_tracks = all_tracks.copy()
@@ -1882,6 +1884,7 @@ def read_main_window():
             active_windows['main'] = False
             main_window.close()
             activate_main_window('tab_settings')
+        elif main_event == 'show_track_number': update_lb_queue = True
     elif main_event == 'remove_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
