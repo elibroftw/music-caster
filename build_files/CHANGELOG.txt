@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.68.0
+- [Feature] Added format template in settings.json
+- [Fix] Queue formatting
+
 4.67.0
 - [Feature] Queue all button
 - [Feature] Show track number
