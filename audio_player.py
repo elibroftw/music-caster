@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.2.2
+AudioPlayer v2.2.4
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -20,16 +20,13 @@ class AudioPlayer:
         """
         :param percent: float [0, 1]
         """
-        try:
-            return round(20 * math.log(percent * 100, 10), 3) / 40
-        except ValueError:
-            return 0
+        try: return round(20 * math.log(percent * 100, 10), 3) / 40
+        except ValueError: return 0
 
     @staticmethod
     def db_percent_to_percent(db: float):
         """ :param db: float [0, 40]"""
-        if db == 0: return 0
-        return round((10 ** (2 * db)) / 100, 2)
+        return 0 if db == 0 else round((10 ** (2 * db)) / 100, 2)
 
     def __init__(self):
         self.vlc_instance = vlc.Instance()

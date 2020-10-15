@@ -89,6 +89,7 @@ What is sent to me when an error is encountered?
 'LINE': exc_tb.tb_lineno,             // error location
 'TRACEBACK': trace_back_msg,          // error message
 'MAC': MAC,                           // error unqiueness
+'LOG': log_lines,                     // last 5 lines of the log file so I have more context
 'FATAL': restart_program,             // if the error crashed the program
 'OS': platform.platform(),
 'TIME': current_time

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.68.2'
+VERSION = latest_version = '4.68.3'
 UPDATE_MESSAGE = """
 [New] Queue all button
 [New] Show track number
@@ -238,8 +238,13 @@ def handle_exception(exception, restart_program=False):
     if playing_url: playing_uri = 'url'
     elif playing_live: playing_uri = 'live'
     else: playing_uri = 'file' if music_queue else 'none'
+    try:
+        with open('music_caster.log') as f:
+            log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
+    except FileNotFoundError:
+        log_lines = []
     payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
-               'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program,
+               'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program, 'LOG': log_lines,
                'OS': platform.platform(), 'TIME': _current_time, 'PLAYING_TYPE': playing_uri}
     try:
         with open(f'{starting_dir}/error.log', 'r') as _f:
@@ -250,7 +255,8 @@ def handle_exception(exception, restart_program=False):
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
-    if not IS_FROZEN: raise exception
+    if not IS_FROZEN: raise exception  # raise exception if running in script rather than executable
+    change_settings('auto_update', True)  # turn auto update on so user will get the update down the line
     with suppress(requests.ConnectionError):
         requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
     if restart_program:
@@ -264,22 +270,21 @@ def handle_exception(exception, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
+    app_log.info(f'get_album_art called')
     folder = os.path.dirname(file_path)
-    png_cover = os.path.join(folder, 'cover.png')
-    jpg_cover = os.path.join(folder, 'cover.jpg')
-    jpeg_cover = os.path.join(folder, 'cover.jpeg')
     if settings['folder_cover_override']:
-        for folder_cover in (png_cover, jpg_cover, jpeg_cover):
+        for ext in ('png', 'jpg', 'jpeg'):
+            folder_cover = os.path.join(folder, f'cover.{ext}')
             if os.path.exists(folder_cover):
                 data = io.BytesIO()
                 im = Image.open(folder_cover)
-                ext = folder_cover.rsplit('.', 1)
                 im.save(data, format=ext, quality=95)
                 return ext, base64.b64encode(data.getvalue())
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
+                app_log.info(f'get_album_art (file cover)')
                 return tags[tag].mime, base64.b64encode(tags[tag].data).decode()  # 'utf-8'
     return None, None
 

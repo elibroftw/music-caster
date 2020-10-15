@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.68.3
+- [Fix] Folder dir as album cover
+- [Fix] Improved error handling
+
 4.68.2
 - [Fix] Track number not showing
 

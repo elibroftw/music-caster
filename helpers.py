@@ -571,7 +571,7 @@ def create_playlist_editor(settings, paths, playlist_name=''):
     layout = [[
         Sg.Text('Playlist name', font=FONT_NORMAL, size=(12, 1), justification='center'),
         Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL, enable_events=True),
-        # TODO: save image
+        # TODO: create save image
         Sg.Submit('Save', key='save', tooltip='Ctrl + S', font=FONT_NORMAL, disabled=playlist_name == '',
                   size=(6, 1), pad=((14, 5), (5, 5))),
         Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=FONT_NORMAL, enable_events=True, size=(3, 1))],
