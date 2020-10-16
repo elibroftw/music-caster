@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.1
+- [Fix] Track numbering
+
 4.70.0
 - [Feature] Added more to Web GUI
 - [Feature] Added timer options to Web GUI

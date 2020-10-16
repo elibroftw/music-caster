@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.0'
+VERSION = latest_version = '4.70.1'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -342,7 +342,8 @@ def get_uri_metadata(uri):
                 sort_key = os.path.splitext(os.path.basename(uri))[0]
             else: sort_key = f'{title} - {artist}'
             metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
-            with suppress(KeyError, TypeError, MutagenError): metadata['number'] = get_track_number(uri)
+            with suppress(KeyError, TypeError, MutagenError):
+                metadata['track_number'] = get_track_number(uri)
             try:
                 length = get_length(uri)
                 metadata['length'] = length
@@ -2121,7 +2122,6 @@ def read_main_window():
             update_progress_bar_text = True
             progress_bar_last_update = time.time()
         elif not playing_live:
-            print('"elif not playing_live" in update progress bar ran')
             playing_status = 'NOT PLAYING'
     if update_progress_bar_text:
         elapsed_time_text, time_left_text = create_progress_bar_text(track_position, track_length)

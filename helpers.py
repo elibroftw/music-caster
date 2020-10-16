@@ -89,7 +89,7 @@ def valid_color_code(code):
 
 def get_track_number(file_path: str):
     """ :raises KeyError, TypeError, MutagenError """
-    return mutagen.File(file_path, easy=True)['tracknumber']
+    return mutagen.File(file_path, easy=True)['tracknumber'][0].split('/', 1)[0]
 
 
 def get_metadata(file_path: str, as_dict=False):  # title, artist, album
