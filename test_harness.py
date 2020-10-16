@@ -218,16 +218,3 @@ play_url_window = Sg.Window('Play URL', create_play_url(), finalize=True, return
 play_url_window.TKroot.focus_force()
 play_url_window.Read(timeout=1500)  # 1.5 second timeout
 play_url_window.Close()
-
-# Playlists GUI
-
-pl_editor_layout = create_playlist_editor(settings, settings['playlists'].get('test', []), 'test')
-pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, return_keyboard_events=True)
-pl_editor_window.Finalize()
-pl_editor_window.TKroot.focus_force()
-window_active = True
-while window_active:
-    pl_editor_event, pl_editor_values = pl_editor_window.Read()
-    if pl_editor_event is None or pl_editor_event == 'Escape:27':
-        pl_editor_window.Close()
-        window_active = False

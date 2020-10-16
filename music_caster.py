@@ -1,7 +1,6 @@
-VERSION = latest_version = '4.68.3'
+VERSION = latest_version = '4.69.0'
 UPDATE_MESSAGE = """
-[New] Queue all button
-[New] Show track number
+[Feature] Playlist Tab (play, queue, edit)
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -68,7 +67,6 @@ DEBUG = args.debug
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
 EMAIL = 'elijahllopezz@gmail.com'
-EMAIL_URL = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
@@ -79,10 +77,9 @@ update_available = exit_flag = False
 last_play_command = 0  # last call to /play/
 settings_last_modified, last_press = 0, time.time() + 5
 update_last_checked = time.time()  # check every hour
-active_windows = {'main': False, 'playlist_selector': False,
-                  'playlist_editor': False, 'play_url': False}
-main_window = timer_window = pl_editor_window = pl_selector_window = play_url_window = Sg.Window('')
-main_last_event = pl_editor_last_event = None
+active_windows = {'main': False, 'play_url': False}
+main_window = timer_window = play_url_window = Sg.Window('')
+main_last_event = None
 py_presence_errors = (AttributeError, RuntimeError, PermissionError, UnicodeDecodeError,
                       PyPresenceException, JSONDecodeError)
 # noinspection PyTypeChecker
@@ -230,6 +227,17 @@ def cycle_repeat(update_main=False):
     return change_settings('repeat', new_repeat_setting)
 
 
+def create_email_url():
+    try:
+        with open('music_caster.log') as f:
+            log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
+    except FileNotFoundError:
+        log_lines = []
+    log_lines = '\n'.join(log_lines)
+    mail_to = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}&body=%0D%0A%23%20last%20few%20lines%20of%20the%20log%0D%0A{log_lines}'
+    return mail_to
+
+
 def handle_exception(exception, restart_program=False):
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
@@ -258,7 +266,7 @@ def handle_exception(exception, restart_program=False):
     if not IS_FROZEN: raise exception  # raise exception if running in script rather than executable
     change_settings('auto_update', True)  # turn auto update on so user will get the update down the line
     with suppress(requests.ConnectionError):
-        requests.post('https://enmuvo35nwiw.x.pipedream.net', json=payload)
+        requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
     if restart_program:
         with suppress(NameError):
             tray.show_message('Music Caster', 'An error occurred, restarting now', time=5000)
@@ -318,8 +326,10 @@ def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
 
 
 def get_uri_metadata(uri):
-    # get metadata from all_track and resort to url_metadata if not found in all_tracks
-    #   if file/url is not in all_track. e.g. links
+    """
+    get metadata from all_track and resort to url_metadata if not found in all_tracks
+      if file/url is not in all_track. e.g. links
+    """
     uri = uri.replace('\\', '/')
     try: return all_tracks[uri]
     except KeyError:
@@ -349,20 +359,27 @@ def get_current_metadata():
 
 
 def index_all_tracks(update_global=True, ignore_files: list = None):
-    # returns the music library dict or starts building the library
+    """
+    returns the music library dict if update_global is False
+    starts scanning and building the music library/database if update_global is True
+    ignore_files is a list (converted to set) of files to not include in the return value / scan
+        usually used with update_global=False (think about it)
+    """
     global indexing_tracks_thread, all_tracks
     if ignore_files is None: ignore_files = set()
 
     def _index_library():
         global all_tracks, update_lb_queue
-        nonlocal ignore_files
+        """
+        Scans folders provided in settings and adds them to a dictionary
+        Does not ignore the files that in ignore_files by design
+        """
         use_temp = not not all_tracks
         all_tracks_temp = {}
-        ignore_files = set(ignore_files)
         for directory in music_directories:
             for file_path in glob.iglob(f'{glob.escape(directory)}/**/*.*', recursive=True):
                 file_path = file_path.replace('\\', '/')
-                if file_path not in ignore_files and valid_music_file(file_path):
+                if valid_music_file(file_path):
                     with suppress(HeaderNotFoundError):
                         title, artist, album = get_metadata_wrapped(file_path)
                         if title == 'Unknown Title' or artist == 'Unknown Artist':
@@ -478,10 +495,7 @@ def web_index():  # web GUI
     if request.method == 'POST':
         for k, v in active_windows.items():  # Opens up GUI
             if v:
-                {'main': main_window,
-                 'playlist_selector': pl_selector_window,
-                 'playlist_editor': pl_editor_window,
-                 'play_url': play_url_window}[k].bring_to_front()
+                {'main': main_window, 'play_url': play_url_window}[k].bring_to_front()
                 return 'true'
         daemon_command = '__ACTIVATED__'
         return 'Music Caster'
@@ -1007,6 +1021,11 @@ def play(uri, position=0, autoplay=True, switching_device=False):
 
 def play_all(starting_files: list = None, queue_only=False):
     global playing_status, indexing_tracks_thread
+    """
+    Clears done queue, music queue,
+    Adds starting files to music queue,
+    [shuffle] queues files in the "library" with index_all_tracks (ignores starting_files)
+    """
     music_queue.clear()
     done_queue.clear()
     if starting_files is None: starting_files = []
@@ -1138,8 +1157,7 @@ def folder_action(action='Play Folder'):
     #     if active_windows[window]:
     #         active_windows[window] = False
     #         if window == 'main': open_main = True
-    #         {'main': main_window, 'playlist_selector': pl_selector_window,
-    #          'playlist_editor': pl_editor_window, 'play_url': play_url_window}[window].close()
+    #         {'main': main_window, 'play_url': play_url_window}[window].close()
     dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         temp_queue = []
@@ -1406,7 +1424,7 @@ def on_release(key):
 
 def activate_main_window(selected_tab='tab_queue'):
     global active_windows, main_window
-    # selected_tab can be 'tab_queue', 'tab_settings', or 'tab_timer'
+    # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     if not active_windows['main']:
         active_windows['main'] = True
         lb_tracks, selected_value = create_track_list()
@@ -1439,32 +1457,18 @@ def activate_main_window(selected_tab='tab_queue'):
             main_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
             main_window['queue'].bind('<Enter>', '_mouse_enter')
             main_window['queue'].bind('<Leave>', '_mouse_leave')
+            main_window['pl_tracks'].bind('<Enter>', '_mouse_enter')
+            main_window['pl_tracks'].bind('<Leave>', '_mouse_leave')
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         set_save_position_callback(main_window, save_window_loc_key)
     if not settings['mini_mode']:
-        main_window[selected_tab].Select()
+        main_window[selected_tab].select()
         if selected_tab == 'tab_timer': main_window['minutes'].set_focus()
     main_window.TKroot.focus_force()
     main_window.normal()
-
-
-def create_edit_playlists():
-    global active_windows, pl_selector_window
-    if active_windows['playlist_editor']:
-        pl_editor_window.TKroot.focus_force()
-        pl_editor_window.normal()
-        return
-    elif not active_windows['playlist_selector']:
-        active_windows['playlist_selector'] = True
-        window_location = get_window_location('playlist_selector')
-        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings), finalize=True,
-                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
-        set_save_position_callback(pl_selector_window, 'playlist_selector')
-    pl_selector_window.TKroot.focus_force()
-    pl_selector_window.normal()
 
 
 def activate_play_url(combo_value='Play Immediately'):
@@ -1497,11 +1501,7 @@ def locate_file():
 def exit_program():
     global exit_flag
     exit_flag = True
-    for window in active_windows:
-        if active_windows[window]:
-            active_windows[window] = False
-            {'main': main_window, 'playlist_selector': pl_selector_window,
-             'playlist_editor': pl_editor_window, 'play_url': play_url_window}[window].close()
+    for window in (main_window, play_url_window): window.close()
     tray.hide()
     with suppress(UnsupportedNamespace):
         if cast is None: stop('exit program')
@@ -1567,11 +1567,12 @@ def reset_progress():
 
 
 def read_main_window():
-    global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update,\
-        track_start, track_end, timer, main_window, pl_files, pl_editor_window, update_lb_queue
+    global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update
+    global track_start, track_end, timer, main_window, pl_files, update_lb_queue
+    global tray_playlists, pl_files, pl_name
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
-    if (main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action'}
+    if (main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action', 'pl_add_tracks'}
             or main_values is None):
         active_windows['main'] = False
         main_window.close()
@@ -1637,17 +1638,21 @@ def read_main_window():
             main_event = 'progress_bar'
             main_window.refresh()
     if main_event == Sg.TIMEOUT_KEY: pass
-    elif main_event == '1:49': main_window['tab_queue'].select()
-    elif main_event == '2:50' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':
+    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue': main_window['file_action'].set_focus()
+    # change tabs with hot keys
+    elif main_event == '1:49': main_window['tab_queue'].select()  # Ctrl + 1
+    elif main_event == '2:50': main_window['tab_playlists'].select()  # Ctrl + 2
+    elif main_event == '3:51' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':  # Ctrl + 3
         main_window['tab_timer'].select()
         main_window['minutes'].set_focus()
-    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue': main_window['file_action'].set_focus()
-    elif main_event == '3:51': main_window['tab_settings'].select()
-    elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'volume_slider_mouse_enter'}:
+    elif main_event == '4:52': main_window['tab_settings'].select()  # Ctrl + 4
+    elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
+                        'volume_slider_mouse_enter'}:
         if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
             main_window.grab_any_where_off()
         mouse_hover = '_'.join(main_event.split('_')[:-2])
-    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'volume_slider_mouse_leave'}:
+    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'pl_tracks_mouse_enter',
+                        'volume_slider_mouse_leave'}:
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()
         mouse_hover = '' if main_event != 'volume_slider_mouse_leave' else mouse_hover
@@ -1696,12 +1701,17 @@ def read_main_window():
             main_window['mute'].set_tooltip('mute')
             update_volume(settings['volume'])
     elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
-        # with suppress(AttributeError, IndexError, KeyError):
-        if not settings['mini_mode'] and main_window.FindElementWithFocus() == main_window['queue']:
+        if not settings['mini_mode']:
+            focused_element = main_window.FindElementWithFocus()
             move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
-            new_i = main_window['queue'].get_list_values().index(main_values['queue'][0]) + move
-            new_i = min(max(new_i, 0), len(music_queue) - 1)
-            main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            if focused_element == main_window['queue']:
+                new_i = main_window['queue'].get_list_values().index(main_values['queue'][0]) + move
+                new_i = min(max(new_i, 0), len(music_queue) - 1)
+                main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            elif focused_element == main_window['pl_tracks']:
+                new_i = main_window['pl_tracks'].get_list_values().index(main_window['pl_tracks'][0]) + move
+                new_i = min(max(new_i, 0), len(pl_files) - 1)
+                main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         selected_file_index = main_window['queue'].get_list_values().index(main_value[0])
         if done_queue and selected_file_index < len(done_queue):
@@ -1800,10 +1810,17 @@ def read_main_window():
         wx.CallAfter(folder_action, action=main_values['folder_option'])
     elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
     elif main_event == 'url_actions': activate_play_url()
+    elif main_event == 'play_all':
+        already_queueing = False
+        for thread in threading.enumerate():
+            if thread.name in {'QueueAll', 'PlayAll'} and thread.is_alive():
+                already_queueing = True
+                break
+        if not already_queueing: Thread(target=play_all, name='PlayAll', daemon=True).start()
     elif main_event == 'queue_all':
         already_queueing = False
         for thread in threading.enumerate():
-            if thread.name == 'QueueAll' and thread.is_alive():
+            if thread.name in {'QueueAll', 'PlayAll'} and thread.is_alive():
                 already_queueing = True
                 break
         if not already_queueing: Thread(target=queue_all, name='QueueAll', daemon=True).start()
@@ -1820,22 +1837,13 @@ def read_main_window():
         next_queue.clear()
         done_queue.clear()
     elif main_event == 'save_queue':
-        if not active_windows['playlist_editor']:
-            if done_queue or music_queue or next_queue:
-                pl_files = done_queue + ([music_queue[0]] if music_queue else []) + next_queue + music_queue[1:]
-                pl_editor_layout = create_playlist_editor(settings, pl_files)
-                window_location = get_window_location('playlist_editor')
-                pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, finalize=True, icon=WINDOW_ICON,
-                                             return_keyboard_events=True, location=window_location)
-                pl_editor_window.TKroot.focus_force()
-                pl_editor_window.normal()
-                set_save_position_callback(pl_editor_window, 'playlist_editor')
-                if pl_name == '':
-                    pl_editor_window['playlist_name'].set_focus()
-                else:
-                    pl_editor_window['tracks'].set_focus()
-                    pl_editor_window['tracks'].update(set_to_index=0)
-                active_windows['playlist_editor'] = True
+        pl_files = done_queue + ([music_queue[0]] if music_queue else []) + next_queue + music_queue[1:]
+        formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+        pl_name = ''
+        main_window['tab_playlists'].select()
+        main_window['playlist_name'].set_focus()
+        main_window['playlist_name'].update(value=pl_name)
+        main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
     elif main_event == 'play_next':
         play_next()
         main_window.TKroot.focus_force()
@@ -1858,7 +1866,7 @@ def read_main_window():
             track_start = time.time() - track_position
             track_end = track_start + track_length
     # settings
-    elif main_event == 'email': Thread(target=webbrowser.open, daemon=True, args=[EMAIL_URL]).start()
+    elif main_event == 'email': Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
@@ -1951,7 +1959,135 @@ def read_main_window():
         change_settings('timer_hibernate_computer', main_values['hibernate'])
         change_settings('timer_sleep_computer', main_values['sleep'])
         change_settings('timer_shut_off_computer', main_values['shut_off'])
-
+    # playlist tab
+    elif main_event == 'playlist_combo':
+        # user selected a playlist from the drop-down
+        pl_name = main_value if main_value in playlists else ''
+        pl_files = playlists.get(pl_name, []).copy()
+        main_window['playlist_name'].update(value=pl_name)
+        formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+        main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
+        main_window['pl_save'].update(disabled=pl_name == '')
+        main_window.refresh()
+    elif main_event in {'new_pl', 'n:78'}:
+        pl_name, pl_files = '', []
+        main_window['playlist_name'].update(value=pl_name)
+        main_window['playlist_name'].set_focus()
+        main_window['pl_tracks'].update(values=pl_files, set_to_index=0)
+        main_window['pl_save'].update(disabled=pl_name == '')
+        main_window.refresh()
+    elif main_event in {'del_pl', 'Delete:46'}:
+        pl_name = main_values.get('playlist_combo', '')
+        if pl_name in playlists:
+            del playlists[pl_name]
+            save_settings()
+        playlist_names = tuple(settings['playlists'].keys())
+        pl_name = playlist_names[0] if playlist_names else ''
+        main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
+        pl_files = playlists.get(pl_name, []).copy()
+        # update playlist editor
+        main_window['playlist_name'].update(value=pl_name)
+        main_window['pl_tracks'].update(values=pl_files, set_to_index=0)
+        main_window['pl_save'].update(disabled=pl_name == '')
+        main_window['play_pl'].update(disabled=pl_name == '')
+        main_window['queue_pl'].update(disabled=pl_name == '')
+        main_window.refresh()
+        # refresh tray
+        tray_playlists.clear()
+        tray_playlists.append('Create/Edit a Playlist')
+        tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+    elif main_event == 'play_pl':
+        temp_lst = playlists.get(main_values['playlist_combo'], [])
+        if temp_lst:
+            done_queue.clear()
+            music_queue.clear()
+            music_queue.extend(temp_lst)
+            if settings['shuffle_playlists']: shuffle(music_queue)
+            play(music_queue[0])
+    elif main_event == 'queue_pl':
+        temp_lst = playlists.get(main_values['playlist_combo'], []).copy()
+        if settings['shuffle_playlists']: shuffle(temp_lst)
+        if temp_lst:
+            play_after = len(music_queue) == 0
+            music_queue.extend(temp_lst)
+            if play_after: play(music_queue[0])
+            else: update_lb_queue = True
+    elif main_event in {'pl_save', 's:83'}:  # save playlist
+        if main_values['playlist_name']:
+            save_name = main_values['playlist_name']
+            if pl_name != save_name:
+                if pl_name in playlists: del playlists[pl_name]
+                pl_name = save_name
+            playlists[pl_name] = pl_files
+            playlist_names = tuple(playlists.keys())
+            main_window['playlist_combo'].update(value=pl_name, values=playlist_names, visible=True)
+            main_window['play_pl'].update(disabled=False)
+            main_window['queue_pl'].update(disabled=False)
+            main_window.refresh()
+        save_settings()
+        tray_playlists.clear()
+        tray_playlists.append('Create/Edit a Playlist')
+        tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+    elif main_event == 'playlist_name':
+        main_window['pl_save'].update(disabled=main_values['playlist_name'] == '')
+    elif main_event in {'pl_rm_items', 'r:82'}:  # remove item from playlist
+        if main_values['pl_tracks']:
+            pl_items = main_window['pl_tracks'].get_list_values()
+            smallest_i = len(pl_items)
+            for item_name in reversed(main_values['pl_tracks']):
+                index_to_rm = int(item_name.split('.', 1)[0]) - 1
+                if index_to_rm < len(pl_items) and pl_items[index_to_rm] == item_name:
+                    if index_to_rm < smallest_i: smallest_i = index_to_rm
+                    pl_files.pop(index_to_rm)
+            formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+            main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=max(smallest_i - 3, 0))
+            main_window.refresh()
+    elif main_event == 'pl_add_tracks':
+        fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+        if fd.ShowModal() != wx.ID_CANCEL:
+            file_paths = fd.GetPaths()
+            pl_files += [file_path for file_path in file_paths if valid_music_file(file_path)]
+            main_window.TKroot.focus_force()
+            main_window.normal()
+            formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+            new_i = len(formatted_tracks) - 1
+            main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+    elif main_event == 'pl_url_input':
+        # disable or enable add URL button if the text in the URL input is almost a valid link
+        link = main_values['pl_url_input']
+        valid_link = link.count('.') and (link.startswith('http://') or link.startswith('https://'))
+        main_window['pl_add_url'].update(disabled=not valid_link)
+    elif main_event == 'pl_add_url':
+        link = main_values['pl_url_input']
+        if link.startswith('http://') or link.startswith('https://'):
+            pl_files.append(link)
+            formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+            new_i = len(formatted_tracks) - 1
+            main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+        else: tray.show_message('Music Caster', "ERROR: invalid url. URL's have to start with http:// or https://")
+    elif main_event == 'pl_tracks':
+        main_window['pl_move_up'].update(disabled=len(main_value) != 1)
+        main_window['pl_move_down'].update(disabled=len(main_value) != 1)
+    elif main_event == 'pl_move_up':
+        if len(main_values['pl_tracks']) == 1:
+            to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
+            if to_move > 0:
+                new_i = to_move - 1
+                pl_files.insert(new_i, pl_files.pop(to_move))
+                formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
+                                                scroll_to_index=max(new_i - 3, 0))
+    elif main_event == 'pl_move_down':
+        if len(main_values['pl_tracks']) == 1:
+            to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
+            if to_move < len(pl_files) - 1:
+                new_i = to_move + 1
+                pl_files.insert(new_i, pl_files.pop(to_move))
+                formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
+                                                scroll_to_index=max(new_i - 3, 0))
+    # other
     if time.time() - progress_bar_last_update > 0.5:
         progress_bar: Sg.Slider = main_window['progress_bar']
         if playing_status == 'NOT PLAYING': progress_bar.update(0, disabled=True)
@@ -1978,134 +2114,6 @@ def read_main_window():
         main_window['time_left'].update(value='0:00')
     p_r_button.metadata = playing_status
     return True
-
-
-def read_playlist_selector_window():
-    global pl_selector_window, tray_playlists, pl_files, pl_name, pl_editor_window
-    pl_selector_event, pl_selector_values = pl_selector_window.read(timeout=5)
-    if pl_selector_event in {None, 'Escape:27', 'q'}:
-        active_windows['playlist_selector'] = False
-        pl_selector_window.close()
-        return
-    if pl_selector_event in {'del_pl', 'Delete:46'}:
-        pl_name = pl_selector_values.get('playlist_combo', '')
-        if pl_name in playlists:
-            del playlists[pl_name]
-            save_settings()
-        playlist_names = tuple(settings['playlists'].keys())
-        default_playlist_name = playlist_names[0] if playlist_names else ''
-        pl_selector_window['playlist_combo'].update(value=default_playlist_name, values=playlist_names)
-        pl_selector_window.refresh()
-        if active_windows['main']:
-            main_window['playlists'].update(value=default_playlist_name, values=playlist_names)
-        tray_playlists.clear()
-        tray_playlists.append('Create/Edit a Playlist')
-        tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-    elif (pl_selector_event in {'edit_pl', 'create_pl', 'e', 'n', 'e:69', 'n:78'} and
-          not active_windows['playlist_editor']):
-        pl_name = pl_selector_values.get('playlist_combo', '') if pl_selector_event in {'edit_pl', 'e', 'e:69'} else ''
-        window_location = get_window_location('playlist_editor')
-        pl_files = playlists.get(pl_name, [])
-        pl_selector_window.close()
-        pl_editor_layout = create_playlist_editor(settings, pl_files, pl_name)
-        pl_editor_window = Sg.Window('Playlist Editor', pl_editor_layout, finalize=True, icon=WINDOW_ICON,
-                                     return_keyboard_events=True, location=window_location)
-        pl_editor_window.TKroot.focus_force()
-        pl_editor_window.normal()
-        set_save_position_callback(pl_editor_window, 'playlist_editor')
-        if pl_name == '': pl_editor_window['playlist_name'].set_focus()
-        else:
-            pl_editor_window['tracks'].set_focus()
-            pl_editor_window['tracks'].update(set_to_index=0)
-        active_windows['playlist_editor'], active_windows['playlist_selector'] = True, False
-    elif pl_selector_event in {'Up:38', 'Down:40'}:
-        with suppress(KeyError, IndexError, ValueError):
-            pl_selector_combo = pl_selector_window['playlist_combo']
-            pl_index = pl_selector_combo.Values.index(pl_selector_values['playlist_combo'])
-            new_index = max(pl_index + {'Up:38': -1, 'Down:40': 1}[pl_selector_event], 0)
-            pl_selector_combo.update(value=pl_selector_combo.Values[new_index])
-
-
-def read_playlist_editor_window():
-    global pl_files, pl_editor_last_event, pl_name, tray_playlists, pl_selector_window
-    pl_editor_event, pl_editor_values = pl_editor_window.read(timeout=5)
-    open_pl_selector = False
-    if pl_editor_event == Sg.TIMEOUT_KEY: pass
-    elif pl_editor_event in {None, 'Escape:27', 'Cancel'} and pl_editor_last_event not in {'Add tracks', 'f:70'}:
-        active_windows['playlist_editor'] = False
-        pl_editor_window.close()
-        open_pl_selector = True
-    elif pl_editor_event == 'playlist_name':
-        # disable save button if playlist name is empty else enable
-        pl_editor_window['save'].update(disabled=not pl_editor_values['playlist_name'])
-    elif pl_editor_event in {'save', 's:83'}:
-        new_name = pl_editor_values['playlist_name']
-        pl_files = pl_files.copy()
-        if pl_name != new_name:
-            if pl_name in playlists: del playlists[pl_name]
-            pl_name = new_name
-        playlists[pl_name] = pl_files
-        if active_windows['main'] and not settings['mini_mode']:
-            playlist_names = tuple(playlists.keys())
-            main_window['playlists'].update(value=playlist_names[0], values=playlist_names, visible=True)
-            main_window['play_playlist'].update(visible=True)
-        save_settings()
-        active_windows['playlist_editor'] = False
-        pl_editor_window.close()
-        open_pl_selector = True
-        tray_playlists.clear()
-        tray_playlists.append('Create/Edit a Playlist')
-        tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
-    elif pl_editor_event in {'move_up', 'u:85'}:  # u:85 is Ctrl + U
-        if pl_editor_values['tracks']:
-            to_move = pl_editor_window['tracks'].get_list_values().index(pl_editor_values['tracks'][0])
-            if to_move > 0:
-                new_i = to_move - 1
-                pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                pl_editor_window['tracks'].update(values=formatted_tracks, set_to_index=new_i,
-                                                  scroll_to_index=max(new_i - 3, 0))
-    elif pl_editor_event in {'move_down', 'd:68'}:  # d:68 is Ctrl + D
-        if pl_editor_values['tracks']:
-            to_move = pl_editor_window['tracks'].get_list_values().index(pl_editor_values['tracks'][0])
-            if to_move < len(pl_files) - 1:
-                new_i = to_move + 1
-                pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-                pl_editor_window['tracks'].update(values=formatted_tracks, set_to_index=new_i,
-                                                  scroll_to_index=max(new_i - 3, 0))
-    elif pl_editor_event in {'Add tracks', 'f:70'}:
-        fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
-                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
-        if fd.ShowModal() != wx.ID_CANCEL:
-            file_paths = fd.GetPaths()
-            pl_files += [file_path for file_path in file_paths if valid_music_file(file_path)]
-            pl_editor_window.TKroot.focus_force()
-            pl_editor_window.normal()
-            formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-            new_i = len(formatted_tracks) - 1  # - len(new_files)
-            pl_editor_window['tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif pl_editor_event in {'Remove track', 'r:82'}:  # r:82 is Ctrl + R
-        if pl_editor_values['tracks']:
-            index_to_rm = pl_editor_window['tracks'].get_list_values().index(pl_editor_values['tracks'][0])
-            with suppress(ValueError): pl_files.pop(index_to_rm)
-            formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
-            new_i = max(index_to_rm - 1, 0)
-            pl_editor_window['tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif pl_editor_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'} and pl_editor_values['tracks']:
-        move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[pl_editor_event]
-        new_i = pl_editor_window['tracks'].get_list_values().index(pl_editor_values['tracks'][0]) + move
-        new_i = min(max(new_i, 0), len(pl_files) - 1)
-        pl_editor_window['tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    if open_pl_selector:
-        active_windows['playlist_selector'] = True
-        window_location = get_window_location('playlist_selector')
-        pl_selector_window = Sg.Window('Playlist Selector', create_playlist_selector(settings), finalize=True,
-                                       icon=WINDOW_ICON, return_keyboard_events=True, location=window_location)
-        pl_selector_window.TKroot.focus_force()
-        pl_selector_window.normal()
-        set_save_position_callback(pl_selector_window, 'playlist_selector')
-    pl_editor_last_event = pl_editor_event
 
 
 def read_play_url_window():
@@ -2267,7 +2275,6 @@ try:
                                                      add_folder_context=settings['folder_context_menu'])
     with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
     rmtree('Update', ignore_errors=True)
-    start = time.time()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
         while True:
@@ -2278,7 +2285,6 @@ try:
                     break
                 except OSError: PORT += 1
             else: PORT += 1
-    print(f'Running on port {PORT} (Time Taken: {round(time.time() - start, 1)}s)')
     repeat_menu = ['Repeat All ✓' if settings['repeat'] is False else 'Repeat All',
                    'Repeat One ✓' if settings['repeat'] else 'Repeat One',
                    'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']
@@ -2299,16 +2305,12 @@ try:
                         'Resume'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    print('Connecting to Discord')
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     if settings['discord_rpc']:
         with suppress(py_presence_errors): rich_presence.connect()
-    print('Connected to Discord')
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
-    # active_windows = {'main': activate_main_window, 'playlist_selector': activate_playlist_selector,
-    #                   'playlist_editor': activate_playlist_editor, 'play_url': activate_play_url}
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if not music_directories:
         music_directories = change_settings('music_directories', [home_music_dir])
@@ -2353,7 +2355,7 @@ try:
         'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start(),
         # isdigit should be an if statement
         'Settings': lambda: activate_main_window('tab_settings'),
-        'Create/Edit a Playlist': create_edit_playlists,
+        'Create/Edit a Playlist': lambda: activate_main_window('tab_playlists'),
         # PL should be an if statement
         'Set Timer': lambda: activate_main_window('tab_timer'),
         'Cancel Timer': cancel_timer,
@@ -2383,8 +2385,6 @@ try:
         tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
         daemon_command = ''
         if active_windows['main']: read_main_window()
-        if active_windows['playlist_selector']: read_playlist_selector_window()
-        if active_windows['playlist_editor']: read_playlist_editor_window()
         if active_windows['play_url']: read_play_url_window()
 except Exception as e:
     handle_exception(e, True)

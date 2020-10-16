@@ -54,17 +54,9 @@ I love keyboard shortcuts, they make us more productive.
 | Ctrl + R | Main | Cycle Repeat
 | Ctrl + M | Main | Mute
 | Ctrl + 1 | Main | Go to Tab 1 (Queue)
-| Ctrl + 2 | Main | Go to Tab 2 (Timer)
-| Ctrl + 3 | Main | Go to Tab 3 (Settings)
-| Ctrl + N | Playlist Selector | Create New Playlist
-| Ctrl + E | Playlist Selector | Edit Selected Playlist
-| Del | Playlist Selector | Delete Selected Playlist
-| Up / Down | Playlist Selector | Change Selected Playlist
-| Ctrl + S | Playlist Editor | Save and Quit
-| Ctrl + F | Playlist Editor | Add Songs
-| Ctrl + R | Playlist Editor | Remove Song
-| Ctrl + U | Playlist Editor | Move Song Up
-| Ctrl + D | Playlist Editor | Move Song Down
+| Ctrl + 2 | Main | Go to Tab 2 (Playlists)
+| Ctrl + 3 | Main | Go to Tab 3 (Timer)
+| Ctrl + 4 | Main | Go to Tab 4 (Settings)
 
 ## Limitations and Known Issues
 - Chromecasts only support the AAC version of WMA files

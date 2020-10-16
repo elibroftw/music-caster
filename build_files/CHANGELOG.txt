@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.69.0
+- [Feature] Playlist Tab (play, queue, edit)
+- [Feature] Removed playlist related windows
+- [Feature] Playlists support URLs (youtube and soundcloud)
+- [Fix] Better email link
+
 4.68.3
 - [Fix] Folder dir as album cover
 - [Fix] Improved error handling

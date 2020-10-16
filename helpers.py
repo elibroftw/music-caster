@@ -429,7 +429,6 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     # tab 1 is the queue, tab 2 will be the library
     file_options = ['Play File(s)', 'Play File(s) Next', 'Queue File(s)']
     folder_opts = ['Play Folder', 'Play Folder Next', 'Queue Folder']  # TODO: queue folders
-    playlist_names = list(settings['playlists'].keys())
     # TODO: Move to controls tab
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value='Play File(s)', key='file_option', size=(14, None),
@@ -438,11 +437,6 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
         Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
                    [Sg.Button('Play Folder', font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
-        Sg.Column([[Sg.Combo(playlist_names, default_value=playlist_names[0] if playlist_names else None,
-                             size=(14, 1), font=FONT_NORMAL, pad=(5, (5, 0)), key='playlists',
-                             visible=not not playlist_names)],
-                   [Sg.Button('Play Playlist', font=FONT_NORMAL, key='play_playlist', enable_events=True,
-                              visible=not not playlist_names, size=(14, 1), pad=(5, (9, 0)))]]),
         Sg.Column([[Sg.Button('URL', font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)],
                    [Sg.Button('Queue All', font=FONT_NORMAL, key='queue_all', size=(9, 1), enable_events=True)]])
     ]
@@ -467,8 +461,11 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     timer_tab = Sg.Tab('Timer', timer_layout, key='tab_timer', background_color=bg)
     settings_layout = create_settings(version, settings, qr_code)
     settings_tab = Sg.Tab('Settings', settings_layout, key='tab_settings')
+    playlists_layout = create_playlists_tab(settings)
+    playlists_tab = Sg.Tab('Playlists', playlists_layout, key='tab_playlists')
     # TODO: library_tab = Sg.Tab()
-    tabs_part = Sg.TabGroup([[queue_tab, timer_tab, settings_tab]], title_color=fg, border_width=0, key='tab_group',
+    tabs_part = Sg.TabGroup([[queue_tab, timer_tab, playlists_tab, settings_tab]],
+                            title_color=fg, border_width=0, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)
     if settings['vertical_gui']: return [[main_part], [tabs_part]]
@@ -480,6 +477,48 @@ def create_checkbox(name, key, settings, on_left=False):
     size = (20, 5) if on_left else (23, 5)
     checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
     return Sg.Checkbox(name, default=settings[key], key=key, **checkbox, size=size)
+
+
+def create_playlists_tab(settings):
+    fg, bg = settings['theme']['text'], settings['theme']['background']
+    playlists = settings['playlists']
+    playlists_names = list(playlists.keys())
+    default_pl_name = playlists_names[0] if playlists_names else None
+    playlist_selector = [
+        [Sg.Button('New', key='new_pl', tooltip='Ctrl + N', size=(5, 1), enable_events=True, font=FONT_NORMAL),
+         Sg.Button('Delete', key='del_pl', tooltip='Ctrl + Del ', enable_events=True, font=FONT_NORMAL),
+         Sg.Combo(values=playlists_names, size=(38, 5), key='playlist_combo', font=FONT_NORMAL,
+                  enable_events=True, default_value=default_pl_name),
+         Sg.Button('Play', key='play_pl', pad=((12, 5), None), disabled=default_pl_name is None,
+                   enable_events=True, font=FONT_NORMAL),
+         Sg.Button('Queue', key='queue_pl', disabled=default_pl_name is None,
+                   enable_events=True, font=FONT_NORMAL)]]
+    playlist_name = playlists_names[0] if playlists_names else ''
+    paths = playlists.get(playlist_name, [])
+    tracks = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
+    move_up_params = {'size': (11, 1), 'disabled': True, 'font': FONT_NORMAL, 'enable_events': True}
+    move_down_params = {'size': (11, 1), 'disabled': True, 'font': FONT_NORMAL, 'enable_events': True}
+    url_input = [Sg.Input('', key='pl_url_input', size=(13, 1), font=FONT_NORMAL, enable_events=True)]
+    add_url = [Sg.Button('Add URL', key='pl_add_url', size=(12, 1), disabled=True,
+                         font=FONT_NORMAL, enable_events=True)]
+    add_tracks = [Sg.Button('Add tracks', key='pl_add_tracks', size=(12, 1), font=FONT_NORMAL, enable_events=True)]
+    layout = [[Sg.Column(playlist_selector, pad=(5, (40, 20)))],
+              [Sg.Text('Playlist name', font=FONT_NORMAL, size=(13, 1), justification='center', pad=(5, (5, 10))),
+               Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL, enable_events=True,
+                        pad=(5, (5, 10))),
+
+               Sg.Submit('Save', key='pl_save', tooltip='Ctrl + S', font=FONT_NORMAL, disabled=playlist_name == '',
+                         size=(6, 1), pad=((14, 5), (5, 10)))],
+              [Sg.Frame('', [url_input, add_url, add_tracks,
+                             [Sg.Button('Remove item(s)', key='pl_rm_items', tooltip='Ctrl + R', font=FONT_NORMAL,
+                                        enable_events=True, size=(12, 1))]],
+                        background_color=bg, border_width=0),
+               Sg.Listbox(tracks, size=(37, 10), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
+                          key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
+               Sg.Frame('', [[Sg.Button('Move up', **move_up_params, key='pl_move_up')],
+                             [Sg.Button('Move down', **move_down_params, key='pl_move_down')]],
+                        background_color=bg, border_width=0)]]
+    return layout
 
 
 def create_settings(version, settings, qr_code):
@@ -545,45 +584,6 @@ def create_timer(settings, timer):
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1)), cancel_button]
     ]
     return [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]]
-
-
-def create_playlist_selector(settings):
-    playlists = list(settings['playlists'].keys())
-    layout = [
-        [Sg.Combo(values=playlists, size=(41, 5), key='playlist_combo', font=FONT_NORMAL,
-                  enable_events=True, default_value=playlists[0] if playlists else None),
-         Sg.Button('Edit', key='edit_pl', tooltip='Ctrl + E', enable_events=True, font=FONT_NORMAL),
-         Sg.Button('Delete', key='del_pl', tooltip='Ctrl + Del', enable_events=True, font=FONT_NORMAL),
-         Sg.Button('New', key='create_pl', tooltip='Ctrl + N', enable_events=True, font=FONT_NORMAL)]]
-    return layout
-
-
-def create_playlist_editor(settings, paths, playlist_name=''):
-    fg, bg = settings['theme']['text'], settings['theme']['background']
-    tracks = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
-    move_up_params = {'size': (11, 1), 'tooltip': 'Ctrl + U', 'font': FONT_NORMAL, 'enable_events': True}
-    move_down_params = {'size': (11, 1), 'tooltip': 'Ctrl + D', 'font': FONT_NORMAL, 'enable_events': True}
-    add_tracks = [Sg.Button('Add track', key='Add tracks', tooltip='Ctrl + F',
-                            size=(11, 1), font=FONT_NORMAL, enable_events=True)]
-    # TODO: playlist url support
-    add_url = [Sg.Button('Add URL', key='Add URL', tooltip='Ctrl + L',
-                         size=(11, 1), font=FONT_NORMAL, enable_events=True)]
-    layout = [[
-        Sg.Text('Playlist name', font=FONT_NORMAL, size=(12, 1), justification='center'),
-        Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL, enable_events=True),
-        # TODO: create save image
-        Sg.Submit('Save', key='save', tooltip='Ctrl + S', font=FONT_NORMAL, disabled=playlist_name == '',
-                  size=(6, 1), pad=((14, 5), (5, 5))),
-        Sg.Button('❌', key='Cancel', tooltip='Cancel (Esc)', font=FONT_NORMAL, enable_events=True, size=(3, 1))],
-        [Sg.Frame('', [add_tracks,
-                       [Sg.Button('Remove track', key='Remove track', tooltip='Ctrl + R', font=FONT_NORMAL,
-                                  enable_events=True, size=(11, 1))]], background_color=bg, border_width=0),
-         Sg.Listbox(tracks, size=(37, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                    key='tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
-         Sg.Frame('', [[Sg.Button('Move up', **move_up_params, key='move_up')],
-                       [Sg.Button('Move down', **move_down_params, key='move_down')]],
-                  background_color=bg, border_width=0)]]
-    return layout
 
 
 def create_play_url(combo_value='Play Immediately', default_text=''):
