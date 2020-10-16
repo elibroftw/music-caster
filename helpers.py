@@ -464,7 +464,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     playlists_layout = create_playlists_tab(settings)
     playlists_tab = Sg.Tab('Playlists', playlists_layout, key='tab_playlists')
     # TODO: library_tab = Sg.Tab()
-    tabs_part = Sg.TabGroup([[queue_tab, timer_tab, playlists_tab, settings_tab]],
+    tabs_part = Sg.TabGroup([[queue_tab, playlists_tab, timer_tab, settings_tab]],
                             title_color=fg, border_width=0, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)
@@ -573,12 +573,12 @@ def create_timer(settings, timer):
     cancel_button = Sg.Button('Cancel Timer', key='cancel_timer', visible=timer != 0)
     defaults = {'text_color': fg, 'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True}
     layout = [
-        [Sg.Radio('Shut off computer when timer runs out', 'TIMER', default=shut_off, key='shut_off', **defaults)],
-        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate, key='hibernate', **defaults)],
+        [Sg.Radio('Shut down computer when timer runs out', 'TIMER', default=shut_off, key='shut_off', **defaults)],
         [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep, key='sleep', **defaults)],
-        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='other_daemon_actions', **defaults)],
+        [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate, key='hibernate', **defaults)],
+        [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='timer_only_stop', **defaults)],
         [Sg.Text('Enter minutes or HH:MM', tooltip='Press enter once done', font=FONT_NORMAL),
-         Sg.Input(key='minutes', font=FONT_NORMAL, size=(11, 1)),
+         Sg.Input(key='timer_minutes', font=FONT_NORMAL, size=(11, 1)),
          Sg.Button('Submit', font=FONT_NORMAL, key='timer_submit')],
         [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=FONT_NORMAL, visible=False, key='timer_error')],
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1)), cancel_button]

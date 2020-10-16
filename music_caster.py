@@ -1,6 +1,7 @@
-VERSION = latest_version = '4.69.0'
+VERSION = latest_version = '4.70.0'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
+[Feature] Buffed Web GUI
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -233,7 +234,7 @@ def create_email_url():
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
     except FileNotFoundError:
         log_lines = []
-    log_lines = '\n'.join(log_lines)
+    log_lines = '\n\n'.join(log_lines)
     mail_to = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}&body=%0D%0A%23%20last%20few%20lines%20of%20the%20log%0D%0A{log_lines}'
     return mail_to
 
@@ -354,8 +355,8 @@ def get_uri_metadata(uri):
 
 def get_current_metadata():
     if playing_live: return url_metadata['LIVE']
-    elif music_queue: return get_uri_metadata(music_queue[0])
-    else: return {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
+    if music_queue: return get_uri_metadata(music_queue[0])
+    return {'artist': '', 'title': 'Nothing Playing', 'album': ''}
 
 
 def index_all_tracks(update_global=True, ignore_files: list = None):
@@ -501,8 +502,9 @@ def web_index():  # web GUI
         return 'Music Caster'
     if request.args:
         if 'play' in request.args:
-            if not resume() and music_queue: play(music_queue[0])
-            else: play_all()
+            if not resume():
+                if music_queue: play(music_queue[0])
+                else: play_all()
         elif 'pause' in request.args: pause()  # resume == play
         elif 'next' in request.args: next_track()
         elif 'prev' in request.args: prev_track()
@@ -530,6 +532,7 @@ def web_index():  # web GUI
             device_index = i
             break
     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
+
     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
@@ -537,26 +540,20 @@ def web_index():  # web GUI
 
 
 @app.route('/play/', methods=['GET', 'POST'])
-def play_file_page():
+def api_play():
     global music_queue, playing_status, last_play_command
-    request_args = request.args if request.method == 'GET' else request.form
     from_explorer = time.time() - last_play_command < 0.5
-    queue_only = request_args.get('queue', 'false').lower() == 'true' or from_explorer
+    queue_only = request.values.get('queue', 'false').lower() == 'true' or from_explorer
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
-    if 'paths' in request_args: play_paths(request_args.getlist('paths'), queue_only=queue_only,
+    if 'paths' in request.values: play_paths(request.values.getlist('paths'), queue_only=queue_only,
                                            from_explorer=from_explorer)
     return redirect('/') if request.method == 'GET' else 'true'
 
 
 @app.route('/metadata/')
 def api_get_metadata():
-    try:
-        file_path = music_queue[0].replace('\\', '/')
-        metadata = all_tracks.get(file_path, url_metadata[file_path])
-    except (IndexError, KeyError):
-        metadata = {'artist': 'N/A', 'title': 'Nothing Playing', 'album': 'N/A'}
-    return jsonify(metadata)
+    return jsonify(get_current_metadata())
 
 
 @app.route('/running/')
@@ -572,33 +569,58 @@ def api_exit():
 
 
 @app.route('/change-setting/', methods=['POST'])
-def change_settings_web():
+def api_change_setting():
     with suppress(KeyError):
         setting_key = request.json['setting_name']
-        if setting_key in settings:
-            change_settings(setting_key, request.json['value'])
-        if setting_key == 'volume':
-            update_volume(0 if settings['muted'] else settings['volume'])
+        if setting_key in settings or setting_key in {'timer_only_stop'}:
+            val = request.json['value']
+            change_settings(setting_key, val)
+            timer_settings = {'timer_hibernate_computer', 'timer_sleep_computer',
+                              'timer_shut_off_computer', 'timer_only_stop'}
+            if val and setting_key in timer_settings:
+                for timer_setting in timer_settings.difference({setting_key, 'timer_only_stop'}):
+                    change_settings(timer_setting, False)
+            if setting_key == 'volume':
+                update_volume(0 if settings['muted'] else settings['volume'])
         return 'true'
     return 'false'
 
 
 @app.route('/refresh-devices/')
-def refresh_devices_web():
+def api_refresh_devices():
     Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
     return 'true'
 
 
 @app.route('/change-device/', methods=['POST'])
-def change_device_web():
+def api_change_device():
     with suppress(KeyError):
         change_device(int(request.json['device_index']))
         return 'true'
     return 'false'
 
 
+@app.route('/timer/', methods=['GET', 'POST'])
+def api_set_timer():
+    global timer
+    if request.method == 'POST':
+        val = request.data.decode()
+        val = val.lower()
+        if val == 'cancel': cancel_timer()
+        else:
+            val = int(val)
+            timer = val + time.time()
+            timer_set_to = datetime.now() + timedelta(minutes=val // 60)
+            if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
+            else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+            return timer_set_to
+        return 'timer cancelled'
+    else:  # GET request
+        return str(timer)
+
+
 @app.route('/file/')
-def get_file():
+def api_get_file():
     if 'path' in request.args:
         file_path = request.args['path']
         if os.path.isfile(file_path) and valid_music_file(file_path):
@@ -614,7 +636,7 @@ def get_file():
 
 
 @app.route('/files/')
-def return_all_files():
+def api_all_files():
     device_name = platform.node()
     html_resp = f'<!DOCTYPE html><title>Music Caster Files</title><h1>Music Files on {device_name}</h1><ul>\n'
     # sort by filename
@@ -650,7 +672,7 @@ def create_stream(pa, sample_rate, channels, input_device_index, chunk=1024):
 
 
 @app.route('/live/')
-def get_live_audio():
+def api_live_audio():
     # send system live audio to chromecast
 
     def system_sound():
@@ -688,7 +710,7 @@ def get_live_audio():
 
 
 @app.route('/live/thumbnail.png')
-def live_thumbnail():
+def api_live_thumbnail():
     return send_file(io.BytesIO(base64.b64decode(LIVE_AUDIO_ART)), attachment_filename=f'thumbnail.png',
                      mimetype='image/png', as_attachment=True, cache_timeout=360000, conditional=True)
 
@@ -1466,7 +1488,7 @@ def activate_main_window(selected_tab='tab_queue'):
         set_save_position_callback(main_window, save_window_loc_key)
     if not settings['mini_mode']:
         main_window[selected_tab].select()
-        if selected_tab == 'tab_timer': main_window['minutes'].set_focus()
+        if selected_tab == 'tab_timer': main_window['timer_minutes'].set_focus()
     main_window.TKroot.focus_force()
     main_window.normal()
 
@@ -1644,7 +1666,7 @@ def read_main_window():
     elif main_event == '2:50': main_window['tab_playlists'].select()  # Ctrl + 2
     elif main_event == '3:51' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':  # Ctrl + 3
         main_window['tab_timer'].select()
-        main_window['minutes'].set_focus()
+        main_window['timer_minutes'].set_focus()
     elif main_event == '4:52': main_window['tab_settings'].select()  # Ctrl + 4
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
                         'volume_slider_mouse_enter'}:
@@ -1925,12 +1947,13 @@ def read_main_window():
         main_window['timer_text'].update(value='No Timer Set')
         main_window['timer_error'].update(visible=False)
         main_window['cancel_timer'].update(visible=False)
+    # TODO: disable/enable submit button
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
           and main_values['tab_group'] == 'tab_timer'):
         try:
-            timer_value = main_values['minutes']
+            timer_value = main_values['timer_minutes']
             if timer_value.isdigit():
-                seconds = abs(float(main_values['minutes'])) * 60
+                seconds = abs(float(main_values['timer_minutes'])) * 60
             elif timer_value.count(':') == 1:
                 if timer_value[-3:].strip().upper() in ('PM', 'AM'):
                     timer_value = timer_value[timer_value:-3]
@@ -1938,7 +1961,7 @@ def read_main_window():
                     timer_value = timer_value[timer_value:-2]
                 to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
                 seconds_delta = (to_stop - datetime.now()).total_seconds()
-                if seconds_delta < 0: seconds_delta += 43200
+                if seconds_delta < 0: seconds_delta += 43200  # add 12 hours
                 seconds = seconds_delta
             else:
                 raise ValueError()
@@ -1955,7 +1978,7 @@ def read_main_window():
                 main_window.read(10)
                 main_window['timer_error'].update(text_color='red')
                 main_window.read(10)
-    elif main_event in {'shut_off', 'hibernate', 'sleep', 'other_daemon_actions'}:
+    elif main_event in {'shut_off', 'hibernate', 'sleep', 'timer_only_stop'}:
         change_settings('timer_hibernate_computer', main_values['hibernate'])
         change_settings('timer_sleep_computer', main_values['sleep'])
         change_settings('timer_shut_off_computer', main_values['shut_off'])
@@ -2285,6 +2308,7 @@ try:
                     break
                 except OSError: PORT += 1
             else: PORT += 1
+    print(f'Running on http://127.0.0.1:{PORT}/')
     repeat_menu = ['Repeat All ✓' if settings['repeat'] is False else 'Repeat All',
                    'Repeat One ✓' if settings['repeat'] else 'Repeat One',
                    'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']

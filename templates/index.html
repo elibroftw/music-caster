@@ -11,10 +11,10 @@
 <meta name="msapplication-config" content="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/browserconfig.xml">
 <meta name="theme-color" content="#ededed">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{%- if not settings.get('DEBUG', False) %}
+{% if not settings.get('DEBUG', False) %}
 <meta http-equiv="refresh" content="30">
 {% endif %}
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.1.8">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.14">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -32,15 +32,28 @@
                 <!-- <div class="range"></div> -->
             </div>
             <div class="body__info">
+                {% if metadata['album'] %}
                 <div class="info__album">{{metadata['album']}}</div>
+                {% else %}
+                <div class="info__album"><br></div>
+                {% endif %}
                 <div class="info__track">{{metadata['title']}}</div>
+                {% if metadata['artist'] %}
                 <div class="info__artist">{{metadata['artist']}}</div>
+                {% else %}
+                <div class="info__artist"><br></div>
+                {% endif %}
             </div>
             <div class="body__buttons">
                 <ul class="list list--buttons">
-                    <li><a href="?prev" class="list__link"><i class="fa fa-step-backward"></i></a></li>
-                    <li><a href="?{{main_button}}" class="list__link"><i class="fa fa-{{main_button}}"></i></a></li>
-                    <li><a href="?next" class="list__link"><i class="fa fa-step-forward"></i></a></li>
+                    <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
+                    <li><a href="?prev" id="prev-btn" class="list__link ctrl-btn"><i class="fa fa-step-backward"></i></a></li>
+                    <li><a href="?{{main_button}}" id="play-pause-btn" class="list__link ctrl-btn"><i class="fa fa-{{main_button}}"></i></a></li>
+                    <li><a href="?next" id="next-btn" class="list__link ctrl-btn"><i class="fa fa-step-forward"></i></a></li>
+                    <li><a href="?repeat" class="list__link {{repeat_color}}">
+                    <span class="red">{{1 if repeat_option else ''}}</span>
+                    <i class="fa fa-undo {{repeat_color}}"></i>
+                </a></li>
                 </ul>
             </div>
         </div>
@@ -48,18 +61,16 @@
             <ul class="list list--footer">
 <!--                <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>-->
                 <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
-                <li><a href="?shuffle" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
+<!--shuffle was here-->
                 <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
                     <svg width="20" height="20">
                         <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z"
                               class="style-scope yt-icon"></path>
                     </svg>
                 </a></li>
-                <li><a href="?repeat" class="list__link {{repeat_color}}">
-                    <span class="red">{{1 if repeat_option else ''}}</span>
-                    <i class="fa fa-undo {{repeat_color}}"></i>
-                </a></li>
-                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file"></i></a>
+<!--repeat was here-->
+                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file-audio"></i></a>
+                <li><a onclick="showModal('more')" href="/#more" class="list__link"><i class="fas fa-ellipsis-h"></i></a>
                 </li>
             </ul>
             <div id="volControl">
@@ -102,7 +113,7 @@
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
                placeholder="Search for music..." title="Type in artist/tracks">
         {% for track in list_of_tracks %}
-            <a class="track" title="{{track['title']}}" href="{{track['href']}}">{{track['title']}}</a>
+            <a class="track" title="{{track.title}}" href="{{track.href}}">{{track.title}}</a>
         {% endfor %}
     </div>
 </div>
@@ -110,86 +121,61 @@
     <div class="modal-content">
         <h2>Settings</h2>
         <ul style="list-style: none">
-            <li data-key='auto_update' title="Auto Update" class="modalRow setting" onclick="toggleSetting(this)">
-                Auto Update
+            <!-- data-key, title, [inner-text] -->
+            {% set setting_toggles=(('auto_update', 'Auto Update'),
+                ('notifications', 'Notifications'),
+                ('discord_rpc', 'Discord Presence'),
+                ('run_on_startup', 'Run on Startup'),
+                ('save_window_positions', 'Save Window Positions'),
+                ('populate_queue_startup', 'Populates Queue From Folders on Startup', 'Populate Queue on Startup'),
+                ('save_queue_sessions', 'Save Queue Between Sessions', 'Persistent Queue'),
+                ('flip_main_window', 'Move Track Content to the Left'),
+                ('vertical_gui', 'Vertical Main GUI'),
+                ('show_album_art', 'Show Album Art on Main GUI'),
+                ('mini_on_top', 'Mini Mode Stays on Top'),
+                ('folder_cover_override', "Use Cover.* for art instead of file's album art", "Image cover.* override file's cover"),
+                ('folder_context_menu', 'Add to Folder Context Menu', 'Folder Context Menu'),
+                ('show_track_number', 'Show track number in queue', 'Show Track Number')) %}
+            {% for setting_toggle in setting_toggles %}
+            <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">
+                {{ setting_toggle[1] if setting_toggle|length == 2 else setting_toggle[2] }}
                 <label class="switch">
                     <input type="checkbox">
                     <span class="slider round"></span>
-                </label></li>
-            <li data-key='notifications' title="Notifications" class="modalRow setting" onclick="toggleSetting(this)">
-                Notifications
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='discord_rpc' title="Discord Prescence" class="modalRow setting" onclick="toggleSetting(this)">
-                Discord Presence
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='run_on_startup' title="Run on Startup" class="modalRow setting" onclick="toggleSetting(this)">
-                Run on Startup
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='save_window_positions' title="Save Window Positions" class="modalRow setting" onclick="toggleSetting(this)">
-                Save Window Positions
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='populate_queue_startup' title="Populates Queue From Folders on Startup" class="modalRow setting" onclick="toggleSetting(this)">
-                Populate Queue on Startup
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='save_queue_sessions' title="Save Queue Between Sessions" class="modalRow setting" onclick="toggleSetting(this)">
-                Persistent Queue
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='flip_main_window' title="Move Main Content to the Left" class="modalRow setting" onclick="toggleSetting(this)">
-                Move Main Content to the Left
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='vertical_gui' title="Vertical Main GUI" class="modalRow setting" onclick="toggleSetting(this)">
-                Vertical Main GUI
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='show_album_art' title="Show Album Art on Main GUI" class="modalRow setting" onclick="toggleSetting(this)">
-                Show Album Art on Main GUI
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='mini_on_top' title="Mini Mode Stay on Top" class="modalRow setting" onclick="toggleSetting(this)">
-                Mini Mode Stay on Top
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='folder_context_menu' title="Add to Folder Context Menu" class="modalRow setting" onclick="toggleSetting(this)">
-                Folder Context Menu
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
-            <li data-key='folder_cover_override' title="Use Cover.* for art instead of file's album art" class="modalRow setting" onclick="toggleSetting(this)">
-                Image cover.* override file's cover
-                <label class="switch">
-                    <input type="checkbox">
-                    <span class="slider round"></span>
-                </label></li>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<div id="more-modal" class="modal">
+    <div class="modal-content">
+        <h2>More</h2>
+        <ul style="list-style: none">
             <li class="modalRow" title="search for chromecasts" onclick="refreshDevices()">
                Refresh Devices
+            </li>
+            <!-- TODO -->
+        </ul>
+        <h2>Timer</h2>
+        <ul style="list-style: none">
+            {% for timer_toggle in (('timer_shut_off_computer', 'Shut Down Computer'),
+                                    ('timer_sleep_computer', 'Sleep Computer'),
+                                    ('timer_hibernate_computer', 'Hibernate Computer'),
+                                    ('timer_only_stop', 'Only Stop playback')) %}
+            <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
+                <label for="{{ timer_toggle[0] }}">{{ timer_toggle[1] }}</label>
+                <label class="switch">
+                    <input type="radio" id="{{ timer_toggle[0] }}" name="timerOption">
+                    <span class="slider round"></span>
+                </label>
+            </li>
+            {% endfor %}
+            <li class="modalRow">
+                <label title="Enter HH:MM or minutes">Enter Time</label>
+                <input id="timerMinutes" title="HH:MM or minutes" type="text" onchange="parseTimerInput()">
+                <button id="setTimer" onclick="setTimer()">Set</button>
+                <button id="cancelTimer" onclick="cancelTimer()">Cancel</button>
             </li>
         </ul>
     </div>
@@ -199,6 +185,7 @@
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
     const settingToggles = document.getElementsByClassName('setting');
+    const timerToggles = document.getElementsByClassName('timerSetting');
     const searchBar = document.getElementById('searchBar');
 
     // modals
@@ -207,6 +194,7 @@
     modals['playlists'] = document.getElementById('playlists-modal');
     modals['files']     = document.getElementById('files-modal');
     modals['settings']  = document.getElementById('settings-modal');
+    modals['more']      = document.getElementById('more-modal');
 
     function showModal(option) {
         modals[option].style.display = 'block';
@@ -234,9 +222,7 @@
     }
 
     function closeModals() {
-        modals['settings'].style.display = 'none';
-        modals['queue'].style.display = 'none';
-        modals['files'].style.display = 'none';
+        for (const option in modals) modals[option].style.display = 'none';
         history.replaceState('', document.title, window.location.pathname + window.location.search);
         document.getElementById('wrapper').style.filter = '';
     }
@@ -262,7 +248,6 @@
         modalDisplays = Object.values(modals).map(el => el.style.display);
         if (event.key == 'Escape' && modalDisplays.includes('block')) closeModals();
         //  else if (!modalDisplays.includes('block')) {
-                // list--buttons
         //     if (event.key == 'Space') {
         //         window.location.replace('/')
         //     } else if (event.key == '>') {
@@ -280,6 +265,18 @@
         for (const settingEl of settingToggles) {
             const checkBox = settingEl.getElementsByTagName('input')[0];
             checkBox.checked = settingsFromServer[settingEl.dataset.key];
+        }
+
+        for (const timerEl of timerToggles) {
+            const radio = timerEl.getElementsByTagName('input')[0];
+            if (timerEl.dataset.key in settingsFromServer) {
+                const val = settingsFromServer[timerEl.dataset.key];
+                radio.checked = val;
+                if (val) break;
+            } else {
+                // stop only option
+                radio.checked = true;
+            }
         }
     };
 
@@ -318,6 +315,72 @@
         toast.className = 'show';
         setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 2400);
     }
+
+    function countChar(str, char) {
+        for (let charIndex = 0; charIndex < len; ++charIndex) {
+            if (str[charIndex] === char) {
+                ++num;
+            }
+        }
+        return num;
+    }
+
+
+    function parseTimerInput() {
+        var timer_value = document.getElementById('timerMinutes').value;
+        timer_value = timer_value.trim();
+        const regex_is_num = RegExp('^[0-9]+ *$');
+        const regex_is_time = RegExp('^[0-9]?[0-9]:[0-9][0-9] *$');
+        let seconds;
+        const set_timer_btn = document.getElementById('setTimer');
+        if (regex_is_num.test(timer_value)) {
+            seconds = parseInt(timer_value) * 60;
+        } else if (regex_is_time.test(timer_value)) {
+            const time = timer_value.split(':');
+            const hour = parseInt(time[0]);
+            const minutes = parseInt(time[1]);
+            var d = new Date();
+            d.setHours(hour);
+            d.setMinutes(minutes);
+            // add 12 hours if the date is old
+            const secondsDelta = d - new Date();
+            if (d < new Date()) d.setTime(d.getTime() + 43200);
+            seconds = d.getTime();
+        } else {
+            // disable set timer button
+            set_timer_btn.disabled = true;
+            return -1;
+        }
+        // enable set timer button
+        set_timer_btn.disabled= false;
+        return seconds;
+    }
+
+
+    function setTimer() {
+        let seconds = parseTimerInput();
+        if (seconds >= 0) {
+            fetch('/timer/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: seconds
+            }).then(r => r.text()).then(text => {
+                console.log(text);
+                showToast('Timer set for ' + text);
+            });
+        } else {
+            showToast('Could not set timer');
+        }
+    }
+
+    function cancelTimer() {
+        fetch('/timer/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: 'cancel'
+        }).then(() => showToast('Timer cancelled'));
+    }
+
 
     function setVolume(newVol) {
         newVol = parseInt(newVol);

@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.0
+- [Feature] Added more to Web GUI
+- [Feature] Added timer options to Web GUI
+- [Fix] Web GUI resume
+- [Fix] Man window tabs order
+
 4.69.0
 - [Feature] Playlist Tab (play, queue, edit)
 - [Feature] Removed playlist related windows

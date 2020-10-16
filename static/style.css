@@ -11,6 +11,23 @@ a {
     text-decoration: none;
 }
 
+button {
+    background-color: #2196f3;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    padding: 5px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#timerMinutes {
+    width: 5em;
+}
+
 .player__container {
     margin-top: 4rem;
     margin-right: auto;
@@ -158,57 +175,51 @@ a {
     margin-left: 1.25rem;
 }
 
-.list--buttons a, #play-pause-btn {
+.ctrl-btn {
+    border-radius: 50%;
+    box-shadow: 0 3px 6px rgba(33, 33, 33, .1), 0 3px 12px rgba(33, 33, 33, .15);
+}
+
+.list--buttons a {
     padding-top: 0.6rem;
     padding-right: 0.75rem;
     padding-bottom: 0.6rem;
     padding-left: 0.75rem;
     font-size: 1rem;
-    border-radius: 50%;
-    box-shadow: 0 3px 6px rgba(33, 33, 33, .1), 0 3px 12px rgba(33, 33, 33, .15);
+    color: #212121;
+    opacity: 0.5;
 }
 
-.list--buttons a:focus, .list--buttons a:hover, #play-pause-btn {
-    color: rgba(171, 2, 26, .95);
-    opacity: 1;
+.list--buttons a:focus, .list--buttons a:hover {
+    opacity: 0.75;
+}
+
+.ctrl-btn:focus, .ctrl-btn:hover {
     box-shadow: 0 6px 9px rgba(33, 33, 33, .1), 0 6px 16px rgba(33, 33, 33, .15);
 }
 
-.list--buttons li:nth-of-type(2) a {
+#play-pause-btn {
     padding-top: 0.9rem;
     padding-right: 1rem;
     padding-bottom: 0.9rem;
     padding-left: 1.19rem;
     margin-left: 0.5rem;
     font-size: 1.25rem;
-    color: #212121;
-    opacity: 0.5;
 }
 
-.list--buttons li:nth-of-type(2) a:hover {
-    color: rgba(211, 3, 32, .95);
+#play-pause-btn:hover {
     opacity: 1;
 }
 
-.list--buttons li:first-of-type a, .list--buttons li:last-of-type a {
+#prev-btn, #next-btn {
     font-size: 0.95rem;
-    color: #212121;
-    opacity: 0.5;
-}
-
-.list--buttons li:first-of-type a:focus,
-.list--buttons li:last-of-type a:focus,
-.list--buttons li:first-of-type a:hover,
-.list--buttons li:last-of-type a:hover {
-    color: #d30320;
-    opacity: 0.75;
 }
 
 .list__link {
     transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.list__link:focus, .list__link:hover, .list__link>img:hover, #play-pause-btn {
+.list__link:focus, .list__link:hover, .list__link>img:hover {
     color: #d30320;
     fill: #d30320;
 }
