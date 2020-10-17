@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.2
+- [Fix] Reduce size
+
 4.70.1
 - [Fix] Track numbering
 

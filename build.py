@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', '-d', default=False, action='store_true')
 parser.add_argument('--versioning', '-v', default=False, action='store_true', help="Only update build files' version")
 parser.add_argument('--start', '-s', default=False, action='store_true', help='Auto launch portable MC after building')
+parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
 args = parser.parse_args()
@@ -143,7 +144,7 @@ try: subprocess.check_call(f'pip install "build_files\\{pyinstaller_whl}"', stdo
 except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
-try: s1 = subprocess.Popen('pyinstaller build_files/mc_portable.spec')
+try: s1 = subprocess.Popen(f'pyinstaller {"--clean " if args.clean else ""}build_files/mc_portable.spec')
 except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" build_files/mc_portable.spec')
 updater_release_path = r'Music Caster Updater\Music Caster Updater\bin\x86\Release\netcoreapp3.1'
 shutil.rmtree(updater_release_path, True)
@@ -151,7 +152,7 @@ subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music C
                       f'/p:Configuration=Release /p:PlatformTarget=x86')
 # try: s2 = subprocess.Popen('pyinstaller build_files/updater.spec')
 # except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" build_files/updater.spec')
-try: subprocess.check_call('pyinstaller build_files/mc_onedir.spec')
+try: subprocess.check_call(f'pyinstaller {"--clean" if args.clean else ""} build_files/mc_onedir.spec')
 except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" build_files/mc_onedir.spec')
 # s2.wait()
 try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
