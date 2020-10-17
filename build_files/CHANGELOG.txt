@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.3
+- [Fix] Folder cover art
+
 4.70.2
 - [Fix] Reduce size
 

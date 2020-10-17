@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.2'
+VERSION = latest_version = '4.70.3'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -287,7 +287,7 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
             if os.path.exists(folder_cover):
                 data = io.BytesIO()
                 im = Image.open(folder_cover)
-                im.save(data, format=ext, quality=95)
+                im.save(data, format='png', quality=95)
                 return ext, base64.b64encode(data.getvalue())
     tags = mutagen.File(file_path)
     if tags is not None:
@@ -1217,7 +1217,6 @@ def folder_action(action='Play Folder'):
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
     else: main_last_event = 'folder_action'
-    # if open_main: activate_main_window()
 
 
 def internet_available(host='8.8.8.8', port=53, timeout=3):
