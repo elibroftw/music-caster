@@ -56,7 +56,7 @@ def add_new_changes(prev_changes):
     return prev_changes + new_changes
 
 
-def update_spec_files(debug_option):
+def set_spec_debug(debug_option):
     with open('build_files/mc_portable.spec', 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
@@ -127,7 +127,7 @@ def create_zip(zip_filename, files_to_zip):
 update_versions()
 print('Updated versions of build files')
 if args.versioning: sys.exit()
-if args.debug: update_spec_files(True)
+if args.debug: set_spec_debug(True)
 if args.upload: print('Will upload to GitHub after building')
 
 shutil.rmtree('dist/Music Caster', True)
@@ -158,7 +158,7 @@ except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" build_fil
 try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
 except FileNotFoundError: s4 = None
 s1.wait()
-if args.debug: update_spec_files(False)
+if args.debug: set_spec_debug(False)
 
 for folder in {'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(folder)
