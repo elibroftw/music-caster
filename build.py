@@ -21,6 +21,7 @@ parser.add_argument('--start', '-s', default=False, action='store_true', help='A
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
+parser.add_argument('--install', '-i', default=False, action='store_true', help='installs dependencies before building')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -134,14 +135,16 @@ shutil.rmtree('dist/Music Caster', True)
 with suppress(FileNotFoundError): os.remove('dist/Music Caster.exe')
 with suppress(FileNotFoundError): os.remove(f'dist/{SETUP_OUTPUT_NAME}.exe')
 
-print('Installing dependencies...')
+
 pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
 pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
-subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
-try: subprocess.check_call(f'pip install build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
-except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
-try: subprocess.check_call(f'pip install "build_files\\{pyinstaller_whl}"', stdout=subprocess.DEVNULL)
-except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
+if args.install:
+    print('Installing / Updating dependencies...')
+    subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
+    try: subprocess.check_call(f'pip install build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
+    try: subprocess.check_call(f'pip install "build_files\\{pyinstaller_whl}"', stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
 print(f'building executables with debug={args.debug}')
 py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
 try: s1 = subprocess.Popen(f'pyinstaller {"--clean " if args.clean else ""}build_files/mc_portable.spec')
@@ -157,8 +160,13 @@ except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" build_fil
 # s2.wait()
 try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
 except FileNotFoundError: s4 = None
-s1.wait()
+
+portable_failed = s1.wait()
 if args.debug: set_spec_debug(False)
+if portable_failed:
+    print('Portable installation failed')
+    print(s1.communicate()[1])
+    sys.exit()
 
 for folder in {'dist/static', 'dist/templates'}:
     with suppress(OSError): os.mkdir(folder)
