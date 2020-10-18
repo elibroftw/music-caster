@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.4
+- [Fix] Rescan library from web GUI
+
 4.70.3
 - [Fix] Folder cover art
 

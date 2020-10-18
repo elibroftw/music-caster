@@ -14,7 +14,7 @@
 {% if not settings.get('DEBUG', False) %}
 <meta http-equiv="refresh" content="30">
 {% endif %}
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.14">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.19">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -152,10 +152,16 @@
     <div class="modal-content">
         <h2>More</h2>
         <ul style="list-style: none">
+            <li class="modalRow" title="rescan folders" onclick="rescanLibrary()">
+               Rescan Library
+            </li>
             <li class="modalRow" title="search for chromecasts" onclick="refreshDevices()">
                Refresh Devices
             </li>
-            <!-- TODO -->
+            <li class="modalRow" title="view downloadable music files">
+                <a href="files">View Music Files With Source Links</a>
+            </li>
+
         </ul>
         <h2>Timer</h2>
         <ul style="list-style: none">
@@ -304,6 +310,11 @@
         });
     }
 
+    function rescanLibrary() {
+        fetch('/rescan-library/');
+        showToast('Rescanning Library');
+    }
+
     function refreshDevices() {
         fetch('/refresh-devices/');
         showToast('Refreshing Devices');
@@ -324,7 +335,6 @@
         }
         return num;
     }
-
 
     function parseTimerInput() {
         var timer_value = document.getElementById('timerMinutes').value;
@@ -355,7 +365,6 @@
         set_timer_btn.disabled= false;
         return seconds;
     }
-
 
     function setTimer() {
         let seconds = parseTimerInput();

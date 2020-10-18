@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.3'
+VERSION = latest_version = '4.70.4'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -235,7 +235,8 @@ def create_email_url():
     except FileNotFoundError:
         log_lines = []
     log_lines = '\n\n'.join(log_lines)
-    mail_to = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}&body=%0D%0A%23%20last%20few%20lines%20of%20the%20log%0D%0A{log_lines}'
+    email_body = f'body=%0D%0A%23%20last%20few%20lines%20of%20the%20log%0D%0A{log_lines}'
+    mail_to = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}&{email_body}'
     return mail_to
 
 
@@ -548,7 +549,7 @@ def api_play():
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
     if 'paths' in request.values: play_paths(request.values.getlist('paths'), queue_only=queue_only,
-                                           from_explorer=from_explorer)
+                                             from_explorer=from_explorer)
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -590,6 +591,12 @@ def api_change_setting():
 @app.route('/refresh-devices/')
 def api_refresh_devices():
     Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
+    return 'true'
+
+
+@app.route('/rescan-library/')
+def api_rescan_library():
+    index_all_tracks()
     return 'true'
 
 
@@ -639,7 +646,8 @@ def api_get_file():
 @app.route('/files/')
 def api_all_files():
     device_name = platform.node()
-    html_resp = f'<!DOCTYPE html><title>Music Caster Files</title><h1>Music Files on {device_name}</h1><ul>\n'
+    html_header = f'<!DOCTYPE html><title>Music Caster Files</title><h1>Music Files on {device_name}</h1>'
+    html_resp = f'{html_header}<a href="/" style="margin-left:2em;">home</a><ul>\n'
     # sort by filename
     sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
     for filename, metadata in sorted_tracks:
@@ -2063,7 +2071,8 @@ def read_main_window():
                     if index_to_rm < smallest_i: smallest_i = index_to_rm
                     pl_files.pop(index_to_rm)
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
-            main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=max(smallest_i - 3, 0))
+            scroll_to_index = max(smallest_i - 3, 0)
+            main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=scroll_to_index)
             main_window.refresh()
     elif main_event == 'pl_add_tracks':
         fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
@@ -2312,17 +2321,17 @@ try:
                    'Repeat One ✓' if settings['repeat'] else 'Repeat One',
                    'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']
 
-    menu_def_1 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
+    menu_def_1 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
-    menu_def_2 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
+    menu_def_2 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    menu_def_3 = ['', ['Settings', 'Refresh Library', 'Refresh Devices', 'Select Device', device_names,
+    menu_def_3 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
                        ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
@@ -2374,7 +2383,7 @@ try:
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
-        'Refresh Library': index_all_tracks,
+        'Rescan Library': index_all_tracks,
         'Refresh Devices': lambda: Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start(),
         # isdigit should be an if statement
         'Settings': lambda: activate_main_window('tab_settings'),
