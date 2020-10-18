@@ -14,8 +14,8 @@ except RuntimeError as e: VERSION = str(e)
 import requests
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
-parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=Truee')
-parser.add_argument('--versioning', '-v', default=False, action='store_true', help="Only update build files' version")
+parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=True')
+parser.add_argument('--version_update', '-v', default=False, action='store_true', help="Only update build files' version")
 parser.add_argument('--start', '-s', default=False, action='store_true', help='Auto launch portable MC after building')
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
@@ -128,18 +128,19 @@ def create_zip(zip_filename, files_to_zip):
 if args.dry: print('Dry Build')
 update_versions()
 print('Updated versions of build files')
-if args.versioning: sys.exit()
+if args.version_update: sys.exit()
 if args.debug and not args.dry: set_spec_debug(True)
 if args.upload and not args.dry: print('Will upload to GitHub after building')
 
+# remove old builds
 shutil.rmtree('dist/Music Caster', True)
-for file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
     with suppress(FileNotFoundError):
-        file = os.path.join('dist', file)
-        print(f'Removing {file}')
-        os.remove(file)
+        dist_file = os.path.join('dist', dist_file)
+        print(f'Removing {dist_file}')
+        os.remove(dist_file)
 
-if args.install and not args.dry:
+if args.install:
     pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
     pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
     print('Installing / Updating dependencies...')
