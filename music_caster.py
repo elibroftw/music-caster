@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.5'
+VERSION = latest_version = '4.70.6'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -1680,7 +1680,7 @@ def read_main_window():
         if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
             main_window.grab_any_where_off()
         mouse_hover = '_'.join(main_event.split('_')[:-2])
-    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'pl_tracks_mouse_enter',
+    elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'pl_tracks_mouse_leave',
                         'volume_slider_mouse_leave'}:
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()

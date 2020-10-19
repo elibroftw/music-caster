@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.6
+- [Fix] Playlists tab
+
 4.70.5
 - [Fix] Queue from explorer
 

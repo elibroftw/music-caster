@@ -15,7 +15,7 @@ import requests
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=True')
-parser.add_argument('--version_update', '-v', default=False, action='store_true', help="Only update build files' version")
+parser.add_argument('--ver_update', '-v', default=False, action='store_true', help="Only update build files' version")
 parser.add_argument('--start', '-s', default=False, action='store_true', help='Auto launch portable MC after building')
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
@@ -128,7 +128,7 @@ def create_zip(zip_filename, files_to_zip):
 if args.dry: print('Dry Build')
 update_versions()
 print('Updated versions of build files')
-if args.version_update: sys.exit()
+if args.ver_update: sys.exit()
 if args.debug and not args.dry: set_spec_debug(True)
 if args.upload and not args.dry: print('Will upload to GitHub after building')
 
@@ -205,8 +205,12 @@ dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.
 # check if all files were built
 all_exist = True
 for dist_file in dist_files:
-    file_exists = os.path.exists(f'dist/{dist_file}')
+    file_name = f'dist/{dist_file}'
+    file_exists = os.path.exists(file_name)
     file_exists_str = 'EXISTS' if file_exists else 'DOES NOT EXIST!'
+    if file_exists:
+        file_size = os.path.getsize(file_name) // 1000  # KB
+        file_exists_str += f' {file_size:,} KB'.rjust(12)
     output_string = (dist_file + ':').ljust(30) + file_exists_str
     print(output_string)
     if not file_exists: all_exist = False
