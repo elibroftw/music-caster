@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.5
+- [Fix] Queue from explorer
+
 4.70.4
 - [Fix] Rescan library from web GUI
 

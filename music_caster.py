@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.4'
+VERSION = latest_version = '4.70.5'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -1057,8 +1057,9 @@ def play_all(starting_files: list = None, queue_only=False):
     Adds starting files to music queue,
     [shuffle] queues files in the "library" with index_all_tracks (ignores starting_files)
     """
-    music_queue.clear()
-    done_queue.clear()
+    if not queue_only:
+        music_queue.clear()
+        done_queue.clear()
     if starting_files is None: starting_files = []
     starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
     if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
@@ -1096,8 +1097,6 @@ def play_paths(paths, queue_only=False, from_explorer=False):
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
         except for the track that is currently playing
     """
-    if len(paths) == 1 and os.path.isfile(paths[0]) and not from_explorer:
-        return play_all(paths, queue_only=queue_only)
     if not queue_only:
         music_queue.clear()
         done_queue.clear()
