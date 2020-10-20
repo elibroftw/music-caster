@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.7
+- [Fix] Fix log lines in email
+
 4.70.6
 - [Fix] Playlists tab
 

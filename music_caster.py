@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.6'
+VERSION = latest_version = '4.70.7'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -231,11 +231,11 @@ def cycle_repeat(update_main=False):
 def create_email_url():
     try:
         with open('music_caster.log') as f:
-            log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
+            log_lines = f.read().splitlines()[-10:]  # get last 10 lines of the log
     except FileNotFoundError:
         log_lines = []
-    log_lines = '\n\n'.join(log_lines)
-    email_body = f'body=%0D%0A%23%20last%20few%20lines%20of%20the%20log%0D%0A{log_lines}'
+    log_lines = '%0D%0A'.join(log_lines)
+    email_body = f'body=%0D%0A%23%20Last%20Few%20Lines%20of%20the%20Log%0D%0A%0D%0A{log_lines}'
     mail_to = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}&{email_body}'
     return mail_to
 
@@ -1022,8 +1022,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         try:
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{PORT}/file?{url_args}'
-            with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
             cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
+            with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
             mc = cast.media_controller
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
