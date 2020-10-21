@@ -14,7 +14,7 @@
 {% if not settings.get('DEBUG', False) %}
 <meta http-equiv="refresh" content="30">
 {% endif %}
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.19">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.23">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -23,13 +23,7 @@
         <!-- TODO: theme option -->
         <div class="player__body">
             <div class="body__cover">
-                <ul class="list list--cover">
-                    <li><a class="list__link" href=""><i class="fa fa-navicon"></i></a></li>
-                    <li><a class="list__link" href=""></a></li>
-                    <!-- <li><a class="list__link" href=""><i class="fa fa-search"></i></a></li> -->
-                </ul>
                 <img src="{{art|safe}}" alt="Album Art" style="text-align: center" />
-                <!-- <div class="range"></div> -->
             </div>
             <div class="body__info">
                 {% if metadata['album'] %}
@@ -159,7 +153,7 @@
                Refresh Devices
             </li>
             <li class="modalRow" title="view downloadable music files">
-                <a href="files">View Music Files With Source Links</a>
+                <a href="files">View Music Files Source Links</a>
             </li>
 
         </ul>
@@ -213,7 +207,7 @@
             searchBar.value = '';
             searchBar.value = temp;
         } else if (option === 'queue') {
-            const queueTracks = modals['queue'].getElementsByTagName('a');
+            const queueTracks = modals['queue'].getElementsByClassName('track');
             let scrollAmount = 0;
             let playingTrack = document.getElementsByClassName('track')[0];
             for (const track of queueTracks) {
@@ -288,7 +282,7 @@
 
     function filterTracks() {
         const filter = searchBar.value.toUpperCase();
-        const aTags = document.getElementById('tracks-list').getElementsByTagName('a');
+        const aTags = document.getElementById('tracks-list').getElementsByClassName('track');
         for (const a of aTags) {
             const txtValue = (a.textContent || a.innerText).toUpperCase();
             if (txtValue.indexOf(filter) > -1) {

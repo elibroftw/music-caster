@@ -17,7 +17,7 @@ button {
     border: none;
     border-radius: 5px;
     color: white;
-    padding: 5px 25px;
+    padding: 5px 10px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -30,10 +30,11 @@ button {
 }
 
 .player__container {
-    margin-top: 4rem;
+    margin-top: 6.5%;
     margin-right: auto;
     margin-left: auto;
     max-width: 30rem;
+    text-align: center;
     width: 90%;
     background-color: #fff;
     border-radius: 0.25rem;
@@ -46,8 +47,7 @@ button {
 }
 
 .body__cover img {
-    max-width: 100%;
-    width: 30rem;
+    width: 100%;
     border-radius: 0.25rem 0.25rem 0 0;
     display: block;
     margin-left: auto;
@@ -140,7 +140,6 @@ button {
 .body__info {
     padding-top: 1.5rem;
     padding-bottom: 1.25rem;
-    text-align: center;
 }
 
 .info__album, .info__track {
@@ -476,9 +475,9 @@ input:checked+.slider:before {
         margin-top: 10%;
     }
 
-    .player__container {
+    /* .player__container {
         margin-top: 2em;
-    }
+    } */
 }
 
 #toast {

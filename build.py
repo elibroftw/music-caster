@@ -130,6 +130,7 @@ update_versions()
 print('Updated versions of build files')
 if args.ver_update: sys.exit()
 if args.debug and not args.dry: set_spec_debug(True)
+else: set_spec_debug(False)
 if args.upload and not args.dry: print('Will upload to GitHub after building')
 
 # remove old builds
@@ -145,9 +146,9 @@ if args.install:
     pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
     print('Installing / Updating dependencies...')
     subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
-    try: subprocess.check_call(f'pip install build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
+    try: subprocess.check_call(f'pip install --force build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
-    try: subprocess.check_call(f'pip install "build_files\\{pyinstaller_whl}"', stdout=subprocess.DEVNULL)
+    try: subprocess.check_call(f'pip install --force build_files\\{pyinstaller_whl}', stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
 
 if not args.dry:

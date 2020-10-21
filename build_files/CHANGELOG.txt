@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.8
+- [Fix] Web GUI shuffle option
+
 4.70.7
 - [Fix] Fix log lines in email
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.7'
+VERSION = latest_version = '4.70.8'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -512,7 +512,7 @@ def web_index():  # web GUI
         elif 'prev' in request.args: prev_track()
         elif 'repeat' in request.args: cycle_repeat()
         elif 'shuffle' in request.args:
-            change_settings('shuffle', not settings['shuffle'])
+            change_settings('shuffle_playlists', not settings['shuffle_playlists'])
         return redirect('/')
     metadata = get_current_metadata()
     art = get_current_album_art()
@@ -646,14 +646,13 @@ def api_get_file():
 @app.route('/files/')
 def api_all_files():
     device_name = platform.node()
-    html_header = f'<!DOCTYPE html><title>Music Caster Files</title><h1>Music Files on {device_name}</h1>'
-    html_resp = f'{html_header}<a href="/" style="margin-left:2em;">home</a><ul>\n'
     # sort by filename
     sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
+    list_of_tracks = []
     for filename, metadata in sorted_tracks:
         query = urllib.parse.urlencode({'path': filename})
-        html_resp += f'<li><a title="{filename}" class="track" href="/file?{query}">{filename}</a></li>\n'
-    return html_resp + '</ul>'
+        list_of_tracks.append({'title': metadata['sort_key'], 'href': f'/file?{query}'})
+    return render_template('files.html', files=list_of_tracks, device_name=device_name)
 
 
 def gen_header(sample_rate, bits_per_sample, channels):
