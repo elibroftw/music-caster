@@ -145,18 +145,9 @@
 <div id="more-modal" class="modal">
     <div class="modal-content">
         <h2>More</h2>
-        <ul style="list-style: none">
-            <li class="modalRow" title="rescan folders" onclick="rescanLibrary()">
-               Rescan Library
-            </li>
-            <li class="modalRow" title="search for chromecasts" onclick="refreshDevices()">
-               Refresh Devices
-            </li>
-            <li class="modalRow" title="view downloadable music files">
-                <a href="files">View Music Files Source Links</a>
-            </li>
-
-        </ul>
+        <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">Rescan Library</p>
+        <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">Refresh Devices</p>
+        <a class="modalRow" href="/files">View Music Files Source Links</a>
         <h2>Timer</h2>
         <ul style="list-style: none">
             {% for timer_toggle in (('timer_shut_off_computer', 'Shut Down Computer'),
