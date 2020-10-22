@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.10'
+VERSION = latest_version = '4.70.11'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -19,6 +19,7 @@ from audio_player import AudioPlayer
 import base64
 from contextlib import suppress
 from datetime import datetime, timedelta
+import errno
 # noinspection PyUnresolvedReferences
 import encodings.idna  # DO NOT REMOVE
 from functools import cmp_to_key
@@ -2208,7 +2209,10 @@ def get_latest_release(ver, force=False):
 
 def auto_update(auto_start=True):
     global update_available
-    try:
+    """ 
+    auto_start is True on Startup, false on exit
+    """
+    with suppress(requests.ConnectionError):
         release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', False)))
         if release:
             latest_ver = release['version']
@@ -2227,18 +2231,26 @@ def auto_update(auto_start=True):
                         temp_tray.show_message('Music Caster', f'Downloading update v{latest_ver}', time=5000)
                         temp_tray.update(tooltip=f'Downloading update v{latest_ver}')
                     else: temp_tray = tray
-                    download(setup_dl_link, 'MC_Installer.exe')
-                    if auto_start:
-                        temp_tray.hide()
-                        temp_tray.close()
-                    Popen(cmd, shell=True)
+                    try:
+                        download(setup_dl_link, 'MC_Installer.exe')
+                        if auto_start:
+                            temp_tray.hide()
+                            temp_tray.close()
+                        Popen(cmd, shell=True)
+                    except OSError as _e:
+                        if _e.errno == errno.ENOSPC:
+                            temp_tray.show_message('Music Caster', 'ERROR: No space left on device to auto-update')
+                        change_settings('auto_update', False)
+                        if auto_start:
+                            temp_tray.hide()
+                            temp_tray.close()
+                        return False
                 else:
                     os.startfile('Updater.exe')
                     time.sleep(2)
                 sys.exit()
             else:
                 update_available = f'Update v{latest_ver} is available'
-    except requests.ConnectionError: pass
 
 
 def send_info():
