@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.8'
+VERSION = latest_version = '4.70.9'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI

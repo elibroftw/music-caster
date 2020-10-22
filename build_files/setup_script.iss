@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.70.8"
+#define MyAppVersion "4.70.9"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -42,16 +42,17 @@ Source: "{#SourcePath}CHANGELOG.txt"; DestDir: "{app}"; DestName: "CHANGELOG.txt
 Type: files; Name: {app}\*.pyd
 Type: files; Name: {app}\*.dll
 ; delete previous version folders and those that may contain old files
-Type: filesandordirs; Name: {app}\pygame
-Type: filesandordirs; Name: {app}\images
-Type: filesandordirs; Name: {app}\wx
-Type: filesandordirs; Name: {app}\lxml
-Type: filesandordirs; Name: {app}\lib2to3
-Type: filesandordirs; Name: {app}\google
-Type: filesandordirs; Name: {app}\markupsafe
 Type: filesandordirs; Name: {app}\Crypto
+Type: filesandordirs; Name: {app}\Cryptodome
+Type: filesandordirs; Name: {app}\google
 Type: filesandordirs; Name: {app}\templates
-
+Type: filesandordirs; Name: {app}\images
+Type: filesandordirs; Name: {app}\lib2to3
+Type: filesandordirs; Name: {app}\lxml
+Type: filesandordirs; Name: {app}\markupsafe
+Type: filesandordirs; Name: {app}\pygame
+Type: filesandordirs; Name: {app}\PyQt5
+Type: filesandordirs; Name: {app}\wx
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
