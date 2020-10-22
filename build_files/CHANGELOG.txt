@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.70.10
+- [Fix] Web GUI improvements
+
 4.70.9
 - [Fix] Remove old installed files
 
