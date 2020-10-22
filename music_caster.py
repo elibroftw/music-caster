@@ -70,7 +70,7 @@ os.chdir(starting_dir)
 EMAIL = 'elijahllopezz@gmail.com'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UNINSTALLER = 'unins000.exe'
-PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 10, getattr(sys, 'frozen', False)
+PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
 STREAM_CHUNK = 1024
 PRESSED_KEYS = set()
 show_pygame_error = update_devices = settings_file_in_use = False
