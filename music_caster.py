@@ -1320,7 +1320,7 @@ def resume():
 def stop(stopped_from: str, stop_cast=True):
     """
     can be called from a non-main thread
-    note: does not check if playing_status is not 'NOT PLAYING'
+    does not check if playing_status is not 'NOT PLAYING'
     """
     global playing_status, cast, track_position, playing_live, playing_url
     app_log.info(f'Stopped from {stopped_from}')
