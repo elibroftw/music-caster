@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.70.11'
+VERSION = latest_version = '4.71.0'
 UPDATE_MESSAGE = """
 [Feature] Playlist Tab (play, queue, edit)
 [Feature] Buffed Web GUI
@@ -115,7 +115,7 @@ settings = {  # default settings
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-    'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title',
+    'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_directories': [home_music_dir], 'playlists': {},
     'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
@@ -1150,7 +1150,12 @@ def file_action(action='Play File(s)'):
             music_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
             if _start_playing and music_queue: play(music_queue[0])
         elif action == 'Play File(s) Next':
-            next_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
+            if settings['reversed_play_next']:
+                for _f in fd.GetPaths():
+                    if valid_music_file(_f):
+                        next_queue.insert(0, _f)
+            else:
+                next_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
             if playing_status == 'NOT PLAYING' and not music_queue and next_queue:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
@@ -1212,14 +1217,18 @@ def folder_action(action='Play Folder'):
             music_queue += temp_queue
             if music_queue: play(music_queue[0])
         elif action == 'Play Folder Next':
-            next_queue += temp_queue
+            if settings['reversed_play_next']:
+                for _f in temp_queue:
+                    next_queue.insert(0, _f)
+            else:
+                next_queue.extend(temp_queue)
             if playing_status == 'NOT PLAYING' and not music_queue and next_queue:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
                 next_track()
         elif action == 'Queue Folder':
             start_playing = not music_queue
-            music_queue += temp_queue
+            music_queue.extend(temp_queue)
             if start_playing and music_queue: play(music_queue[0])
         else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
@@ -1894,14 +1903,14 @@ def read_main_window():
             update_progress_bar_text = True
             track_start = time.time() - track_position
             track_end = track_start + track_length
-    # settings
+    # main window settings tab
     elif main_event == 'email': Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
                         'folder_context_menu', 'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
                         'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
-                        'show_album_art'}:
+                        'show_album_art', 'reversed_play_next'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
         elif main_event == 'save_queue_sessions':
@@ -2161,7 +2170,10 @@ def read_play_url_window():
         elif play_url_values['queue']:
             music_queue.append(url_to_play)
             if len(music_queue) == 1: play(url_to_play)
-        else: next_queue.append(url_to_play)  # Add to Next Queue
+        else:
+            # Add to Next Queue
+            if settings['reversed_play_next']: next_queue.insert(0, url_to_play)
+            else: next_queue.append(url_to_play)
 
 
 def create_shortcut(_shortcut_path):

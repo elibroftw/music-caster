@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.0
+- [Feature] Added option to reverse play next behaviour
+
 4.70.11
 - [Fix] Handle no space bug
 

@@ -537,7 +537,8 @@ def create_settings(version, settings, qr_code):
          create_checkbox('Mini Mode on Top', 'mini_on_top', settings)],
         [create_checkbox('Use cover.* for album art', 'folder_cover_override', settings, True),
          create_checkbox('Folder context menu', 'folder_context_menu', settings)],
-        [create_checkbox('Show track number', 'show_track_number', settings, True)],
+        [create_checkbox('Show track number', 'show_track_number', settings, True),
+         create_checkbox('Reversed Play Next', 'reversed_play_next', settings)],
     ], pad=((0, 0), (5, 0)))
     qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
     qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))

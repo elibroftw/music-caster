@@ -129,7 +129,8 @@
                 ('mini_on_top', 'Mini Mode Stays on Top'),
                 ('folder_cover_override', "Use Cover.* for art instead of file's album art", "Image cover.* override file's cover"),
                 ('folder_context_menu', 'Add to Folder Context Menu', 'Folder Context Menu'),
-                ('show_track_number', 'Show track number in queue', 'Show Track Number')) %}
+                ('show_track_number', 'Show track number in queue', 'Show Track Number'),
+                ('reversed_play_next', 'Reverse play next behaviour', 'Reversed Play Next')) %}
             {% for setting_toggle in setting_toggles %}
             <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">
                 {{ setting_toggle[1] if setting_toggle|length == 2 else setting_toggle[2] }}
