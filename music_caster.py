@@ -1,6 +1,6 @@
-VERSION = latest_version = '4.71.0'
+VERSION = latest_version = '4.71.1'
 UPDATE_MESSAGE = """
-[Feature] Playlist Tab (play, queue, edit)
+[Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
@@ -549,8 +549,19 @@ def api_play():
     queue_only = request.values.get('queue', 'false').lower() == 'true' or from_explorer
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
-    if 'paths' in request.values: play_paths(request.values.getlist('paths'), queue_only=queue_only,
-                                             from_explorer=from_explorer)
+    if 'paths' in request.values:
+        play_paths(request.values.getlist('paths'), queue_only=queue_only,
+                   from_explorer=from_explorer)
+    elif 'path' in request.values:
+        play_paths([request.values['path']], queue_only=queue_only,
+                   from_explorer=from_explorer)
+        # Since its the web GUI, we can queue all as well
+        already_queueing = False
+        for thread in threading.enumerate():
+            if thread.name in {'QueueAll', 'PlayAll'} and thread.is_alive():
+                already_queueing = True
+                break
+        if not already_queueing: Thread(target=queue_all, name='QueueAll', daemon=True).start()
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -1086,7 +1097,7 @@ def queue_all():
     update_lb_queue = True
 
 
-def play_paths(paths, queue_only=False, from_explorer=False):
+def play_paths(paths: list, queue_only=False, from_explorer=False):
     global playing_status, update_lb_queue
     """
     Appends all music files in the provided paths/names (folders, files, playlist names) to a temp list,

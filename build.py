@@ -180,18 +180,20 @@ if not args.dry:
 
     copy_tree('vlc', 'dist/vlc')
 
-    for res_file in ['static/style.css', 'templates/index.html']:
+    res_files = ['static/style.css', 'templates/index.html', 'templates/files.index']
+    for res_file in res_files:
         shutil.copyfile(res_file, 'dist/' + res_file)
 
-    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), 'templates/index.html', 'static/style.css',
-                      ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + glob.glob('vlc/**/*.*', recursive=True) + \
+    # noinspection PyTypeChecker
+    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + \
+                     res_files + glob.glob('vlc/**/*.*', recursive=True) + \
                      [(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(updater_release_path)}/*.*')]
     # [('dist/Updater.exe', 'Updater.exe')]
     create_zip('dist/Portable.zip', portable_files)
     print('Created dist/Portable.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
                                                    'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
-                                                   'templates/index.html', 'static/style.css', 'settings.json'])
+                                                   'settings.json'] + res_files)
     print('Created dist/Source Files Condensed.zip')
     if args.start:
         print('Launching Music Caster.exe')

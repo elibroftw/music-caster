@@ -7,6 +7,7 @@ block_cipher = None
 vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in glob('vlc/**/*.*', recursive=True)]
 data_files = [('Music Caster.VisualElementsManifest.xml', '.'),
               (os.path.abspath('templates/index.html'), 'templates'),
+              (os.path.abspath('templates/files.html'), 'templates'),
               (os.path.abspath('static/style.css'), 'static')] + vlc_files
 # noinspection PyUnresolvedReferences
 a = Analysis([f'{os.getcwd()}/music_caster.py'],

@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.1
+- [Fix] Web GUI play file
+- [Fix] Web GUI styling
+- [Fix] Web GUI view files
+
 4.71.0
 - [Feature] Added option to reverse play next behaviour
 
