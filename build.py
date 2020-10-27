@@ -167,7 +167,6 @@ if not args.dry:
     # s2.wait()
     try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError: s4 = None
-
     portable_failed = s1.wait()
     if args.debug: set_spec_debug(False)
     if portable_failed:
@@ -180,7 +179,7 @@ if not args.dry:
 
     copy_tree('vlc', 'dist/vlc')
 
-    res_files = ['static/style.css', 'templates/index.html', 'templates/files.index']
+    res_files = ['static/style.css', 'templates/index.html', 'templates/files.html']
     for res_file in res_files:
         shutil.copyfile(res_file, 'dist/' + res_file)
 
