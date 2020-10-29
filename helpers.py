@@ -486,7 +486,7 @@ def create_playlists_tab(settings):
     playlist_selector = [
         [Sg.Button('New', key='new_pl', tooltip='Ctrl + N', size=(5, 1), enable_events=True, font=FONT_NORMAL),
          Sg.Button('Delete', key='del_pl', tooltip='Ctrl + Del ', enable_events=True, font=FONT_NORMAL),
-         Sg.Combo(values=playlists_names, sisze=(38, 5), key='playlist_combo', font=FONT_NORMAL,
+         Sg.Combo(values=playlists_names, size=(38, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name),
          Sg.Button('Play', key='play_pl', pad=((12, 5), 5), disabled=default_pl_name is None,
                    enable_events=True, font=FONT_NORMAL),

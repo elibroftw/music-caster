@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.2
+- [Fix] Main GUI
+
 4.71.1
 - [Fix] Web GUI play file
 - [Fix] Web GUI styling
