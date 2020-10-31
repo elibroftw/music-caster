@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.3
+- [Fix] Auto-update True by default
+- [Fix] Better default music folder
+
 4.71.2
 - [Fix] Main GUI
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.2'
+VERSION = latest_version = '4.71.3'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -103,21 +103,20 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 # seconds but using time()
 playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
-DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'
+DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'.replace('\\', '/')
 settings_file = f'{starting_dir}/settings.json'
 
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'}
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
-    'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
-    'music_directories': [home_music_dir], 'playlists': {},
-    'queues': {'done': [], 'music': [], 'next': []}}
+    'music_directories': [home_music_dir], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
 indexing_tracks_thread: Thread = None
 # noinspection PyTypeChecker
