@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.4'
+VERSION = latest_version = '4.71.5'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -2305,6 +2305,7 @@ def activate_instance(port):
 
 
 def quit_if_running():
+    app_log.info('quit_if_running() called')
     if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2) or DEBUG:
         print('Another instance of Music Caster was found' if not DEBUG else '')
         app_log.info('Another instance of Music Caster was found')
