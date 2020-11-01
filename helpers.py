@@ -141,27 +141,23 @@ def create_qr_code(port, ipv4=None):
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
 
 
-def get_running_processes():
+def get_running_processes(look_for='Music Caster.exe'):
     # edited from https://stackoverflow.com/a/22914414/7732434
-    cmd = 'tasklist /NH /FI "IMAGENAME eq Music Caster.exe"'
+    cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
     p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
     task = p.stdout.readline()
     while task != '':
         task = p.stdout.readline().decode().strip()
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
-            process = {'name': m.group(1),  # Image name
-                       'pid': m.group(2),
-                       'session_name': m.group(3),
-                       'session_num': m.group(4),
-                       'mem_usage': m.group(5)}
+            process = {'name': m.group(1), 'pid': m.group(2), 'session_name': m.group(3),
+                       'session_num': m.group(4), 'mem_usage': m.group(5)}
             yield process
 
 
-def is_already_running(threshold=1):
-    for process in get_running_processes():
-        process_name = process['name']
-        if process_name == 'Music Caster.exe':
+def is_already_running(threshold=1, look_for='Music Caster.exe'):
+    for process in get_running_processes(look_for=look_for):
+        if process['name'] == look_for:
             threshold -= 1
             if threshold < 0: return True
     return False

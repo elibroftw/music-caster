@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.5'
+VERSION = latest_version = '4.71.6'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -272,11 +272,10 @@ def handle_exception(exception, restart_program=False):
     if restart_program:
         with suppress(NameError):
             tray.show_message('Music Caster', 'An error occurred, restarting now', time=5000)
+            with suppress(Exception): stop('error handling')
             time.sleep(5)
-        with suppress(Exception):
-            stop('error handling')
-        if IS_FROZEN: os.startfile('Music Caster.exe')
-        sys.exit()
+            if IS_FROZEN: os.startfile('Music Caster.exe')
+            sys.exit()
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
@@ -2306,15 +2305,10 @@ def activate_instance(port):
 
 def quit_if_running():
     app_log.info('quit_if_running() called')
-    if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2) or DEBUG:
-        print('Another instance of Music Caster was found' if not DEBUG else '')
-        app_log.info('Another instance of Music Caster was found')
-        activate_instance(PORT)
-        if IS_FROZEN and not DEBUG: sys.exit()
+
     return False
 
 
-log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
 try:
     os.remove('music_caster.log')
 except FileNotFoundError: pass
@@ -2323,28 +2317,33 @@ except PermissionError:
     if IS_FROZEN:
         activate_instance(PORT)
         sys.exit()
+log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
 log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
 log_handler.setFormatter(log_format)
 app_log = logging.getLogger('music_caster')
 app_log.setLevel(logging.INFO)
 app_log.addHandler(log_handler)
 app_log.propagate = False  # disable console output
-quit_if_running() or (args.exit and sys.exit())  # quit if running or if --exit was supplied to command line
-app_log.info('Reading settings.json (startup)')
-load_settings()
-init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
-init_ydl_thread.start()
-app_log.info('Initializing AudioPlayer')
-audio_player = AudioPlayer()
-# check for update and update if no starting arguments were supplied or if the update flag was used
-if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
-if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
-# Access startup folder by entering "Startup" in Explorer address bar
-if settings.get('DEBUG', False):
-    SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster (DEBUG).lnk'
-else:
-    SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 try:
+    # if an instance is already running, open that one's GUI and exit this instance
+    if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2):
+        app_log.info('Another instance of Music Caster was found')
+        activate_instance(PORT)
+        if IS_FROZEN and not DEBUG: sys.exit()
+    # quit if --exit was supplied to command line
+    if args.exit: sys.exit()
+    load_settings()
+    init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
+    init_ydl_thread.start()
+    audio_player = AudioPlayer()
+    # check for update and update if no starting arguments were supplied or if the update flag was used
+    if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
+    if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
+    # Access startup folder by entering "Startup" in Explorer address bar
+    if settings.get('DEBUG', False):
+        SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster (DEBUG).lnk'
+    else:
+        SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
     create_shortcut(SHORTCUT_PATH)
     if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe',
                                                      add_folder_context=settings['folder_context_menu'])

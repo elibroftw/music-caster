@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.6
+- [Fix] Improved error handling
+
 4.71.5
 - [Fix] Improved logging
 

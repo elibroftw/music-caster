@@ -6,8 +6,22 @@ from pathlib import Path
 from contextlib import suppress
 import mutagen.id3
 from helpers import get_metadata
-from pychromecast import get_chromecasts
+import sys
 
+
+PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
+DEBUG = False
+UNINSTALLER = 'unins000.exe'
+
+
+def quit_if_running():
+    if is_already_running(threshold=1):
+        # activate_instance(PORT)
+        if IS_FROZEN and not DEBUG: sys.exit()
+    return False
+
+
+print(quit_if_running() or sys.exit())
 
 p = pyaudio.PyAudio()
 print(get_default_output_device())
