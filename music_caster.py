@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.3'
+VERSION = latest_version = '4.71.4'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -2186,32 +2186,35 @@ def read_play_url_window():
             else: next_queue.append(url_to_play)
 
 
-def create_shortcut(_shortcut_path):
+def create_shortcut(shortcut_path):
     """ creates shortcut if run_on_startup else removes existing shortcut """
     def _create_shortcut():
+        app_log.info('create_shortcut called')
         with suppress(com_error):
-            shortcut_exists = os.path.exists(_shortcut_path)
+            shortcut_exists = os.path.exists(shortcut_path)
             if settings['run_on_startup'] and not shortcut_exists:
                 # noinspection PyUnresolvedReferences
                 pythoncom.CoInitialize()
                 shell = win32com.client.Dispatch('WScript.Shell')
-                shortcut = shell.CreateShortCut(_shortcut_path)
+                shortcut = shell.CreateShortCut(shortcut_path)
                 if IS_FROZEN:
                     target = f'{starting_dir}\\Music Caster.exe'
                 else:
-                    bat_file = f'{starting_dir}\\music_caster.bat'
-                    if os.path.exists(bat_file):
-                        with open('music_caster.bat', 'w') as _f:
-                            _f.write(f'pythonw {os.path.basename(sys.argv[0])}')
-                    target = bat_file
-                    shortcut.IconLocation = f'{starting_dir}\\icon.ico'
+                    target = f'{starting_dir}\\music_caster.bat'
+                    if os.path.exists(target):
+                        with open('music_caster.bat', 'w') as f:
+                            f.write(f'pythonw {os.path.basename(sys.argv[0])}')
+                    shortcut.IconLocation = f'{starting_dir}\\resources\\Music Caster Icon.ico'
                 shortcut.Targetpath = target
                 shortcut.WorkingDirectory = starting_dir
                 shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
                 shortcut.save()
+                if settings.get('DEBUG', False):
+                    # removes startup shortcut if running in DEBUG (Python)
+                    os.remove(shortcut_path)
             elif not settings['run_on_startup'] and shortcut_exists:
-                os.remove(_shortcut_path)
-    if not settings.get('DEBUG', False): Thread(target=_create_shortcut, name='CreateShortcut').start()
+                os.remove(shortcut_path)
+    Thread(target=_create_shortcut, name='CreateShortcut').start()
 
 
 def get_latest_release(ver, force=False):
@@ -2235,11 +2238,12 @@ def auto_update(auto_start=True):
     auto_start is True on Startup, false on exit
     """
     with suppress(requests.ConnectionError):
+        app_log.info(f'Function called: auto_update(auto_start={auto_start})')
         release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', False)))
         if release:
             latest_ver = release['version']
             setup_dl_link = release['setup']
-            app_log.info(f'Update found: v{latest_ver}, auto_start={auto_start}')
+            app_log.info(f'Update found: v{latest_ver}')
             print('Installer Link:', setup_dl_link)
             if settings.get('DEBUG', False) or not setup_dl_link: return
             if IS_FROZEN and (os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')):
@@ -2282,12 +2286,13 @@ def send_info():
 
 def init_youtube_dl():  # 1 - 1.4 seconds
     global ydl
+    app_log.info('Initializing YTDL')
     ydl = YoutubeDL()
 
 
 def activate_instance(port):
     r_text = ''
-    while port <= 2003 and not r_text:
+    while port <= 2004 and not r_text:
         with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
             if args.exit:
                 r_text = requests.post(f'http://127.0.0.1:{port}/exit/').text
@@ -2302,6 +2307,7 @@ def activate_instance(port):
 def quit_if_running():
     if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2) or DEBUG:
         print('Another instance of Music Caster was found' if not DEBUG else '')
+        app_log.info('Another instance of Music Caster was found')
         activate_instance(PORT)
         if IS_FROZEN and not DEBUG: sys.exit()
     return False
@@ -2313,7 +2319,7 @@ try:
 except FileNotFoundError: pass
 except PermissionError:
     # music_caster.log being open for write implies that an instance is already running
-    if IS_FROZEN or DEBUG:
+    if IS_FROZEN:
         activate_instance(PORT)
         sys.exit()
 log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
@@ -2323,15 +2329,20 @@ app_log.setLevel(logging.INFO)
 app_log.addHandler(log_handler)
 app_log.propagate = False  # disable console output
 quit_if_running() or (args.exit and sys.exit())  # quit if running or if --exit was supplied to command line
+app_log.info('Reading settings.json (startup)')
 load_settings()
 init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
 init_ydl_thread.start()
+app_log.info('Initializing AudioPlayer')
 audio_player = AudioPlayer()
 # check for update and update if no starting arguments were supplied or if the update flag was used
 if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
 if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
 # Access startup folder by entering "Startup" in Explorer address bar
-SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
+if settings.get('DEBUG', False):
+    SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster (DEBUG).lnk'
+else:
+    SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
 try:
     create_shortcut(SHORTCUT_PATH)
     if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe',
