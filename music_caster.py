@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.8'
+VERSION = latest_version = '4.71.9'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -95,7 +95,7 @@ pl_files = []  # keep track of paths when editing playlists
 chromecasts, device_names = [], ['✓ Local device']
 music_directories, window_locations = [], {}
 music_queue, done_queue, next_queue = [], [], []
-update_lb_queue = False
+update_gui_queue = False
 mouse_hover = ''
 daemon_command = ''
 playing_url = playing_live = False
@@ -305,11 +305,12 @@ def get_current_album_art():
     if playing_status != 'NOT PLAYING' and music_queue:
         uri = music_queue[0]
         if uri.startswith('http'):
-            if 'art_data' in url_metadata: return url_metadata['art_data']
             try:
-                art_src = url_metadata[uri]['art']
+                # use 'art_data' else download 'art' link and set 'art_data'
+                if 'art_data' in url_metadata[uri]: return url_metadata[uri]['art_data']
+                art_src = url_metadata[uri]['art']  # 'art' is a key to a value of a link
                 art_data = base64.b64encode(requests.get(art_src).content)
-                url_metadata['art_data'] = art_data
+                url_metadata[uri]['art_data'] = art_data
                 return art_data
             except KeyError: return DEFAULT_ART
         art = get_album_art(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
@@ -343,14 +344,12 @@ def get_uri_metadata(uri):
                 sort_key = os.path.splitext(os.path.basename(uri))[0]
             else: sort_key = f'{title} - {artist}'
             metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+            if uri.startswith('http'): return metadata
             with suppress(KeyError, TypeError, MutagenError):
                 metadata['track_number'] = get_track_number(uri)
-            try:
+            with suppress(InvalidAudioFile):
                 length = get_length(uri)
                 metadata['length'] = length
-            except InvalidAudioFile:
-                app_log.error(f'Could not get length for {uri}')
-                tray.show_message('Music Caster', f'ERROR: is {uri} a valid audio file?')
             all_tracks[uri] = metadata
             return metadata
 
@@ -372,7 +371,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
     if ignore_files is None: ignore_files = set()
 
     def _index_library():
-        global all_tracks, update_lb_queue
+        global all_tracks, update_gui_queue
         """
         Scans folders provided in settings and adds them to a dictionary
         Does not ignore the files that in ignore_files by design
@@ -397,7 +396,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
-        update_lb_queue = True
+        update_gui_queue = True
 
     if not update_global:
         temp_tracks = all_tracks.copy()
@@ -991,6 +990,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                                     autoplay=autoplay, switching_device=switching_device)
         except (StopIteration, DownloadError) as _e:
             tray.show_message('Music Caster', 'ERROR: Could not play URL. Is MC up to date?', time=5000)
+            app_log.info(_e)
             if not IS_FROZEN: raise _e
     return False
 
@@ -1089,15 +1089,15 @@ def play_all(starting_files: list = None, queue_only=False):
 
 
 def queue_all():
-    global update_lb_queue
+    global update_gui_queue
     temp_lst = list(index_all_tracks(update_global=False, ignore_files=music_queue).keys())
     shuffle(temp_lst)
     music_queue.extend(temp_lst)
-    update_lb_queue = True
+    update_gui_queue = True
 
 
 def play_paths(paths: list, queue_only=False, from_explorer=False):
-    global playing_status, update_lb_queue
+    global playing_status, update_gui_queue
     """
     Appends all music files in the provided paths/names (folders, files, playlist names) to a temp list,
         which is shuffled if shuffled is enabled in settings, and then extends music_queue.
@@ -1125,7 +1125,7 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
                         invalid_path = False
                         temp_queue.append(_file)
         if invalid_path: temp_queue.extend(settings['playlists'].get(path, []))
-    update_lb_queue = True
+    update_gui_queue = True
     if settings['shuffle_playlists']:
         # if from_explorer make temp_queue all files already in queue
         temp_queue = music_queue[1:] * from_explorer + temp_queue
@@ -1142,13 +1142,13 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
 
 def file_action(action='Play File(s)'):
     # actions = 'Play File(s)', 'Play File(s) Next', 'Queue File(s)'
-    global music_queue, next_queue, playing_status, main_last_event, update_lb_queue
+    global music_queue, next_queue, playing_status, main_last_event, update_gui_queue
     fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
     if fd.ShowModal() != wx.ID_CANCEL:
         paths = fd.GetPaths()
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
-        update_lb_queue = True
+        update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
         if action == 'Play File(s)':
             music_queue.clear()
@@ -1188,7 +1188,7 @@ def play_next():
 
 
 def folder_action(action='Play Folder'):
-    global music_queue, next_queue, playing_status, main_last_event, update_lb_queue
+    global music_queue, next_queue, playing_status, main_last_event, update_gui_queue
     # actions: 'Play Folder', 'Play Folder Next', 'Queue Folder'
     # multi dir support code. Issues with it though
     # dlg = mdd.MultiDirDialog(None, title='Select Folders', defaultPath=DEFAULT_DIR, pos=wx.GetMousePosition(),
@@ -1219,7 +1219,7 @@ def folder_action(action='Play Folder'):
         if settings['shuffle_playlists']: shuffle(temp_queue)
         else: temp_queue.sort(key=natural_key_file)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
-        update_lb_queue = True
+        update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
         if action == 'Play Folder':
             music_queue.clear()
@@ -1616,7 +1616,7 @@ def reset_progress():
 
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update
-    global track_start, track_end, timer, main_window, pl_files, update_lb_queue
+    global track_start, track_end, timer, main_window, pl_files, update_gui_queue
     global tray_playlists, pl_files, pl_name
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
@@ -1648,9 +1648,9 @@ def read_main_window():
             except (UnidentifiedImageError, OSError):
                 album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
             main_window['album_art'].update(data=album_art_data)
-        update_lb_queue = True
-    elif update_lb_queue and not settings['mini_mode']:
-        update_lb_queue = False
+        update_gui_queue = True
+    elif update_gui_queue and not settings['mini_mode']:
+        update_gui_queue = False
         dq_len = len(done_queue)
         lb_music_queue: Sg.Listbox = main_window['queue']
         lb_tracks = create_track_list()[0]
@@ -1945,7 +1945,7 @@ def read_main_window():
             active_windows['main'] = False
             main_window.close()
             activate_main_window('tab_settings')
-        elif main_event == 'show_track_number': update_lb_queue = True
+        elif main_event == 'show_track_number': update_gui_queue = True
     elif main_event == 'remove_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
@@ -2060,7 +2060,7 @@ def read_main_window():
             play_after = len(music_queue) == 0
             music_queue.extend(temp_lst)
             if play_after: play(music_queue[0])
-            else: update_lb_queue = True
+            else: update_gui_queue = True
     elif main_event in {'pl_save', 's:83'}:  # save playlist
         if main_values['playlist_name']:
             save_name = main_values['playlist_name']
@@ -2166,6 +2166,7 @@ def read_main_window():
 
 
 def read_play_url_window():
+    global update_gui_queue
     play_url_event, play_url_values = play_url_window.read(timeout=5)
     if play_url_event in {None, 'Escape:27', 'q'}:
         active_windows['play_url'] = False
@@ -2184,6 +2185,7 @@ def read_play_url_window():
             # Add to Next Queue
             if settings['reversed_play_next']: next_queue.insert(0, url_to_play)
             else: next_queue.append(url_to_play)
+        update_gui_queue = True
 
 
 def create_shortcut(shortcut_path):

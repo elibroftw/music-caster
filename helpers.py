@@ -164,6 +164,12 @@ def is_already_running(threshold=1, look_for='Music Caster.exe'):
 
 
 def valid_music_file(file_path):
+    """
+    check if file_path ends with a valid extension
+    file_path does not have to exist
+    :param file_path:
+    :return:
+    """
     file_path = file_path.lower()
     return (file_path.endswith('.mp3') or file_path.endswith('.flac') or file_path.endswith('.m4a')
             or file_path.endswith('.mp4') or file_path.endswith('.aac') or file_path.endswith('.mpeg')
