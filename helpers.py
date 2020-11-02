@@ -444,7 +444,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip='Launch mini mode')],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip='Clear the queue')],
-        [Sg.Button(key='save_queue', image_data=SAVE_QUEUE, **img_button, tooltip='Save queue to playlist')],
+        [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip='Save queue to playlist')],
         [Sg.Button(key='locate_track', image_data=LOCATE_FILE, **img_button, tooltip='Locate track')],
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
@@ -507,9 +507,8 @@ def create_playlists_tab(settings):
               [Sg.Text('Playlist name', font=FONT_NORMAL, size=(13, 1), justification='center', pad=(5, (5, 10))),
                Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL, enable_events=True,
                         pad=(5, (5, 10))),
-
-               Sg.Submit('Save', key='pl_save', tooltip='Ctrl + S', font=FONT_NORMAL, disabled=playlist_name == '',
-                         size=(6, 1), pad=((14, 5), (5, 10)))],
+               Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S',
+                         border_width=0, button_color=(bg, bg), disabled=playlist_name == '')],
               [Sg.Frame('', [url_input, add_url, add_tracks,
                              [Sg.Button('Remove item(s)', key='pl_rm_items', tooltip='Ctrl + R', font=FONT_NORMAL,
                                         enable_events=True, size=(12, 1))]],
