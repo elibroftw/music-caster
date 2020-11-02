@@ -60,7 +60,8 @@ from PIL import UnidentifiedImageError
 import requests
 import win32com.client
 import winshell
-from youtube_dl import YoutubeDL, DownloadError
+from youtube_dl import YoutubeDL
+from youtube_dl.utils import DownloadError
 
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
