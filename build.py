@@ -219,14 +219,14 @@ if args.upload and all_exist and not args.dry:
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
-    username = 'elibroftw'
+    USERNAME = 'elibroftw'
     github_api = 'https://api.github.com'
 
     # check if tag vVERSION does not exist
-    r = requests.get(f'{github_api}/repos/{username}/music-caster/releases/tags/v{VERSION}', headers=headers)
+    r = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/tags/v{VERSION}', headers=headers)
     if r.status_code != 404: print(f'ERROR: Tag v{VERSION} already exists')
 
-    old_release = requests.get(f'{github_api}/repos/{username}/music-caster/releases/latest').json()
+    old_release = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/latest').json()
     old_release_id = old_release['id']
     body = '' if VERSION.endswith('.0') else old_release['body']
     body = add_new_changes(body)
@@ -240,7 +240,7 @@ if args.upload and all_exist and not args.dry:
         'draft': True,
         'prerelease': False
     }
-    r = requests.post(f'{github_api}/repos/{username}/music-caster/releases', json=new_release, headers=headers)
+    r = requests.post(f'{github_api}/repos/{USERNAME}/music-caster/releases', json=new_release, headers=headers)
     release = r.json()
     upload_url = release['upload_url'][:-13]
     release_id = release['id']
@@ -250,10 +250,10 @@ if args.upload and all_exist and not args.dry:
             print(f'Uploading {dist_file}...')
             requests.post(upload_url, data=f, params={'name': dist_file},
                           headers={**headers, 'Content-Type': 'application/octet-stream'})
-    requests.post(f'{github_api}/repos/{username}/music-caster/releases/{release_id}',
+    requests.post(f'{github_api}/repos/{USERNAME}/music-caster/releases/{release_id}',
                   headers=headers, json={'body': body, 'draft': False})
     if not VERSION.endswith('.0'):
         # delete old release if not a new major build
-        requests.delete(f'{github_api}/repos/{username}/music-caster/releases/{old_release_id}', headers=headers)
+        requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')

@@ -445,7 +445,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip='Launch mini mode')],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip='Clear the queue')],
         [Sg.Button(key='save_queue', image_data=SAVE_QUEUE, **img_button, tooltip='Save queue to playlist')],
-        [Sg.Button(key='locate_file', image_data=LOCATE_FILE, **img_button, tooltip='Locate file in explorer')],
+        [Sg.Button(key='locate_track', image_data=LOCATE_FILE, **img_button, tooltip='Locate track')],
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]

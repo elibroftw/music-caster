@@ -935,7 +935,6 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
     mc.block_until_active(WAIT_TIMEOUT)
     start_time = time.time()
     while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
-        print('waiting for chromecast to start playing', title)
         time.sleep(0.2)
         if time.time() - start_time > 5: break  # show error?
     progress_bar_last_update = time.time()
@@ -1542,8 +1541,19 @@ def cancel_timer():
     if settings['notifications']: tray.show_message('Music Caster', 'Timer stopped', time=5000)
 
 
-def locate_file():
-    if music_queue: Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
+def locate_track(selected_track_index=0):
+    with suppress(IndexError):
+        if selected_track_index < 0:
+            uri = done_queue[selected_track_index]
+        elif (selected_track_index == 0 or selected_track_index > len(next_queue)) and music_queue:
+            uri = music_queue[selected_track_index]
+        elif 0 < selected_track_index <= len(next_queue):
+            uri = next_queue[selected_track_index - 1]
+        else:
+            uri = ''
+        if uri.startswith('http'):
+            if uri.startswith('http'): Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
+        else: Popen(f'explorer /select,"{fix_path(uri)}"')
 
 
 def exit_program():
@@ -1704,15 +1714,10 @@ def read_main_window():
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()
         mouse_hover = '' if main_event != 'volume_slider_mouse_leave' else mouse_hover
-    elif main_event in {'locate_file', 'e:69'}:
+    elif main_event in {'locate_track', 'e:69'}:
         with suppress(IndexError):
-            selected_file_index = int(main_values['queue'][0].split('.', 1)[0])
-            if selected_file_index < 0:
-                Popen(f'explorer /select,"{fix_path(done_queue[selected_file_index])}"')
-            elif (selected_file_index == 0 or selected_file_index > len(next_queue)) and music_queue:
-                Popen(f'explorer /select,"{fix_path(music_queue[selected_file_index])}"')
-            elif 0 < selected_file_index <= len(next_queue):
-                Popen(f'explorer /select,"{fix_path(next_queue[selected_file_index - 1])}"')
+            selected_track_index = int(main_values['queue'][0].split('.', 1)[0])
+            locate_track(selected_track_index)
     elif main_event == 'pause/resume' or main_event == 'k' and main_values['tab_group'] != 'tab_timer':
         try: pause_resume[playing_status]()
         except KeyError:
@@ -1761,14 +1766,14 @@ def read_main_window():
                 new_i = min(max(new_i, 0), len(pl_files) - 1)
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
-        selected_file_index = main_window['queue'].get_list_values().index(main_value[0])
-        if done_queue and selected_file_index < len(done_queue):
+        selected_track_index = main_window['queue'].get_list_values().index(main_value[0])
+        if done_queue and selected_track_index < len(done_queue):
             while next_queue:  # design decision to empty next queue
                 music_queue.insert(1, next_queue.pop())
-            for i in range(len(done_queue) - selected_file_index):
+            for i in range(len(done_queue) - selected_track_index):
                 music_queue.insert(0, done_queue.pop())
         else:
-            for i in range(selected_file_index - len(done_queue)):
+            for i in range(selected_track_index - len(done_queue)):
                 if not music_queue: break
                 done_queue.append(music_queue.pop(0))
                 if next_queue:
@@ -1895,7 +1900,7 @@ def read_main_window():
     elif main_event == 'play_next':
         play_next()
         main_window.TKroot.focus_force()
-    elif main_event == 'locate_file':
+    elif main_event == 'locate_track':
         Popen(f'explorer /select,"{fix_path(music_queue[0])}"')
     # elif main_event == 'library':  # TODO
     elif main_event == 'progress_bar':
@@ -2373,13 +2378,13 @@ try:
                         'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
     menu_def_2 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
-                       ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
+                       ['Locate Track', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Pause'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     menu_def_3 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
-                       ['Locate File', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
+                       ['Locate Track', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
                         'Resume'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
@@ -2453,7 +2458,7 @@ try:
         'Repeat One': lambda: change_settings('repeat', True),
         'Repeat All': lambda: change_settings('repeat', False),
         'Repeat Off': lambda: change_settings('repeat', None),
-        'Locate File': locate_file,
+        'Locate Track': locate_track,
         'Exit': exit_program,
         '': lambda: None,
     }
