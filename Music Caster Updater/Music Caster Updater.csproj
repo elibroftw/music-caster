@@ -12,7 +12,7 @@
     <PackageIcon></PackageIcon>
     <Copyright>2019 - 2020</Copyright>
     <Description>The updater for Music Caster</Description>
-    <ApplicationIcon>../../resources/Updater.ico</ApplicationIcon>
+    <ApplicationIcon>../resources/Updater.ico</ApplicationIcon>
     <AssemblyVersion>3.0.0.0</AssemblyVersion>
     <FileVersion>3.0.0.0</FileVersion>
     <AssemblyName>Updater</AssemblyName>

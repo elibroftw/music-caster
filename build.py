@@ -154,7 +154,7 @@ if not args.dry:
     py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
     try: s1 = subprocess.Popen(f'pyinstaller {"--clean " if args.clean else ""}build_files/mc_portable.spec')
     except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" build_files/mc_portable.spec')
-    updater_release_path = r'Music Caster Updater\Music Caster Updater\bin\x86\Release\netcoreapp3.1'
+    updater_release_path = r'Music Caster Updater\bin\x86\Release\netcoreapp3.1'
     shutil.rmtree(updater_release_path, True)
     subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build '
                           f'/p:Configuration=Release /p:PlatformTarget=x86')
