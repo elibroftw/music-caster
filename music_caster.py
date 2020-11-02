@@ -306,14 +306,13 @@ def get_current_album_art():
         uri = music_queue[0]
         if uri.startswith('http'):
             try:
-                # use 'art_data' else download 'art' link and set 'art_data'
+                # use 'art_data' else download 'art' link and cache to 'art_data'
                 if 'art_data' in url_metadata[uri]: return url_metadata[uri]['art_data']
                 art_src = url_metadata[uri]['art']  # 'art' is a key to a value of a link
-                art_data = base64.b64encode(requests.get(art_src).content)
-                url_metadata[uri]['art_data'] = art_data
+                url_metadata[uri]['art_data'] = art_data = base64.b64encode(requests.get(art_src).content)
                 return art_data
             except KeyError: return DEFAULT_ART
-        art = get_album_art(uri)[1] if playing_status in {'PLAYING', 'PAUSED'} else None
+        art = get_album_art(uri)[1]  # get_album_art(uri)[1] can be None
     return DEFAULT_ART if art is None else art
 
 
