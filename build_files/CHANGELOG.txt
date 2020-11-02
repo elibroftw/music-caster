@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.10
+- [Fix] Instance checker
+
 4.71.9
 - [Fix] Fixed playing youtube links
 - [Fix] Changed locate file to locate track

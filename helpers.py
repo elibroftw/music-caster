@@ -16,6 +16,7 @@ from urllib.parse import urlparse, parse_qs
 from uuid import getnode
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
+import sys
 import re
 import mutagen
 from mutagen import MutagenError
@@ -147,7 +148,7 @@ def get_running_processes(look_for='Music Caster.exe'):
     p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
     task = p.stdout.readline()
     while task != '':
-        task = p.stdout.readline().decode().strip()
+        task = p.stdout.readline().decode(sys.stdout.encoding).strip()
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
             process = {'name': m.group(1), 'pid': m.group(2), 'session_name': m.group(3),
