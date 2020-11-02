@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.7'
+VERSION = latest_version = '4.71.8'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -60,7 +60,7 @@ from PIL import UnidentifiedImageError
 import requests
 import win32com.client
 import winshell
-from youtube_dl import YoutubeDL
+from youtube_dl import YoutubeDL, DownloadError
 
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
@@ -988,7 +988,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
                                     metadata['length'], position=position, thumbnail=metadata['art'],
                                     autoplay=autoplay, switching_device=switching_device)
-        except StopIteration as _e:
+        except (StopIteration, DownloadError) as _e:
             tray.show_message('Music Caster', 'ERROR: Could not play URL. Is MC up to date?', time=5000)
             if not IS_FROZEN: raise _e
     return False

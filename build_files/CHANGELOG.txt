@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.8
+- [Fix] Patched more errors
+
 4.71.7
 - [Fix] Update youtube-dl
 
