@@ -20,7 +20,6 @@ parser.add_argument('--start', '-s', default=False, action='store_true', help='A
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
-parser.add_argument('--install', '-i', default=False, action='store_true', help='installs dependencies before building')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 args = parser.parse_args()
 start_time = time.time()
@@ -141,16 +140,15 @@ for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip'
         print(f'Removing {dist_file}')
         os.remove(dist_file)
 
-if args.install:
-    pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-    pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
-    print('Installing / Updating dependencies...')
-    subprocess.check_call('pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
-    try: subprocess.check_call(f'pip install --force build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
-    except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
-    try: subprocess.check_call(f'pip install --force build_files\\{pyinstaller_whl}', stdout=subprocess.DEVNULL)
-    except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
-
+pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
+pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
+print('Installing / Updating dependencies...')
+py_exe = sys.executable
+subprocess.check_call(f'{py_exe} -m pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
+try: subprocess.check_call(f'{py_exe} -m pip install build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
+except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
+try: subprocess.check_call(f'{py_exe} -m pip install build_files\\{pyinstaller_whl}', stdout=subprocess.DEVNULL)
+except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
 if not args.dry:
     print(f'building executables with debug={args.debug}')
     py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
