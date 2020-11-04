@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.11
+- [Fix] Instance checker
+
 4.71.10
 - [Fix] Instance checker
 

@@ -145,10 +145,10 @@ def create_qr_code(port, ipv4=None):
 def get_running_processes(look_for='Music Caster.exe'):
     # edited from https://stackoverflow.com/a/22914414/7732434
     cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
-    p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL)
+    p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
     task = p.stdout.readline()
     while task != '':
-        task = p.stdout.readline().decode(sys.stdout.encoding).strip()
+        task = p.stdout.readline().strip()
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
             process = {'name': m.group(1), 'pid': m.group(2), 'session_name': m.group(3),
