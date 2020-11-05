@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.11'
+VERSION = latest_version = '4.71.12'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
