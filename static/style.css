@@ -25,6 +25,10 @@ button {
     cursor: pointer;
 }
 
+input:focus {
+    outline: none !important;
+}
+
 #timerMinutes {
     width: 5em;
 }
