@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.14
+- [Fix] Window Icon
+
 4.71.13
 - [Fix] Web GUI search bar
 
