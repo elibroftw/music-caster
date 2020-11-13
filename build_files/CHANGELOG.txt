@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.18
+- [Web] Added version to web GUI settings
+
 4.71.17
 - [Fix] Better timing
 - [Fix] Random stopping

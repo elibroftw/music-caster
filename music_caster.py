@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.17'
+VERSION = latest_version = '4.71.18'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -536,7 +536,7 @@ def web_index():  # web GUI
     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
-                           device_index=device_index, devices=formatted_devices)
+                           device_index=device_index, devices=formatted_devices, version=VERSION)
 
 
 @app.route('/play/', methods=['GET', 'POST'])
