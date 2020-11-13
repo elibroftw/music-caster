@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.15'
+VERSION = latest_version = '4.71.16'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -95,7 +95,7 @@ pl_files = []  # keep track of paths when editing playlists
 chromecasts, device_names = [], ['✓ Local device']
 music_directories, window_locations = [], {}
 music_queue, done_queue, next_queue = [], [], []
-update_gui_queue = False
+update_gui_queue = update_volume_slider = False
 mouse_hover = ''
 daemon_command = ''
 playing_url = playing_live = False
@@ -1400,11 +1400,12 @@ def prev_track():
 
 def background_tasks():
     global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified,\
-        update_last_checked, latest_version, exit_flag
+        update_last_checked, latest_version, exit_flag, update_volume_slider
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
         refresh_tray()
+        # Check cast every 5 seconds
         if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
             with suppress(UnsupportedNamespace):
                 if cast.app_id == APP_MEDIA_RECEIVER:
@@ -1428,11 +1429,7 @@ def background_tasks():
                             # if volume was changed via Google Home App
                             _volume = change_settings('volume', cast_volume)
                             if _volume and settings['muted']: change_settings('muted', False)
-                            if active_windows['main']:
-                                if _volume and settings['muted']:
-                                    main_window['mute'].update(image_data=VOLUME_IMG)
-                                    main_window['mute'].set_tooltip('mute')
-                                main_window['volume_slider'].update(_volume)
+                            if active_windows['main']: update_volume_slider = True
                 elif playing_status in {'PAUSED', 'PLAYING'}: stop('background tasks; app not running')
             cast_last_checked = time.time()
         if time.time() - update_last_checked > 216000:
@@ -1625,7 +1622,7 @@ def reset_progress():
 
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update
-    global track_start, track_end, timer, main_window, pl_files, update_gui_queue
+    global track_start, track_end, timer, main_window, pl_files, update_gui_queue, update_volume_slider
     global tray_playlists, pl_files, pl_name
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
@@ -1664,6 +1661,12 @@ def read_main_window():
         lb_music_queue: Sg.Listbox = main_window['queue']
         lb_tracks = create_track_list()[0]
         lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
+    elif update_volume_slider:
+        if settings['volume'] and settings['muted']:
+            main_window['mute'].update(image_data=VOLUME_IMG)
+            main_window['mute'].set_tooltip('mute')
+        main_window['volume_slider'].update(settings['volume'])
+        update_volume_slider = False
     if settings['repeat'] != main_window['repeat'].metadata: update_repeat_button()  # if repeat settings do not match
     # handle events here
     if main_event.startswith('MouseWheel'):

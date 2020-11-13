@@ -144,7 +144,7 @@ pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
 pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
 print('Installing / Updating dependencies...')
 py_exe = sys.executable
-subprocess.check_call(f'{py_exe} -m pip install --upgrade -r requirements.txt', stdout=subprocess.DEVNULL)
+subprocess.check_output(f'{py_exe} -m pip install --upgrade -r requirements.txt', text=True)
 try: subprocess.check_call(f'{py_exe} -m pip install build_files\\{pyaudio_whl}', stdout=subprocess.DEVNULL)
 except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
 try: subprocess.check_call(f'{py_exe} -m pip install build_files\\{pyinstaller_whl}', stdout=subprocess.DEVNULL)
