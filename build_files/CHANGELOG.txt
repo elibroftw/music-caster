@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.17
+- [Fix] Better timing
+- [Fix] Random stopping
+- [Fix] Playing YouTube links
+- [Fix] Playing tooltip
+
 4.71.16
 - [Fix] GUI volume slider not updating
 

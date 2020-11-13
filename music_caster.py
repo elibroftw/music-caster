@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.16'
+VERSION = latest_version = '4.71.17'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -866,7 +866,7 @@ def after_play(artists: str, title, autoplay, switching_device):
         if settings['notifications'] and not switching_device and not active_windows['main']:
             tray.show_message('Music Caster', 'Playing: ' + playing_text, time=500)
         playing_status = 'PLAYING'
-        tray.update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text)
+        tray.update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text.replace('&', '&&&'))
     else: tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
@@ -986,8 +986,8 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
                                     metadata['length'], position=position, thumbnail=metadata['art'],
                                     autoplay=autoplay, switching_device=switching_device)
-        except (StopIteration, DownloadError) as _e:
-            tray.show_message('Music Caster', 'ERROR: Could not play URL. Is MC up to date?', time=5000)
+        except (StopIteration, DownloadError, KeyError) as _e:
+            tray.show_message('Music Caster', 'ERROR: Could not play URL.\nAn update will fix this...', time=5000)
             app_log.info(_e)
             if not IS_FROZEN: raise _e
     return False
@@ -1358,8 +1358,8 @@ def stop(stopped_from: str, stop_cast=True):
             else:  # only when background tasks calls stop()
                 # check if background tasks is wrong
                 mc.update_status()
-                if mc.is_playing(): playing_status = 'PLAYING'
-                elif mc.is_paused(): playing_status = 'PAUSED'
+                if mc.is_playing: playing_status = 'PLAYING'
+                elif mc.is_paused: playing_status = 'PAUSED'
                 return
     else: audio_player.stop()
     track_position = 0
@@ -1414,11 +1414,12 @@ def background_tasks():
                     is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
                     is_stopped = mc.status.player_is_idle  # buffering is okay
                     if not is_stopped:
-                        new_track_position = mc.status.adjusted_current_time
-                        # handle scrubbing of music from the home app
-                        track_start = time.time() - new_track_position
-                        track_end = time.time() + track_length - new_track_position
-                        track_position = new_track_position
+                        # handle scrubbing of music from the home app / out of date time position
+                        if abs(mc.status.adjusted_current_time - track_position) > 1:
+                            new_track_position = mc.status.adjusted_current_time
+                            track_start = time.time() - new_track_position
+                            track_end = time.time() + track_length - new_track_position
+                            track_position = new_track_position
                     if is_paused: pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing: resume()
                     elif is_stopped and playing_status != 'NOT PLAYING': stop('background tasks', False)
@@ -1468,6 +1469,7 @@ def on_release(key):
 def activate_main_window(selected_tab='tab_queue'):
     global active_windows, main_window
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
+    app_log.info(f'activate_main_window: selected_tab={selected_tab}, already_active={active_windows["main"]}')
     if not active_windows['main']:
         active_windows['main'] = True
         lb_tracks, selected_value = create_track_list()
@@ -1583,6 +1585,8 @@ def other_daemon_actions(command_name):
 
 def other_tray_actions(_tray_item):
     global cast, cast_last_checked, timer
+    # this code checks if its time to go to the next track
+    # this code checks if its time to stop playing music if a timer was set
     if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
         with suppress(ValueError):
             change_device(device_names.index(tray_item))
@@ -2468,7 +2472,7 @@ try:
         tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
         tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
-        daemon_command = ''
+        daemon_command = ''  # don't double call other_tray_actions
         if active_windows['main']: read_main_window()
         if active_windows['play_url']: read_play_url_window()
 except Exception as e:
