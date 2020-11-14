@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.21
+- [Fix] Removed a dependency
+
 4.71.20
 - [Fix] Pressing Enter while using mini-mode
 

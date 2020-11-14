@@ -11,7 +11,6 @@ PySimpleGUIWx~=0.14
 python-vlc
 requests~=2.22
 wxpython~=4.1
-winshell~=0.6
 wavinfo==1.6
 youtube_dl
 zeroconf==0.24.5

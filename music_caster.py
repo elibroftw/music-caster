@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.20'
+VERSION = latest_version = '4.71.21'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -59,7 +59,7 @@ import pythoncom
 from PIL import UnidentifiedImageError
 import requests
 import win32com.client
-import winshell
+from win32com.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
 
@@ -2355,13 +2355,12 @@ try:
     if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
     if not settings.get('DEBUG', False): Thread(target=send_info, daemon=True, name='SendInfo').start()
     # Access startup folder by entering "Startup" in Explorer address bar
-    if settings.get('DEBUG', False):
-        SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster (DEBUG).lnk'
-    else:
-        SHORTCUT_PATH = f'{winshell.startup()}\\Music Caster.lnk'
+    startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
+    SHORTCUT_PATH = f"{startup_dir}\\Music Caster{' (DEBUG)' if settings.get('DEBUG', False) else ''}.lnk"
     create_shortcut(SHORTCUT_PATH)
-    if os.path.exists(UNINSTALLER): add_reg_handlers(f'{starting_dir}/Music Caster.exe',
-                                                     add_folder_context=settings['folder_context_menu'])
+    # set file handlers only if installed from Setup (Not a portable installation)
+    if os.path.exists(UNINSTALLER):
+        add_reg_handlers(f'{starting_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
     with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
     rmtree('Update', ignore_errors=True)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
