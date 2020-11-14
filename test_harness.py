@@ -6,17 +6,34 @@ from pathlib import Path
 from contextlib import suppress
 import mutagen.id3
 from helpers import get_metadata
+import argparse
 import sys
+import time
 
 
-p = pyaudio.PyAudio()
-print(get_default_output_device())
+parser = argparse.ArgumentParser(description='Music Caster Test Harness')
+parser.add_argument('--pyaudio', '-p', default=False,
+                    action='store_true', help='test pyaudio')
+parser.add_argument('--helpers', '-f', default=False,
+                    action='store_true', help='test helper functions')
+args = parser.parse_args()
+
+if args.pyaudio:
+    p = pyaudio.PyAudio()
+    print('Default Audio Device:', get_default_output_device())
+    print('Sleeping for 1 second...')
+    time.sleep(1)
+
 with suppress(InvalidAudioFile):
-    get_length('audio_player.py')  # should raise an error but not crash program
+    # should raise an error but not crash program
+    get_length('audio_player.py')
 music_metadata = {}
 timer = time.time()
-print('is_already_running():', is_already_running(0), time.time() - timer)
-print('get_mac():', get_mac())
+
+if args.helpers:
+    print('is_already_running():', is_already_running(
+        0), f'({round(time.time() - timer, 2)}s)')
+    print('get_mac():', get_mac())
 
 
 def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
@@ -34,13 +51,16 @@ def get_uri_info(uri):
     # get metadata from all_track and resort to url_metadata if not found in music_metadata
     #   if file/url is not in all_track. e.g. links
     uri = uri.replace('\\', '/')
-    try: return music_metadata[uri]
+    try:
+        return music_metadata[uri]
     except KeyError:
         title, artist, album = get_metadata_wrapped(uri)
         if title == 'Unknown Title' or artist == 'Unknown Artist':
             sort_key = os.path.splitext(os.path.basename(uri))[0]
-        else: sort_key = f'{title} - {artist}'
-        metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+        else:
+            sort_key = f'{title} - {artist}'
+        metadata = {'title': title, 'artist': artist,
+                    'album': album, 'sort_key': sort_key}
         with suppress(InvalidAudioFile):
             length = get_length(uri)
             metadata['length'] = length
@@ -52,10 +72,12 @@ def format_file(uri: str):
     try:
         metadata = get_uri_info(uri)
         artist, title = metadata['artist'], metadata['title']
-        if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
+        if artist.startswith('Unknown') or title.startswith('Unknown'):
+            raise KeyError
         return f'{artist} - {title}'
     except (TypeError, KeyError):  # show something useful instead of Unknown - Unknown
-        if uri.startswith('http'): return uri
+        if uri.startswith('http'):
+            return uri
         base = os.path.basename(uri)
         return os.path.splitext(base)[0]
 
@@ -151,14 +173,17 @@ done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]
 music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
 home_music_dir = f'{Path.home()}/Music'
+DEFAULT_THEME = {'accent': '#00bfff',
+                 'background': '#121212', 'text': '#d7d7d7'}
 settings = {
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
-    'auto_update': False, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
-    'show_album_art': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
+    'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
+    'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
-    'theme': {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'},
+    'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_directories': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
     'queues': {'done': [], 'music': [], 'next': []}}
 
@@ -177,18 +202,30 @@ really_long_tile = 'extremely long convoluted title that tests max length'
 # album cover test
 mini_mode = False
 size = (125, 125) if mini_mode else (255, 255)
-default_album_art = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+settings['mini_mode'] = mini_mode
+default_album_art = resize_img(
+    DEFAULT_ART, settings['theme']['background'], size).decode()
 
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art, 'qr_code': qr_code}
 
 other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
                                 **main_attrs)
-
-main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout,
-                         icon=WINDOW_ICON, return_keyboard_events=True,
-                         use_default_focus=False)
-for main_window in {main_window1}:
+main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
+                         icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
+                         use_default_focus=False, margins=(0, 0) if mini_mode else (None, None))
+mini_mode = settings['mini_mode'] = not mini_mode
+size = (125, 125) if mini_mode else (255, 255)
+default_album_art = resize_img(
+    DEFAULT_ART, settings['theme']['background'], size).decode()
+main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
+              'album_art_data': default_album_art, 'qr_code': qr_code}
+other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
+                                **main_attrs)
+mini_window = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
+                        icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
+                        use_default_focus=False, margins=(0, 0) if mini_mode else (None, None))
+for main_window in {main_window1, mini_window}:
     main_window.Finalize()
     main_window.TKroot.focus_force()
     window_active = True
@@ -214,7 +251,8 @@ for main_window in {main_window1}:
 # Timer GUI
 
 # URL GUI
-play_url_window = Sg.Window('Play URL', create_play_url(), finalize=True, return_keyboard_events=True)
+play_url_window = Sg.Window(
+    'Play URL', create_play_url(), finalize=True, return_keyboard_events=True)
 play_url_window.TKroot.focus_force()
 play_url_window.Read(timeout=1500)  # 1.5 second timeout
 play_url_window.Close()

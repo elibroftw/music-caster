@@ -401,8 +401,8 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     right_side = Sg.Col([
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=(0, 0), size=(26, 0), justification='right')],
-        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=(0, 0), size=(26, 0), justification='right')],
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 5), 0), size=(26, 0), justification='right')],
+        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((0, 5), 0), size=(26, 0), justification='right')],
         music_controls, progress_bar_layout], element_justification='right', pad=(0, 0))
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 

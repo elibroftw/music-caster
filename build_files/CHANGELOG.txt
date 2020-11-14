@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.19
+- [Fix] Improved mini-mode border padding
+
 4.71.18
 - [Web] Added version to web GUI settings
 

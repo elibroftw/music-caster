@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.18'
+VERSION = latest_version = '4.71.19'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1479,6 +1479,7 @@ def activate_main_window(selected_tab='tab_queue'):
         size = (125, 125) if mini_mode else (255, 255)
         album_art_data = resize_img(get_current_album_art(), settings['theme']['background'],
                                     size).decode() if settings['show_album_art'] else None
+        window_margins = (0, 0) if mini_mode else (None, None)
         try: qr_code = create_qr_code(PORT)
         except OSError: qr_code = None  # long time without internet
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
@@ -1495,8 +1496,8 @@ def activate_main_window(selected_tab='tab_queue'):
         else:
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
                                           qr_code=qr_code, album_art_data=album_art_data)
-        main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
-                                icon=WINDOW_ICON, return_keyboard_events=True, finalize=True,  use_default_focus=False,
+        main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode, finalize=True,
+                                icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False, margins=window_margins,
                                 keep_on_top=mini_mode and settings['mini_on_top'], location=window_location)
         if not settings['mini_mode']:
             main_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
@@ -2247,7 +2248,7 @@ def get_latest_release(ver, force=False):
 
 def auto_update(auto_start=True):
     global update_available
-    """ 
+    """
     auto_start is True on Startup, false on exit
     """
     with suppress(requests.ConnectionError):
