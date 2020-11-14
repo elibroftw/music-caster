@@ -7,8 +7,6 @@ from contextlib import suppress
 import mutagen.id3
 from helpers import get_metadata
 import argparse
-import sys
-import time
 
 
 parser = argparse.ArgumentParser(description='Music Caster Test Harness')
