@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.19'
+VERSION = latest_version = '4.71.20'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1987,7 +1987,7 @@ def read_main_window():
         main_window['cancel_timer'].update(visible=False)
     # TODO: disable/enable submit button
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
-          and main_values['tab_group'] == 'tab_timer'):
+          and not settings['mini_mode'] and main_values['tab_group'] == 'tab_timer'):
         try:
             timer_value = main_values['timer_minutes']
             if timer_value.isdigit():
