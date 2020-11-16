@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.22
+- [Fix] Exit
+
 4.71.21
 - [Fix] Removed a dependency
 

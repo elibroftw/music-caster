@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.21'
+VERSION = latest_version = '4.71.22'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1560,7 +1560,7 @@ def exit_program():
     exit_flag = True
     for window in (main_window, play_url_window): window.close()
     tray.hide()
-    with suppress(UnsupportedNamespace):
+    with suppress(UnsupportedNamespace, NotConnected):
         if cast is None: stop('exit program')
         elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
     with suppress(py_presence_errors): rich_presence.close()
