@@ -15,5 +15,5 @@ wavinfo==1.6
 youtube_dl
 zeroconf==0.24.5
 # windows only v
-pypiwin32==223
+pywin32
 pyperclip

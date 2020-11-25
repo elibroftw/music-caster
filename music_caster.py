@@ -59,10 +59,9 @@ import pythoncom
 from PIL import UnidentifiedImageError
 import requests
 import win32com.client
-from win32com.shell import shell, shellcon
+from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
-
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
                    '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
@@ -2210,8 +2209,8 @@ def create_shortcut(shortcut_path):
             if settings['run_on_startup'] and not shortcut_exists:
                 # noinspection PyUnresolvedReferences
                 pythoncom.CoInitialize()
-                shell = win32com.client.Dispatch('WScript.Shell')
-                shortcut = shell.CreateShortCut(shortcut_path)
+                _shell = win32com.client.Dispatch('WScript.Shell')
+                shortcut = _shell.CreateShortCut(shortcut_path)
                 if IS_FROZEN:
                     target = f'{starting_dir}\\Music Caster.exe'
                 else:
