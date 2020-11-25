@@ -89,7 +89,10 @@ def valid_color_code(code):
 
 
 def get_track_number(file_path: str):
-    """ :raises KeyError, TypeError, MutagenError """
+    """
+    return the track number without any "/"
+    :raises KeyError, TypeError, MutagenError
+    """
     return mutagen.File(file_path, easy=True)['tracknumber'][0].split('/', 1)[0]
 
 

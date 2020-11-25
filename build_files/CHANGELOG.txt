@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.23
+- [Fix] Double Digit Track Numbers
+
 4.71.22
 - [Fix] Exit
 

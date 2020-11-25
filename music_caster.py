@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.22'
+VERSION = latest_version = '4.71.23'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -388,8 +388,8 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         else:
                             sort_key = f'{title} - {artist}'
                         metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
-                        with suppress(KeyError, TypeError, MutagenError, IndexError):
-                            track_number = get_track_number(file_path)[0].split('/', 1)[0]
+                        with suppress(KeyError, TypeError, MutagenError):
+                            track_number = get_track_number(file_path)
                             metadata['track_number'] = track_number
                         if use_temp: all_tracks_temp[file_path] = metadata
                         else: all_tracks[file_path] = metadata
@@ -1021,7 +1021,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
     with suppress(KeyError, TypeError, MutagenError, IndexError):
         # update track number if it changed
-        track_number = get_track_number(uri)[0].split('/', 1)[0]
+        track_number = get_track_number(uri)
         all_tracks[uri]['track_number'] = track_number
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally

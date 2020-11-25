@@ -133,6 +133,12 @@ SAMPLE_MUSIC_FILES = [
     r"C:\Users\maste\OneDrive\Music\Drake - Over (Ayobi Remix).mp3",
     r"C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3"]
 
+# test get_track_number
+double_digit_track_num = r"C:\Users\maste\OneDrive\Music\Armin van Buuren - Mirage (Assaf Remix).mp3"
+for sample in SAMPLE_MUSIC_FILES + [double_digit_track_num]:
+    with suppress(MutagenError, KeyError):
+        assert int(get_track_number(sample))
+
 for file in SAMPLE_MUSIC_FILES:
     with suppress(mutagen.MutagenError):
         assert len(get_metadata(file)) == 3
