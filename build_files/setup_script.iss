@@ -28,6 +28,7 @@ OutputDir={#SourcePath}\..\dist
 OutputBaseFilename=Music Caster Setup
 UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
+UninstallLogMode=overwrite
 SetupIconFile="..\resources\Music Caster Icon.ico"
 
 [Languages]
