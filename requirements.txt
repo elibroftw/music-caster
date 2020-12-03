@@ -7,7 +7,7 @@ pypng~=0.0.20
 pypresence~=4.0.0
 pyqrcode~=1.2.1
 PySimpleGUI~=4.27.4
-PySimpleGUIWx~=0.14
+PySimpleGUIWx
 python-vlc
 requests~=2.22
 wxpython~=4.1

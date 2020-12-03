@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.23'
+VERSION = latest_version = '4.71.24'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -89,9 +89,10 @@ cast: pychromecast.Chromecast = None
 playlists, all_tracks, url_metadata = {}, {}, {}
 # playlist_name: [], formatted_name: file path, file: {artist: str, title: str}
 tray_playlists, tray_folders = ['Create/Edit a Playlist'], []
-all_folders, pl_name = ['PF: Select Folder(s)'], ''
+pl_name = ''
 pl_files = []  # keep track of paths when editing playlists
-chromecasts, device_names = [], ['✓ Local device']
+CHECK_MARK = '✓'
+chromecasts, device_names = [], [f'{CHECK_MARK} Local device']
 music_directories, window_locations = [], {}
 music_queue, done_queue, next_queue = [], [], []
 update_gui_queue = update_volume_slider = False
@@ -142,10 +143,10 @@ def save_settings():
 
 def refresh_folders():
     tray_folders.clear()
-    tray_folders.append('PF: Select Folder(s)')
+    tray_folders.append('Select Folder(s)::PF')
     for music_dir in music_directories:
         music_dir = music_dir.replace('\\', '/').split('/')
-        music_dir = f'PF: ../{"/".join(music_dir[-2:])}' if len(music_dir) > 2 else 'PF: ' + '/'.join(music_dir)
+        music_dir = f'../{"/".join(music_dir[-2:])}::PF' if len(music_dir) > 2 else ('/'.join(music_dir) + '::PF')
         tray_folders.append(music_dir)
 
 
@@ -163,9 +164,9 @@ def change_settings(settings_key, new_value):
         settings[settings_key] = new_value
         save_settings()
         if settings_key == 'repeat':
-            repeat_menu[0] = 'Repeat All ✓' if new_value is False else 'Repeat All'
-            repeat_menu[1] = 'Repeat One ✓' if new_value else 'Repeat One'
-            repeat_menu[2] = 'Repeat Off ✓' if new_value is None else 'Repeat Off'
+            repeat_menu[0] = f'Repeat All {CHECK_MARK}' if new_value is False else 'Repeat All'
+            repeat_menu[1] = f'Repeat One {CHECK_MARK}' if new_value else 'Repeat One'
+            repeat_menu[2] = f'Repeat Off {CHECK_MARK}' if new_value is None else 'Repeat Off'
             refresh_tray()
             if settings['notifications']:
                 if new_value is None: tray.show_message('Music Caster', 'Repeat set to Off', time=5000)
@@ -453,7 +454,7 @@ def load_settings():  # up to 0.4 seconds
             playlists = settings['playlists']
             tray_playlists.clear()  # global variable
             tray_playlists.append('Create/Edit a Playlist')
-            tray_playlists.extend([f'PL: {pl}' for pl in playlists.keys()])
+            tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()])
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
             window_locations = settings['window_locations']
@@ -527,7 +528,7 @@ def web_index():  # web GUI
     _queue = create_track_list()[0]
     device_index = 0
     for i, device_name in enumerate(device_names):
-        if device_name.startswith('✓'):
+        if device_name.startswith(CHECK_MARK):
             device_index = i
             break
     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
@@ -755,8 +756,8 @@ def chromecast_callback(chromecast):
             _cc: pychromecast.Chromecast
             device_name = _cc if _i == 0 else _cc.name
             if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
-                device_names.append(f'✓ {device_name}')
-            else: device_names.append(f'{_i + 1}. {device_name}')
+                device_names.append(f'{CHECK_MARK} {device_name}::device')
+            else: device_names.append(f'    {device_name}::device')
         refresh_tray()
 
 
@@ -768,7 +769,7 @@ def start_chromecast_discovery():
     time.sleep(WAIT_TIMEOUT + 1)
     stop_discovery()
     stop_discovery = None
-    if not device_names: device_names.append(f'✓ Local device')
+    if not device_names: device_names.append(f'{CHECK_MARK} Local device')
     refresh_tray()
 
 
@@ -781,8 +782,8 @@ def change_device(selected_index):
     device_names.clear()
     for device_index, cc in enumerate(['Local device'] + chromecasts):
         cc: pychromecast.Chromecast = cc if device_index == 0 else cc.name
-        if device_index == selected_index: device_names.append(f'✓ {cc}')
-        else: device_names.append(f'{device_index + 1}. {cc}')
+        if device_index == selected_index: device_names.append(f'{CHECK_MARK} {cc}::device')
+        else: device_names.append(f'    {cc}::device')
     refresh_tray()
     if cast != new_device:
         current_pos = 0
@@ -1588,13 +1589,14 @@ def other_tray_actions(_tray_item):
     global cast, cast_last_checked, timer
     # this code checks if its time to go to the next track
     # this code checks if its time to stop playing music if a timer was set
-    if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
+    # if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
+    if _tray_item.endswith('::device') and not _tray_item.startswith(CHECK_MARK):
         with suppress(ValueError):
             change_device(device_names.index(tray_item))
-    elif _tray_item.startswith('PL: '):  # playlist
-        play_playlist(tray_item[4:])
-    elif _tray_item.startswith('PF: '):  # play folder
-        if tray_item == 'PF: Select Folder(s)': wx.CallAfter(folder_action)
+    elif _tray_item.endswith('::PL'):  # playlist
+        play_playlist(tray_item[:-4].replace('&&', '&'))
+    elif _tray_item.endswith('::PF'):  # play folder
+        if tray_item == 'Select Folder(s)::PF': wx.CallAfter(folder_action)
         else:
             Thread(target=play_paths, name='PlayFolder', daemon=True,
                    args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
@@ -2056,7 +2058,7 @@ def read_main_window():
         # refresh tray
         tray_playlists.clear()
         tray_playlists.append('Create/Edit a Playlist')
-        tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+        tray_playlists += [f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()]
     elif main_event == 'play_pl':
         temp_lst = playlists.get(main_values['playlist_combo'], [])
         if temp_lst:
@@ -2088,7 +2090,7 @@ def read_main_window():
         save_settings()
         tray_playlists.clear()
         tray_playlists.append('Create/Edit a Playlist')
-        tray_playlists += [f'PL: {pl}' for pl in playlists.keys()]
+        tray_playlists += [f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()]
     elif main_event == 'playlist_name':
         main_window['pl_save'].update(disabled=main_values['playlist_name'] == '')
     elif main_event in {'pl_rm_items', 'r:82'}:  # remove item from playlist
@@ -2374,9 +2376,9 @@ try:
                 except OSError: PORT += 1
             else: PORT += 1
     print(f'Running on http://127.0.0.1:{PORT}/')
-    repeat_menu = ['Repeat All ✓' if settings['repeat'] is False else 'Repeat All',
-                   'Repeat One ✓' if settings['repeat'] else 'Repeat One',
-                   'Repeat Off ✓' if settings['repeat'] is None else 'Repeat Off']
+    repeat_menu = [f'Repeat All {CHECK_MARK}' if settings['repeat'] is False else 'Repeat All',
+                   f'Repeat One {CHECK_MARK}' if settings['repeat'] else 'Repeat One',
+                   f'Repeat Off {CHECK_MARK}' if settings['repeat'] is None else 'Repeat Off']
 
     menu_def_1 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
                        'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
