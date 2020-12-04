@@ -139,9 +139,25 @@ for sample in SAMPLE_MUSIC_FILES + [double_digit_track_num]:
     with suppress(MutagenError, KeyError):
         assert int(get_track_number(sample))
 
-for file in SAMPLE_MUSIC_FILES:
+all_tracks = {}
+all_tracks_sorted = []
+for file_path in SAMPLE_MUSIC_FILES:
     with suppress(mutagen.MutagenError):
-        assert len(get_metadata(file)) == 3
+        assert len(get_metadata(file_path)) == 3
+    file_path = file_path.replace('\\', '/')
+    if valid_music_file(file_path) and os.path.exists(file_path):
+        with suppress(HeaderNotFoundError):
+            title, artist, album = get_metadata_wrapped(file_path)
+            if title == 'Unknown Title' or artist == 'Unknown Artist':
+                sort_key = os.path.splitext(os.path.basename(file_path))[0]
+            else:
+                sort_key = f'{title} - {artist}'
+            metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+            with suppress(KeyError, TypeError, MutagenError):
+                track_number = get_track_number(file_path)
+                metadata['track_number'] = track_number
+            all_tracks[file_path] = metadata
+            all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
 
 file_path = MUSIC_FILE_WITH_ALBUM_ART
 audio_info = mutagen.File(file_path).info
@@ -177,10 +193,10 @@ done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]
 music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
 home_music_dir = f'{Path.home()}/Music'
-DEFAULT_THEME = {'accent': '#00bfff',
+DEFAULT_THEME = {'accent': '#00bfff', 'alternate_background': '#222222',
                  'background': '#121212', 'text': '#d7d7d7'}
 settings = {
-    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
+    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': True,
     'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
@@ -214,7 +230,7 @@ main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art, 'qr_code': qr_code}
 
 other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
-                                **main_attrs)
+                                all_tracks_sorted, **main_attrs)
 main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
                          icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
                          use_default_focus=False, margins=(0, 0) if mini_mode else (None, None))
@@ -225,7 +241,7 @@ default_album_art = resize_img(
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art, 'qr_code': qr_code}
 other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
-                                **main_attrs)
+                                all_tracks_sorted, **main_attrs)
 mini_window = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
                         icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
                         use_default_focus=False, margins=(0, 0) if mini_mode else (None, None))

@@ -128,6 +128,10 @@ def fix_path(path, by_os=True):
         return path.replace('\\', '/')
 
 
+def get_first_artist(artists:str):
+    return artists.split(', ', 1)[0].split('/', 1)[0]
+
+
 def get_ipv4() -> str:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(('8.8.8.8', 80))
@@ -410,18 +414,20 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
-def create_main(tracks, listbox_selected, playing_status, settings, version, timer, title='Nothing Playing',
-                artist='', qr_code=None, album_art_data: str = None, track_length=0, track_position=0):
+def create_main(tracks, listbox_selected, playing_status, settings, version, timer, sorted_tracks,
+                title='Nothing Playing', artist='', qr_code=None, album_art_data: str = '',
+                track_length=0, track_position=0):
     if settings['mini_mode']:
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
+    alternate_bg = settings['theme']['alternate_background']
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
-    if not settings['show_album_art']: album_art_data = None
-    title_top_pad = 10 + (album_art_data is None) * 100 - (settings['vertical_gui'] and album_art_data is None) * 30
+    if not settings['show_album_art']: album_art_data = ''
+    title_top_pad = 10 + (not album_art_data) * 100 - (settings['vertical_gui'] and not album_art_data) * 30
     # 10, 110, or 0
-    artist_bot_pad = 10 + (album_art_data is None) * 20 - 20 * (album_art_data is None and settings['vertical_gui'])
+    artist_bot_pad = 10 + (not album_art_data) * 20 - 20 * (not album_art_data and settings['vertical_gui'])
     # 10 or 30
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
@@ -453,7 +459,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
-    listbox_height = 14 + (album_art_data is not None) * 4  # 11 or 21
+    listbox_height = 14 + (not album_art_data) * 4  # 11 or 21
     queue_tab_layout = [queue_controls, [
         # TODO: add right click menus for list boxes
         Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
@@ -468,8 +474,24 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     settings_tab = Sg.Tab('Settings', settings_layout, key='tab_settings')
     playlists_layout = create_playlists_tab(settings)
     playlists_tab = Sg.Tab('Playlists', playlists_layout, key='tab_playlists')
-    # TODO: library_tab = Sg.Tab()
-    tabs_part = Sg.TabGroup([[queue_tab, playlists_tab, timer_tab, settings_tab]],
+    lib_data = [[track['title'], get_first_artist(track['artist']), track['album']] for _, track in sorted_tracks]
+    if not lib_data: lib_data = [['', '', '']]
+    lib_headings = ['title', 'artist', 'album']
+    library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, max_col_width=25,
+                                # background_color='light blue',
+                                auto_size_columns=False, display_row_numbers=False,
+                                def_col_width=20, bind_return_key=True,
+                                select_mode=Sg.TABLE_SELECT_MODE_BROWSE,
+                                justification='right', num_rows=10, row_height=30,
+                                right_click_menu=['', ['Play::library', 'Play Next::library', 'Queue::library']],
+                                header_text_color=fg, header_background_color=bg,
+                                alternating_row_color=alternate_bg, key='library')]]
+    library_tab = Sg.Tab('Library', library_layout, key='tab_library')
+    # will be good to use once I'm using Python 3.10 which will have tk 8.10
+    if settings['EXPERIMENTAL']:
+        tab_group = [[queue_tab, playlists_tab, timer_tab, settings_tab, library_tab]]
+    else: tab_group = [[queue_tab, playlists_tab, timer_tab, settings_tab]]
+    tabs_part = Sg.TabGroup(tab_group,
                             title_color=fg, border_width=0, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)

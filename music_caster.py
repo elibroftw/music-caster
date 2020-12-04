@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.24'
+VERSION = latest_version = '4.71.25'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -87,6 +87,8 @@ py_presence_errors = (AttributeError, RuntimeError, PermissionError, UnicodeDeco
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 playlists, all_tracks, url_metadata = {}, {}, {}
+all_tracks_sorted_filename = []
+all_tracks_sorted_sort_key = []
 # playlist_name: [], formatted_name: file path, file: {artist: str, title: str}
 tray_playlists, tray_folders = ['Create/Edit a Playlist'], []
 pl_name = ''
@@ -107,7 +109,7 @@ playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'.replace('\\', '/')
 settings_file = f'{starting_dir}/settings.json'
 
-DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'}
+DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
@@ -370,12 +372,12 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
     if ignore_files is None: ignore_files = set()
 
     def _index_library():
-        global all_tracks, update_gui_queue
+        global all_tracks, update_gui_queue, all_tracks_sorted_sort_key, all_tracks_sorted_filename
         """
         Scans folders provided in settings and adds them to a dictionary
         Does not ignore the files that in ignore_files by design
         """
-        use_temp = not not all_tracks
+        use_temp = not not all_tracks  # use temp if all_tracks is not empty
         all_tracks_temp = {}
         for directory in music_directories:
             for file_path in glob.iglob(f'{glob.escape(directory)}/**/*.*', recursive=True):
@@ -395,6 +397,8 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         else: all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
+        all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+        all_tracks_sorted_filename = sorted(all_tracks.items(), key=lambda item: item[0].lower())
         update_gui_queue = True
 
     if not update_global:
@@ -447,9 +451,16 @@ def load_settings():  # up to 0.4 seconds
             for setting_name, setting_value in tuple(loaded_settings.items()):
                 loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
             for setting_name, setting_value in settings.items():
-                if setting_name not in loaded_settings:
+                does_not_exist = setting_name not in loaded_settings
+                if does_not_exist or isinstance(type(setting_value), type(loaded_settings[setting_name])):
                     loaded_settings[setting_name] = setting_value
                     _save_settings = True
+                elif type(setting_value) == dict:
+                    # for theme key
+                    for k, v in setting_value.items():
+                        if k not in loaded_settings[setting_name]:
+                            loaded_settings[setting_name][k] = v
+                            _save_settings = True
             settings = loaded_settings
             playlists = settings['playlists']
             tray_playlists.clear()  # global variable
@@ -521,7 +532,11 @@ def web_index():  # web GUI
     shuffle_option = 'red' if settings['shuffle_playlists'] else ''
     # sort by the formatted title
     list_of_tracks = []
-    sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+    if all_tracks_sorted_sort_key:
+        sorted_tracks = all_tracks_sorted_sort_key
+    else:
+        sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+
     for filename, data in sorted_tracks:
         filename = urllib.parse.urlencode({'path': filename})
         list_of_tracks.append({'title': data['sort_key'], 'href': f'/play?{filename}'})
@@ -656,7 +671,10 @@ def api_get_file():
 def api_all_files():
     device_name = platform.node()
     # sort by filename
-    sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
+    if all_tracks_sorted_filename:
+        sorted_tracks = all_tracks_sorted_filename
+    else:
+        sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
     list_of_tracks = []
     for filename, metadata in sorted_tracks:
         query = urllib.parse.urlencode({'path': filename})
@@ -861,7 +879,7 @@ def after_play(artists: str, title, autoplay, switching_device):
     global playing_status, cast_last_checked
     app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
     # artists is comma separated string
-    playing_text = f"{artists.split(', ')[0]} - {title}"
+    playing_text = f"{get_first_artist(artists)} - {title}"
     if autoplay:
         if settings['notifications'] and not switching_device and not active_windows['main']:
             tray.show_message('Music Caster', 'Playing: ' + playing_text, time=500)
@@ -1322,7 +1340,7 @@ def resume():
             track_end = track_start + track_length
             playing_status = 'PLAYING'
             metadata = get_current_metadata()
-            artist, title = metadata['artist'].split(', ')[0], metadata['title']
+            artist, title = get_first_artist(metadata['artist']), metadata['title']
             if settings['discord_rpc']:
                 with suppress(py_presence_errors):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
@@ -1489,13 +1507,13 @@ def activate_main_window(selected_tab='tab_queue'):
             else:
                 metadata = get_uri_metadata(music_queue[0])
                 position = get_track_position()
-            length, artist, title = track_length, metadata['artist'].split(', ')[0], metadata['title']
-            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer, title,
-                                          artist, qr_code=qr_code, album_art_data=album_art_data, track_length=length,
-                                          track_position=position)
+            length, artist, title = track_length, get_first_artist(metadata['artist']), metadata['title']
+            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
+                                          all_tracks_sorted_sort_key, title, artist, qr_code=qr_code,
+                                          album_art_data=album_art_data, track_length=length, track_position=position)
         else:
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
-                                          qr_code=qr_code, album_art_data=album_art_data)
+                                          all_tracks_sorted_sort_key, qr_code=qr_code, album_art_data=album_art_data)
         main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
                                 finalize=True, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False,
                                 margins=window_margins, keep_on_top=mini_mode and settings['mini_on_top'],
@@ -1506,6 +1524,9 @@ def activate_main_window(selected_tab='tab_queue'):
             main_window['queue'].bind('<Leave>', '_mouse_leave')
             main_window['pl_tracks'].bind('<Enter>', '_mouse_enter')
             main_window['pl_tracks'].bind('<Leave>', '_mouse_leave')
+            if settings['EXPERIMENTAL']:
+                main_window['library'].bind('<Enter>', '_mouse_enter')
+                main_window['library'].bind('<Leave>', '_mouse_leave')
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
@@ -1646,7 +1667,7 @@ def read_main_window():
     update_progress_bar_text, artist, title = False, '', 'Nothing Playing'
     if playing_status in {'PAUSED', 'PLAYING'} and (playing_live or music_queue):
         metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
-        artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
+        artist, title = get_first_artist(metadata['artist']), metadata['title']
         if settings['show_track_number']:
             with suppress(KeyError):
                 track_number = metadata['track_number']
@@ -1714,12 +1735,12 @@ def read_main_window():
         main_window['timer_minutes'].set_focus()
     elif main_event == '4:52': main_window['tab_settings'].select()  # Ctrl + 4
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
-                        'volume_slider_mouse_enter'}:
+                        'volume_slider_mouse_enter', 'library_mouse_enter'}:
         if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
             main_window.grab_any_where_off()
         mouse_hover = '_'.join(main_event.split('_')[:-2])
     elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'pl_tracks_mouse_leave',
-                        'volume_slider_mouse_leave'}:
+                        'volume_slider_mouse_leave', 'library_mouse_leave'}:
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()
         mouse_hover = '' if main_event != 'volume_slider_mouse_leave' else mouse_hover
@@ -1949,7 +1970,7 @@ def read_main_window():
             with suppress(py_presence_errors):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
                     metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
-                    artist, title = metadata['artist'].split(', ', 1)[0], metadata['title']
+                    artist, title = get_first_artist(metadata['artist']), metadata['title']
                     rich_presence.connect()
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
@@ -2438,7 +2459,7 @@ try:
     elif settings['populate_queue_startup']:
         indexing_tracks_thread.join()
         play_all(queue_only=True)
-    print('Running in tray')
+    print(f'Running in tray, DEBUG={DEBUG}, EXPERIMENTAL={settings["EXPERIMENTAL"]}')
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,

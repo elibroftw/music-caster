@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.25
+- [Optimization] Caching
+
 4.71.24
 - [UI] Improved tray menu
 
