@@ -2060,7 +2060,7 @@ def read_main_window():
         main_window['pl_tracks'].update(values=pl_files, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
         main_window.refresh()
-    elif main_event in {'del_pl', 'Delete:46'}:
+    elif main_event == 'del_pl':
         pl_name = main_values.get('playlist_combo', '')
         if pl_name in playlists:
             del playlists[pl_name]
