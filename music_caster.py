@@ -414,6 +414,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
 
 
 def download(url, outfile):
+    # throws ConnectionAbortedError
     r = requests.get(url, stream=True)
     if outfile.endswith('.zip'):
         outfile = outfile.replace('.zip', '')
@@ -1796,23 +1797,24 @@ def read_main_window():
                 new_i = min(max(new_i, 0), len(pl_files) - 1)
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
-        selected_track_index = main_window['queue'].get_list_values().index(main_value[0])
-        if done_queue and selected_track_index < len(done_queue):
-            while next_queue:  # design decision to empty next queue
-                music_queue.insert(1, next_queue.pop())
-            for i in range(len(done_queue) - selected_track_index):
-                music_queue.insert(0, done_queue.pop())
-        else:
-            for i in range(selected_track_index - len(done_queue)):
-                if not music_queue: break
-                done_queue.append(music_queue.pop(0))
-                if next_queue:
-                    music_queue.insert(0, next_queue.pop(0))
-        if music_queue: play(music_queue[0])
-        updated_list = create_track_list()[0]
-        dq_len = len(done_queue)
-        main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
-        reset_progress()
+        with suppress(ValueError):
+            selected_track_index = main_window['queue'].get_list_values().index(main_value[0])
+            if done_queue and selected_track_index < len(done_queue):
+                while next_queue:  # design decision to empty next queue
+                    music_queue.insert(1, next_queue.pop())
+                for _ in range(len(done_queue) - selected_track_index):
+                    music_queue.insert(0, done_queue.pop())
+            else:
+                for _ in range(selected_track_index - len(done_queue)):
+                    if not music_queue: break
+                    done_queue.append(music_queue.pop(0))
+                    if next_queue:
+                        music_queue.insert(0, next_queue.pop(0))
+            if music_queue: play(music_queue[0])
+            updated_list = create_track_list()[0]
+            dq_len = len(done_queue)
+            main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
+            reset_progress()
     elif main_event == 'move_up' and main_values['queue']:
         # index_to_move = int(main_values['queue'][0].split('.', 1)[0])
         index_to_move = main_window['queue'].get_list_values().index(main_values['queue'][0])
@@ -2303,7 +2305,12 @@ def auto_update(auto_start=True):
                     except OSError as _e:
                         if _e.errno == errno.ENOSPC:
                             temp_tray.show_message('Music Caster', 'ERROR: No space left on device to auto-update')
-                        change_settings('auto_update', False)
+                        if auto_start:
+                            temp_tray.hide()
+                            temp_tray.close()
+                        return False
+                    except ConnectionAbortedError:
+                        temp_tray.show_message('Music Caster', f'Update v{latest_ver} is available')
                         if auto_start:
                             temp_tray.hide()
                             temp_tray.close()
