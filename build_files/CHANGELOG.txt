@@ -1,6 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
 4.71.25
+- [Fix] Removing current track from queue
+- [Fix] Set timer with HH:MM
+
+4.71.25
 - [Optimization] Caching
 
 4.71.24

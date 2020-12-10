@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.25'
+VERSION = latest_version = '4.71.26'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1871,14 +1871,22 @@ def read_main_window():
                 music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
             updated_list = create_track_list()[0]
             main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif main_event == 'remove' and main_values['queue']:
+    elif main_event == 'remove_track' and main_values['queue']:
         index_to_remove = main_window['queue'].get_list_values().index(main_values['queue'][0])
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
         if index_to_remove < dq_len:
             done_queue.pop(index_to_remove)
         elif index_to_remove == dq_len:
+            # remove the "0. XXXX" track that could be playing right now
             music_queue.pop(0)
-            if music_queue: play(music_queue[0])
+            if next_queue: music_queue.insert(0, next_queue.pop(0))
+            # if queue is empty but repeat is all AND there are tracks in the done_queue
+            if not music_queue and settings['repeat'] is False and done_queue:
+                music_queue.extend(done_queue)
+                done_queue.clear()
+            # start playing new track if and only if we were playing before
+            if music_queue and playing_status != 'NOT PLAYING': play(music_queue[0])
+            else: stop('remove_track')
         elif index_to_remove <= nq_len + dq_len:
             next_queue.pop(index_to_remove - dq_len - 1)
         elif index_to_remove < nq_len + mq_len + dq_len:
@@ -2014,22 +2022,22 @@ def read_main_window():
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
           and not settings['mini_mode'] and main_values['tab_group'] == 'tab_timer'):
         try:
-            timer_value = main_values['timer_minutes']
+            timer_value: str = main_values['timer_minutes']
             if timer_value.isdigit():
                 seconds = abs(float(main_values['timer_minutes'])) * 60
             elif timer_value.count(':') == 1:
-                if timer_value[-3:].strip().upper() in ('PM', 'AM'):
-                    timer_value = timer_value[timer_value:-3]
-                elif timer_value[-2:].upper() in ('PM', 'AM'):
-                    timer_value = timer_value[timer_value:-2]
+                # parse out any PM and AM's
+                timer_value = timer_value.strip().upper().replace(' ', '').replace('PM', '').replace('AM','')
                 to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
-                seconds_delta = (to_stop - datetime.now()).total_seconds()
+                current_time = datetime.now()
+                current_time = current_time.replace(second=0)
+                seconds_delta = (to_stop - current_time).total_seconds()
                 if seconds_delta < 0: seconds_delta += 43200  # add 12 hours
                 seconds = seconds_delta
             else:
                 raise ValueError()
             timer = time.time() + seconds
-            timer_set_to = datetime.now() + timedelta(minutes=seconds // 60)
+            timer_set_to = datetime.now().replace(second=0) + timedelta(seconds=seconds)
             if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
             else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
             main_window['timer_text'].update(value=f'Timer set for {timer_set_to}')
@@ -2466,7 +2474,7 @@ try:
     elif settings['populate_queue_startup']:
         indexing_tracks_thread.join()
         play_all(queue_only=True)
-    print(f'Running in tray, DEBUG={DEBUG}, EXPERIMENTAL={settings["EXPERIMENTAL"]}')
+    print(f'Running in tray, DEBUG={settings.get("DEBUG", False) or DEBUG}, EXPERIMENTAL={settings["EXPERIMENTAL"]}')
     pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,

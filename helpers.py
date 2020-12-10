@@ -457,7 +457,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip='Save queue to playlist')],
         [Sg.Button(key='locate_track', image_data=LOCATE_FILE, **img_button, tooltip='Locate track')],
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
-        [Sg.Button('❌', key='remove', tooltip='Remove track', size=(3, 1))],
+        [Sg.Button('❌', key='remove_track', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
     listbox_height = 14 + (not album_art_data) * 4  # 11 or 21
     queue_tab_layout = [queue_controls, [
