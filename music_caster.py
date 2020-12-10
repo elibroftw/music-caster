@@ -1395,7 +1395,7 @@ def next_track(from_timeout=False):
             if settings['repeat']: change_settings('repeat', False)
             if music_queue: done_queue.append(music_queue.pop(0))
             if next_queue: music_queue.insert(0, next_queue.pop(0))
-            # if queue is empty but repeat is all AND there are songs in the done_queue
+            # if queue is empty but repeat is all AND there are tracks in the done_queue
             if not music_queue and settings['repeat'] is False and done_queue:
                 music_queue.extend(done_queue)
                 done_queue.clear()

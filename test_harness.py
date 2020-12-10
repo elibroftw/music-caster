@@ -215,7 +215,7 @@ Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_
               button_color=(theme['background'], theme['accent']),
               border_width=1, slider_border_width=1, progress_meter_border_depth=0)
 
-songs_list, selected_value = create_track_list()
+tracks_list, selected_value = create_track_list()
 qr_code = create_qr_code(2001)
 really_long_tile = 'extremely long convoluted title that tests max length'
 
@@ -229,7 +229,7 @@ default_album_art = resize_img(
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art, 'qr_code': qr_code}
 
-other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
+other_main_layout = create_main(tracks_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
                                 all_tracks_sorted, **main_attrs)
 main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
                          icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
@@ -240,7 +240,7 @@ default_album_art = resize_img(
     DEFAULT_ART, settings['theme']['background'], size).decode()
 main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
               'album_art_data': default_album_art, 'qr_code': qr_code}
-other_main_layout = create_main(songs_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
+other_main_layout = create_main(tracks_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
                                 all_tracks_sorted, **main_attrs)
 mini_window = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
                         icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
