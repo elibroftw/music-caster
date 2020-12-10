@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.26'
+VERSION = latest_version = '4.71.27'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -2079,9 +2079,10 @@ def read_main_window():
         pl_name = playlist_names[0] if playlist_names else ''
         main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
         pl_files = playlists.get(pl_name, []).copy()
+        formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
         # update playlist editor
         main_window['playlist_name'].update(value=pl_name)
-        main_window['pl_tracks'].update(values=pl_files, set_to_index=0)
+        main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
         main_window['play_pl'].update(disabled=pl_name == '')
         main_window['queue_pl'].update(disabled=pl_name == '')

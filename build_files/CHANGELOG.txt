@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.27
+- [Fix] Delete playlist behaviour
+
 4.71.26
 - [Fix] Removing current track from queue
 - [Fix] Set timer with HH:MM
