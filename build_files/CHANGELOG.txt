@@ -3,7 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.71.28
 - [Fix] Fix using j,k,l on playlist tab
 - [Fix] Fix using k to pause in mini-mode
-- [Fix] Improve typing speed for m
+- [Fix] Improve typing speed for main window
 
 4.71.27
 - [Fix] Delete playlist behaviour
