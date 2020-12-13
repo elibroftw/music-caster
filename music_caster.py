@@ -1,10 +1,11 @@
-VERSION = latest_version = '4.71.27'
+VERSION = latest_version = '4.71.28'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
+
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
 parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths are queued')
@@ -62,6 +63,7 @@ import win32com.client
 from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
+
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
                    '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
@@ -154,9 +156,12 @@ def refresh_folders():
 
 def refresh_tray():
     refresh_folders()
-    if playing_status == 'PLAYING': tray.update(menu=menu_def_2)
-    elif playing_status == 'PAUSED': tray.update(menu=menu_def_3)
-    else: tray.update(menu=menu_def_1)
+    if playing_status == 'PLAYING':
+        tray.update(menu=menu_def_2)
+    elif playing_status == 'PAUSED':
+        tray.update(menu=menu_def_3)
+    else:
+        tray.update(menu=menu_def_1)
 
 
 def change_settings(settings_key, new_value):
@@ -171,9 +176,12 @@ def change_settings(settings_key, new_value):
             repeat_menu[2] = f'Repeat Off {CHECK_MARK}' if new_value is None else 'Repeat Off'
             refresh_tray()
             if settings['notifications']:
-                if new_value is None: tray.show_message('Music Caster', 'Repeat set to Off', time=5000)
-                elif new_value: tray.show_message('Music Caster', 'Repeat set to One', time=5000)
-                else: tray.show_message('Music Caster', 'Repeat set to All', time=5000)
+                if new_value is None:
+                    tray.show_message('Music Caster', 'Repeat set to Off', time=5000)
+                elif new_value:
+                    tray.show_message('Music Caster', 'Repeat set to One', time=5000)
+                else:
+                    tray.show_message('Music Caster', 'Repeat set to All', time=5000)
     return new_value
 
 
@@ -224,9 +232,12 @@ def cycle_repeat(update_main=False):
     :return: repeat value
     """
     global settings
-    if settings['repeat'] is None: new_repeat_setting = False  # Repeat All
-    elif settings['repeat']: new_repeat_setting = None         # Repeat OFF
-    else: new_repeat_setting = True                            # Repeat One
+    if settings['repeat'] is None:
+        new_repeat_setting = False  # Repeat All
+    elif settings['repeat']:
+        new_repeat_setting = None  # Repeat OFF
+    else:
+        new_repeat_setting = True  # Repeat One
     if update_main and active_windows['main']: update_repeat_button()  # update main window if it is active
     return change_settings('repeat', new_repeat_setting)
 
@@ -248,9 +259,12 @@ def handle_exception(exception, restart_program=False):
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
     mac = get_mac()
-    if playing_url: playing_uri = 'url'
-    elif playing_live: playing_uri = 'live'
-    else: playing_uri = 'file' if music_queue else 'none'
+    if playing_url:
+        playing_uri = 'url'
+    elif playing_live:
+        playing_uri = 'live'
+    else:
+        playing_uri = 'file' if music_queue else 'none'
     try:
         with open('music_caster.log') as f:
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
@@ -313,7 +327,8 @@ def get_current_album_art():
                 art_src = url_metadata[uri]['art']  # 'art' is a key to a value of a link
                 url_metadata[uri]['art_data'] = art_data = base64.b64encode(requests.get(art_src).content)
                 return art_data
-            except KeyError: return DEFAULT_ART
+            except KeyError:
+                return DEFAULT_ART
         art = get_album_art(uri)[1]  # get_album_art(uri)[1] can be None
     return DEFAULT_ART if art is None else art
 
@@ -335,7 +350,8 @@ def get_uri_metadata(uri):
       if file/url is not in all_track. e.g. links
     """
     uri = uri.replace('\\', '/')
-    try: return all_tracks[uri]
+    try:
+        return all_tracks[uri]
     except KeyError:
         try:
             return url_metadata[uri]
@@ -343,7 +359,8 @@ def get_uri_metadata(uri):
             title, artist, album = get_metadata_wrapped(uri)
             if title == 'Unknown Title' or artist == 'Unknown Artist':
                 sort_key = os.path.splitext(os.path.basename(uri))[0]
-            else: sort_key = f'{title} - {artist}'
+            else:
+                sort_key = f'{title} - {artist}'
             metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
             if uri.startswith('http'): return metadata
             with suppress(KeyError, TypeError, MutagenError):
@@ -393,8 +410,10 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                         with suppress(KeyError, TypeError, MutagenError):
                             track_number = get_track_number(file_path)
                             metadata['track_number'] = track_number
-                        if use_temp: all_tracks_temp[file_path] = metadata
-                        else: all_tracks[file_path] = metadata
+                        if use_temp:
+                            all_tracks_temp[file_path] = metadata
+                        else:
+                            all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
         all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
@@ -430,6 +449,7 @@ def set_save_position_callback(window: Sg.Window, _key):
         if event.widget is window.TKroot:
             window_locations[_key] = window.CurrentLocation()
             save_settings()
+
     window.TKroot.bind('<Destroy>', save_window_position)
 
 
@@ -440,14 +460,17 @@ def get_window_location(window_key):
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
-    global settings, playlists, music_directories, settings_last_modified, DEFAULT_DIR,\
+    global settings, playlists, music_directories, settings_last_modified, DEFAULT_DIR, \
         window_locations, settings_file_in_use
-    if settings_file_in_use: return
+    if settings_file_in_use:
+        return
     elif os.path.exists(settings_file):
         settings_file_in_use = True
         with open(settings_file) as json_file:
-            try: loaded_settings = json.load(json_file)
-            except json.decoder.JSONDecodeError: loaded_settings = {}
+            try:
+                loaded_settings = json.load(json_file)
+            except json.decoder.JSONDecodeError:
+                loaded_settings = {}
             _save_settings = False
             for setting_name, setting_value in tuple(loaded_settings.items()):
                 loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
@@ -515,12 +538,18 @@ def web_index():  # web GUI
     if request.args:
         if 'play' in request.args:
             if not resume():
-                if music_queue: play(music_queue[0])
-                else: play_all()
-        elif 'pause' in request.args: pause()  # resume == play
-        elif 'next' in request.args: next_track()
-        elif 'prev' in request.args: prev_track()
-        elif 'repeat' in request.args: cycle_repeat()
+                if music_queue:
+                    play(music_queue[0])
+                else:
+                    play_all()
+        elif 'pause' in request.args:
+            pause()  # resume == play
+        elif 'next' in request.args:
+            next_track()
+        elif 'prev' in request.args:
+            prev_track()
+        elif 'repeat' in request.args:
+            cycle_repeat()
         elif 'shuffle' in request.args:
             change_settings('shuffle_playlists', not settings['shuffle_playlists'])
         return redirect('/')
@@ -639,13 +668,16 @@ def api_set_timer():
     if request.method == 'POST':
         val = request.data.decode()
         val = val.lower()
-        if val == 'cancel': cancel_timer()
+        if val == 'cancel':
+            cancel_timer()
         else:
             val = int(val)
             timer = val + time.time()
             timer_set_to = datetime.now() + timedelta(minutes=val // 60)
-            if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
-            else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+            if platform.system() == 'Windows':
+                timer_set_to = timer_set_to.strftime('%#I:%M %p')
+            else:
+                timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
             return timer_set_to
         return 'timer cancelled'
     else:  # GET request
@@ -659,8 +691,10 @@ def api_get_file():
         if os.path.isfile(file_path) and valid_music_file(file_path):
             if request.args.get('thumbnail_only', False):
                 mime_type, img_data = get_album_art(file_path)
-                if mime_type is None: mime_type, img_data = 'image/png', DEFAULT_ART
-                else: img_data = base64.b64decode(img_data)
+                if mime_type is None:
+                    mime_type, img_data = 'image/png', DEFAULT_ART
+                else:
+                    img_data = base64.b64decode(img_data)
                 ext = mime_type.split('/')[1]
                 return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
                                  mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
@@ -742,6 +776,7 @@ def api_live_audio():
                     stream = create_stream(p, *get_output_device(p, look_for_device), STREAM_CHUNK)
                 data = stream.read(STREAM_CHUNK)  # gets the live system audio
             yield data
+
     return Response(system_sound())
 
 
@@ -776,7 +811,8 @@ def chromecast_callback(chromecast):
             device_name = _cc if _i == 0 else _cc.name
             if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
                 device_names.append(f'{CHECK_MARK} {device_name}::device')
-            else: device_names.append(f'    {device_name}::device')
+            else:
+                device_names.append(f'    {device_name}::device')
         refresh_tray()
 
 
@@ -794,15 +830,20 @@ def start_chromecast_discovery():
 
 def change_device(selected_index):
     global cast, playing_status
-    if selected_index == 0: new_device = None
+    if selected_index == 0:
+        new_device = None
     else:
-        try: new_device = chromecasts[selected_index - 1]
-        except IndexError: new_device = None
+        try:
+            new_device = chromecasts[selected_index - 1]
+        except IndexError:
+            new_device = None
     device_names.clear()
     for device_index, cc in enumerate(['Local device'] + chromecasts):
         cc: pychromecast.Chromecast = cc if device_index == 0 else cc.name
-        if device_index == selected_index: device_names.append(f'{CHECK_MARK} {cc}::device')
-        else: device_names.append(f'    {cc}::device')
+        if device_index == selected_index:
+            device_names.append(f'{CHECK_MARK} {cc}::device')
+        else:
+            device_names.append(f'    {cc}::device')
     refresh_tray()
     if cast != new_device:
         current_pos = 0
@@ -814,16 +855,20 @@ def change_device(selected_index):
                 if mc.is_playing or mc.is_paused: mc.stop()
             with suppress(NotConnected):
                 cast.quit_app()
-        elif cast is None and audio_player.is_busy(): current_pos = audio_player.stop()
+        elif cast is None and audio_player.is_busy():
+            current_pos = audio_player.stop()
         cast = new_device
         volume = 0 if settings['muted'] else settings['volume']
         change_settings('previous_device', None if cast is None else str(cast.uuid))
-        with suppress(AttributeError): cast.wait(timeout=WAIT_TIMEOUT)
+        with suppress(AttributeError):
+            cast.wait(timeout=WAIT_TIMEOUT)
         update_volume(volume)
         if playing_status in {'PAUSED', 'PLAYING'}:
             do_autoplay = False if playing_status == 'PAUSED' else True
-            if not playing_live: play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
-            elif not stream_live_audio(True): playing_status = 'NOT PLAYING'
+            if not playing_live:
+                play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
+            elif not stream_live_audio(True):
+                playing_status = 'NOT PLAYING'
 
 
 def format_file(uri: str):
@@ -832,8 +877,10 @@ def format_file(uri: str):
         artist, title = metadata['artist'], metadata['title']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
         formatted = settings['track_format'].replace('&artist', artist).replace('&title', title)
-        try: number = metadata['track_number']
-        except KeyError: number = ''
+        try:
+            number = metadata['track_number']
+        except KeyError:
+            number = ''
         if '&trck' in formatted:
             formatted = formatted.replace('&trck', number)
         elif settings['show_track_number'] and number:
@@ -886,7 +933,8 @@ def after_play(artists: str, title, autoplay, switching_device):
             tray.show_message('Music Caster', 'Playing: ' + playing_text, time=500)
         playing_status = 'PLAYING'
         tray.update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text.replace('&', '&&&'))
-    else: tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+    else:
+        tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
     if settings['discord_rpc']:
@@ -933,8 +981,10 @@ def stream_live_audio(switching_device=False):
             after_play(artist, title, True, switching_device)
             return True
         except NotConnected:
-            if internet_available(): tray.show_message('Music Caster', 'ERROR: No Internet Connection')
-            else: tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast')
+            if internet_available():
+                tray.show_message('Music Caster', 'ERROR: No Internet Connection')
+            else:
+                tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast')
             return False
 
 
@@ -1013,13 +1063,15 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
 
 
 def play(uri, position=0, autoplay=True, switching_device=False):
-    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update, playing_live,\
+    global track_start, track_end, track_length, track_position, music_queue, progress_bar_last_update, playing_live, \
         cast_last_checked, playing_url
     while not os.path.exists(uri):
         if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
         music_queue.remove(uri)
-        if music_queue: uri = music_queue[0]
-        else: return
+        if music_queue:
+            uri = music_queue[0]
+        else:
+            return
         position = 0
     uri = uri.replace('\\', '/')
     playing_url = playing_live = False
@@ -1050,13 +1102,14 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{PORT}/file?{url_args}'
             cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
-            with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
+            with suppress(RuntimeError):
+                cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
             mc = cast.media_controller
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
             ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
-                          metadata=metadata, thumb=url+'&thumbnail_only=true', autoplay=autoplay)
+                          metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
             t1 = time.time()
             mc.block_until_active(WAIT_TIMEOUT + 1)
             if time.time() - t1 > WAIT_TIMEOUT:
@@ -1069,7 +1122,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             progress_bar_last_update = time.time()
         except (pychromecast.error.NotConnected, OSError):
             tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
-            with suppress(pychromecast.error.UnsupportedNamespace): stop('play')
+            with suppress(pychromecast.error.UnsupportedNamespace):
+                stop('play')
             return
     track_position = position
     track_start = time.time() - track_position
@@ -1091,8 +1145,10 @@ def play_all(starting_files: list = None, queue_only=False):
     starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
     if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
         tray.show_message('Music Caster', 'Some files may be missing as music library is still being built')
-    if starting_files: music_queue.extend(index_all_tracks(False, starting_files).keys())
-    else: music_queue.extend(all_tracks.keys())
+    if starting_files:
+        music_queue.extend(index_all_tracks(False, starting_files).keys())
+    else:
+        music_queue.extend(all_tracks.keys())
     if music_queue: shuffle(music_queue)
     if starting_files:
         for j, _f in enumerate(starting_files):
@@ -1151,7 +1207,8 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
         for i in range(1, len(music_queue) * from_explorer): del music_queue[i]
     music_queue.extend(temp_queue)
     if not queue_only:
-        if music_queue: play(music_queue[0])
+        if music_queue:
+            play(music_queue[0])
         elif next_queue:
             playing_status = 'PLAYING'
             next_track()
@@ -1187,8 +1244,10 @@ def file_action(action='Play File(s)'):
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
                 next_track()
-        else: raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
-    else: main_last_event = 'file_action'
+        else:
+            raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
+    else:
+        main_last_event = 'file_action'
 
 
 def play_file():
@@ -1233,8 +1292,10 @@ def folder_action(action='Play Folder'):
             if os.path.exists(folder_path):
                 for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
                     if valid_music_file(_f): temp_queue.append(_f)
-        if settings['shuffle_playlists']: shuffle(temp_queue)
-        else: temp_queue.sort(key=natural_key_file)
+        if settings['shuffle_playlists']:
+            shuffle(temp_queue)
+        else:
+            temp_queue.sort(key=natural_key_file)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
@@ -1257,9 +1318,11 @@ def folder_action(action='Play Folder'):
             start_playing = not music_queue
             music_queue.extend(temp_queue)
             if start_playing and music_queue: play(music_queue[0])
-        else: raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
+        else:
+            raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
         del temp_queue
-    else: main_last_event = 'folder_action'
+    else:
+        main_last_event = 'folder_action'
 
 
 def internet_available(host='8.8.8.8', port=53, timeout=3):
@@ -1300,8 +1363,10 @@ def pause():
         try:
             if cast is None:
                 track_position = time.time() - track_start
-                if audio_player.pause(): app_log.info('paused local audio player')
-                else: app_log.info(f'could not pause local audio player')
+                if audio_player.pause():
+                    app_log.info('paused local audio player')
+                else:
+                    app_log.info(f'could not pause local audio player')
             else:
                 if internet_available():
                     mc = cast.media_controller
@@ -1317,7 +1382,8 @@ def pause():
                 with suppress(py_presence_errors):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
-        except UnsupportedNamespace: stop('pause')
+        except UnsupportedNamespace:
+            stop('pause')
         tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
         return True
     return False
@@ -1328,8 +1394,10 @@ def resume():
     if playing_status == 'PAUSED':
         try:
             if cast is None:
-                if audio_player.resume(): app_log.info('resumed playback')
-                else: app_log.info('failed to resume')
+                if audio_player.resume():
+                    app_log.info('resumed playback')
+                else:
+                    app_log.info('failed to resume')
             else:
                 mc = cast.media_controller
                 mc.update_status()
@@ -1377,10 +1445,13 @@ def stop(stopped_from: str, stop_cast=True):
             else:  # only when background tasks calls stop()
                 # check if background tasks is wrong
                 mc.update_status()
-                if mc.is_playing: playing_status = 'PLAYING'
-                elif mc.is_paused: playing_status = 'PAUSED'
+                if mc.is_playing:
+                    playing_status = 'PLAYING'
+                elif mc.is_paused:
+                    playing_status = 'PAUSED'
                 return
-    else: audio_player.stop()
+    else:
+        audio_player.stop()
     track_position = 0
     if not exit_flag: tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 
@@ -1388,7 +1459,8 @@ def stop(stopped_from: str, stop_cast=True):
 def next_track(from_timeout=False):
     global playing_status
     app_log.info(f'next_track(from_timeout={from_timeout})')
-    if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
+    if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
+        playing_status = 'NOT PLAYING'
     elif playing_status != 'NOT PLAYING' and not playing_live and (next_queue or music_queue):
         # if repeat all or repeat is off or empty queue or not manual next
         if not settings['repeat'] or not music_queue or not from_timeout:
@@ -1399,26 +1471,30 @@ def next_track(from_timeout=False):
             if not music_queue and settings['repeat'] is False and done_queue:
                 music_queue.extend(done_queue)
                 done_queue.clear()
-        if music_queue: play(music_queue[0])
-        else: stop('next track')  # repeat is off / no tracks in queue
+        if music_queue:
+            play(music_queue[0])
+        else:
+            stop('next track')  # repeat is off / no tracks in queue
 
 
 def prev_track():
     global playing_status
     app_log.info('prev_track()')
     if playing_status != 'NOT PLAYING' and not playing_live:
-        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: playing_status = 'NOT PLAYING'
+        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
+            playing_status = 'NOT PLAYING'
         else:
             if done_queue:
                 if settings['repeat']: change_settings('repeat', False)
                 track = done_queue.pop()
                 music_queue.insert(0, track)
                 play(track)
-            elif music_queue: play(music_queue[0])
+            elif music_queue:
+                play(music_queue[0])
 
 
 def background_tasks():
-    global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified,\
+    global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified, \
         update_last_checked, latest_version, exit_flag, update_volume_slider
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
@@ -1439,9 +1515,12 @@ def background_tasks():
                             track_start = time.time() - new_track_position
                             track_end = time.time() + track_length - new_track_position
                             track_position = new_track_position
-                    if is_paused: pause()  # pause() checks if playing status equals 'PLAYING'
-                    elif is_playing: resume()
-                    elif is_stopped and playing_status != 'NOT PLAYING': stop('background tasks', False)
+                    if is_paused:
+                        pause()  # pause() checks if playing status equals 'PLAYING'
+                    elif is_playing:
+                        resume()
+                    elif is_stopped and playing_status != 'NOT PLAYING':
+                        stop('background tasks', False)
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)
                     if _volume != cast_volume:
@@ -1450,7 +1529,8 @@ def background_tasks():
                             _volume = change_settings('volume', cast_volume)
                             if _volume and settings['muted']: change_settings('muted', False)
                             if active_windows['main']: update_volume_slider = True
-                elif playing_status in {'PAUSED', 'PLAYING'}: stop('background tasks; app not running')
+                elif playing_status in {'PAUSED', 'PLAYING'}:
+                    stop('background tasks; app not running')
             cast_last_checked = time.time()
         if time.time() - update_last_checked > 216000:
             # never show a notification for the same latest version
@@ -1475,9 +1555,12 @@ def on_press(key):
     if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
     if key == '<179>' and playing_status != 'NOT PLAYING':
         if not pause(): resume()
-    elif key == '<176>' and playing_status != 'NOT PLAYING': next_track()
-    elif key == '<177>' and playing_status != 'NOT PLAYING': prev_track()
-    elif key == '<178>': stop('keyboard shortcut')
+    elif key == '<176>' and playing_status != 'NOT PLAYING':
+        next_track()
+    elif key == '<177>' and playing_status != 'NOT PLAYING':
+        prev_track()
+    elif key == '<178>':
+        stop('keyboard shortcut')
     last_press = time.time()
 
 
@@ -1499,8 +1582,10 @@ def activate_main_window(selected_tab='tab_queue'):
         album_art_data = resize_img(get_current_album_art(), settings['theme']['background'],
                                     size).decode() if settings['show_album_art'] else None
         window_margins = (0, 0) if mini_mode else (None, None)
-        try: qr_code = create_qr_code(PORT)
-        except OSError: qr_code = None  # long time without internet
+        try:
+            qr_code = create_qr_code(PORT)
+        except OSError:
+            qr_code = None  # long time without internet
         if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if playing_live:
                 metadata = url_metadata['LIVE']
@@ -1575,7 +1660,8 @@ def locate_track(selected_track_index=0):
             uri = ''
         if uri.startswith('http'):
             if uri.startswith('http'): Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
-        else: Popen(f'explorer /select,"{fix_path(uri)}"')
+        else:
+            Popen(f'explorer /select,"{fix_path(uri)}"')
 
 
 def exit_program():
@@ -1584,9 +1670,12 @@ def exit_program():
     for window in (main_window, play_url_window): window.close()
     tray.hide()
     with suppress(UnsupportedNamespace, NotConnected):
-        if cast is None: stop('exit program')
-        elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER: cast.quit_app()
-    with suppress(py_presence_errors): rich_presence.close()
+        if cast is None:
+            stop('exit program')
+        elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
+            cast.quit_app()
+    with suppress(py_presence_errors):
+        rich_presence.close()
     if settings['auto_update']: auto_update(False)
     sys.exit()  # since auto_update might not sys.exit()
 
@@ -1618,7 +1707,8 @@ def other_tray_actions(_tray_item):
     elif _tray_item.endswith('::PL'):  # playlist
         play_playlist(tray_item[:-4].replace('&&', '&'))
     elif _tray_item.endswith('::PF'):  # play folder
-        if tray_item == 'Select Folder(s)::PF': wx.CallAfter(folder_action)
+        if tray_item == 'Select Folder(s)::PF':
+            wx.CallAfter(folder_action)
         else:
             Thread(target=play_paths, name='PlayFolder', daemon=True,
                    args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
@@ -1628,8 +1718,10 @@ def other_tray_actions(_tray_item):
         stop('timer')
         timer = 0
         if settings['timer_shut_off_computer']:
-            if platform.system() == 'Windows': os.system('shutdown /p /f')
-            else: os.system('shutdown -h now')
+            if platform.system() == 'Windows':
+                os.system('shutdown /p /f')
+            else:
+                os.system('shutdown -h now')
         elif settings['timer_hibernate_computer']:
             if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
         elif settings['timer_sleep_computer']:
@@ -1717,7 +1809,9 @@ def read_main_window():
                 change_settings('muted', False)
             update_volume(new_volume)
         main_window.refresh()
-    if main_event in {'j', 'l'} and (settings['mini_mode'] or main_values['tab_group'] != 'tab_timer'):
+    # needs to be in its own if statement because it tell the progress bar to update later on
+    if main_event in {'j', 'l'} and (settings['mini_mode'] or
+                                     main_values['tab_group'] not in {'tab_timer', 'tab_playlists'}):
         if playing_status in {'PLAYING', 'PAUSED'}:
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             get_track_position()
@@ -1726,15 +1820,20 @@ def read_main_window():
             main_values['progress_bar'] = new_position
             main_event = 'progress_bar'
             main_window.refresh()
-    if main_event == Sg.TIMEOUT_KEY: pass
-    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue': main_window['file_action'].set_focus()
+    if main_event == Sg.TIMEOUT_KEY:
+        pass
+    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue':
+        main_window['file_action'].set_focus()
     # change tabs with hot keys
-    elif main_event == '1:49': main_window['tab_queue'].select()  # Ctrl + 1
-    elif main_event == '2:50': main_window['tab_playlists'].select()  # Ctrl + 2
+    elif main_event == '1:49':
+        main_window['tab_queue'].select()  # Ctrl + 1
+    elif main_event == '2:50':
+        main_window['tab_playlists'].select()  # Ctrl + 2
     elif main_event == '3:51' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':  # Ctrl + 3
         main_window['tab_timer'].select()
         main_window['timer_minutes'].set_focus()
-    elif main_event == '4:52': main_window['tab_settings'].select()  # Ctrl + 4
+    elif main_event == '4:52':
+        main_window['tab_settings'].select()  # Ctrl + 4
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
                         'volume_slider_mouse_enter', 'library_mouse_enter'}:
         if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
@@ -1749,19 +1848,25 @@ def read_main_window():
         with suppress(IndexError):
             selected_track_index = int(main_values['queue'][0].split('.', 1)[0])
             locate_track(selected_track_index)
-    elif main_event == 'pause/resume' or main_event == 'k' and main_values['tab_group'] != 'tab_timer':
-        try: pause_resume[playing_status]()
+    elif (main_event == 'pause/resume' or main_event == 'k' and (
+            settings['mini_mode'] or main_values['tab_group'] not in {'tab_timer', 'tab_playlists'})):
+        try:
+            pause_resume[playing_status]()
         except KeyError:
-            if music_queue: play(music_queue[0])
-            else: play_all()
+            if music_queue:
+                play(music_queue[0])
+            else:
+                play_all()
     elif main_event == 'next' and playing_status != 'NOT PLAYING':
         reset_progress()
         next_track()
     elif main_event == 'prev' and playing_status != 'NOT PLAYING':
         reset_progress()
         prev_track()
-    elif main_event == 'shuffle': pass  # TODO: move from settings; shuffle affects play folder and play playlists
-    elif main_event in {'repeat', 'r:82'}: cycle_repeat(True)
+    elif main_event == 'shuffle':
+        pass  # TODO: move from settings; shuffle affects play folder and play playlists
+    elif main_event in {'repeat', 'r:82'}:
+        cycle_repeat(True)
     elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
           and (settings['mini_mode'] or main_values['tab_group'] == 'tab_queue')):
         # User scrubbed volume bar or pressed (while on Tab 1 or in mini mode)
@@ -1769,8 +1874,10 @@ def read_main_window():
         if main_event.isdigit():
             new_volume = int(main_event) * 10
         else:
-            if main_event == 'a': delta = -5
-            elif main_event == 'd': delta = 5
+            if main_event == 'a':
+                delta = -5
+            elif main_event == 'd':
+                delta = 5
             new_volume = main_values['volume_slider'] + delta
         change_settings('volume', new_volume)
         update_volume(new_volume)
@@ -1841,7 +1948,8 @@ def read_main_window():
         elif new_i >= 0:  # moving within mq
             mq_i = new_i - dq_len - nq_len
             music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
-        else: new_i = max(new_i, 0)
+        else:
+            new_i = max(new_i, 0)
         updated_list = create_track_list()[0]
         main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
     elif main_event == 'move_down' and main_values['queue']:
@@ -1885,8 +1993,10 @@ def read_main_window():
                 music_queue.extend(done_queue)
                 done_queue.clear()
             # start playing new track if and only if we were playing before
-            if music_queue and playing_status != 'NOT PLAYING': play(music_queue[0])
-            else: stop('remove_track')
+            if music_queue and playing_status != 'NOT PLAYING':
+                play(music_queue[0])
+            else:
+                stop('remove_track')
         elif index_to_remove <= nq_len + dq_len:
             next_queue.pop(index_to_remove - dq_len - 1)
         elif index_to_remove < nq_len + mq_len + dq_len:
@@ -1894,15 +2004,19 @@ def read_main_window():
         updated_list = create_track_list()[0]
         new_i = min(len(updated_list), index_to_remove)
         main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif main_event == 'file_option': main_window['file_action'].update(text=main_values['file_option'])
-    elif main_event == 'folder_option': main_window['folder_action'].update(text=main_values['folder_option'])
+    elif main_event == 'file_option':
+        main_window['file_action'].update(text=main_values['file_option'])
+    elif main_event == 'folder_option':
+        main_window['folder_action'].update(text=main_values['folder_option'])
     elif main_event == 'file_action':
         Thread(target=file_action, name='FileAction', daemon=True,
                kwargs={'action': main_values['file_option']}).start()
     elif main_event == 'folder_action':
         wx.CallAfter(folder_action, action=main_values['folder_option'])
-    elif main_event == 'play_playlist': play_playlist(main_values['playlists'])
-    elif main_event == 'url_actions': activate_play_url()
+    elif main_event == 'play_playlist':
+        play_playlist(main_values['playlists'])
+    elif main_event == 'url_actions':
+        activate_play_url()
     elif main_event == 'play_all':
         already_queueing = False
         for thread in threading.enumerate():
@@ -1959,7 +2073,8 @@ def read_main_window():
             track_start = time.time() - track_position
             track_end = track_start + track_length
     # main window settings tab
-    elif main_event == 'email': Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
+    elif main_event == 'email':
+        Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
@@ -1967,10 +2082,13 @@ def read_main_window():
                         'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
                         'show_album_art', 'reversed_play_next'}:
         change_settings(main_event, main_value)
-        if main_event == 'run_on_startup': create_shortcut(SHORTCUT_PATH)
+        if main_event == 'run_on_startup':
+            create_shortcut(SHORTCUT_PATH)
         elif main_event == 'save_queue_sessions':
-            if main_value: save_queues()
-            else: change_settings('queues', {'done': [], 'music': [], 'next': []})
+            if main_value:
+                save_queues()
+            else:
+                change_settings('queues', {'done': [], 'music': [], 'next': []})
             change_settings('populate_queue_startup', False)
             main_window['populate_queue_startup'].update(value=False)
         elif main_event in 'populate_queue_startup':
@@ -1984,13 +2102,15 @@ def read_main_window():
                     rich_presence.connect()
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
-                elif not main_value: rich_presence.clear()
+                elif not main_value:
+                    rich_presence.clear()
         elif main_event in {'show_album_art', 'vertical_gui', 'flip_main_window'}:
             # re-render main GUI
             active_windows['main'] = False
             main_window.close()
             activate_main_window('tab_settings')
-        elif main_event == 'show_track_number': update_gui_queue = True
+        elif main_event == 'show_track_number':
+            update_gui_queue = True
     elif main_event == 'remove_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
@@ -2008,8 +2128,10 @@ def read_main_window():
             save_settings()
             index_all_tracks()
     elif main_event in {'settings_file', 'o:79'}:
-        try: os.startfile(settings_file)
-        except OSError: Popen(f'explorer /select,"{fix_path(settings_file)}"')
+        try:
+            os.startfile(settings_file)
+        except OSError:
+            Popen(f'explorer /select,"{fix_path(settings_file)}"')
     elif main_event == 'music_dirs':
         with suppress(IndexError):
             Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
@@ -2027,7 +2149,7 @@ def read_main_window():
                 seconds = abs(float(main_values['timer_minutes'])) * 60
             elif timer_value.count(':') == 1:
                 # parse out any PM and AM's
-                timer_value = timer_value.strip().upper().replace(' ', '').replace('PM', '').replace('AM','')
+                timer_value = timer_value.strip().upper().replace(' ', '').replace('PM', '').replace('AM', '')
                 to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
                 current_time = datetime.now()
                 current_time = current_time.replace(second=0)
@@ -2038,8 +2160,10 @@ def read_main_window():
                 raise ValueError()
             timer = time.time() + seconds
             timer_set_to = datetime.now().replace(second=0) + timedelta(seconds=seconds)
-            if platform.system() == 'Windows': timer_set_to = timer_set_to.strftime('%#I:%M %p')
-            else: timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+            if platform.system() == 'Windows':
+                timer_set_to = timer_set_to.strftime('%#I:%M %p')
+            else:
+                timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
             main_window['timer_text'].update(value=f'Timer set for {timer_set_to}')
             main_window['cancel_timer'].update(visible=True)
             main_window['timer_error'].update(visible=False)
@@ -2105,8 +2229,10 @@ def read_main_window():
         if temp_lst:
             play_after = len(music_queue) == 0
             music_queue.extend(temp_lst)
-            if play_after: play(music_queue[0])
-            else: update_gui_queue = True
+            if play_after:
+                play(music_queue[0])
+            else:
+                update_gui_queue = True
     elif main_event in {'pl_save', 's:83'}:  # save playlist
         if main_values['playlist_name']:
             save_name = main_values['playlist_name']
@@ -2161,7 +2287,8 @@ def read_main_window():
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-        else: tray.show_message('Music Caster', "ERROR: invalid url. URL's have to start with http:// or https://")
+        else:
+            tray.show_message('Music Caster', "ERROR: invalid url. URL's have to start with http:// or https://")
     elif main_event == 'pl_tracks':
         main_window['pl_move_up'].update(disabled=len(main_value) != 1)
         main_window['pl_move_down'].update(disabled=len(main_value) != 1)
@@ -2186,7 +2313,8 @@ def read_main_window():
     # other
     if time.time() - progress_bar_last_update > 0.5:
         progress_bar: Sg.Slider = main_window['progress_bar']
-        if playing_status == 'NOT PLAYING': progress_bar.update(0, disabled=True)
+        if playing_status == 'NOT PLAYING':
+            progress_bar.update(0, disabled=True)
         elif music_queue:
             with suppress(ZeroDivisionError):
                 get_track_position()
@@ -2229,13 +2357,16 @@ def read_play_url_window():
             if len(music_queue) == 1: play(url_to_play)
         else:
             # Add to Next Queue
-            if settings['reversed_play_next']: next_queue.insert(0, url_to_play)
-            else: next_queue.append(url_to_play)
+            if settings['reversed_play_next']:
+                next_queue.insert(0, url_to_play)
+            else:
+                next_queue.append(url_to_play)
         update_gui_queue = True
 
 
 def create_shortcut(shortcut_path):
     """ creates shortcut if run_on_startup else removes existing shortcut """
+
     def _create_shortcut():
         app_log.info('create_shortcut called')
         with suppress(com_error):
@@ -2262,6 +2393,7 @@ def create_shortcut(shortcut_path):
                     os.remove(shortcut_path)
             elif not settings['run_on_startup'] and shortcut_exists:
                 os.remove(shortcut_path)
+
     Thread(target=_create_shortcut, name='CreateShortcut').start()
 
 
@@ -2304,7 +2436,8 @@ def auto_update(auto_start=True):
                         temp_tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON)
                         temp_tray.show_message('Music Caster', f'Downloading update v{latest_ver}', time=5000)
                         temp_tray.update(tooltip=f'Downloading update v{latest_ver}')
-                    else: temp_tray = tray
+                    else:
+                        temp_tray = tray
                     try:
                         download(setup_dl_link, 'MC_Installer.exe')
                         if auto_start:
@@ -2365,7 +2498,8 @@ def quit_if_running():
 
 try:
     os.remove('music_caster.log')
-except FileNotFoundError: pass
+except FileNotFoundError:
+    pass
 except PermissionError:
     # music_caster.log being open for write implies that an instance is already running
     if IS_FROZEN:
@@ -2400,7 +2534,8 @@ try:
     # set file handlers only if installed from Setup (Not a portable installation)
     if os.path.exists(UNINSTALLER):
         add_reg_handlers(f'{starting_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
-    with suppress(FileNotFoundError, OSError): os.remove('MC_Installer.exe')
+    with suppress(FileNotFoundError, OSError):
+        os.remove('MC_Installer.exe')
     rmtree('Update', ignore_errors=True)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
@@ -2410,8 +2545,10 @@ try:
                     server_kwargs = {'host': '0.0.0.0', 'port': PORT, 'threaded': True}
                     Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                     break
-                except OSError: PORT += 1
-            else: PORT += 1
+                except OSError:
+                    PORT += 1
+            else:
+                PORT += 1
     print(f'Running on http://127.0.0.1:{PORT}/')
     repeat_menu = [f'Repeat All {CHECK_MARK}' if settings['repeat'] is False else 'Repeat All',
                    f'Repeat One {CHECK_MARK}' if settings['repeat'] else 'Repeat One',
@@ -2508,7 +2645,7 @@ try:
         '': lambda: None,
     }
     while True:
-        tray_item = tray.Read(timeout=30 if any(active_windows.values()) else 100)
+        tray_item = tray.Read(timeout=1 if any(active_windows.values()) else 100)
         tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
         tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
         daemon_command = ''  # don't double call other_tray_actions
