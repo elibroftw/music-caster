@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.28'
+VERSION = latest_version = '4.71.29'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1825,14 +1825,15 @@ def read_main_window():
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue':
         main_window['file_action'].set_focus()
     # change tabs with hot keys
-    elif main_event == '1:49':
+    elif main_event == '1:49' and not settings['mini_mode']:
         main_window['tab_queue'].select()  # Ctrl + 1
-    elif main_event == '2:50':
+    elif main_event == '2:50' and not settings['mini_mode']:
         main_window['tab_playlists'].select()  # Ctrl + 2
-    elif main_event == '3:51' or main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer':  # Ctrl + 3
+    elif (main_event == '3:51' and not settings['mini_mode'] or
+          main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):  # Ctrl + 3
         main_window['tab_timer'].select()
         main_window['timer_minutes'].set_focus()
-    elif main_event == '4:52':
+    elif main_event == '4:52' and not settings['mini_mode']:
         main_window['tab_settings'].select()  # Ctrl + 4
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
                         'volume_slider_mouse_enter', 'library_mouse_enter'}:
