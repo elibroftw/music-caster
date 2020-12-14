@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.2.5
+AudioPlayer v2.2.6
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -10,7 +10,12 @@ starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.environ['PYTHON_VLC_LIB_PATH'] = f'{starting_dir}\\vlc\\libvlc.dll'
 import vlc
 import math
+from enum import IntEnum
 
+
+class AudioPlayerUnit(IntEnum):
+    MILLI_SECOND = 1
+    SECOND = 1000
 
 class AudioPlayer:
     __slots__ = 'vlc_instance', 'player'
@@ -100,21 +105,16 @@ class AudioPlayer:
         """
         return self.db_percent_to_percent(self.player.audio_get_volume() / 5 * 2)
 
-    def set_pos(self, position, units='seconds'):
+    def set_pos(self, position, unit=AudioPlayerUnit.SECOND):
         """position is in seconds from start"""
-        units = units.lower()
-        assert units in {'seconds', 'milliseconds'}
-        if units == 'seconds': position *= 1000
-        self.player.set_time(int(position))
+        self.player.set_time(int(position * unit))
 
-    def get_pos(self, units='seconds'):
+    def get_pos(self, unit=AudioPlayerUnit.SECOND):
         """
         returns the position of the audio playing
         position meaning the time in seconds from the start of the audio data/file
         """
-        units = units.lower()
-        assert units in {'seconds', 'milliseconds'}
-        return self.player.get_time() / (1000 if units == 'seconds' else 1)
+        return self.player.get_time() / unit
 
     def is_playing(self):
         """ returns strictly whether the player is playing audio """
