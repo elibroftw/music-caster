@@ -113,7 +113,11 @@ def get_metadata(file_path: str, as_dict=False):  # title, artist, album
             audio = mutagen.File(file_path)
         title = audio.get('title', ['Unknown Title'])[0]
         album = audio.get('album', ['Unknown Album'])[0]
-        with suppress(KeyError, TypeError): artist = ', '.join(audio['artist'])
+        with suppress(KeyError, TypeError):
+            if len(audio['artist']) == 1:
+                # in case the sep char is a slash
+                audio['artist'] = audio['artist'][0].split('/')
+            artist = ', '.join(audio['artist'])
     if as_dict:
         return {'title': title, 'artist': artist, 'album': album}
     if title is None: title = 'Unknown Title'
