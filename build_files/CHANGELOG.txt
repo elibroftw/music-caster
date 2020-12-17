@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.31
+- [Fix] Fix build
+
 4.71.30
 - [Fix] Improve artist parsing for metadata that uses '/' as a separator
 
