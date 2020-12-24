@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.32'
+VERSION = latest_version = '4.71.33'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -630,7 +630,9 @@ def handle_500(_e):
 @app.route('/debug/')
 def api_get_debug_info():
     if settings.get('DEBUG'):
-        return jsonify({'pressed_keys': list(PRESSED_KEYS)})
+        return jsonify({'pressed_keys': list(PRESSED_KEYS),
+                        'keyboardListener.is_alive()': keyboardListener.is_alive(),
+                        'last_traceback': sys.exc_info()})
     return 'set DEBUG to true in settings.json to use this page'
 
 
@@ -2593,7 +2595,8 @@ try:
                         'Resume'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon=True by default
+    keyboardListener = pynput.keyboard.Listener(on_press=on_press, on_release=on_release)
+    keyboardListener.start()  # daemon=True by default
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     if settings['discord_rpc']:
         with suppress(py_presence_errors): rich_presence.connect()
