@@ -1,5 +1,14 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.35
+- [Fix] Thumbnail fetching
+- [Fix] Album art resizing issue
+- [Fix] Portable auto-update on cancel
+- [Fix] Invalid WAV files
+
+4.71.34
+- [Fix] Discord RPC error
+
 4.71.33
 - [Fix] Debugging keyboard errors
 

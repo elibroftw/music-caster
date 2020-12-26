@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.33'
+VERSION = latest_version = '4.71.35'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -64,6 +64,7 @@ import win32com.client
 from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
+import struct
 
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
@@ -86,7 +87,7 @@ active_windows = {'main': False, 'play_url': False}
 main_window = timer_window = play_url_window = Sg.Window('')
 main_last_event = None
 py_presence_errors = (AttributeError, RuntimeError, PermissionError, UnicodeDecodeError,
-                      PyPresenceException, JSONDecodeError)
+                      PyPresenceException, JSONDecodeError, struct.error)
 # noinspection PyTypeChecker
 cast: pychromecast.Chromecast = None
 playlists, all_tracks, url_metadata = {}, {}, {}
@@ -271,7 +272,7 @@ def handle_exception(exception, restart_program=False):
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
     except FileNotFoundError:
         log_lines = []
-    payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
+    payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno, 'PORTABLE': not os.path.exists(UNINSTALLER),
                'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program, 'LOG': log_lines,
                'OS': platform.platform(), 'TIME': _current_time, 'PLAYING_TYPE': playing_uri}
     try:
@@ -632,7 +633,8 @@ def api_get_debug_info():
     if settings.get('DEBUG'):
         return jsonify({'pressed_keys': list(PRESSED_KEYS),
                         'keyboardListener.is_alive()': keyboardListener.is_alive(),
-                        'last_traceback': sys.exc_info()})
+                        'last_traceback': sys.exc_info(),
+                        'mac': get_mac()})
     return 'set DEBUG to true in settings.json to use this page'
 
 
@@ -719,7 +721,10 @@ def api_get_file():
                     mime_type, img_data = 'image/png', DEFAULT_ART
                 else:
                     img_data = base64.b64decode(img_data)
-                ext = mime_type.split('/')[1]
+                try:
+                    ext = mime_type.split('/')[1]
+                except IndexError:
+                    ext = 'png'
                 return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
                                  mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
             return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
@@ -2280,9 +2285,10 @@ def read_main_window():
         if main_values['pl_tracks']:
             pl_items = main_window['pl_tracks'].get_list_values()
             smallest_i = len(pl_items)
+            # remove tracks from bottom to top so that we don't have to worry about adjusting other indices
             for item_name in reversed(main_values['pl_tracks']):
                 index_to_rm = int(item_name.split('.', 1)[0]) - 1
-                if index_to_rm < len(pl_items) and pl_items[index_to_rm] == item_name:
+                if index_to_rm < len(pl_files) and pl_items[index_to_rm] == item_name.split('. ', 1)[1]:
                     if index_to_rm < smallest_i: smallest_i = index_to_rm
                     pl_files.pop(index_to_rm)
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
@@ -2318,6 +2324,7 @@ def read_main_window():
         main_window['pl_move_up'].update(disabled=len(main_value) != 1)
         main_window['pl_move_down'].update(disabled=len(main_value) != 1)
     elif main_event == 'pl_move_up':
+        # only allow moving up if 1 item is selected
         if len(main_values['pl_tracks']) == 1:
             to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
             if to_move > 0:
@@ -2327,6 +2334,7 @@ def read_main_window():
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'pl_move_down':
+        # only allow moving down if 1 item is selected
         if len(main_values['pl_tracks']) == 1:
             to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
             if to_move < len(pl_files) - 1:
@@ -2483,7 +2491,13 @@ def auto_update(auto_start=True):
                             temp_tray.close()
                         return False
                 else:
-                    os.startfile('Updater.exe')
+                    # portable installation
+                    try:
+                        os.startfile('Updater.exe')
+                    except OSError as _e:
+                        if _e == errno.ECANCELED:
+                            change_settings('auto_update', False)
+                        return False
                     time.sleep(2)
                 sys.exit()
             else:

@@ -29,8 +29,7 @@ music_metadata = {}
 timer = time.time()
 
 if args.helpers:
-    print('is_already_running():', is_already_running(
-        0), f'({round(time.time() - timer, 2)}s)')
+    print('is_already_running():', is_already_running(threshold=1), f'({round(time.time() - timer, 2)}s)')
     print('get_mac():', get_mac())
 
 

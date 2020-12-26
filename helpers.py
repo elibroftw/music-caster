@@ -10,7 +10,7 @@ import winreg as wr
 import base64
 import pyqrcode
 import PySimpleGUI as Sg
-from PIL import Image
+from PIL import Image, ImageFile
 import socket
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
@@ -35,6 +35,7 @@ FONT_TITLE = 'Helvetica', 14
 FONT_ARTIST = 'Helvetica', 12
 FONT_LINK = 'SourceSans', 11, 'underline'
 LINK_COLOR = '#3ea6ff'
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def timing(f):
@@ -70,7 +71,7 @@ def get_length(file_path):  # length in seconds
             audio_info = mutagen.File(file_path).info
             length = audio_info.length
         return length
-    except (AttributeError, HeaderNotFoundError, MutagenError):
+    except (AttributeError, HeaderNotFoundError, MutagenError, WavInfoEOFError):
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
@@ -153,7 +154,7 @@ def create_qr_code(port, ipv4=None):
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
 
 
-def get_running_processes(look_for='Music Caster.exe'):
+def get_running_processes(look_for):
     # edited from https://stackoverflow.com/a/22914414/7732434
     cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
     p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
@@ -167,7 +168,7 @@ def get_running_processes(look_for='Music Caster.exe'):
             yield process
 
 
-def is_already_running(threshold=1, look_for='Music Caster.exe'):
+def is_already_running(look_for='Music Caster.exe', threshold=1):
     for process in get_running_processes(look_for=look_for):
         if process['name'] == look_for:
             threshold -= 1
