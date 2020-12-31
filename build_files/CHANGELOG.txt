@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.36
+- [Fix] Playlist tab moving a track up or down
+
 4.71.35
 - [Fix] Thumbnail fetching
 - [Fix] Album art resizing issue

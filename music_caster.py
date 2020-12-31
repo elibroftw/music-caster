@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.35'
+VERSION = latest_version = '4.71.36'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1930,7 +1930,7 @@ def read_main_window():
                 new_i = min(max(new_i, 0), len(music_queue) - 1)
                 main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             elif focused_element == main_window['pl_tracks']:
-                new_i = main_window['pl_tracks'].get_list_values().index(main_window['pl_tracks'][0]) + move
+                new_i = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0]) + move
                 new_i = min(max(new_i, 0), len(pl_files) - 1)
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
