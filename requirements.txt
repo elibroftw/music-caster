@@ -1,6 +1,6 @@
 flask~=1.1.2
 mutagen~=1.44
-Pillow~=7.1
+Pillow~=8.0
 pychromecast~=4.2.3
 pynput~=1.4.5
 pypng~=0.0.20

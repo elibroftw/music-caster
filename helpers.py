@@ -123,7 +123,12 @@ def get_metadata(file_path: str, as_dict=False):  # title, artist, album
         return {'title': title, 'artist': artist, 'album': album}
     if title is None: title = 'Unknown Title'
     if artist is None: artist = 'Unknown Artist'
-    return title, artist, album
+    if title == 'Unknown Title' or artist == 'Unknown Artist':
+        # if title or artist are unknown, use the basename of the URI (excluding extension)
+        sort_key = os.path.splitext(os.path.basename(file_path))[0]
+    else:
+        sort_key = f'{title} - {artist}'
+    return {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
 
 
 def fix_path(path, by_os=True):

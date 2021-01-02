@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.36'
+VERSION = latest_version = '4.71.37'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -335,35 +335,35 @@ def get_current_album_art():
     return DEFAULT_ART if art is None else art
 
 
-def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
+def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
     try:
         return get_metadata(file_path)
     except mutagen.MutagenError:
         try:
             metadata = all_tracks[file_path]
-            return metadata['title'], metadata['artist'], metadata['album']
+            return metadata
         except KeyError:
-            return 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+            return {'title': 'Unknown Title', 'artist': 'Unknown Artist',
+                    'album': 'Unknown Album', 'sort_key': 'Unknown - Unknown'}
 
 
-def get_uri_metadata(uri):
+def get_uri_metadata(uri, read_file=True):
     """
     get metadata from all_track and resort to url_metadata if not found in all_tracks
       if file/url is not in all_track. e.g. links
+    if read_file is False, raise a KeyError instead of reading metadata from file.
     """
     uri = uri.replace('\\', '/')
     try:
         return all_tracks[uri]
     except KeyError:
         try:
+            # if uri is a url
             return url_metadata[uri]
         except KeyError:
-            title, artist, album = get_metadata_wrapped(uri)
-            if title == 'Unknown Title' or artist == 'Unknown Artist':
-                sort_key = os.path.splitext(os.path.basename(uri))[0]
-            else:
-                sort_key = f'{title} - {artist}'
-            metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+            # uri is probably a file that has not been cached yet
+            if not read_file: raise KeyError
+            metadata = get_metadata_wrapped(uri)
             if uri.startswith('http'): return metadata
             with suppress(KeyError, TypeError, MutagenError):
                 metadata['track_number'] = get_track_number(uri)
@@ -403,12 +403,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                 file_path = file_path.replace('\\', '/')
                 if valid_music_file(file_path):
                     with suppress(HeaderNotFoundError):
-                        title, artist, album = get_metadata_wrapped(file_path)
-                        if title == 'Unknown Title' or artist == 'Unknown Artist':
-                            sort_key = os.path.splitext(os.path.basename(file_path))[0]
-                        else:
-                            sort_key = f'{title} - {artist}'
-                        metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+                        metadata = get_metadata_wrapped(file_path)
                         with suppress(KeyError, TypeError, MutagenError):
                             track_number = get_track_number(file_path)
                             metadata['track_number'] = track_number
@@ -521,6 +516,15 @@ def load_settings():  # up to 0.4 seconds
     settings_last_modified = os.path.getmtime(settings_file)
 
 
+def human_readable_repeat():
+    if settings['repeat'] is None:
+        return 'off'
+    elif settings['repeat']:
+        return 'one'
+    else:
+        return 'all'
+
+
 @app.errorhandler(404)
 def page_not_found(_):
     return redirect('/')
@@ -538,22 +542,34 @@ def web_index():  # web GUI
         daemon_command = '__ACTIVATED__'
         return 'Music Caster'
     if request.args:
+        api_msg = 'Invalid Command'
         if 'play' in request.args:
-            if not resume():
+            if resume():
+                api_msg = 'resumed playback'
+            else:
                 if music_queue:
                     play(music_queue[0])
+                    api_msg = 'started playing first track in queue'
                 else:
                     play_all()
+                    api_msg = 'shuffled all and started playing'
         elif 'pause' in request.args:
             pause()  # resume == play
+            api_msg = 'pause called'
         elif 'next' in request.args:
             next_track()
+            api_msg = 'next track called'
         elif 'prev' in request.args:
             prev_track()
+            api_msg = 'prev track called'
         elif 'repeat' in request.args:
             cycle_repeat()
+            api_msg = 'cycled repeat to ' + human_readable_repeat()
         elif 'shuffle' in request.args:
             change_settings('shuffle_playlists', not settings['shuffle_playlists'])
+            api_msg = 'toggled shuffle'
+        if 'is_api' in request.args:
+            return api_msg
         return redirect('/')
     metadata = get_current_metadata()
     art = get_current_album_art()
@@ -902,14 +918,11 @@ def change_device(selected_index):
 
 def format_file(uri: str):
     try:
-        metadata = get_uri_metadata(uri)
-        artist, title = metadata['artist'], metadata['title']
+        metadata = get_uri_metadata(uri, read_file=False)
+        title, artist = metadata['title'], metadata['artist']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
         formatted = settings['track_format'].replace('&artist', artist).replace('&title', title)
-        try:
-            number = metadata['track_number']
-        except KeyError:
-            number = ''
+        number = metadata.get('track_number', '')
         if '&trck' in formatted:
             formatted = formatted.replace('&trck', number)
         elif settings['show_track_number'] and number:
@@ -952,7 +965,7 @@ def create_track_list():
     return tracks, selected_value
 
 
-def after_play(artists: str, title, autoplay, switching_device):
+def after_play(title, artists: str, autoplay, switching_device):
     global playing_status, cast_last_checked
     app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
     # artists is comma separated string
@@ -1007,7 +1020,7 @@ def stream_live_audio(switching_device=False):
             track_position = 0
             track_start = time.time() - track_position
             track_end = track_start + track_length
-            after_play(artist, title, True, switching_device)
+            after_play(title, artist, True, switching_device)
             return True
         except NotConnected:
             if internet_available():
@@ -1040,7 +1053,7 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
     track_start = time.time() - track_position
     track_end = track_start + track_length
     playing_url = True
-    after_play(artist, title, autoplay, switching_device)
+    after_play(title, artist, autoplay, switching_device)
     return True
 
 
@@ -1112,13 +1125,12 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         tray.show_message('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
         if music_queue: play(music_queue[0])
         return
-    title, artist, album = get_metadata_wrapped(uri)
+    metadata = get_metadata_wrapped(uri)
     # update metadata of track in case something changed
     try:
-        all_tracks[uri] = {**all_tracks[uri], 'artist': artist, 'title': title,
-                           'album': album, 'length': track_length}
+        all_tracks[uri] = {**all_tracks[uri], **metadata, 'length': track_length}
     except KeyError:
-        all_tracks[uri] = {'artist': artist, 'title': title, 'album': album, 'length': track_length}
+        all_tracks[uri] = {**metadata, 'length': track_length}
     with suppress(KeyError, TypeError, MutagenError, IndexError):
         # update track number if it changed
         track_number = get_track_number(uri)
@@ -1135,7 +1147,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
                 cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
             mc = cast.media_controller
-            metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            metadata = {'title': metadata['title'], 'artist': metadata['artist'],
+                        'albumName': metadata['album'], 'metadataType': 3}
             ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
@@ -1157,7 +1170,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     track_position = position
     track_start = time.time() - track_position
     track_end = track_start + track_length
-    after_play(artist, title, autoplay, switching_device)
+    after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
 def play_all(starting_files: list = None, queue_only=False):
@@ -1438,7 +1451,7 @@ def resume():
             track_end = track_start + track_length
             playing_status = 'PLAYING'
             metadata = get_current_metadata()
-            artist, title = get_first_artist(metadata['artist']), metadata['title']
+            title, artist = metadata['title'], get_first_artist(metadata['artist'])
             if settings['discord_rpc']:
                 with suppress(py_presence_errors):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
@@ -1622,7 +1635,7 @@ def activate_main_window(selected_tab='tab_queue'):
             else:
                 metadata = get_uri_metadata(music_queue[0])
                 position = get_track_position()
-            length, artist, title = track_length, get_first_artist(metadata['artist']), metadata['title']
+            length, title, artist = track_length, metadata['title'], get_first_artist(metadata['artist'])
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
                                           all_tracks_sorted_sort_key, title, artist, qr_code=qr_code,
                                           album_art_data=album_art_data, track_length=length, track_position=position)
@@ -1786,10 +1799,10 @@ def read_main_window():
         main_last_event = main_event
     p_r_button = main_window['pause/resume']
     gui_title = main_window['title'].DisplayText
-    update_progress_bar_text, artist, title = False, '', 'Nothing Playing'
+    update_progress_bar_text, title, artist,  = False, 'Nothing Playing', ''
     if playing_status in {'PAUSED', 'PLAYING'} and (playing_live or music_queue):
         metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
-        artist, title = get_first_artist(metadata['artist']), metadata['title']
+        title, artist = metadata['title'], get_first_artist(metadata['artist'])
         if settings['show_track_number']:
             with suppress(KeyError):
                 track_number = metadata['track_number']
@@ -2128,7 +2141,7 @@ def read_main_window():
             with suppress(py_presence_errors):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
                     metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
-                    artist, title = get_first_artist(metadata['artist']), metadata['title']
+                    title, artist = metadata['title'], get_first_artist(metadata['artist'])
                     rich_presence.connect()
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Listening', small_image='logo', small_text='Music Caster')
@@ -2520,12 +2533,12 @@ def activate_instance(port):
     while port <= 2004 and not r_text:
         with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
             if args.exit:
-                r_text = requests.post(f'http://127.0.0.1:{port}/exit/').text
+                r_text = requests.post(f'http://localhost:{port}/exit/').text
             elif args.paths:  # MC was supplied a path to a folder/file
-                r_text = requests.post(f'http://127.0.0.1:{port}/play/',
+                r_text = requests.post(f'http://localhost:{port}/play/',
                                        data={'paths': args.paths, 'queue': args.queue}).text
             else:
-                r_text = requests.post(f'http://127.0.0.1:{port}/').text
+                r_text = requests.post(f'http://localhost:{port}/').text
         port += 1
 
 
@@ -2588,7 +2601,7 @@ try:
                     PORT += 1
             else:
                 PORT += 1
-    print(f'Running on http://127.0.0.1:{PORT}/')
+    print(f'Running on http://localhost:{PORT}/')
     repeat_menu = [f'Repeat All {CHECK_MARK}' if settings['repeat'] is False else 'Repeat All',
                    f'Repeat One {CHECK_MARK}' if settings['repeat'] else 'Repeat One',
                    f'Repeat Off {CHECK_MARK}' if settings['repeat'] is None else 'Repeat Off']
