@@ -7,7 +7,7 @@ Music Caster</h1>
 
 Music Caster is a modern music player that lets you cast local music files to a Google Cast Device (Chromecast, Home, etc.).
 
-If you enjoyed this product a lot feel free to donate (ironic) at https://elijahlopez.herokuapp.com//donate.
+If you enjoyed this product a lot feel free to donate (ironic) to monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj or https://www.paypal.me/elibroftw.
 
 **Important information**
 
@@ -20,6 +20,7 @@ If you have music files in folders other than the home music folder, add them in
 
 ## Demo
 The image below directs to my demo video on YouTube. [Screenshots](http://www.elijahlopez.herokuapp.com/music-caster/) are also available.
+Both are outdated by 6+ months.
 
 <a href=https://youtu.be/MtkhqV1w3WE>
   <img width=75% src="https://img.youtube.com/vi/MtkhqV1w3WE/maxresdefault.jpg" alt="Demo on Youtube" align="center"/>
