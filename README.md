@@ -39,6 +39,7 @@ Play File: select a file to start playing. Music files in the chosen directories
 
 ## UI Keyboard Shortcuts
 I love keyboard shortcuts, they make us more productive.
+Aside from the global media hot keys, Music Caster has its own shortcuts as seen below.
 
 | **Shortcut** | **Window** | **Behaviour**
 | ------------ |----------- | -------------
