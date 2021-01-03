@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.38
+- [Fix] Resume after long pause
+- [Fix] Random stopping
+
 4.71.37
 - [Fix] Web GUI
 - [Fix] Improved GUI performance when playing non-library files

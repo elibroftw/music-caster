@@ -17,6 +17,7 @@ class AudioPlayerUnit(IntEnum):
     MILLI_SECOND = 1
     SECOND = 1000
 
+
 class AudioPlayer:
     __slots__ = 'vlc_instance', 'player'
 

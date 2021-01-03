@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.37'
+VERSION = latest_version = '4.71.38'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -298,7 +298,7 @@ def handle_exception(exception, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
-    app_log.info(f'get_album_art called')
+    app_log.info('get_album_art called')
     folder = os.path.dirname(file_path)
     if settings['folder_cover_override']:
         for ext in ('png', 'jpg', 'jpeg'):
@@ -318,6 +318,7 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
 
 
 def get_current_album_art():
+    app_log.info('get_current_album_art called')
     if playing_live: return LIVE_AUDIO_ART
     art = None
     if playing_status != 'NOT PLAYING' and music_queue:
@@ -1140,9 +1141,9 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
     else:
         try:
+            cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{PORT}/file?{url_args}'
-            cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
             with suppress(RuntimeError):
                 cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
@@ -1388,10 +1389,14 @@ def get_track_position():
             try:
                 mc = cast.media_controller
                 mc.update_status()
-                track_position = mc.status.adjusted_current_time
+                if not mc.status.player_is_idle:
+                    track_position = mc.status.adjusted_current_time
             except (UnsupportedNamespace, NotConnected):
-                track_position = time.time() - track_start
-        else:
+                if playing_status == 'PLAYING':
+                    track_position = time.time() - track_start
+                # don't calculate if playing status is NOT PLAYING or PAUSED
+        elif playing_status == 'PLAYING':
+            # don't calculate if playing status is NOT PLAYING or PAUSED
             track_position = time.time() - track_start
     elif playing_status in {'PLAYING', 'PAUSED'}:
         track_position = audio_player.get_pos()
@@ -1469,7 +1474,7 @@ def stop(stopped_from: str, stop_cast=True):
     does not check if playing_status is not 'NOT PLAYING'
     """
     global playing_status, cast, track_position, playing_live, playing_url
-    app_log.info(f'Stopped from {stopped_from}')
+    app_log.info(f'Stop reason: {stopped_from}')
     playing_status = 'NOT PLAYING'
     playing_live = playing_url = False
     if settings['discord_rpc']:
@@ -1571,9 +1576,11 @@ def background_tasks():
                             _volume = change_settings('volume', cast_volume)
                             if _volume and settings['muted']: change_settings('muted', False)
                             if active_windows['main']: update_volume_slider = True
-                elif playing_status in {'PAUSED', 'PLAYING'}:
+                elif playing_status == 'PLAYING':
                     stop('background tasks; app not running')
             cast_last_checked = time.time()
+            # don't check cast around the time the next track will start playing
+            if track_end - cast_last_checked < 10: cast_last_checked += 5
         if time.time() - update_last_checked > 216000:
             # never show a notification for the same latest version
             release = get_latest_release(latest_version)
@@ -2356,8 +2363,9 @@ def read_main_window():
                 formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
-    # other
+    # other GUI updates
     if time.time() - progress_bar_last_update > 0.5:
+        # update progress bar every 0.5 seconds
         progress_bar: Sg.Slider = main_window['progress_bar']
         if playing_status == 'NOT PLAYING':
             progress_bar.update(0, disabled=True)
