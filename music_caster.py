@@ -25,6 +25,7 @@ import errno
 import encodings.idna  # DO NOT REMOVE
 from functools import cmp_to_key
 import glob
+import hashlib
 import io
 import json
 from json import JSONDecodeError
@@ -272,8 +273,10 @@ def handle_exception(exception, restart_program=False):
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
     except FileNotFoundError:
         log_lines = []
-    payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno, 'PORTABLE': not os.path.exists(UNINSTALLER),
-               'TRACEBACK': fix_path(trace_back_msg), 'MAC': mac, 'FATAL': restart_program, 'LOG': log_lines,
+    payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
+               'PORTABLE': not os.path.exists(UNINSTALLER),
+               'TRACEBACK': fix_path(trace_back_msg), 'MAC': hashlib.md5(mac.encode()).hexdigest(),
+               'FATAL': restart_program, 'LOG': log_lines,
                'OS': platform.platform(), 'TIME': _current_time, 'PLAYING_TYPE': playing_uri}
     try:
         with open(f'{starting_dir}/error.log', 'r') as _f:
@@ -312,13 +315,11 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
-                app_log.info(f'get_album_art (file cover)')
                 return tags[tag].mime, base64.b64encode(tags[tag].data).decode()  # 'utf-8'
     return None, None
 
 
 def get_current_album_art():
-    app_log.info('get_current_album_art called')
     if playing_live: return LIVE_AUDIO_ART
     art = None
     if playing_status != 'NOT PLAYING' and music_queue:
@@ -649,6 +650,7 @@ def handle_500(_e):
 def api_get_debug_info():
     if settings.get('DEBUG'):
         return jsonify({'pressed_keys': list(PRESSED_KEYS),
+                        'last_press': datetime.fromtimestamp(last_press),
                         'keyboardListener.is_alive()': keyboardListener.is_alive(),
                         'last_traceback': sys.exc_info(),
                         'mac': get_mac()})
@@ -1413,15 +1415,14 @@ def pause():
                 if audio_player.pause():
                     app_log.info('paused local audio player')
                 else:
-                    app_log.info(f'could not pause local audio player')
-            else:
-                if internet_available():
-                    mc = cast.media_controller
-                    mc.update_status()
-                    mc.pause()
-                    while not mc.status.player_is_paused: time.sleep(0.1)
-                    track_position = mc.status.adjusted_current_time
-                    app_log.info('paused cast device')
+                    app_log.info('could not pause local audio player')
+            elif internet_available():
+                mc = cast.media_controller
+                mc.update_status()
+                mc.pause()
+                while not mc.status.player_is_paused: time.sleep(0.1)
+                track_position = mc.status.adjusted_current_time
+                app_log.info('paused cast device')
             playing_status = 'PAUSED'
             if settings['discord_rpc'] and (music_queue or playing_live):
                 metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
