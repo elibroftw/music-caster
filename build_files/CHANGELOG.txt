@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.39
+- [Fix] Chromecast not connected case
+
 4.71.38
 - [Fix] Resume after long pause
 - [Fix] Random stopping

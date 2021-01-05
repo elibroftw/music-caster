@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.38'
+VERSION = latest_version = '4.71.39'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -1165,9 +1165,9 @@ def play(uri, position=0, autoplay=True, switching_device=False):
                 if time.time() - start_time > WAIT_TIMEOUT: break
             app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             progress_bar_last_update = time.time()
-        except (pychromecast.error.NotConnected, OSError):
+        except (UnsupportedNamespace, NotConnected, OSError):
             tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast device', time=5000)
-            with suppress(pychromecast.error.UnsupportedNamespace):
+            with suppress(UnsupportedNamespace):
                 stop('play')
             return
     track_position = position
