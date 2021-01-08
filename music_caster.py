@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.39'
+VERSION = latest_version = '4.71.40'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -333,7 +333,8 @@ def get_current_album_art():
                 return art_data
             except KeyError:
                 return DEFAULT_ART
-        art = get_album_art(uri)[1]  # get_album_art(uri)[1] can be None
+        with suppress(MutagenError):
+            art = get_album_art(uri)[1]  # get_album_art(uri)[1] can be None
     return DEFAULT_ART if art is None else art
 
 
@@ -1249,7 +1250,7 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
         temp_queue = music_queue[1:] * from_explorer + temp_queue
         shuffle(temp_queue)
         # remove all but first track if from_explorer
-        for i in range(1, len(music_queue) * from_explorer): del music_queue[i]
+        for _ in range(1, len(music_queue) * from_explorer): music_queue.pop()
     music_queue.extend(temp_queue)
     if not queue_only:
         if music_queue:

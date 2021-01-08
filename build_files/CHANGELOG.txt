@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.40
+- [Fix] Play from explorer
+- [Fix] Album art issues
+
 4.71.39
 - [Fix] Chromecast not connected case
 
