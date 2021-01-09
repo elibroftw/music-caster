@@ -589,19 +589,19 @@ def create_settings(version, settings, qr_code):
         [Sg.Listbox(settings['music_directories'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
          Sg.Frame('', [
-             [Sg.Button('Remove Folder', key='remove_folder', enable_events=True, font=FONT_NORMAL, size=(15, 1))],
-             [Sg.FolderBrowse(**add_music_folder, key='add_folder')],
+             [Sg.Button('Remove Folder', key='remove_music_folder', enable_events=True, font=FONT_NORMAL, size=(15, 1))],
+             [Sg.FolderBrowse(**add_music_folder, key='add_music_folder')],
              [Sg.Button('Open settings.json', **open_settings_file, key='settings_file')]],
                   background_color=bg, border_width=0)]]
     return layout
 
 
 def create_timer(settings, timer):
-    shut_off = settings['timer_shut_off_computer']
-    hibernate = settings['timer_hibernate_computer']
-    sleep = settings['timer_sleep_computer']
+    shut_down = settings['timer_shut_down']
+    hibernate = settings['timer_hibernate']
+    sleep = settings['timer_sleep']
     fg, bg = settings['theme']['text'], settings['theme']['background']
-    do_nothing = not (shut_off or hibernate or sleep)
+    do_nothing = not (shut_down or hibernate or sleep)
     timer_date = datetime.datetime.fromtimestamp(timer)
     timer_date = timer_date.strftime('%#I:%M %p')
     timer_text = f'Timer set for {timer_date}' if timer else 'No Timer Set'
@@ -609,7 +609,7 @@ def create_timer(settings, timer):
     cancel_button = Sg.Button('Cancel Timer', key='cancel_timer', visible=timer != 0)
     defaults = {'text_color': fg, 'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True}
     layout = [
-        [Sg.Radio('Shut down computer when timer runs out', 'TIMER', default=shut_off, key='shut_off', **defaults)],
+        [Sg.Radio('Shut down computer when timer runs out', 'TIMER', default=shut_down, key='shut_down', **defaults)],
         [Sg.Radio('Sleep computer when timer runs out', 'TIMER', default=sleep, key='sleep', **defaults)],
         [Sg.Radio('Hibernate computer when timer runs out', 'TIMER', default=hibernate, key='hibernate', **defaults)],
         [Sg.Radio('Only stop playback', 'TIMER', default=do_nothing, key='timer_only_stop', **defaults)],

@@ -1,8 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.42
+- [Fix] Switching device error
+- [Fix] Cleaner code
+
 4.71.41
 - [Fix] Cleaner code
-- [Fix] Improved privacy by hashing MAC
+- [Feature] Improved privacy by hashing MAC
 
 4.71.40
 - [Fix] Play from explorer

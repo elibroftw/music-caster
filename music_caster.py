@@ -1,6 +1,6 @@
-VERSION = latest_version = '4.71.41'
+VERSION = latest_version = '4.71.42'
 UPDATE_MESSAGE = """
-[Feature] Reverse Play Next Setting
+[Feature] Improved Privacy
 [Feature] Buffed Web GUI
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
@@ -122,7 +122,7 @@ settings = {  # default settings
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
-    'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+    'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_directories': [home_music_dir], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
@@ -258,15 +258,10 @@ def create_email_url():
 
 
 def handle_exception(exception, restart_program=False):
-    _current_time = str(datetime.now())
+    current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
-    exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-    if playing_url:
-        playing_uri = 'url'
-    elif playing_live:
-        playing_uri = 'live'
-    else:
-        playing_uri = 'file' if music_queue else 'none'
+    exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
+    playing_uri = 'url' if playing_url else ('file' if music_queue else 'none', 'live')[playing_live]
     try:
         with open('music_caster.log') as f:
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
@@ -276,7 +271,7 @@ def handle_exception(exception, restart_program=False):
                'PORTABLE': not os.path.exists(UNINSTALLER),
                'TRACEBACK': fix_path(trace_back_msg), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
                'FATAL': restart_program, 'LOG': log_lines,
-               'OS': platform.platform(), 'TIME': _current_time, 'PLAYING_TYPE': playing_uri}
+               'OS': platform.platform(), 'TIME': current_time, 'PLAYING_TYPE': playing_uri}
     try:
         with open(f'{starting_dir}/error.log', 'r') as _f:
             content = _f.read()
@@ -676,8 +671,8 @@ def api_change_setting():
         if setting_key in settings or setting_key in {'timer_only_stop'}:
             val = request.json['value']
             change_settings(setting_key, val)
-            timer_settings = {'timer_hibernate_computer', 'timer_sleep_computer',
-                              'timer_shut_off_computer', 'timer_only_stop'}
+            timer_settings = {'timer_hibernate', 'timer_sleep',
+                              'timer_shut_down', 'timer_only_stop'}
             if val and setting_key in timer_settings:
                 for timer_setting in timer_settings.difference({setting_key, 'timer_only_stop'}):
                     change_settings(timer_setting, False)
@@ -876,47 +871,43 @@ def start_chromecast_discovery():
     refresh_tray()
 
 
-def change_device(selected_index):
+def change_device(new_idx):
+    # new_idx is the index of the new device
     global cast, playing_status
-    if selected_index == 0:
-        new_device = None
-    else:
-        try:
-            new_device = chromecasts[selected_index - 1]
-        except IndexError:
-            new_device = None
-    device_names.clear()
-    for device_index, cc in enumerate(['Local device'] + chromecasts):
-        cc: pychromecast.Chromecast = cc if device_index == 0 else cc.name
-        if device_index == selected_index:
-            device_names.append(f'{CHECK_MARK} {cc}::device')
-        else:
-            device_names.append(f'    {cc}::device')
-    refresh_tray()
+    new_device = None if (new_idx == 0 or new_idx > len(chromecasts)) else chromecasts[new_idx - 1]
+
     if cast != new_device:
+        device_names.clear()
+        for idx, cc in enumerate(['Local device'] + chromecasts):
+            cc: pychromecast.Chromecast = cc if idx == 0 else cc.name
+            tray_device_name = f'{CHECK_MARK} {cc}::device' if idx == new_idx else f'    {cc}::device'
+            device_names.append(tray_device_name)
+        refresh_tray()
+
         current_pos = 0
-        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status in {'PLAYING', 'PAUSED'}:
-            mc = cast.media_controller
-            with suppress(UnsupportedNamespace):
-                mc.update_status()  # Switch device without playback loss
-                current_pos = mc.status.adjusted_current_time
-                if mc.is_playing or mc.is_paused: mc.stop()
+        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
+            if playing_status in {'PLAYING', 'PAUSED'}:
+                mc = cast.media_controller
+                with suppress(UnsupportedNamespace):
+                    mc.update_status()  # Switch device without playback loss
+                    current_pos = mc.status.adjusted_current_time
+                    if mc.is_playing or mc.is_paused: mc.stop()
             with suppress(NotConnected):
                 cast.quit_app()
         elif cast is None and audio_player.is_busy():
             current_pos = audio_player.stop()
         cast = new_device
-        volume = 0 if settings['muted'] else settings['volume']
         change_settings('previous_device', None if cast is None else str(cast.uuid))
-        with suppress(AttributeError):
-            cast.wait(timeout=WAIT_TIMEOUT)
-        update_volume(volume)
-        if playing_status in {'PAUSED', 'PLAYING'}:
-            do_autoplay = False if playing_status == 'PAUSED' else True
+        if playing_status in {'PAUSED', 'PLAYING'} and (music_queue or playing_live):
             if not playing_live:
-                play(music_queue[0], position=current_pos, autoplay=do_autoplay, switching_device=True)
+                autoplay = False if playing_status == 'PAUSED' else True
+                play(music_queue[0], position=current_pos, autoplay=autoplay, switching_device=True)
             elif not stream_live_audio(True):
                 playing_status = 'NOT PLAYING'
+        else:
+            if cast is not None: cast.wait(timeout=WAIT_TIMEOUT)
+            volume = 0 if settings['muted'] else settings['volume']
+            update_volume(volume)
 
 
 def format_file(uri: str):
@@ -1767,14 +1758,14 @@ def other_tray_actions(_tray_item):
     elif timer and time.time() > timer:
         stop('timer')
         timer = 0
-        if settings['timer_shut_off_computer']:
+        if settings['timer_shut_down']:
             if platform.system() == 'Windows':
                 os.system('shutdown /p /f')
             else:
                 os.system('shutdown -h now')
-        elif settings['timer_hibernate_computer']:
+        elif settings['timer_hibernate']:
             if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-        elif settings['timer_sleep_computer']:
+        elif settings['timer_sleep']:
             if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
 
 
@@ -1797,7 +1788,8 @@ def read_main_window():
     global tray_playlists, pl_files, pl_name
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
-    if (main_event in {None, 'Escape:27'} and main_last_event not in {'file_action', 'folder_action', 'pl_add_tracks'}
+    if (main_event in {None, 'Escape:27'} and
+            main_last_event not in {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
             or main_values is None):
         active_windows['main'] = False
         main_window.close()
@@ -2159,7 +2151,7 @@ def read_main_window():
             activate_main_window('tab_settings')
         elif main_event == 'show_track_number':
             update_gui_queue = True
-    elif main_event == 'remove_folder' and main_values['music_dirs']:
+    elif main_event == 'remove_music_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
             music_directories.remove(selected_item)
@@ -2167,7 +2159,7 @@ def read_main_window():
             refresh_tray()
             save_settings()
             index_all_tracks()
-    elif main_event == 'add_folder':
+    elif main_event == 'add_music_folder':
         main_value = main_value.replace('\\', '/')  # sanitize
         if main_value not in music_directories and os.path.exists(main_value):
             music_directories.append(main_value)
@@ -2221,10 +2213,10 @@ def read_main_window():
                 main_window.read(10)
                 main_window['timer_error'].update(text_color='red')
                 main_window.read(10)
-    elif main_event in {'shut_off', 'hibernate', 'sleep', 'timer_only_stop'}:
-        change_settings('timer_hibernate_computer', main_values['hibernate'])
-        change_settings('timer_sleep_computer', main_values['sleep'])
-        change_settings('timer_shut_off_computer', main_values['shut_off'])
+    elif main_event in {'shut_down', 'hibernate', 'sleep', 'timer_only_stop'}:
+        change_settings('timer_hibernate', main_values['hibernate'])
+        change_settings('timer_sleep', main_values['sleep'])
+        change_settings('timer_shut_down', main_values['shut_down'])
     # playlist tab
     elif main_event == 'playlist_combo':
         # user selected a playlist from the drop-down
@@ -2596,6 +2588,7 @@ try:
     with suppress(FileNotFoundError, OSError):
         os.remove('MC_Installer.exe')
     rmtree('Update', ignore_errors=True)
+    # find a port to bind to
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.05)
         while True:
@@ -2629,8 +2622,8 @@ try:
                         'Resume'], 'Play',
                        ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
                         'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    keyboardListener = pynput.keyboard.Listener(on_press=on_press, on_release=on_release)
-    keyboardListener.start()  # daemon=True by default
+    keyboardListener = pynput.keyboard.Listener(on_press=on_press, on_release=on_release)  # daemon=True by default
+    keyboardListener.start()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     if settings['discord_rpc']:
         with suppress(py_presence_errors): rich_presence.connect()
@@ -2648,13 +2641,13 @@ try:
             tray.show_message('Music Caster', welcome_msg, time=5000)
         elif settings['update_message'] != UPDATE_MESSAGE:
             tray.show_message('Music Caster Updated', UPDATE_MESSAGE, time=5000)
-    if update_available and IS_FROZEN:
-        tray.show_message('Music Caster', update_available, time=5000)
+        if update_available and IS_FROZEN:
+            tray.show_message('Music Caster', update_available, time=5000)
     change_settings('update_message', UPDATE_MESSAGE)
-    temp = (settings['timer_shut_off_computer'], settings['timer_hibernate_computer'], settings['timer_sleep_computer'])
+    temp = (settings['timer_shut_down'], settings['timer_hibernate'], settings['timer_sleep'])
     if temp.count(True) > 1:  # Only one of the below can be True
-        if settings['timer_shut_off_computer']: change_settings('timer_hibernate_computer', False)
-        change_settings('timer_sleep_computer', False)
+        if settings['timer_shut_down']: change_settings('timer_hibernate', False)
+        change_settings('timer_sleep', False)
     if settings['save_queue_sessions'] and settings['populate_queue_startup']:  # mutually exclusive
         change_settings('populate_queue_startup', False)
     cast_last_checked = time.time()

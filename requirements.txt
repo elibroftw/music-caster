@@ -17,3 +17,4 @@ zeroconf==0.24.5
 # windows only v
 pywin32
 pyperclip
+werkzeug

@@ -182,16 +182,16 @@ home_music_dir = f'{Path.home()}/Music'
 DEFAULT_THEME = {'accent': '#00bfff', 'alternate_background': '#222222',
                  'background': '#121212', 'text': '#d7d7d7'}
 settings = {
-    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': True,
+    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
-    'timer_shut_off_computer': False, 'timer_hibernate_computer': False, 'timer_sleep_computer': False,
+    'timer_shut_dow': False, 'timer_hibernate': False, 'timer_sleep': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_directories': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
-    'queues': {'done': [], 'music': [], 'next': []}}
+     'queues': {'done': [], 'music': [], 'next': []}}
 
 theme = settings['theme']
 Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
