@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.71.41
+- [Fix] Cleaner code
+- [Fix] Improved privacy by hashing MAC
+
 4.71.40
 - [Fix] Play from explorer
 - [Fix] Album art issues

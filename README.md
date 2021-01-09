@@ -77,20 +77,20 @@ Aside from the global media hot keys, Music Caster has its own shortcuts as seen
 ## Data Collection / Privacy Policy
 What is sent to me when an error is encountered?
 ```JS
-// As seen in handle_exception(exception)
+// As seen in the function handle_exception,
 'VERSION': VERSION,
-'EXCEPTION TYPE': exc_type.__name__,  // error name
-'LINE': exc_tb.tb_lineno,             // error location
-'TRACEBACK': trace_back_msg,          // error message
-'MAC': MAC,                           // error unqiueness
-'LOG': log_lines,                     // last 5 lines of the log file so I have more context
-'FATAL': restart_program,             // if the error crashed the program
+'EXCEPTION TYPE': exc_type.__name__,                  // error name
+'LINE': exc_tb.tb_lineno,                             // error location/line
+'TRACEBACK': trace_back_msg,                          // error message
+'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   // error unqiueness, hash mac to preserve privacy
+'LOG': log_lines,                                     // last 5 lines of the log file so I have more context
+'FATAL': restart_program,                             // if the error crashed the program
 'OS': platform.platform(),
 'TIME': current_time
 ```
-In addition, I collect MAC and IP addresses in a Google Excel Sheet.
+In addition, I collect (MD5 hashed) MAC and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
-- MAC so that I know how many users (450+)
+- hashed MAC so that I know how many users (1900+), without knowing the actual MAC addresses
 - IP because I can do something [cool](https://github.com/elibroftw/music-caster/wiki)
 
 ## Development Guide

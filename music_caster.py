@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.71.40'
+VERSION = latest_version = '4.71.41'
 UPDATE_MESSAGE = """
 [Feature] Reverse Play Next Setting
 [Feature] Buffed Web GUI
@@ -261,7 +261,6 @@ def handle_exception(exception, restart_program=False):
     _current_time = str(datetime.now())
     trace_back_msg = traceback.format_exc()
     exc_type, exc_obj, exc_tb = sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-    mac = get_mac()
     if playing_url:
         playing_uri = 'url'
     elif playing_live:
@@ -275,7 +274,7 @@ def handle_exception(exception, restart_program=False):
         log_lines = []
     payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
                'PORTABLE': not os.path.exists(UNINSTALLER),
-               'TRACEBACK': fix_path(trace_back_msg), 'MAC': hashlib.md5(mac.encode()).hexdigest(),
+               'TRACEBACK': fix_path(trace_back_msg), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
                'FATAL': restart_program, 'LOG': log_lines,
                'OS': platform.platform(), 'TIME': _current_time, 'PLAYING_TYPE': playing_uri}
     try:
@@ -1902,13 +1901,10 @@ def read_main_window():
             locate_track(selected_track_index)
     elif (main_event == 'pause/resume' or main_event == 'k' and (
             settings['mini_mode'] or main_values['tab_group'] not in {'tab_timer', 'tab_playlists'})):
-        try:
-            pause_resume[playing_status]()
-        except KeyError:
-            if music_queue:
-                play(music_queue[0])
-            else:
-                play_all()
+        if playing_status == 'PAUSED': resume()
+        elif playing_status == 'PLAYING': pause()
+        elif music_queue: play(music_queue[0])
+        else: play_all()
     elif main_event == 'next' and playing_status != 'NOT PLAYING':
         reset_progress()
         next_track()
@@ -2529,7 +2525,8 @@ def auto_update(auto_start=True):
 
 def send_info():
     with suppress(requests.ConnectionError):
-        requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': get_mac(), 'VERSION': VERSION})
+        mac = hashlib.md5(get_mac().encode()).hexdigest()
+        requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION})
 
 
 def init_youtube_dl():  # 1 - 1.4 seconds
@@ -2676,7 +2673,6 @@ try:
         indexing_tracks_thread.join()
         play_all(queue_only=True)
     print(f'Running in tray, DEBUG={settings.get("DEBUG", False) or DEBUG}, EXPERIMENTAL={settings["EXPERIMENTAL"]}')
-    pause_resume = {'PAUSED': resume, 'PLAYING': pause}
     tray_actions = {
         '__ACTIVATED__': activate_main_window,
         'Rescan Library': index_all_tracks,

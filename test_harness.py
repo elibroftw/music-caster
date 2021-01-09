@@ -33,15 +33,16 @@ if args.helpers:
     print('get_mac():', get_mac())
 
 
-def get_metadata_wrapped(file_path: str) -> tuple:  # title, artist, album
+def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
     try:
         return get_metadata(file_path)
     except mutagen.MutagenError:
         try:
-            metadata = music_metadata[file_path]
-            return metadata['title'], metadata['artist'], metadata['album']
+            metadata = all_tracks[file_path]
+            return metadata
         except KeyError:
-            return 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+            return {'title': 'Unknown Title', 'artist': 'Unknown Artist',
+                    'album': 'Unknown Album', 'sort_key': 'Unknown - Unknown'}
 
 
 def get_uri_info(uri):
@@ -51,13 +52,7 @@ def get_uri_info(uri):
     try:
         return music_metadata[uri]
     except KeyError:
-        title, artist, album = get_metadata_wrapped(uri)
-        if title == 'Unknown Title' or artist == 'Unknown Artist':
-            sort_key = os.path.splitext(os.path.basename(uri))[0]
-        else:
-            sort_key = f'{title} - {artist}'
-        metadata = {'title': title, 'artist': artist,
-                    'album': album, 'sort_key': sort_key}
+        metadata = get_metadata_wrapped(uri)
         with suppress(InvalidAudioFile):
             length = get_length(uri)
             metadata['length'] = length
@@ -68,7 +63,7 @@ def get_uri_info(uri):
 def format_file(uri: str):
     try:
         metadata = get_uri_info(uri)
-        artist, title = metadata['artist'], metadata['title']
+        title, artist = metadata['title'], metadata['artist']
         if artist.startswith('Unknown') or title.startswith('Unknown'):
             raise KeyError
         return f'{artist} - {title}'
@@ -142,16 +137,11 @@ all_tracks = {}
 all_tracks_sorted = []
 for file_path in SAMPLE_MUSIC_FILES:
     with suppress(mutagen.MutagenError):
-        assert len(get_metadata(file_path)) == 3
+        assert len(get_metadata(file_path)) == 4
     file_path = file_path.replace('\\', '/')
     if valid_music_file(file_path) and os.path.exists(file_path):
         with suppress(HeaderNotFoundError):
-            title, artist, album = get_metadata_wrapped(file_path)
-            if title == 'Unknown Title' or artist == 'Unknown Artist':
-                sort_key = os.path.splitext(os.path.basename(file_path))[0]
-            else:
-                sort_key = f'{title} - {artist}'
-            metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+            metadata = get_metadata_wrapped(file_path)
             with suppress(KeyError, TypeError, MutagenError):
                 track_number = get_track_number(file_path)
                 metadata['track_number'] = track_number
@@ -161,7 +151,6 @@ for file_path in SAMPLE_MUSIC_FILES:
 file_path = MUSIC_FILE_WITH_ALBUM_ART
 audio_info = mutagen.File(file_path).info
 track_length = audio_info.length
-_title, _artist, _album = get_metadata(file_path)
 pict = None
 try:
     tags = mutagen.id3.ID3(file_path)
@@ -176,13 +165,11 @@ for tag in tags.keys():
 music_meta_data = {}
 
 if pict:
-    music_meta_data[file_path] = {'artist': _artist, 'title': _title, 'album': _album, 'length': track_length,
+    music_meta_data[file_path] = {**get_metadata(file_path), 'length': track_length,
                                   'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 else:
-    music_meta_data[file_path] = {
-        'artist': _artist, 'title': _title, 'album': _album, 'length': track_length}
-music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {'artist': _artist, 'title': _title, 'album': _album,
-                                              'length': track_length,
+    music_meta_data[file_path] = {**get_metadata(file_path), 'length': track_length}
+music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {**get_metadata(file_path), 'length': track_length,
                                               'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 metadata = music_meta_data[file_path]
 artist, title = metadata['artist'].split(', ')[0], metadata['title']
