@@ -1,5 +1,5 @@
 <h1 align="left">
-<img width=30px src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png" alt="Logo" style="vertical-align: bottom">
+<img width=30px src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-32x32.png" alt="Logo" style="vertical-align: bottom; margin-top: 2px;">
 Music Caster</h1>
 
 [![GitHub Releases](https://img.shields.io/github/downloads/elibroftw/music-caster/latest/total?color=blue&label=github%20downloads%40latest&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases/latest)
@@ -7,7 +7,8 @@ Music Caster</h1>
 
 Music Caster is a modern music player that lets you cast local music files to a Google Cast Device (Chromecast, Home, etc.).
 
-If you enjoyed this product a lot feel free to donate (ironic) to monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj or https://www.paypal.me/elibroftw.
+If you enjoyed this product a lot feel free to donate (ironic) to 
+monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj or https://www.paypal.me/elibroftw.
 
 **Important information**
 
@@ -15,32 +16,25 @@ On the first run, you will need to click the arrow in your taskbar to see the ap
 If you have music files in folders other than the home music folder, add them in settings (right click tray icon -> settings).
 
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
-
-[VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)
+- [VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)
+- [Development Guide](https://github.com/elibroftw/music-caster/wiki/Development-Guide)
 
 ## Demo
-The image below directs to my demo video on YouTube. [Screenshots](http://www.elijahlopez.herokuapp.com/music-caster/) are also available.
+The image below directs to my demo video on YouTube.
+[Screenshots](http://www.elijahlopez.herokuapp.com/music-caster/) are also available.
 Both are outdated by 6+ months.
 
 <a href=https://youtu.be/MtkhqV1w3WE>
   <img width=75% src="https://img.youtube.com/vi/MtkhqV1w3WE/maxresdefault.jpg" alt="Demo on Youtube" align="center"/>
 </a>
 
-## Usage
-Left click to open up the main window.
-
-Play All: all the music files from the chosen directories (in settings) are shuffled and played.
-
-Play File: select a file to start playing. Music files in the chosen directories are optionally shuffled and added to the queue.
-
 ## Power User Features
-- Media keys are supported (with more keyboard shortcuts below)
+- Global media hot-keys are supported
 - Web GUI (QR code in Settings window)
 - [Command Line Arguments](https://github.com/elibroftw/music-caster/wiki/Command-Line-Arguments)
 
-## UI Keyboard Shortcuts
 I love keyboard shortcuts, they make us more productive.
-Aside from the global media hot keys, Music Caster has its own shortcuts as seen below.
+Aside from the global media hot-keys, Music Caster has its own shortcuts as seen below.
 
 | **Shortcut** | **Window** | **Behaviour**
 | ------------ |----------- | -------------
@@ -60,19 +54,18 @@ Aside from the global media hot keys, Music Caster has its own shortcuts as seen
 | Ctrl + 3 | Main | Go to Tab 3 (Timer)
 | Ctrl + 4 | Main | Go to Tab 4 (Settings)
 
-## Limitations and Known Issues
-- Chromecasts only support the AAC version of WMA files
-- Lack of emoji support (the GUI might not work). There's always settings.json + WEB GUI though
-- Queuing from explorer is not support yet
-- [Road Map](https://github.com/elibroftw/music-caster/projects/1)
-
-## Settings.json Guide
+**Editing settings.json**
 - Music Caster will detect changes within 10 seconds of editing `settings.json`
   - Caveat: any color code changes requires a restart
 - The music directories is a list of valid directory paths
   - The first path is the default directory MC opens when you click "Play File"
 - The playlist setting follows the convention `{'PLAYLIST NAME': ['list of paths to files']}`
 - Some settings are there for the future and have no effect
+
+## Limitations
+- Chromecasts only support the AAC version of WMA files
+- Lack of emoji support (the GUI might not work). There's always settings.json + WEB GUI though
+- [Road Map](https://github.com/elibroftw/music-caster/projects/1)
 
 ## Data Collection / Privacy Policy
 What is sent to me when an error is encountered?
@@ -82,7 +75,7 @@ What is sent to me when an error is encountered?
 'EXCEPTION TYPE': exc_type.__name__,                  // error name
 'LINE': exc_tb.tb_lineno,                             // error location/line
 'TRACEBACK': trace_back_msg,                          // error message
-'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   // error unqiueness, hash mac to preserve privacy
+'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   // error unqiueness, hashed mac to preserve anonymity
 'LOG': log_lines,                                     // last 5 lines of the log file so I have more context
 'FATAL': restart_program,                             // if the error crashed the program
 'OS': platform.platform(),
@@ -90,17 +83,8 @@ What is sent to me when an error is encountered?
 ```
 In addition, I collect (MD5 hashed) MAC and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
-- hashed MAC so that I know how many users (1900+), without knowing the actual MAC addresses
+- Hashed MAC so that I know how many users (1900+), without knowing the actual MAC addresses
 - IP because I can do something [cool](https://github.com/elibroftw/music-caster/wiki)
-
-## Development Guide
-1. Use Python 3.6 or 3.8. 32-bit is fine.
-2. `pip install -r requirements.txt`
-3. Make sure Python scripts folder is on PATH
-4. Have Inno Setup installed and `C:\Program Files (x86)\Inno Setup 6\` on PATH
-5. run `build` or `build.py`
-
-[Wiki](https://github.com/elibroftw/music-caster/wiki/Development-Guide)
 
 ## Credits
 - default album art made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
