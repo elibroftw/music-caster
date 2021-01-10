@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.72.0
+- [Feature] Added setting to disable folder scan
+
+4.71.43
+- [Fix] Removed default folder re-addition
+
 4.71.42
 - [Fix] Switching device error
 - [Fix] Cleaner code

@@ -16,7 +16,6 @@ from urllib.parse import urlparse, parse_qs
 from uuid import getnode
 from b64_images import *
 from subprocess import PIPE, DEVNULL, Popen
-import sys
 import re
 import mutagen
 from mutagen import MutagenError
@@ -469,7 +468,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
         [Sg.Button('❌', key='remove_track', tooltip='Remove track', size=(3, 1))],
         [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
-    listbox_height = 14 + (not album_art_data) * 4  # 11 or 21
+    listbox_height = 18
     queue_tab_layout = [queue_controls, [
         # TODO: add right click menus for list boxes
         Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
@@ -549,7 +548,7 @@ def create_playlists_tab(settings):
                              [Sg.Button('Remove item(s)', key='pl_rm_items', tooltip='Ctrl + R', font=FONT_NORMAL,
                                         enable_events=True, size=(12, 1))]],
                         background_color=bg, border_width=0),
-               Sg.Listbox(tracks, size=(37, 10), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
+               Sg.Listbox(tracks, size=(37, 14), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
                Sg.Frame('', [[Sg.Button('Move up', **move_up_params, key='pl_move_up')],
                              [Sg.Button('Move down', **move_down_params, key='pl_move_down')]],
@@ -576,6 +575,7 @@ def create_settings(version, settings, qr_code):
          create_checkbox('Folder context menu', 'folder_context_menu', settings)],
         [create_checkbox('Show track number', 'show_track_number', settings, True),
          create_checkbox('Reversed Play Next', 'reversed_play_next', settings)],
+        [create_checkbox('Scan folders', 'scan_folders', settings, True)],
     ], pad=((0, 0), (5, 0)))
     qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
     qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))

@@ -1,7 +1,6 @@
-VERSION = latest_version = '4.71.42'
+VERSION = latest_version = '4.72.0'
 UPDATE_MESSAGE = """
-[Feature] Improved Privacy
-[Feature] Buffed Web GUI
+[Feature] Added setting to disable folder scan
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -121,7 +120,7 @@ settings = {  # default settings
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
-    'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
+    'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_directories': [home_music_dir], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
@@ -487,12 +486,11 @@ def load_settings():  # up to 0.4 seconds
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
             window_locations = settings['window_locations']
-            if not music_directories: music_directories = change_settings('music_directories', [home_music_dir])
-            if _temp != music_directories or music_directories == [home_music_dir]:
-                index_all_tracks()
+            if _temp != music_directories:
+                if settings['scan_folders']: index_all_tracks()
                 refresh_folders()
             del _temp
-            DEFAULT_DIR = music_directories[0]
+            DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
             theme = settings['theme']
             for k, v in theme.copy().items():
                 # validate settings file color codes
@@ -2120,15 +2118,13 @@ def read_main_window():
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
                         'folder_context_menu', 'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
                         'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
-                        'show_album_art', 'reversed_play_next'}:
+                        'show_album_art', 'reversed_play_next', 'scan_folders'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup':
             create_shortcut(SHORTCUT_PATH)
         elif main_event == 'save_queue_sessions':
-            if main_value:
-                save_queues()
-            else:
-                change_settings('queues', {'done': [], 'music': [], 'next': []})
+            if main_value: save_queues()
+            else: change_settings('queues', {'done': [], 'music': [], 'next': []})
             change_settings('populate_queue_startup', False)
             main_window['populate_queue_startup'].update(value=False)
         elif main_event in 'populate_queue_startup':
@@ -2151,6 +2147,8 @@ def read_main_window():
             activate_main_window('tab_settings')
         elif main_event == 'show_track_number':
             update_gui_queue = True
+        elif main_event == 'scan_folders' and main_value:
+            index_all_tracks()
     elif main_event == 'remove_music_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
         if selected_item in music_directories:
@@ -2158,7 +2156,7 @@ def read_main_window():
             main_window['music_dirs'].update(music_directories)
             refresh_tray()
             save_settings()
-            index_all_tracks()
+            if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
         main_value = main_value.replace('\\', '/')  # sanitize
         if main_value not in music_directories and os.path.exists(main_value):
@@ -2166,7 +2164,7 @@ def read_main_window():
             main_window['music_dirs'].update(music_directories)
             refresh_tray()
             save_settings()
-            index_all_tracks()
+            if settings['scan_folders']: index_all_tracks()
     elif main_event in {'settings_file', 'o:79'}:
         try:
             os.startfile(settings_file)
@@ -2571,7 +2569,7 @@ try:
         if IS_FROZEN and not DEBUG: sys.exit()
     # quit if --exit was supplied to command line
     if args.exit: sys.exit()
-    load_settings()
+    load_settings()  # starts indexing all tracks
     init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
     init_ydl_thread.start()
     audio_player = AudioPlayer()
@@ -2630,9 +2628,6 @@ try:
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
-    if not music_directories:
-        music_directories = change_settings('music_directories', [home_music_dir])
-        index_all_tracks()
     if settings['notifications']:
         if show_pygame_error:
             tray.show_message('Music Caster', 'ERROR: No local audio device found', time=5000)
