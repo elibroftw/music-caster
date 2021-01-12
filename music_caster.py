@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.72.0'
+VERSION = latest_version = '4.72.1'
 UPDATE_MESSAGE = """
 [Feature] Added setting to disable folder scan
 """.strip()
@@ -1556,7 +1556,7 @@ def background_tasks():
                         pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing:
                         resume()
-                    elif is_stopped and playing_status != 'NOT PLAYING':
+                    elif is_stopped and playing_status != 'NOT PLAYING' and not is_playing and not is_paused:
                         stop('background tasks', False)
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)
