@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.0
+- [Feature] Added shuffle to controls
+
 4.72.1
 - [Fix] Random stops
 

@@ -376,10 +376,12 @@ def get_music_controls(settings, playing_status):
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(settings['repeat'])
     repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': repeat_tooltip}
+    shuffle_button = {**img_button, 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
     return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
             Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
             Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
             Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
+            Sg.Button(key='shuffle', **shuffle_button, tooltip='shuffle', metadata=settings['shuffle']),
             Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute' if is_muted else 'unmute'),
             Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                       disable_number_display=True, enable_events=True, background_color=accent_color,
@@ -397,7 +399,7 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
     progress_layout = [Sg.Text(time_elapsed, key='time_elapsed', pad=time_elapsed_pad, justification='right',
                                size=text_size, font=FONT_NORMAL),
                        Sg.Slider(range=(0, track_length), default_value=track_position,
-                                 orientation='h', size=(17 if mini_mode else 30, 10), key='progress_bar',
+                                 orientation='h', size=(20 if mini_mode else 30, 10), key='progress_bar',
                                  enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
                                  disable_number_display=True, disabled=playing_status == 'NOT PLAYING',
                                  tooltip='Scroll mousewheel',
@@ -406,7 +408,7 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
                                size=text_size, font=FONT_NORMAL)]
     if mini_mode:
         progress_layout.append(Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, size=(1, 1), enable_events=True,
-                                         border_width=0, button_color=(bg, bg), tooltip='restore window', pad=(0, 0)))
+                                         border_width=0, button_color=(bg, bg), tooltip='restore window', pad=((0, 5), 0)))
     return progress_layout
 
 
@@ -564,7 +566,7 @@ def create_settings(version, settings, qr_code):
         [create_checkbox('Notifications', 'notifications', settings, True),
          create_checkbox('Run on Startup', 'run_on_startup', settings)],
         [create_checkbox('Save Window Positions', 'save_window_positions', settings, True),
-         create_checkbox('Shuffle Playlists', 'shuffle_playlists', settings)],
+         create_checkbox('Scan folders', 'scan_folders', settings, True)],
         [create_checkbox('Populate Queue on Startup', 'populate_queue_startup', settings, True),
          create_checkbox('Persistent Queue', 'save_queue_sessions', settings)],
         [create_checkbox('Left-Side Music Controls', 'flip_main_window', settings, True),
@@ -574,8 +576,7 @@ def create_settings(version, settings, qr_code):
         [create_checkbox('Use cover.* for album art', 'folder_cover_override', settings, True),
          create_checkbox('Folder context menu', 'folder_context_menu', settings)],
         [create_checkbox('Show track number', 'show_track_number', settings, True),
-         create_checkbox('Reversed Play Next', 'reversed_play_next', settings)],
-        [create_checkbox('Scan folders', 'scan_folders', settings, True)],
+         create_checkbox('Reversed Play Next', 'reversed_play_next', settings)]
     ], pad=((0, 0), (5, 0)))
     qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
     qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))

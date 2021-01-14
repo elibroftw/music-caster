@@ -1,5 +1,6 @@
-VERSION = latest_version = '4.72.1'
+VERSION = latest_version = '4.73.0'
 UPDATE_MESSAGE = """
+[Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
@@ -116,7 +117,7 @@ settings_file = f'{starting_dir}/settings.json'
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
-    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle_playlists': True, 'repeat': False,
+    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': True, 'repeat': False,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
@@ -561,8 +562,7 @@ def web_index():  # web GUI
             cycle_repeat()
             api_msg = 'cycled repeat to ' + human_readable_repeat()
         elif 'shuffle' in request.args:
-            change_settings('shuffle_playlists', not settings['shuffle_playlists'])
-            api_msg = 'toggled shuffle'
+            shuffle_option = change_settings('shuffle', not settings['shuffle'])
         if 'is_api' in request.args:
             return api_msg
         return redirect('/')
@@ -572,7 +572,7 @@ def web_index():  # web GUI
     art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
     repeat_color = 'red' if settings['repeat'] is not None else ''
-    shuffle_option = 'red' if settings['shuffle_playlists'] else ''
+    shuffle_option = 'red' if settings['shuffle'] else ''
     # sort by the formatted title
     list_of_tracks = []
     if all_tracks_sorted_sort_key:
@@ -1233,7 +1233,7 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
                         temp_queue.append(_file)
         if invalid_path: temp_queue.extend(settings['playlists'].get(path, []))
     update_gui_queue = True
-    if settings['shuffle_playlists']:
+    if settings['shuffle']:
         # if from_explorer make temp_queue all files already in queue
         temp_queue = music_queue[1:] * from_explorer + temp_queue
         shuffle(temp_queue)
@@ -1326,7 +1326,7 @@ def folder_action(action='Play Folder'):
             if os.path.exists(folder_path):
                 for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
                     if valid_music_file(_f): temp_queue.append(_f)
-        if settings['shuffle_playlists']:
+        if settings['shuffle']:
             shuffle(temp_queue)
         else:
             temp_queue.sort(key=natural_key_file)
@@ -1725,7 +1725,7 @@ def play_playlist(playlist_name):
         done_queue.clear()
         music_queue.extend(playlists.get(playlist_name, []))
         if music_queue:
-            if settings['shuffle_playlists']: shuffle(music_queue)
+            if settings['shuffle']: shuffle(music_queue)
             play(music_queue[0])
 
 
@@ -1828,7 +1828,13 @@ def read_main_window():
             main_window['mute'].set_tooltip('mute')
         main_window['volume_slider'].update(settings['volume'])
         update_volume_slider = False
-    if settings['repeat'] != main_window['repeat'].metadata: update_repeat_button()  # if repeat settings do not match
+    # update repeat button (image) if button metadata differs from settings
+    if settings['repeat'] != main_window['repeat'].metadata: update_repeat_button()
+    # update shuffle button (image) if button metadata differs from settings
+    if settings['shuffle'] != main_window['shuffle'].metadata:
+        shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
+        main_window['shuffle'].update(image_data=shuffle_image_data)
+        main_window['shuffle'].metadata = settings['shuffle']
     # handle events here
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
@@ -1902,7 +1908,10 @@ def read_main_window():
         reset_progress()
         prev_track()
     elif main_event == 'shuffle':
-        pass  # TODO: move from settings; shuffle affects play folder and play playlists
+        shuffle_option = change_settings('shuffle', not settings['shuffle'])
+        shuffle_image_data = SHUFFLE_ON if shuffle_option else SHUFFLE_OFF
+        main_window['shuffle'].update(image_data=shuffle_image_data)
+        main_window['shuffle'].metadata = shuffle_option
     elif main_event in {'repeat', 'r:82'}:
         cycle_repeat(True)
     elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
@@ -2116,7 +2125,7 @@ def read_main_window():
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
-                        'folder_context_menu', 'shuffle_playlists', 'save_window_positions', 'populate_queue_startup',
+                        'folder_context_menu', 'shuffle', 'save_window_positions', 'populate_queue_startup',
                         'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
                         'show_album_art', 'reversed_play_next', 'scan_folders'}:
         change_settings(main_event, main_value)
@@ -2259,11 +2268,11 @@ def read_main_window():
             done_queue.clear()
             music_queue.clear()
             music_queue.extend(temp_lst)
-            if settings['shuffle_playlists']: shuffle(music_queue)
+            if settings['shuffle']: shuffle(music_queue)
             play(music_queue[0])
     elif main_event == 'queue_pl':
         temp_lst = playlists.get(main_values['playlist_combo'], []).copy()
-        if settings['shuffle_playlists']: shuffle(temp_lst)
+        if settings['shuffle']: shuffle(temp_lst)
         if temp_lst:
             play_after = len(music_queue) == 0
             music_queue.extend(temp_lst)
