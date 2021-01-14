@@ -7,7 +7,7 @@ Music Caster</h1>
 
 Music Caster is a modern music player that lets you cast local music files to a Google Cast Device (Chromecast, Home, etc.).
 
-If you enjoyed this product a lot feel free to donate (ironic) to 
+If you enjoyed this product a lot feel free to donate (ironic) to
 monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj or https://www.paypal.me/elibroftw.
 
 **Important information**
@@ -90,3 +90,4 @@ Only I have access to this data, I will NEVER give it to anyone else.
 - default album art made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
 - speaker icon in main window made by [Naomi Atkinson](https://thenounproject.com/naomiatkinson/) from [The Noun Project](https://thenounproject.com/term/speaker/5609/) and modified by me
 - repeat icon in main window made by [Brandy Bora](https://thenounproject.com/brandy.bora) from [The Noun Project](https://thenounproject.com/search/?q=repeat&i=1555394) and modified by me
+- shufflle icon in main window made by [David](https://thenounproject.com/kaxgyatso/) from [The Noun Project](https://thenounproject.com/search/?q=shuffle&i=486680) and modified by me
