@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.0'
+VERSION = latest_version = '4.73.1'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -563,6 +563,7 @@ def web_index():  # web GUI
             api_msg = 'cycled repeat to ' + human_readable_repeat()
         elif 'shuffle' in request.args:
             shuffle_option = change_settings('shuffle', not settings['shuffle'])
+            api_msg = 'shuffle set to ' + shuffle_option
         if 'is_api' in request.args:
             return api_msg
         return redirect('/')
@@ -1617,7 +1618,7 @@ def activate_main_window(selected_tab='tab_queue'):
         mini_mode = settings['mini_mode']
         save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
         window_location = get_window_location(save_window_loc_key)
-        size = (125, 125) if mini_mode else (255, 255)
+        size = COVER_MINI if mini_mode else (255, 255)
         album_art_data = resize_img(get_current_album_art(), settings['theme']['background'],
                                     size).decode() if settings['show_album_art'] else None
         window_margins = (0, 0) if mini_mode else (None, None)
@@ -1806,10 +1807,11 @@ def read_main_window():
                 track_number = metadata['track_number']
                 title = f'{track_number}. {title}'
     if gui_title != title:  # usually if music stops playing or another track starts playing
+        if settings['mini_mode']: title = truncate_title(title)
         main_window['title'].update(value=title)
         main_window['artist'].update(value=artist)
         if settings['show_album_art']:
-            size = (125, 125) if settings['mini_mode'] else (255, 255)
+            size = COVER_MINI if settings['mini_mode'] else (255, 255)
             try:
                 album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
             except (UnidentifiedImageError, OSError):

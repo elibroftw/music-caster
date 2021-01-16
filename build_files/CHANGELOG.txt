@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.1
+- [UI] Improved mini-mode
+
 4.73.0
 - [Feature] Added shuffle to controls
 

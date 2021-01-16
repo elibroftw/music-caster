@@ -30,10 +30,11 @@ from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wa
 # CONSTANTS
 FONT_NORMAL = 'SourceSans', 11
 FONT_SMALL = 'SourceSans', 10
+FONT_LINK = 'SourceSans', 11, 'underline'
 FONT_TITLE = 'Helvetica', 14
 FONT_ARTIST = 'Helvetica', 12
-FONT_LINK = 'SourceSans', 11, 'underline'
 LINK_COLOR = '#3ea6ff'
+COVER_MINI = (125, 125)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
@@ -137,8 +138,8 @@ def fix_path(path, by_os=True):
         return path.replace('\\', '/')
 
 
-def get_first_artist(artists:str):
-    return artists.split(', ', 1)[0].split('/', 1)[0]
+def get_first_artist(artists: str) -> str:
+    return artists.split(', ', 1)[0]
 
 
 def get_ipv4() -> str:
@@ -369,15 +370,17 @@ def resize_img(base64data, bg, new_size=(255, 255)) -> bytes:
 def get_music_controls(settings, playing_status):
     # TODO: stop button
     accent_color, bg = settings['theme']['accent'], settings['theme']['background']
+    mini_mode = settings['mini_mode']
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(settings['repeat'])
+    prev_button = {'pad': ((10, 5), None) if settings['mini_mode'] else None, 'tooltip': 'previous track'}
     repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': repeat_tooltip}
     shuffle_button = {**img_button, 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
-    return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, tooltip='previous track'),
+    return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, **prev_button),
             Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
             Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
             Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
@@ -385,7 +388,7 @@ def get_music_controls(settings, playing_status):
             Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute' if is_muted else 'unmute'),
             Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                       disable_number_display=True, enable_events=True, background_color=accent_color,
-                      text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel')]
+                      text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel', resolution=1)]
 
 
 def get_progress_layout(settings, track_position, track_length, playing_status):
@@ -394,22 +397,29 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
     bot_pad = (settings['vertical_gui'] and not settings['show_album_art']) * 30
     accent_color, bg = settings['theme']['accent'], settings['theme']['background']
     mini_mode = settings['mini_mode']
-    time_elapsed_pad = ((0, 2), (5, 0)) if mini_mode else ((0, 5), (10, bot_pad))
-    time_left_pad = ((2, 0), (5, 0)) if mini_mode else ((5, 0), (10, bot_pad))
-    progress_layout = [Sg.Text(time_elapsed, key='time_elapsed', pad=time_elapsed_pad, justification='right',
+    time_elapsed_pad = ((2, 0), (0, 0)) if mini_mode else ((0, 5), (10, bot_pad))
+    time_left_pad = ((0, 0), (0, 0)) if mini_mode else ((5, 0), (10, bot_pad))
+    progress_layout = [Sg.Text(time_elapsed, key='time_elapsed', pad=time_elapsed_pad, justification='center',
                                size=text_size, font=FONT_NORMAL),
                        Sg.Slider(range=(0, track_length), default_value=track_position,
                                  orientation='h', size=(20 if mini_mode else 30, 10), key='progress_bar',
                                  enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
                                  disable_number_display=True, disabled=playing_status == 'NOT PLAYING',
                                  tooltip='Scroll mousewheel',
-                                 pad=((7, 7), (5, 0)) if mini_mode else ((8, 8), (10, bot_pad))),
+                                 pad=((2, 10), (0, 0)) if mini_mode else ((8, 8), (10, bot_pad))),
                        Sg.Text(time_left, key='time_left', pad=time_left_pad, justification='left',
                                size=text_size, font=FONT_NORMAL)]
     if mini_mode:
         progress_layout.append(Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, size=(1, 1), enable_events=True,
-                                         border_width=0, button_color=(bg, bg), tooltip='restore window', pad=((0, 5), 0)))
+                                         border_width=0, button_color=(bg, bg), tooltip='restore window', pad=(0, 0)))
     return progress_layout
+
+
+def truncate_title(title):
+    """ truncate title for mini mode """
+    if len(title) > 34:
+        return title[:31] + '...'
+    return title
 
 
 def create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position):
@@ -418,10 +428,11 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
                        element_justification='left', pad=(0, 0))
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
+    title = truncate_title(title)
     right_side = Sg.Col([
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 5), 0), size=(26, 0), justification='right')],
-        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((0, 5), 0), size=(26, 0), justification='right')],
-        music_controls, progress_bar_layout], element_justification='right', pad=(0, 0))
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((10, 0), (0, 0)), size=(26, 1), justification='left')],
+        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((10, 0), (0, 0)), size=(26, 2), justification='left')],
+        music_controls, progress_bar_layout], element_justification='left', pad=(0, 0))
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
