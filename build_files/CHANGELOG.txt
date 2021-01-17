@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.2
+- [Fix] Stops at the end of tracks
+
 4.73.1
 - [UI] Improved mini-mode
 

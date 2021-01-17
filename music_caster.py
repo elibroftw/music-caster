@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.1'
+VERSION = latest_version = '4.73.2'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -1545,19 +1545,20 @@ def background_tasks():
                     mc = cast.media_controller
                     mc.update_status()
                     is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-                    is_stopped = mc.status.player_is_idle  # buffering is okay
+                    is_stopped = mc.status.player_is_idle
                     if not is_stopped:
                         # handle scrubbing of music from the home app / out of date time position
-                        if abs(mc.status.adjusted_current_time - track_position) > 1:
-                            new_track_position = mc.status.adjusted_current_time
-                            track_start = time.time() - new_track_position
-                            track_end = time.time() + track_length - new_track_position
-                            track_position = new_track_position
+                        if abs(mc.status.adjusted_current_time - track_position) > 0.5:
+                            track_position = mc.status.adjusted_current_time
+                            track_start = time.time() - track_position
+                            track_end = track_start + track_length
                     if is_paused:
                         pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing:
                         resume()
-                    elif is_stopped and playing_status != 'NOT PLAYING' and not is_playing and not is_paused:
+                    elif is_stopped and playing_status != 'NOT PLAYING' and time.time() - track_end > 1:
+                        # if cast says nothing is playing, only stop if we are not at the end of the track
+                        #  this will prevent false positives
                         stop('background tasks', False)
                     _volume = settings['volume']
                     cast_volume = round(cast.status.volume_level * 100, 1)
