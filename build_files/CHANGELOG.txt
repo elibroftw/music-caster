@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.3
+- [Fix] Tray icon
+
 4.73.2
 - [Fix] Stops at the end of tracks
 

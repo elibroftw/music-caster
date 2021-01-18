@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.2'
+VERSION = latest_version = '4.73.3'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
