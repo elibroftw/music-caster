@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.4'
+VERSION = latest_version = '4.73.5'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -33,6 +33,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import pprint
+from queue import Queue
 from random import shuffle
 from shutil import copyfileobj, rmtree
 import sys
@@ -53,6 +54,7 @@ import wx
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
+from pychromecast import Chromecast
 import pynput.keyboard
 import pyperclip
 import pypresence
@@ -66,11 +68,11 @@ from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
 import struct
-
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
                    '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
 DEBUG = args.debug
+main_window = timer_window = play_url_window = Sg.Window('')
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
 EMAIL = 'elijahllopezz@gmail.com'
@@ -79,18 +81,18 @@ UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
 STREAM_CHUNK = 1024
 PRESSED_KEYS = set()
-show_pygame_error = update_devices = settings_file_in_use = False
+update_devices = settings_file_in_use = False
 update_available = exit_flag = False
 last_play_command = 0  # last call to /play/
 settings_last_modified, last_press = 0, time.time() + 5
 update_last_checked = time.time()  # check every hour
 active_windows = {'main': False, 'play_url': False}
-main_window = timer_window = play_url_window = Sg.Window('')
+
 main_last_event = None
-py_presence_errors = (AttributeError, RuntimeError, PermissionError, UnicodeDecodeError,
-                      PyPresenceException, JSONDecodeError, struct.error)
+PyPresenceErrors = {AttributeError, RuntimeError, PermissionError, UnicodeDecodeError,
+                    PyPresenceException, JSONDecodeError, struct.error}
 # noinspection PyTypeChecker
-cast: pychromecast.Chromecast = None
+cast: Chromecast = None
 playlists, all_tracks, url_metadata = {}, {}, {}
 all_tracks_sorted_filename = []
 all_tracks_sorted_sort_key = []
@@ -100,11 +102,11 @@ pl_name = ''
 pl_files = []  # keep track of paths when editing playlists
 CHECK_MARK = '✓'
 chromecasts, device_names = [], [f'{CHECK_MARK} Local device']
-music_directories, window_locations = [], {}
+music_directories = []
 music_queue, done_queue, next_queue = [], [], []
 update_gui_queue = update_volume_slider = False
 mouse_hover = ''
-daemon_command = ''
+daemon_commands = Queue()
 playing_url = playing_live = False
 live_lag = 0.0
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
@@ -234,7 +236,6 @@ def cycle_repeat(update_main=False):
     :param update_main: Only set to True on main Thread
     :return: repeat value
     """
-    global settings
     if settings['repeat'] is None:
         new_repeat_setting = False  # Repeat All
     elif settings['repeat']:
@@ -441,7 +442,7 @@ def download(url, outfile):
 def set_save_position_callback(window: Sg.Window, _key):
     def save_window_position(event):
         if event.widget is window.TKroot:
-            window_locations[_key] = window.CurrentLocation()
+            settings['window_locations'][_key] = window.CurrentLocation()
             save_settings()
 
     window.TKroot.bind('<Destroy>', save_window_position)
@@ -449,13 +450,12 @@ def set_save_position_callback(window: Sg.Window, _key):
 
 def get_window_location(window_key):
     if not settings['save_window_positions']: window_key = 'DEFAULT'
-    return window_locations.get(window_key, (None, None))
+    return settings['window_locations'].get(window_key, (None, None))
 
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
-    global settings, playlists, music_directories, settings_last_modified, DEFAULT_DIR, \
-        window_locations, settings_file_in_use
+    global settings, playlists, music_directories, settings_last_modified, settings_file_in_use, DEFAULT_DIR
     if settings_file_in_use:
         return
     elif os.path.exists(settings_file):
@@ -486,7 +486,6 @@ def load_settings():  # up to 0.4 seconds
             tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()])
             _temp = music_directories.copy()
             music_directories = settings['music_directories']
-            window_locations = settings['window_locations']
             if _temp != music_directories:
                 if settings['scan_folders']: index_all_tracks()
                 refresh_folders()
@@ -529,9 +528,9 @@ def page_not_found(_):
 # use socket io?
 @app.route('/', methods=['GET', 'POST'])
 def web_index():  # web GUI
-    global music_queue, playing_status, all_tracks, daemon_command
+    global music_queue, playing_status, all_tracks
     if request.method == 'POST':
-        daemon_command = 'Bring to Front'  # tells main loop to bring to front all GUI's
+        daemon_commands.put('Bring to Front')  # tells main loop to bring to front all GUI's
         return 'true' if any(active_windows.values()) else 'Music Caster'
     if request.args:
         api_msg = 'Invalid Command'
@@ -654,8 +653,7 @@ def api_running():
 
 @app.route('/exit/', methods=['GET', 'POST'])
 def api_exit():
-    global daemon_command
-    daemon_command = 'Exit'
+    daemon_commands.put('Exit')
     return 'true'
 
 
@@ -825,7 +823,7 @@ def api_live_thumbnail():
 
 
 @cmp_to_key
-def chromecast_sorter(cc1: pychromecast.Chromecast, cc2: pychromecast.Chromecast):
+def chromecast_sorter(cc1: Chromecast, cc2: Chromecast):
     # sort by groups, then by name, then by UUID
     if cc1.device.cast_type == 'group' and cc2.device.cast_type != 'group': return -1
     if cc1.device.cast_type != 'group' and cc2.device.cast_type == 'group': return 1
@@ -845,7 +843,7 @@ def chromecast_callback(chromecast):
         chromecasts.sort(key=chromecast_sorter)
         device_names.clear()
         for _i, _cc in enumerate(['Local device'] + chromecasts):
-            _cc: pychromecast.Chromecast
+            _cc: Chromecast
             device_name = _cc if _i == 0 else _cc.name
             if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
                 device_names.append(f'{CHECK_MARK} {device_name}::device')
@@ -869,12 +867,12 @@ def start_chromecast_discovery():
 def change_device(new_idx):
     # new_idx is the index of the new device
     global cast, playing_status
-    new_device = None if (new_idx == 0 or new_idx > len(chromecasts)) else chromecasts[new_idx - 1]
+    new_device: Chromecast = None if (new_idx == 0 or new_idx > len(chromecasts)) else chromecasts[new_idx - 1]
 
     if cast != new_device:
         device_names.clear()
         for idx, cc in enumerate(['Local device'] + chromecasts):
-            cc: pychromecast.Chromecast = cc if idx == 0 else cc.name
+            cc: Chromecast = cc if idx == 0 else cc.name
             tray_device_name = f'{CHECK_MARK} {cc}::device' if idx == new_idx else f'    {cc}::device'
             device_names.append(tray_device_name)
         refresh_tray()
@@ -969,7 +967,7 @@ def after_play(title, artists: str, autoplay, switching_device):
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
     if settings['discord_rpc']:
-        with suppress(py_presence_errors):
+        with suppress(PyPresenceErrors):
             rich_presence.update(state=f'By: {artists}', details=title, large_image='default',
                                  large_text='Listening', small_image='logo', small_text='Music Caster')
 
@@ -1413,7 +1411,7 @@ def pause():
             if settings['discord_rpc'] and (music_queue or playing_live):
                 metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
                 title, artist = metadata['title'], metadata['artist']
-                with suppress(py_presence_errors):
+                with suppress(PyPresenceErrors):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
@@ -1445,7 +1443,7 @@ def resume():
             metadata = get_current_metadata()
             title, artist = metadata['title'], get_first_artist(metadata['artist'])
             if settings['discord_rpc']:
-                with suppress(py_presence_errors):
+                with suppress(PyPresenceErrors):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Playing', small_image='logo', small_text='Music Caster')
             tray.update(menu=menu_def_2, data_base64=FILLED_ICON)
@@ -1465,7 +1463,7 @@ def stop(stopped_from: str, stop_cast=True):
     playing_status = 'NOT PLAYING'
     playing_live = playing_url = False
     if settings['discord_rpc']:
-        with suppress(py_presence_errors): rich_presence.clear()
+        with suppress(PyPresenceErrors): rich_presence.clear()
     if cast is not None:
         if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
@@ -1528,7 +1526,7 @@ def prev_track():
 
 
 def background_tasks():
-    global cast, cast_last_checked, track_start, track_end, track_position, settings_last_modified, \
+    global cast_last_checked, track_position, track_start, track_end, settings_last_modified, \
         update_last_checked, latest_version, exit_flag, update_volume_slider
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
@@ -1580,7 +1578,7 @@ def background_tasks():
 
 
 def on_press(key):
-    global last_press, daemon_command
+    global last_press
     key = str(key)
     PRESSED_KEYS.add(key)
     valid_shortcut = len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS
@@ -1588,7 +1586,8 @@ def on_press(key):
     shift_clicked = 'Key.shift' in PRESSED_KEYS or 'Key.shift_r' in PRESSED_KEYS
     alt_clicked = 'Key.alt_l' in PRESSED_KEYS or 'Key.alt_r' in PRESSED_KEYS
     # Ctrl + Alt + Shift + M open up main window
-    if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked: daemon_command = '__ACTIVATED__'
+    if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked:
+        daemon_commands.put('__ACTIVATED__')
     if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
     if key == '<179>' and playing_status != 'NOT PLAYING':
         if not pause(): resume()
@@ -1716,7 +1715,7 @@ def exit_program():
             stop('exit program')
         elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             cast.quit_app()
-    with suppress(py_presence_errors):
+    with suppress(PyPresenceErrors):
         rich_presence.close()
     if settings['auto_update']: auto_update(False)
     sys.exit()  # since auto_update might not sys.exit()
@@ -1784,8 +1783,8 @@ def reset_progress():
 
 
 def read_main_window():
-    global main_last_event, mouse_hover, playing_status, track_position, progress_bar_last_update
-    global track_start, track_end, timer, main_window, pl_files, update_gui_queue, update_volume_slider
+    global main_last_event, mouse_hover, playing_status, update_volume_slider, progress_bar_last_update
+    global track_position, track_start, track_end, timer, main_window, update_gui_queue
     global tray_playlists, pl_files, pl_name
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
@@ -1820,13 +1819,14 @@ def read_main_window():
                 album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
             main_window['album_art'].update(data=album_art_data)
         update_gui_queue = True
-    elif update_gui_queue and not settings['mini_mode']:
+    # check updates from global variables
+    if update_gui_queue and not settings['mini_mode']:
         update_gui_queue = False
         dq_len = len(done_queue)
         lb_music_queue: Sg.Listbox = main_window['queue']
         lb_tracks = create_track_list()[0]
         lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
-    elif update_volume_slider:
+    if update_volume_slider:
         if settings['volume'] and settings['muted']:
             main_window['mute'].update(image_data=VOLUME_IMG)
             main_window['mute'].set_tooltip('mute')
@@ -2144,7 +2144,7 @@ def read_main_window():
             main_window['save_queue_sessions'].update(value=False)
             change_settings('save_queue_sessions', False)
         elif main_event == 'discord_rpc':
-            with suppress(py_presence_errors):
+            with suppress(PyPresenceErrors):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
                     metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
                     title, artist = metadata['title'], get_first_artist(metadata['artist'])
@@ -2280,10 +2280,8 @@ def read_main_window():
         if temp_lst:
             play_after = len(music_queue) == 0
             music_queue.extend(temp_lst)
-            if play_after:
-                play(music_queue[0])
-            else:
-                update_gui_queue = True
+            if play_after: play(music_queue[0])
+            else: update_gui_queue = True
     elif main_event in {'pl_save', 's:83'}:  # save playlist
         if main_values['playlist_name']:
             save_name = main_values['playlist_name']
@@ -2542,20 +2540,14 @@ def activate_instance(port):
     r_text = ''
     while port <= 2004 and not r_text:
         with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
-            if args.exit:
-                r_text = requests.post(f'http://localhost:{port}/exit/').text
-            elif args.paths:  # MC was supplied a path to a folder/file
-                r_text = requests.post(f'http://localhost:{port}/play/',
-                                       data={'paths': args.paths, 'queue': args.queue}).text
-            else:
-                r_text = requests.post(f'http://localhost:{port}/').text
+            endpoint = f'http://localhost:{port}'
+            if args.exit:  # --exit argument
+                r_text = requests.post(f'{endpoint}/exit/').text
+            elif args.paths:  # MC was supplied at least one path to a folder/file
+                r_text = requests.post(f'{endpoint}/play/', data={'paths': args.paths, 'queue': args.queue}).text
+            else:  # neither --exit nor paths was supplied
+                r_text = requests.post(f'{endpoint}/').text
         port += 1
-
-
-def quit_if_running():
-    app_log.info('quit_if_running() called')
-
-    return False
 
 
 try:
@@ -2637,13 +2629,11 @@ try:
     keyboardListener.start()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     if settings['discord_rpc']:
-        with suppress(py_presence_errors): rich_presence.connect()
+        with suppress(PyPresenceErrors): rich_presence.connect()
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if settings['notifications']:
-        if show_pygame_error:
-            tray.show_message('Music Caster', 'ERROR: No local audio device found', time=5000)
         if settings['update_message'] == '':
             welcome_msg = 'Thanks for installing Music Caster.\nMusic Caster is running in the tray.'
             tray.show_message('Music Caster', welcome_msg, time=5000)
@@ -2708,8 +2698,10 @@ try:
     while True:
         tray_item = tray.Read(timeout=1 if any(active_windows.values()) else 100)
         tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
-        tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
-        daemon_command = ''  # don't double call other_tray_actions
+        while not daemon_commands.empty():
+            daemon_command = daemon_commands.get()
+            tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
+            daemon_commands.task_done()
         if active_windows['main']: read_main_window()
         if active_windows['play_url']: read_play_url_window()
 except Exception as e:
