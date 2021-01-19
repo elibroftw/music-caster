@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.3'
+VERSION = latest_version = '4.73.4'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -531,12 +531,8 @@ def page_not_found(_):
 def web_index():  # web GUI
     global music_queue, playing_status, all_tracks, daemon_command
     if request.method == 'POST':
-        for k, v in active_windows.items():  # Opens up GUI
-            if v:
-                {'main': main_window, 'play_url': play_url_window}[k].bring_to_front()
-                return 'true'
-        daemon_command = '__ACTIVATED__'
-        return 'Music Caster'
+        daemon_command = 'Bring to Front'  # tells main loop to bring to front all GUI's
+        return 'true' if any(active_windows.values()) else 'Music Caster'
     if request.args:
         api_msg = 'Invalid Command'
         if 'play' in request.args:
@@ -563,7 +559,7 @@ def web_index():  # web GUI
             api_msg = 'cycled repeat to ' + human_readable_repeat()
         elif 'shuffle' in request.args:
             shuffle_option = change_settings('shuffle', not settings['shuffle'])
-            api_msg = 'shuffle set to ' + shuffle_option
+            api_msg = f'shuffle set to {shuffle_option}'
         if 'is_api' in request.args:
             return api_msg
         return redirect('/')
@@ -1607,6 +1603,11 @@ def on_press(key):
 
 def on_release(key):
     with suppress(KeyError): PRESSED_KEYS.remove(str(key))
+
+
+def bring_to_front():
+    if active_windows['play_url']: activate_play_url()
+    else: activate_main_window()
 
 
 def activate_main_window(selected_tab='tab_queue'):
@@ -2701,6 +2702,7 @@ try:
         'Repeat Off': lambda: change_settings('repeat', None),
         'Locate Track': locate_track,
         'Exit': exit_program,
+        'Bring to Front': bring_to_front,
         '': lambda: None,
     }
     while True:
