@@ -79,7 +79,7 @@ def create_track_list():
     tracks = []
     dq_len = len(done_queue)
     mq_start = len(next_queue) + 1
-    selected_value = None
+    selected_item = None
     # format: Index. Artists - Title
     for i, uri in enumerate(done_queue):
         formatted_track = format_file(uri)
@@ -89,7 +89,7 @@ def create_track_list():
         formatted_track = format_file(music_queue[0])
         formatted_item = f' {0}. {formatted_track}'
         tracks.append(formatted_item)
-        selected_value = formatted_item
+        selected_item = formatted_item
     for i, uri in enumerate(next_queue):
         formatted_track = format_file(uri)
         formatted_item = f' {i + 1}. {formatted_track}'
@@ -98,7 +98,7 @@ def create_track_list():
         formatted_track = format_file(uri)
         formatted_item = f' {i + mq_start}. {formatted_track}'
         tracks.append(formatted_item)
-    return tracks, selected_value
+    return tracks, selected_item
 
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
