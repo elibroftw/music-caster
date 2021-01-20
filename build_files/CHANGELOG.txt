@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.7
+- [Fix] Hot-key window focus
+
 4.73.6
 - [Fix] Discord presence errors
 

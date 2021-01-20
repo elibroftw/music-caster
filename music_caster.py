@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.6'
+VERSION = latest_version = '4.73.7'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -14,10 +14,10 @@ parser.add_argument('--exit', '-x', default=False, action='store_true',
                     help='exits any existing instance (including self)')
 parser.add_argument('paths', nargs='*', default=[], help='list of files/dirs/playlists to play/queue')
 args = parser.parse_args()
-# helper files
 from helpers import *
 from audio_player import AudioPlayer
 import base64
+
 from contextlib import suppress
 from datetime import datetime, timedelta
 import errno
@@ -28,7 +28,6 @@ import glob
 import hashlib
 import io
 import json
-from json import JSONDecodeError
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -66,7 +65,6 @@ import win32com.client
 from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
-import struct
 # CONSTANTS
 MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
                    '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
@@ -1602,7 +1600,8 @@ def on_release(key):
 
 
 def bring_to_front():
-    if active_windows['play_url']: activate_play_url()
+    # bring an active window to front by priority or open the main window
+    if active_windows['play_url'] and not active_windows['main']: activate_play_url()
     else: activate_main_window()
 
 
@@ -1656,6 +1655,11 @@ def activate_main_window(selected_tab='tab_queue'):
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         set_save_position_callback(main_window, save_window_loc_key)
+    else:
+        # window already active so steal focus in case tray was not clicked
+        steal_focus(main_window)
+        # set selected_tab to what is already selected to prevent the tab from switching
+        if not settings['mini_mode']: selected_tab = main_window['tab_group'].get()
     if not settings['mini_mode']:
         main_window[selected_tab].select()
         if selected_tab == 'tab_timer': main_window['timer_minutes'].set_focus()
@@ -1675,6 +1679,9 @@ def activate_play_url(combo_value='Play Immediately'):
         play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
                                     finalize=True, return_keyboard_events=True, location=window_location)
         set_save_position_callback(play_url_window, 'play_url')
+    else:
+        # play url window already active, so bring it to front
+        steal_focus(play_url_window)
     play_url_window.TKroot.focus_force()
     play_url_window.normal()
     play_url_window['url'].set_focus()

@@ -1,22 +1,22 @@
-import time
+from b64_images import *
+
+import base64
 from contextlib import suppress
+import ctypes
 import datetime
 from functools import wraps
 import io
 import os
-import platform
 from math import floor
-import winreg as wr
-import base64
-import pyqrcode
-import PySimpleGUI as Sg
-from PIL import Image, ImageFile
+import platform
+import re
 import socket
+from subprocess import PIPE, DEVNULL, Popen
+import time
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
-from b64_images import *
-from subprocess import PIPE, DEVNULL, Popen
-import re
+import winreg as wr
+# 3rd party imports
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -26,7 +26,11 @@ from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import HeaderNotFoundError
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
+import pyqrcode
+import PySimpleGUI as Sg
+from PIL import Image, ImageFile
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
+
 # CONSTANTS
 FONT_NORMAL = 'SourceSans', 11
 FONT_SMALL = 'SourceSans', 10
@@ -36,6 +40,10 @@ FONT_ARTIST = 'Helvetica', 12
 LINK_COLOR = '#3ea6ff'
 COVER_MINI = (125, 125)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+# for stealing focus when bring window to front
+set_to_foreground = ctypes.windll.user32.SetForegroundWindow
+keybd_event = ctypes.windll.user32.keybd_event
+alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
 
 
 def timing(f):
@@ -642,3 +650,10 @@ def create_play_url(combo_value='Play Immediately', default_text=''):
               Sg.Radio('Play Next', 'url_option', combo_value == 'Play Next', key='play_next')],
               [Sg.Input(key='url', font=FONT_NORMAL, default_text=default_text), Sg.Submit(font=FONT_NORMAL)]]
     return layout
+
+
+def steal_focus(window: Sg.Window):
+    # makes window the top-most application
+    keybd_event(alt_key, 0, extended_key | 0, 0)
+    set_to_foreground(window.TKroot.winfo_id())
+    keybd_event(alt_key, 0, extended_key | key_up, 0)
