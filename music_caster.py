@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.5'
+VERSION = latest_version = '4.73.6'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -58,7 +58,6 @@ from pychromecast import Chromecast
 import pynput.keyboard
 import pyperclip
 import pypresence
-from pypresence import PyPresenceException
 import threading
 import pythoncom
 from PIL import UnidentifiedImageError
@@ -89,8 +88,6 @@ update_last_checked = time.time()  # check every hour
 active_windows = {'main': False, 'play_url': False}
 
 main_last_event = None
-PyPresenceErrors = {AttributeError, RuntimeError, PermissionError, UnicodeDecodeError,
-                    PyPresenceException, JSONDecodeError, struct.error}
 # noinspection PyTypeChecker
 cast: Chromecast = None
 playlists, all_tracks, url_metadata = {}, {}, {}
@@ -967,7 +964,7 @@ def after_play(title, artists: str, autoplay, switching_device):
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
     if settings['discord_rpc']:
-        with suppress(PyPresenceErrors):
+        with suppress(Exception):
             rich_presence.update(state=f'By: {artists}', details=title, large_image='default',
                                  large_text='Listening', small_image='logo', small_text='Music Caster')
 
@@ -1411,7 +1408,7 @@ def pause():
             if settings['discord_rpc'] and (music_queue or playing_live):
                 metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
                 title, artist = metadata['title'], metadata['artist']
-                with suppress(PyPresenceErrors):
+                with suppress(Exception):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
@@ -1443,7 +1440,7 @@ def resume():
             metadata = get_current_metadata()
             title, artist = metadata['title'], get_first_artist(metadata['artist'])
             if settings['discord_rpc']:
-                with suppress(PyPresenceErrors):
+                with suppress(Exception):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Playing', small_image='logo', small_text='Music Caster')
             tray.update(menu=menu_def_2, data_base64=FILLED_ICON)
@@ -1463,7 +1460,7 @@ def stop(stopped_from: str, stop_cast=True):
     playing_status = 'NOT PLAYING'
     playing_live = playing_url = False
     if settings['discord_rpc']:
-        with suppress(PyPresenceErrors): rich_presence.clear()
+        with suppress(Exception): rich_presence.clear()
     if cast is not None:
         if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
@@ -1715,7 +1712,7 @@ def exit_program():
             stop('exit program')
         elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             cast.quit_app()
-    with suppress(PyPresenceErrors):
+    with suppress(Exception):
         rich_presence.close()
     if settings['auto_update']: auto_update(False)
     sys.exit()  # since auto_update might not sys.exit()
@@ -2144,7 +2141,7 @@ def read_main_window():
             main_window['save_queue_sessions'].update(value=False)
             change_settings('save_queue_sessions', False)
         elif main_event == 'discord_rpc':
-            with suppress(PyPresenceErrors):
+            with suppress(Exception):
                 if main_value and playing_status in {'PAUSED', 'PLAYING'}:
                     metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
                     title, artist = metadata['title'], get_first_artist(metadata['artist'])
@@ -2629,7 +2626,7 @@ try:
     keyboardListener.start()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
     if settings['discord_rpc']:
-        with suppress(PyPresenceErrors): rich_presence.connect()
+        with suppress(Exception): rich_presence.connect()
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
     tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)

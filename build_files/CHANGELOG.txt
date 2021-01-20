@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.6
+- [Fix] Discord presence errors
+
 4.73.5
 - [Optimization] Faster GUI activation via hot-key
 
