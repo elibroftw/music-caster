@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.73.7'
+VERSION = latest_version = '4.73.8'
 UPDATE_MESSAGE = """
 [Feature] Added shuffle to controls
 [Feature] Added setting to disable folder scan
@@ -65,9 +65,9 @@ import win32com.client
 from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
-# CONSTANTS
-MUSIC_FILE_TYPES = 'Audio File (.mp3, .mp4, .mpeg, .m4a, .flac, .aac, .ogg, .opus, .wma, .wav)|' \
-                   '*.mp3;*.mp4;*.mpeg;*.m4a;*.flac;*.aac;*.ogg;*.opus;*.wma;*.wav'
+
+music_file_exts = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
+MUSIC_FILE_TYPES = 'Audio File (.' + ', .'.join(music_file_exts) + ')|*.' + ';*.'.join(music_file_exts)
 DEBUG = args.debug
 main_window = timer_window = play_url_window = Sg.Window('')
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -109,7 +109,7 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
 DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'.replace('\\', '/')
-settings_file = f'{starting_dir}/settings.json'
+settings_file = 'settings.json'
 
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
@@ -269,11 +269,11 @@ def handle_exception(exception, restart_program=False):
                'FATAL': restart_program, 'LOG': log_lines,
                'OS': platform.platform(), 'TIME': current_time, 'PLAYING_TYPE': playing_uri}
     try:
-        with open(f'{starting_dir}/error.log', 'r') as _f:
+        with open('error.log', 'r') as _f:
             content = _f.read()
     except (FileNotFoundError, ValueError):
         content = ''
-    with open(f'{starting_dir}/error.log', 'w') as _f:
+    with open(f'error.log', 'w') as _f:
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
@@ -831,7 +831,9 @@ def chromecast_sorter(cc1: Chromecast, cc2: Chromecast):
 def chromecast_callback(chromecast):
     global update_devices, cast, chromecasts
     previous_device = settings['previous_device']
-    if str(chromecast.uuid) == previous_device and cast != chromecast: cast = chromecast
+    if str(chromecast.uuid) == previous_device and cast != chromecast:
+        cast = chromecast
+        cast.wait()
     if chromecast.uuid not in [_cc.uuid for _cc in chromecasts]:
         chromecasts.append(chromecast)
         # chromecasts.sort(key=lambda _cc: (_cc.device.model_name, type, _cc.name, _cc.uuid))
@@ -1521,8 +1523,8 @@ def prev_track():
 
 
 def background_tasks():
-    global cast_last_checked, track_position, track_start, track_end, settings_last_modified, \
-        update_last_checked, latest_version, exit_flag, update_volume_slider
+    global cast_last_checked, track_position, track_start, track_end, settings_last_modified
+    global update_last_checked, latest_version, exit_flag, update_volume_slider
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
@@ -1922,8 +1924,8 @@ def read_main_window():
         main_window['shuffle'].metadata = shuffle_option
     elif main_event in {'repeat', 'r:82'}:
         cycle_repeat(True)
-    elif ((main_event in {'volume_slider', 'a', 'd'} or main_event.isdigit())
-          and (settings['mini_mode'] or main_values['tab_group'] == 'tab_queue')):
+    elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
+          and (settings['mini_mode'] or main_values['tab_group'] not in {'tab_timer', 'tab_playlists'}))):
         # User scrubbed volume bar or pressed (while on Tab 1 or in mini mode)
         delta = 0
         if main_event.isdigit():

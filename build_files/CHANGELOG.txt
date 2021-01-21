@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.73.8
+- [Fix] Volume control on startup
+- [Fix] Volume control in GUI
+
 4.73.7
 - [Fix] Hot-key window focus
 
