@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.0
+- [UI] Show album name in now playing
+- [Optimized] Metadata scanning
+
 4.73.8
 - [Fix] Volume control on startup
 - [Fix] Volume control in GUI
@@ -11,7 +15,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Discord presence errors
 
 4.73.5
-- [Optimization] Faster GUI activation via hot-key
+- [Optimized] Faster GUI activation via hot-key
 
 4.73.4
 - [Fix] Web shuffle
@@ -102,7 +106,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Set timer with HH:MM
 
 4.71.25
-- [Optimization] Caching
+- [Optimized] Caching
 
 4.71.24
 - [UI] Improved tray menu
@@ -366,7 +370,7 @@ Music Caster by Elijah Lopez Changelog
 
 4.64.17
 - [UI] Better Mini Mode
-- [Optimization] Portable updater in C#
+- [Optimized] Portable updater in C#
 - [Fix] Double Instance (Faster now too)
 
 4.64.16
@@ -426,7 +430,7 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Notify when updates available
 - [UI] Better play URL window
 - [UI] Move Mini Mode button above clear queue
-- [Optimization] Better next and prev track from keyboard shortcuts
+- [Optimized] Better next and prev track from keyboard shortcuts
 - [Fix] Mini-mode keyboard shortcuts
 - [Fix] Mini-mode not respecting show album art setting
 - [Fix] Stop from the tray
@@ -497,10 +501,10 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Cast Live System Audio
 
 4.60.8
-- [Optimization] Reduced memory footprint
-- [Optimization] File indexing
 - [Web GUI] Added "Refresh Devices" to settings modal
 - [UI] More tray play URL options
+- [Optimized] Reduced memory footprint
+- [Optimized] File indexing
 - [Fix] Play folder window
 - [Fix] Corrupt file handling
 - [Fix] Internet cutting out scenarios
@@ -534,11 +538,11 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Register Music Caster in the registry as a program to open audio files and folders
 
 4.59.5
-- [Optimization] Delete old files when updating
+- [Optimized] Delete old files when updating
 
 4.59.4
+- [Optimized] images folder no longer needed
 - [Fix] Album art not showing on devices
-- [Optimization] images folder no longer needed
 
 4.59.3
 - [UI] Slightly better icon
@@ -586,8 +590,8 @@ Music Caster by Elijah Lopez Changelog
 - [UI] Use Ctrl + Shift + Alt + M to launch main window
 - [UI] Added fast-forward, rewind, and pause keyboard shortcuts (L, J, K)
 - [UI] Added more play options to the main window
-- [Optimization] Cached YouTube URLs
-- [Optimization] Even faster startup
+- [Optimized] Cached YouTube URLs
+- [Optimized] Even faster startup
 - [Fix] Made populate and save session queues mutually exclusive
 - [Fix] Queue files
 - [Fix] Get metadata
@@ -595,7 +599,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Playlist Selector and Editor
 
 4.55.0
-- [Optimization] Reduced installation size
+- [Optimized] Reduced installation size
 - [Fix] Error handling
 - [Fix] Resume playback after long time
 
@@ -625,16 +629,16 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Change device via web GUI
 
 4.53.1
-- [Optimization] Faster startup time (-70%)
+- [Optimized] Faster startup time (-70%)
 - [Fix] Auto update
 
 4.53.0
 - [UI] Removed ugly border from buttons
 - [UI] Merged Tab's 1 and 2 for Main Window
 - [UI] Merged Settings with Main Window
-- [Optimization] Optimized Settings Window
-- [Optimization] Faster update checking
-- [Optimization] Better Portable Updater
+- [Optimized] Settings Window
+- [Optimized] Faster update checking
+- [Optimized] Better Portable Updater
 - [Fix] Queue file
 - [Fix] Save window positions
 
@@ -643,7 +647,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Web shortcut icons
 
 4.51.3
-- [Optimization] Mainly Tray Optimizations
+- [Optimized] Main Tray
 - [UI] Swapped "Controls" and "Play" in the tray menu
 - [UI] New text color #d7d7d7 (either delete settings.json or enter it manually)
 - [Fix] Startup error if MC is already running
@@ -663,7 +667,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Startup error
 
 4.50.1
-- [Optimization] Threaded file selection windows
+- [Optimized] Threaded file selection windows
 - [Fix] Play Folder
 
 4.50.0
@@ -705,7 +709,7 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Queue file now supports multiple files
 - [Feature] Play Youtube links (EXPERIMENTAL)
 - Does not support pause, skip, or any repeating
-- [Optimization] Settings file loading
+- [Optimized] Settings file loading
 
 4.45.0
 - [Feature] Scroll to the playing song for Web GUI music queue
@@ -750,13 +754,13 @@ Music Caster by Elijah Lopez Changelog
 - [Feature] Added support for {*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav} (for non-local devices)
 
 4.40.0
-- [Optimization] Reduced startup time by ~2 seconds
-- [Optimization] No more copying files from different drives, the solution was so simple but took ~10 months to find!
+- [Optimized] Reduced startup time by ~2 seconds
+- [Optimized] No more copying files from different drives, the solution was so simple but took ~10 months to find!
 - [Fix] Stopped Music Caster collisions between two devices on the same network
 - [Security] Server will only serve music files and only if the correct UUID is passed
 
 4.39.5
-- [Optimization] Optimized the instance checker, startup time reduce by ~9 seconds!
+- [Optimized] Instance checker, startup time reduce by ~9 seconds!
 - [Fix] Reverted how keyboard commands work
 
 4.39.4
@@ -795,13 +799,13 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Handled HeaderNotFoundError
 
 4.36.0
-- [Optimization] Embedded Updater (+ updating notification)
-- [Optimization] Less cpu usage when idle
+- [Optimized] Embedded Updater (+ updating notification)
+- [Optimized] Less cpu usage when idle
 
 4.35.0
+- [Optimized] Image assets
 - [Feature] Main GUI volume image acts like mute/unmute button
 - [Fix] Settings window error
-- [Optimization] Optimized image assets
 
 4.34.2
 - [Fix] Add folder works with save window positions
@@ -812,9 +816,9 @@ Music Caster by Elijah Lopez Changelog
 4.34.0
 - [Feature] Added repeat off option (click repeat button 2x)
 - [Feature] Added "Save window positions" setting
-- [Optimization] Custom Chromecast finder (email me if MC doesn't detect any chromecasts)
-- [Optimization] Better CPU usage
-- [Optimization] More threading
+- [Optimized] Custom Chromecast finder (email me if MC doesn't detect any chromecasts)
+- [Optimized] Better CPU usage
+- [Optimized] More threading
 
 4.33.3
 - [Fix] lag caused by Discord RPC
@@ -837,12 +841,10 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] playlist editor window (window position is not saved for now)
 
 4.31.0
-- Optimized executable (smaller size + faster startup)
-- Optimized the updater by coding it in C#
+- [Optimized] Executables size and startup time
+- [Optimized] Portable updater now in C#
 - [Feature] Window positions are now remembered
 - [Feature] Added some tooltips
-- Clarified what the repeat item does in the tray
-- Refactored main GUI code
 - [Fix] tray menu updates again if repeat is pressed
 
 4.30.4
@@ -903,7 +905,6 @@ Music Caster by Elijah Lopez Changelog
 - Optimized `change_settings` (faster skips, although negligible)
 - Building a GUI tab to show all music
 - Update Web UI (looks good on mobile now, hard to access though)
-- More optimizations on the way (currently 12:30 AM, so tomorrow)
 - Changed setup name
 - Fixed auto-update error handling (ironic)
 - Fixed volume not changing when scrolling bug

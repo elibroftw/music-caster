@@ -127,12 +127,6 @@ SAMPLE_MUSIC_FILES = [
     r"C:\Users\maste\OneDrive\Music\Drake - Over (Ayobi Remix).mp3",
     r"C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3"]
 
-# test get_track_number
-double_digit_track_num = r"C:\Users\maste\OneDrive\Music\Armin van Buuren - Mirage (Assaf Remix).mp3"
-for sample in SAMPLE_MUSIC_FILES + [double_digit_track_num]:
-    with suppress(MutagenError, KeyError):
-        assert int(get_track_number(sample))
-
 all_tracks = {}
 all_tracks_sorted = []
 for file_path in SAMPLE_MUSIC_FILES:
@@ -140,13 +134,9 @@ for file_path in SAMPLE_MUSIC_FILES:
         assert len(get_metadata(file_path)) == 4
     file_path = file_path.replace('\\', '/')
     if valid_music_file(file_path) and os.path.exists(file_path):
-        with suppress(HeaderNotFoundError):
-            metadata = get_metadata_wrapped(file_path)
-            with suppress(KeyError, TypeError, MutagenError):
-                track_number = get_track_number(file_path)
-                metadata['track_number'] = track_number
-            all_tracks[file_path] = metadata
-            all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+        metadata = get_metadata_wrapped(file_path)
+        all_tracks[file_path] = metadata
+        all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
 
 file_path = MUSIC_FILE_WITH_ALBUM_ART
 audio_info = mutagen.File(file_path).info
@@ -190,7 +180,7 @@ settings = {
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'scan_folders': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
-    'music_directories': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
+    'music_folders': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
     'queues': {'done': [], 'music': [], 'next': []}}
 
 theme = settings['theme']

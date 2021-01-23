@@ -1,7 +1,8 @@
-VERSION = latest_version = '4.73.8'
+VERSION = latest_version = '4.74.0'
 UPDATE_MESSAGE = """
-[Feature] Added shuffle to controls
-[Feature] Added setting to disable folder scan
+[Important] You will need to re-add your music folders
+[Feature] Album Title
+[Optimized] Metadata scanning
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -97,18 +98,20 @@ pl_name = ''
 pl_files = []  # keep track of paths when editing playlists
 CHECK_MARK = '✓'
 chromecasts, device_names = [], [f'{CHECK_MARK} Local device']
-music_directories = []
+music_folders = []
 music_queue, done_queue, next_queue = [], [], []
 update_gui_queue = update_volume_slider = False
 mouse_hover = ''
 daemon_commands = Queue()
+files_to_scan = Queue()
+# files_to_scan is read by the background tasks thread in order to scan unread files in the queue
 playing_url = playing_live = False
 live_lag = 0.0
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 # seconds but using time()
 playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
-DEFAULT_DIR = home_music_dir = f'{Path.home()}/Music'.replace('\\', '/')
+DEFAULT_FOLDER = home_music_folder = f'{Path.home()}/Music'.replace('\\', '/')
 settings_file = 'settings.json'
 
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
@@ -121,7 +124,7 @@ settings = {  # default settings
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
-    'music_directories': [home_music_dir], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
+    'music_folders': [home_music_folder], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 # noinspection PyTypeChecker
 indexing_tracks_thread: Thread = None
 # noinspection PyTypeChecker
@@ -148,10 +151,10 @@ def save_settings():
 def refresh_folders():
     tray_folders.clear()
     tray_folders.append('Select Folder(s)::PF')
-    for music_dir in music_directories:
-        music_dir = music_dir.replace('\\', '/').split('/')
-        music_dir = f'../{"/".join(music_dir[-2:])}::PF' if len(music_dir) > 2 else ('/'.join(music_dir) + '::PF')
-        tray_folders.append(music_dir)
+    for folder in music_folders:
+        folder = folder.replace('\\', '/').split('/')
+        folder = f'../{"/".join(folder[-2:])}::PF' if len(folder) > 2 else ('/'.join(folder) + '::PF')
+        tray_folders.append(folder)
 
 
 def refresh_tray():
@@ -358,11 +361,6 @@ def get_uri_metadata(uri, read_file=True):
             if not read_file: raise KeyError
             metadata = get_metadata_wrapped(uri)
             if uri.startswith('http'): return metadata
-            with suppress(KeyError, TypeError, MutagenError):
-                metadata['track_number'] = get_track_number(uri)
-            with suppress(InvalidAudioFile):
-                length = get_length(uri)
-                metadata['length'] = length
             all_tracks[uri] = metadata
             return metadata
 
@@ -391,19 +389,15 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
         """
         use_temp = not not all_tracks  # use temp if all_tracks is not empty
         all_tracks_temp = {}
-        for directory in music_directories:
-            for file_path in glob.iglob(f'{glob.escape(directory)}/**/*.*', recursive=True):
+        for folder in music_folders:
+            for file_path in glob.iglob(f'{glob.escape(folder)}/**/*.*', recursive=True):
                 file_path = file_path.replace('\\', '/')
                 if valid_music_file(file_path):
-                    with suppress(HeaderNotFoundError):
-                        metadata = get_metadata_wrapped(file_path)
-                        with suppress(KeyError, TypeError, MutagenError):
-                            track_number = get_track_number(file_path)
-                            metadata['track_number'] = track_number
-                        if use_temp:
-                            all_tracks_temp[file_path] = metadata
-                        else:
-                            all_tracks[file_path] = metadata
+                    metadata = get_metadata_wrapped(file_path)
+                    if use_temp:
+                        all_tracks_temp[file_path] = metadata
+                    else:
+                        all_tracks[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
         all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
@@ -450,7 +444,7 @@ def get_window_location(window_key):
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
-    global settings, playlists, music_directories, settings_last_modified, settings_file_in_use, DEFAULT_DIR
+    global settings, playlists, music_folders, settings_last_modified, settings_file_in_use, DEFAULT_FOLDER
     if settings_file_in_use:
         return
     elif os.path.exists(settings_file):
@@ -479,13 +473,13 @@ def load_settings():  # up to 0.4 seconds
             tray_playlists.clear()  # global variable
             tray_playlists.append('Create/Edit a Playlist')
             tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()])
-            _temp = music_directories.copy()
-            music_directories = settings['music_directories']
-            if _temp != music_directories:
+            _temp = music_folders.copy()
+            music_folders = settings['music_folders']
+            if _temp != music_folders:
                 if settings['scan_folders']: index_all_tracks()
                 refresh_folders()
             del _temp
-            DEFAULT_DIR = music_directories[0] if music_directories else home_music_dir
+            DEFAULT_FOLDER = music_folders[0] if music_folders else home_music_folder
             theme = settings['theme']
             for k, v in theme.copy().items():
                 # validate settings file color codes
@@ -1112,13 +1106,9 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     metadata = get_metadata_wrapped(uri)
     # update metadata of track in case something changed
     try:
-        all_tracks[uri] = {**all_tracks[uri], **metadata, 'length': track_length}
+        all_tracks[uri] = metadata
     except KeyError:
-        all_tracks[uri] = {**metadata, 'length': track_length}
-    with suppress(KeyError, TypeError, MutagenError, IndexError):
-        # update track number if it changed
-        track_number = get_track_number(uri)
-        all_tracks[uri]['track_number'] = track_number
+        all_tracks[uri] = metadata
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
@@ -1243,7 +1233,7 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
 def file_action(action='Play File(s)'):
     # actions = 'Play File(s)', 'Play File(s) Next', 'Queue File(s)'
     global music_queue, next_queue, playing_status, main_last_event, update_gui_queue
-    fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+    fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_FOLDER, wildcard=MUSIC_FILE_TYPES,
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
     if fd.ShowModal() != wx.ID_CANCEL:
         paths = fd.GetPaths()
@@ -1253,19 +1243,29 @@ def file_action(action='Play File(s)'):
         if action == 'Play File(s)':
             music_queue.clear()
             done_queue.clear()
-            music_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
+            for file_path in fd.GetPaths():
+                if valid_music_file(file_path):
+                    music_queue.append(file_path)
+                    if file_path not in all_tracks: files_to_scan.put(file_path)
             if music_queue: play(music_queue[0])
         elif action == 'Queue File(s)':
             _start_playing = not music_queue
-            music_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
+            for file_path in fd.GetPaths():
+                if valid_music_file(file_path):
+                    music_queue.append(file_path)
+                    if file_path not in all_tracks: files_to_scan.put(file_path)
             if _start_playing and music_queue: play(music_queue[0])
         elif action == 'Play File(s) Next':
             if settings['reversed_play_next']:
-                for _f in fd.GetPaths():
-                    if valid_music_file(_f):
-                        next_queue.insert(0, _f)
+                for file_path in fd.GetPaths():
+                    if valid_music_file(file_path):
+                        next_queue.insert(0, file_path)
+                        if file_path not in all_tracks: files_to_scan.put(file_path)
             else:
-                next_queue += [_f for _f in fd.GetPaths() if valid_music_file(_f)]
+                for file_path in fd.GetPaths():
+                    if valid_music_file(file_path):
+                        next_queue.append(file_path)
+                        if file_path not in all_tracks: files_to_scan.put(file_path)
             if playing_status == 'NOT PLAYING' and not music_queue and next_queue:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = 'PLAYING'
@@ -1305,7 +1305,7 @@ def folder_action(action='Play Folder'):
     #         active_windows[window] = False
     #         if window == 'main': open_main = True
     #         {'main': main_window, 'play_url': play_url_window}[window].close()
-    dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_DIR, style=wx.DD_DIR_MUST_EXIST)
+    dlg = wx.DirDialog(None, 'Select Folder', DEFAULT_FOLDER, style=wx.DD_DIR_MUST_EXIST)
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         temp_queue = []
         # folder_paths = dlg.GetPaths()
@@ -1316,12 +1316,12 @@ def folder_action(action='Play Folder'):
             # drive = drive.split('(')[-1][:-1]
             # folder_path = drive + '/' + rest
             if os.path.exists(folder_path):
-                for _f in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
-                    if valid_music_file(_f): temp_queue.append(_f)
-        if settings['shuffle']:
-            shuffle(temp_queue)
-        else:
-            temp_queue.sort(key=natural_key_file)
+                for file_path in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
+                    if valid_music_file(file_path):
+                        temp_queue.append(file_path)
+                        if file_path not in all_tracks: files_to_scan.put(file_path)
+        if settings['shuffle']: shuffle(temp_queue)
+        else: temp_queue.sort(key=natural_key_file)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
@@ -1524,7 +1524,7 @@ def prev_track():
 
 def background_tasks():
     global cast_last_checked, track_position, track_start, track_end, settings_last_modified
-    global update_last_checked, latest_version, exit_flag, update_volume_slider
+    global update_last_checked, latest_version, exit_flag, update_volume_slider, update_gui_queue
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
@@ -1571,7 +1571,17 @@ def background_tasks():
                 latest_version = release['version']
                 tray.show_message('Music Caster', f'Update v{latest_version} is available')
             update_last_checked = time.time()
-        time.sleep(5)
+        # scan at most 500 files per loop.
+        # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
+        files_scanned = 0
+        while files_scanned < 500 and not files_to_scan.empty():
+            file_path = files_to_scan.get().replace('\\', '/')
+            all_tracks[file_path] = get_metadata_wrapped(file_path)
+            files_to_scan.task_done()
+            files_scanned += 1
+        if files_scanned: update_gui_queue = True
+        # if no files were scanned, pause for 5 seconds
+        else: time.sleep(5)
 
 
 def on_press(key):
@@ -1632,10 +1642,10 @@ def activate_main_window(selected_tab='tab_queue'):
             else:
                 metadata = get_uri_metadata(music_queue[0])
                 position = get_track_position()
-            length, title, artist = track_length, metadata['title'], get_first_artist(metadata['artist'])
+            title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
-                                          all_tracks_sorted_sort_key, title, artist, qr_code=qr_code,
-                                          album_art_data=album_art_data, track_length=length, track_position=position)
+                                          all_tracks_sorted_sort_key, title, artist, album, track_length=track_length,
+                                          qr_code=qr_code, album_art_data=album_art_data, track_position=position)
         else:
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
                                           all_tracks_sorted_sort_key, qr_code=qr_code, album_art_data=album_art_data)
@@ -1758,7 +1768,7 @@ def other_tray_actions(_tray_item):
             wx.CallAfter(folder_action)
         else:
             Thread(target=play_paths, name='PlayFolder', daemon=True,
-                   args=[[music_directories[tray_folders.index(tray_item) - 1]]]).start()
+                   args=[[music_folders[tray_folders.index(tray_item) - 1]]]).start()
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
     elif timer and time.time() > timer:
@@ -1805,10 +1815,10 @@ def read_main_window():
         main_last_event = main_event
     p_r_button = main_window['pause/resume']
     gui_title = main_window['title'].DisplayText
-    update_progress_bar_text, title, artist,  = False, 'Nothing Playing', ''
+    update_progress_bar_text, title, artist, album = False, 'Nothing Playing', '', ''
     if playing_status in {'PAUSED', 'PLAYING'} and (playing_live or music_queue):
         metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
-        title, artist = metadata['title'], get_first_artist(metadata['artist'])
+        title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
         if settings['show_track_number']:
             with suppress(KeyError):
                 track_number = metadata['track_number']
@@ -1817,6 +1827,7 @@ def read_main_window():
         if settings['mini_mode']: title = truncate_title(title)
         main_window['title'].update(value=title)
         main_window['artist'].update(value=artist)
+        main_window['album'].update(value=album)
         if settings['show_album_art']:
             size = COVER_MINI if settings['mini_mode'] else (255, 255)
             try:
@@ -2170,17 +2181,17 @@ def read_main_window():
             index_all_tracks()
     elif main_event == 'remove_music_folder' and main_values['music_dirs']:
         selected_item = main_values['music_dirs'][0]
-        if selected_item in music_directories:
-            music_directories.remove(selected_item)
-            main_window['music_dirs'].update(music_directories)
+        if selected_item in music_folders:
+            music_folders.remove(selected_item)
+            main_window['music_dirs'].update(music_folders)
             refresh_tray()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
         main_value = main_value.replace('\\', '/')  # sanitize
-        if main_value not in music_directories and os.path.exists(main_value):
-            music_directories.append(main_value)
-            main_window['music_dirs'].update(music_directories)
+        if main_value not in music_folders and os.path.exists(main_value):
+            music_folders.append(main_value)
+            main_window['music_dirs'].update(music_folders)
             refresh_tray()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
@@ -2321,7 +2332,7 @@ def read_main_window():
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=scroll_to_index)
             main_window.refresh()
     elif main_event == 'pl_add_tracks':
-        fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_DIR, wildcard=MUSIC_FILE_TYPES,
+        fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_FOLDER, wildcard=MUSIC_FILE_TYPES,
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
         if fd.ShowModal() != wx.ID_CANCEL:
             file_paths = fd.GetPaths()
@@ -2662,10 +2673,12 @@ try:
         while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
         play_paths(args.paths, queue_only=args.queue)
     elif settings['save_queue_sessions']:
-        queues = settings['queues']
-        done_queue.extend(queues.get('done', []))
-        music_queue.extend(queues.get('music', []))
-        next_queue.extend(queues.get('next', []))
+        for queue_name in ('done', 'music', 'next'):
+            queue = {'done': done_queue, 'music': music_queue, 'next': next_queue}[queue_name]
+            for file in settings['queues'].get(queue_name, []):
+                if valid_music_file(file):
+                    queue.append(file)
+                    files_to_scan.put(file)
     elif settings['populate_queue_startup']:
         indexing_tracks_thread.join()
         play_all(queue_only=True)

@@ -36,7 +36,7 @@ FONT_NORMAL = 'SourceSans', 11
 FONT_SMALL = 'SourceSans', 10
 FONT_LINK = 'SourceSans', 11, 'underline'
 FONT_TITLE = 'Helvetica', 14
-FONT_ARTIST = 'Helvetica', 12
+FONT_MID = 'Helvetica', 12
 LINK_COLOR = '#3ea6ff'
 COVER_MINI = (125, 125)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -97,17 +97,9 @@ def valid_color_code(code):
     return match
 
 
-def get_track_number(file_path: str):
-    """
-    return the track number without any "/"
-    :raises KeyError, TypeError, MutagenError
-    """
-    return mutagen.File(file_path, easy=True)['tracknumber'][0].split('/', 1)[0]
-
-
-def get_metadata(file_path: str, as_dict=False):  # title, artist, album
+def get_metadata(file_path: str):
     file_path = file_path.lower()
-    title, artist, album = 'Unknown Title', 'Unknown Artist', 'Unknown Album'
+    title, artist, album, track_number = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
             audio = EasyID3(file_path)
@@ -122,13 +114,13 @@ def get_metadata(file_path: str, as_dict=False):  # title, artist, album
             audio = mutagen.File(file_path)
         title = audio.get('title', ['Unknown Title'])[0]
         album = audio.get('album', ['Unknown Album'])[0]
+        with suppress(KeyError, TypeError, MutagenError):
+            track_number = audio.get('tracknumber')[0].split('/', 1)[0]
         with suppress(KeyError, TypeError):
             if len(audio['artist']) == 1:
                 # in case the sep char is a slash
                 audio['artist'] = audio['artist'][0].split('/')
             artist = ', '.join(audio['artist'])
-    if as_dict:
-        return {'title': title, 'artist': artist, 'album': album}
     if title is None: title = 'Unknown Title'
     if artist is None: artist = 'Unknown Artist'
     if title == 'Unknown Title' or artist == 'Unknown Artist':
@@ -136,7 +128,9 @@ def get_metadata(file_path: str, as_dict=False):  # title, artist, album
         sort_key = os.path.splitext(os.path.basename(file_path))[0]
     else:
         sort_key = f'{title} - {artist}'
-    return {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+    metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+    if track_number is not None: metadata['track_number'] = track_number
+    return metadata
 
 
 def fix_path(path, by_os=True):
@@ -378,7 +372,6 @@ def resize_img(base64data, bg, new_size=(255, 255)) -> bytes:
 def get_music_controls(settings, playing_status):
     # TODO: stop button
     accent_color, bg = settings['theme']['accent'], settings['theme']['background']
-    mini_mode = settings['mini_mode']
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
@@ -439,13 +432,13 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
     title = truncate_title(title)
     right_side = Sg.Col([
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=((10, 0), (0, 0)), size=(26, 1), justification='left')],
-        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((10, 0), (0, 0)), size=(26, 2), justification='left')],
+        [Sg.Text(artist, font=FONT_MID, key='artist', pad=((10, 0), (0, 0)), size=(26, 2), justification='left')],
         music_controls, progress_bar_layout], element_justification='left', pad=(0, 0))
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
 def create_main(tracks, listbox_selected, playing_status, settings, version, timer, sorted_tracks,
-                title='Nothing Playing', artist='', qr_code=None, album_art_data: str = '',
+                title='Nothing Playing', artist='', album='', qr_code=None, album_art_data: str = '',
                 track_length=0, track_position=0):
     if settings['mini_mode']:
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
@@ -455,16 +448,18 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     if not settings['show_album_art']: album_art_data = ''
-    title_top_pad = 10 + (not album_art_data) * 100 - (settings['vertical_gui'] and not album_art_data) * 30
+    info_top_pad = 10 + 60 * (not album_art_data) - 30 * (settings['vertical_gui'] and not album_art_data)
     # 10, 110, or 0
-    artist_bot_pad = 10 + (not album_art_data) * 20 - 20 * (not album_art_data and settings['vertical_gui'])
+    info_bot_pad = 10 + 40 * (not album_art_data) - 20 * (not album_art_data and settings['vertical_gui'])
     # 10 or 30
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
         [Sg.Image(data=album_art_data, pad=(0, 0), size=(255, 255), key='album_art')] if album_art_data else [],
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (title_top_pad, 10)),
+        [Sg.Text(album, font=FONT_MID, key='album', pad=((0, 0), (info_top_pad, 0)),
                  size=(26, 0), justification='center')],
-        [Sg.Text(artist, font=FONT_ARTIST, key='artist', pad=((0, 0), (0, artist_bot_pad)),
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (10, 10)),
+                 size=(26, 0), justification='center')],
+        [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)),
                  size=(26, 0), justification='center')],
         music_controls, progress_bar_layout], element_justification='center', pad=((left_pad, 5), (5, 5)))
     # tabs side is for music queue, queue controls, and later, the music library
@@ -597,22 +592,20 @@ def create_settings(version, settings, qr_code):
         [create_checkbox('Show track number', 'show_track_number', settings, True),
          create_checkbox('Reversed Play Next', 'reversed_play_next', settings)]
     ], pad=((0, 0), (5, 0)))
-    qr_code__params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
-    qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code__params)]], pad=(0, 0))
+    qr_code_params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
+    qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)]], pad=(0, 0))
     email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': 'Send me an email'}
-    add_music_folder = {'button_text': 'Add Music Folder', 'font': FONT_NORMAL, 'enable_events': True, 'size': (15, 1)}
-    open_settings_file = {'font': FONT_NORMAL, 'enable_events': True, 'size': (15, 1)}
+    settings_btn = {'enable_events': True, 'font': FONT_NORMAL, 'size': (15, 1)}
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', font=FONT_NORMAL),
-         Sg.Text('elijahllopezz@gmail.com', **email_params, click_submits=True, key='email')],
+         Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
         [checkbox_col, qr_code_col] if qr_code else [checkbox_col],
-        [Sg.Listbox(settings['music_directories'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        [Sg.Listbox(settings['music_folders'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
-         Sg.Frame('', [
-             [Sg.Button('Remove Folder', key='remove_music_folder', enable_events=True, font=FONT_NORMAL, size=(15, 1))],
-             [Sg.FolderBrowse(**add_music_folder, key='add_music_folder')],
-             [Sg.Button('Open settings.json', **open_settings_file, key='settings_file')]],
-                  background_color=bg, border_width=0)]]
+         Sg.Column([
+             [Sg.Button('Remove Folder', key='remove_music_folder', **settings_btn)],
+             [Sg.FolderBrowse('Add Music Folder', key='add_music_folder', **settings_btn)],
+             [Sg.Button('Open settings.json', key='settings_file', **settings_btn)]])]]
     return layout
 
 
