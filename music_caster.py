@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.0'
+VERSION = latest_version = '4.74.1'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -1793,8 +1793,8 @@ def reset_mouse_hover():
 def reset_progress():
     # NOTE: needs to be in main thread
     main_window['progress_bar'].update(value=0)
-    main_window['time_elapsed'].update(value='0:00')
-    main_window['time_left'].update(value='0:00')
+    main_window['time_elapsed'].update('0:00')
+    main_window['time_left'].update('0:00')
     main_window.refresh()
 
 
@@ -1825,9 +1825,10 @@ def read_main_window():
                 title = f'{track_number}. {title}'
     if gui_title != title:  # usually if music stops playing or another track starts playing
         if settings['mini_mode']: title = truncate_title(title)
-        main_window['title'].update(value=title)
-        main_window['artist'].update(value=artist)
-        main_window['album'].update(value=album)
+        main_window['title'].update(title)
+        main_window['artist'].update(artist)
+        # update album title if not in mini-mode
+        if not settings['mini_mode']: main_window['album'].update(album)
         if settings['show_album_art']:
             size = COVER_MINI if settings['mini_mode'] else (255, 255)
             try:
@@ -2205,7 +2206,7 @@ def read_main_window():
             Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
     # timer
     elif main_event == 'cancel_timer':
-        main_window['timer_text'].update(value='No Timer Set')
+        main_window['timer_text'].update('No Timer Set')
         main_window['timer_error'].update(visible=False)
         main_window['cancel_timer'].update(visible=False)
     # TODO: disable/enable submit button
@@ -2232,7 +2233,7 @@ def read_main_window():
                 timer_set_to = timer_set_to.strftime('%#I:%M %p')
             else:
                 timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
-            main_window['timer_text'].update(value=f'Timer set for {timer_set_to}')
+            main_window['timer_text'].update(f'Timer set for {timer_set_to}')
             main_window['cancel_timer'].update(visible=True)
             main_window['timer_error'].update(visible=False)
         except ValueError:
@@ -2395,16 +2396,16 @@ def read_main_window():
             playing_status = 'NOT PLAYING'
     if update_progress_bar_text:
         elapsed_time_text, time_left_text = create_progress_bar_text(track_position, track_length)
-        main_window['time_elapsed'].update(value=elapsed_time_text)
-        main_window['time_left'].update(value=time_left_text)
+        main_window['time_elapsed'].update(elapsed_time_text)
+        main_window['time_left'].update(time_left_text)
     if playing_status == 'PLAYING' and p_r_button.metadata != 'PLAYING':
         p_r_button.update(image_data=PAUSE_BUTTON_IMG)
     elif playing_status == 'PAUSED' and p_r_button.metadata != 'PAUSED':
         p_r_button.update(image_data=PLAY_BUTTON_IMG)
     elif playing_status == 'NOT PLAYING' and p_r_button.metadata != 'NOT PLAYING':
         if p_r_button.metadata == 'PLAYING': p_r_button.update(image_data=PLAY_BUTTON_IMG)
-        main_window['time_elapsed'].update(value='0:00')
-        main_window['time_left'].update(value='0:00')
+        main_window['time_elapsed'].update('0:00')
+        main_window['time_left'].update('0:00')
     p_r_button.metadata = playing_status
     return True
 

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.1
+- [Fix] Mini-mode
+
 4.74.0
 - [UI] Show album name in now playing
 - [Optimized] Metadata scanning
