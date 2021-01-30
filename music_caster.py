@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.1'
+VERSION = latest_version = '4.74.2'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -71,8 +71,8 @@ music_file_exts = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'w
 MUSIC_FILE_TYPES = 'Audio File (.' + ', .'.join(music_file_exts) + ')|*.' + ';*.'.join(music_file_exts)
 DEBUG = args.debug
 main_window = timer_window = play_url_window = Sg.Window('')
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-os.chdir(starting_dir)
+working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+os.chdir(working_dir)
 EMAIL = 'elijahllopezz@gmail.com'
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 UNINSTALLER = 'unins000.exe'
@@ -112,7 +112,7 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
 DEFAULT_FOLDER = home_music_folder = f'{Path.home()}/Music'.replace('\\', '/')
-settings_file = 'settings.json'
+settings_file = f'{working_dir}/settings.json'
 
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
@@ -151,20 +151,22 @@ def save_settings():
 def refresh_folders():
     tray_folders.clear()
     tray_folders.append('Select Folder(s)::PF')
-    for folder in music_folders:
+    for folder in settings['music_folders']:
         folder = folder.replace('\\', '/').split('/')
         folder = f'../{"/".join(folder[-2:])}::PF' if len(folder) > 2 else ('/'.join(folder) + '::PF')
         tray_folders.append(folder)
 
 
+def refresh_playlists():
+    tray_playlists.clear()
+    tray_playlists.append('Create/Edit a Playlist')
+    tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in settings['playlists'].keys()])
+
+
 def refresh_tray():
     refresh_folders()
-    if playing_status == 'PLAYING':
-        tray.update(menu=menu_def_2)
-    elif playing_status == 'PAUSED':
-        tray.update(menu=menu_def_3)
-    else:
-        tray.update(menu=menu_def_1)
+    refresh_playlists()
+    tray.update(menu={'PLAYING': tray_menu_playing, 'PAUSED': tray_menu_paused}.get(playing_status, tray_menu_default))
 
 
 def change_settings(settings_key, new_value):
@@ -179,12 +181,8 @@ def change_settings(settings_key, new_value):
             repeat_menu[2] = f'Repeat Off {CHECK_MARK}' if new_value is None else 'Repeat Off'
             refresh_tray()
             if settings['notifications']:
-                if new_value is None:
-                    tray.show_message('Music Caster', 'Repeat set to Off', time=5000)
-                elif new_value:
-                    tray.show_message('Music Caster', 'Repeat set to One', time=5000)
-                else:
-                    tray.show_message('Music Caster', 'Repeat set to All', time=5000)
+                msg = {None: 'Repeat set to Off', True: 'Repeat set to One', False: 'Repeat set to All'}[new_value]
+                tray.show_message('Music Caster', msg, time=5000)
     return new_value
 
 
@@ -232,14 +230,10 @@ def update_repeat_button():
 def cycle_repeat(update_main=False):
     """
     :param update_main: Only set to True on main Thread
-    :return: repeat value
+    :return: new repeat value
     """
-    if settings['repeat'] is None:
-        new_repeat_setting = False  # Repeat All
-    elif settings['repeat']:
-        new_repeat_setting = None  # Repeat OFF
-    else:
-        new_repeat_setting = True  # Repeat One
+    # Repeat Off (None) becomes All (False) becomes One (True) becomes Off
+    new_repeat_setting = {None: False, True: None, False: True}[settings['repeat']]
     if update_main and active_windows['main']: update_repeat_button()  # update main window if it is active
     return change_settings('repeat', new_repeat_setting)
 
@@ -470,9 +464,7 @@ def load_settings():  # up to 0.4 seconds
                             _save_settings = True
             settings = loaded_settings
             playlists = settings['playlists']
-            tray_playlists.clear()  # global variable
-            tray_playlists.append('Create/Edit a Playlist')
-            tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()])
+            refresh_playlists()
             _temp = music_folders.copy()
             music_folders = settings['music_folders']
             if _temp != music_folders:
@@ -952,9 +944,9 @@ def after_play(title, artists: str, autoplay, switching_device):
         if settings['notifications'] and not switching_device and not active_windows['main']:
             tray.show_message('Music Caster', 'Playing: ' + playing_text, time=500)
         playing_status = 'PLAYING'
-        tray.update(menu=menu_def_2, data_base64=FILLED_ICON, tooltip=playing_text.replace('&', '&&&'))
+        tray.update(menu=tray_menu_playing, data_base64=FILLED_ICON, tooltip=playing_text.replace('&', '&&&'))
     else:
-        tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+        tray.update(menu=tray_menu_paused, data_base64=UNFILLED_ICON)
     cast_last_checked = time.time()
     if settings['save_queue_sessions']: save_queues()
     if settings['discord_rpc']:
@@ -1413,7 +1405,7 @@ def pause():
                                          large_text='Paused', small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             stop('pause')
-        tray.update(menu=menu_def_3, data_base64=UNFILLED_ICON)
+        tray.update(menu=tray_menu_paused, data_base64=UNFILLED_ICON)
         return True
     return False
 
@@ -1443,7 +1435,7 @@ def resume():
                 with suppress(Exception):
                     rich_presence.update(state=f'By: {artist}', details=title, large_image='default',
                                          large_text='Playing', small_image='logo', small_text='Music Caster')
-            tray.update(menu=menu_def_2, data_base64=FILLED_ICON)
+            tray.update(menu=tray_menu_playing, data_base64=FILLED_ICON)
         except (UnsupportedNamespace, NotConnected):
             if music_queue: play(music_queue[0], position=track_position)
         return True
@@ -1482,7 +1474,7 @@ def stop(stopped_from: str, stop_cast=True):
     else:
         audio_player.stop()
     track_position = 0
-    if not exit_flag: tray.update(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip='Music Caster')
+    if not exit_flag: tray.update(menu=tray_menu_default, data_base64=UNFILLED_ICON, tooltip='Music Caster')
 
 
 def next_track(from_timeout=False):
@@ -1528,7 +1520,6 @@ def background_tasks():
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
-        refresh_tray()
         # Check cast every 5 seconds
         if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
             with suppress(UnsupportedNamespace):
@@ -1801,7 +1792,7 @@ def reset_progress():
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, update_volume_slider, progress_bar_last_update
     global track_position, track_start, track_end, timer, main_window, update_gui_queue
-    global tray_playlists, pl_files, pl_name
+    global tray_playlists, pl_files, pl_name, playlists
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=1)
     if (main_event in {None, 'Escape:27'} and
@@ -2185,7 +2176,7 @@ def read_main_window():
         if selected_item in music_folders:
             music_folders.remove(selected_item)
             main_window['music_dirs'].update(music_folders)
-            refresh_tray()
+            refresh_folders()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
@@ -2193,7 +2184,7 @@ def read_main_window():
         if main_value not in music_folders and os.path.exists(main_value):
             music_folders.append(main_value)
             main_window['music_dirs'].update(music_folders)
-            refresh_tray()
+            refresh_folders()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event in {'settings_file', 'o:79'}:
@@ -2201,6 +2192,9 @@ def read_main_window():
             os.startfile(settings_file)
         except OSError:
             Popen(f'explorer /select,"{fix_path(settings_file)}"')
+    elif main_event == 'changelog_file':
+        with suppress(FileNotFoundError):
+            os.startfile('changelog.txt')
     elif main_event == 'music_dirs':
         with suppress(IndexError):
             Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
@@ -2267,7 +2261,6 @@ def read_main_window():
         pl_name = main_values.get('playlist_combo', '')
         if pl_name in playlists:
             del playlists[pl_name]
-            save_settings()
         playlist_names = tuple(settings['playlists'].keys())
         pl_name = playlist_names[0] if playlist_names else ''
         main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
@@ -2280,10 +2273,8 @@ def read_main_window():
         main_window['play_pl'].update(disabled=pl_name == '')
         main_window['queue_pl'].update(disabled=pl_name == '')
         main_window.refresh()
-        # refresh tray
-        tray_playlists.clear()
-        tray_playlists.append('Create/Edit a Playlist')
-        tray_playlists += [f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()]
+        save_settings()
+        refresh_playlists()
     elif main_event == 'play_pl':
         temp_lst = playlists.get(main_values['playlist_combo'], [])
         if temp_lst:
@@ -2304,18 +2295,19 @@ def read_main_window():
         if main_values['playlist_name']:
             save_name = main_values['playlist_name']
             if pl_name != save_name:
+                # if user is renaming a playlist, remove old data
                 if pl_name in playlists: del playlists[pl_name]
                 pl_name = save_name
             playlists[pl_name] = pl_files
+            # sort playlists alphabetically
+            playlists = settings['playlists'] = {k: playlists[k] for k in sorted(playlists.keys())}
             playlist_names = tuple(playlists.keys())
             main_window['playlist_combo'].update(value=pl_name, values=playlist_names, visible=True)
             main_window['play_pl'].update(disabled=False)
             main_window['queue_pl'].update(disabled=False)
             main_window.refresh()
         save_settings()
-        tray_playlists.clear()
-        tray_playlists.append('Create/Edit a Playlist')
-        tray_playlists += [f'{pl}::PL'.replace('&', '&&&') for pl in playlists.keys()]
+        refresh_playlists()
     elif main_event == 'playlist_name':
         main_window['pl_save'].update(disabled=main_values['playlist_name'] == '')
     elif main_event in {'pl_rm_items', 'r:82'}:  # remove item from playlist
@@ -2448,15 +2440,15 @@ def create_shortcut(shortcut_path):
                 _shell = win32com.client.Dispatch('WScript.Shell')
                 shortcut = _shell.CreateShortCut(shortcut_path)
                 if IS_FROZEN:
-                    target = f'{starting_dir}\\Music Caster.exe'
+                    target = f'{working_dir}\\Music Caster.exe'
                 else:
-                    target = f'{starting_dir}\\music_caster.bat'
+                    target = f'{working_dir}\\music_caster.bat'
                     if os.path.exists(target):
                         with open('music_caster.bat', 'w') as f:
                             f.write(f'pythonw {os.path.basename(sys.argv[0])}')
-                    shortcut.IconLocation = f'{starting_dir}\\resources\\Music Caster Icon.ico'
+                    shortcut.IconLocation = f'{working_dir}\\resources\\Music Caster Icon.ico'
                 shortcut.Targetpath = target
-                shortcut.WorkingDirectory = starting_dir
+                shortcut.WorkingDirectory = working_dir
                 shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
                 shortcut.save()
                 if settings.get('DEBUG', False):
@@ -2605,7 +2597,7 @@ try:
     create_shortcut(SHORTCUT_PATH)
     # set file handlers only if installed from Setup (Not a portable installation)
     if os.path.exists(UNINSTALLER):
-        add_reg_handlers(f'{starting_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
+        add_reg_handlers(f'{working_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
     with suppress(FileNotFoundError, OSError):
         os.remove('MC_Installer.exe')
     rmtree('Update', ignore_errors=True)
@@ -2626,23 +2618,25 @@ try:
     repeat_menu = [f'Repeat All {CHECK_MARK}' if settings['repeat'] is False else 'Repeat All',
                    f'Repeat One {CHECK_MARK}' if settings['repeat'] else 'Repeat One',
                    f'Repeat Off {CHECK_MARK}' if settings['repeat'] is None else 'Repeat Off']
-
-    menu_def_1 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
-                        'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
-    menu_def_2 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
-                       ['Locate Track', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
-                        'Pause'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
-                        'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
-    menu_def_3 = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
-                       'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
-                       ['Locate Track', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
-                        'Resume'], 'Play',
-                       ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'], 'Folders', tray_folders,
-                        'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+    tray_menu_default = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
+                              'Timer', ['Set Timer', 'Cancel Timer'], 'Play',
+                              ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'],
+                               'Folders', tray_folders,
+                               'Playlists', tray_playlists, 'Play File(s)', 'Play All'], 'Exit']]
+    tray_menu_playing = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
+                              'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
+                              ['Locate Track', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
+                               'Pause'], 'Play',
+                              ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'],
+                               'Folders', tray_folders,
+                               'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
+    tray_menu_paused = ['', ['Settings', 'Rescan Library', 'Refresh Devices', 'Select Device', device_names,
+                             'Timer', ['Set Timer', 'Cancel Timer'], 'Controls',
+                             ['Locate Track', 'Repeat Options', repeat_menu, 'Stop', 'Previous Track', 'Next Track',
+                              'Resume'], 'Play',
+                             ['Live System Audio', 'URL', ['Play URL', 'Queue URL', 'Play URL Next'],
+                              'Folders', tray_folders,
+                              'Playlists', tray_playlists, 'Play File(s)', 'Play File Next', 'Play All'], 'Exit']]
     keyboardListener = pynput.keyboard.Listener(on_press=on_press, on_release=on_release)  # daemon=True by default
     keyboardListener.start()
     rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
@@ -2650,7 +2644,7 @@ try:
         with suppress(Exception): rich_presence.connect()
     init_ydl_thread.join()
     tooltip = 'Music Caster [DEBUG]' if settings.get('DEBUG', False) else 'Music Caster'
-    tray = SgWx.SystemTray(menu=menu_def_1, data_base64=UNFILLED_ICON, tooltip=tooltip)
+    tray = SgWx.SystemTray(menu=tray_menu_default, data_base64=UNFILLED_ICON, tooltip=tooltip)
     if settings['notifications']:
         if settings['update_message'] == '':
             welcome_msg = 'Thanks for installing Music Caster.\nMusic Caster is running in the tray.'

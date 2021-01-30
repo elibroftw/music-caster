@@ -99,7 +99,7 @@ def valid_color_code(code):
 
 def get_metadata(file_path: str):
     file_path = file_path.lower()
-    title, artist, album, track_number = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None
+    title, artist, album, track_number, rating = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None, 'C'
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
             audio = EasyID3(file_path)
@@ -114,6 +114,7 @@ def get_metadata(file_path: str):
             audio = mutagen.File(file_path)
         title = audio.get('title', ['Unknown Title'])[0]
         album = audio.get('album', ['Unknown Album'])[0]
+        rating = audio.get('rating', 'C')
         with suppress(KeyError, TypeError, MutagenError):
             track_number = audio.get('tracknumber')[0].split('/', 1)[0]
         with suppress(KeyError, TypeError):
@@ -128,7 +129,7 @@ def get_metadata(file_path: str):
         sort_key = os.path.splitext(os.path.basename(file_path))[0]
     else:
         sort_key = f'{title} - {artist}'
-    metadata = {'title': title, 'artist': artist, 'album': album, 'sort_key': sort_key}
+    metadata = {'title': title, 'artist': artist, 'album': album, 'rating': rating, 'sort_key': sort_key}
     if track_number is not None: metadata['track_number'] = track_number
     return metadata
 
@@ -208,9 +209,9 @@ def parse_youtube_id(url):
 
 
 def get_repeat_img_et_tooltip(repeat_setting):
-    if repeat_setting is None: return REPEAT_OFF_IMG, 'Repeat'
-    elif repeat_setting: return REPEAT_ONE_IMG, "Don't repeat"
-    else: return REPEAT_ALL_IMG, 'Repeat track'
+    if repeat_setting is None: return REPEAT_OFF_IMG, 'repeat all'
+    elif repeat_setting: return REPEAT_ONE_IMG, 'repeat off'
+    else: return REPEAT_ALL_IMG, 'repeat track'
 
 
 def create_progress_bar_text(position, length) -> (str, str):  #
@@ -386,7 +387,7 @@ def get_music_controls(settings, playing_status):
             Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip='next track'),
             Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
             Sg.Button(key='shuffle', **shuffle_button, tooltip='shuffle', metadata=settings['shuffle']),
-            Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='mute' if is_muted else 'unmute'),
+            Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip='unmute' if is_muted else 'mute'),
             Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                       disable_number_display=True, enable_events=True, background_color=accent_color,
                       text_color='#000000', size=(10, 10), tooltip='Scroll mousewheel', resolution=1)]
@@ -593,19 +594,22 @@ def create_settings(version, settings, qr_code):
          create_checkbox('Reversed Play Next', 'reversed_play_next', settings)]
     ], pad=((0, 0), (5, 0)))
     qr_code_params = {'tooltip': 'Web GUI QR Code (click or scan)', 'border_width': 0, 'button_color': (bg, bg)}
-    qr_code_col = Sg.Column([[Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)]], pad=(0, 0))
+    right_settings_col = Sg.Column([
+        [Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)],
+        [Sg.Button('settings.json', key='settings_file', font=FONT_NORMAL, pad=((15, 0), (5, 5)))],
+        [Sg.Button('Changelog', key='changelog_file', font=FONT_NORMAL, pad=((15, 0), (5, 5)))]
+    ], pad=(0, 0))
     email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': 'Send me an email'}
-    settings_btn = {'enable_events': True, 'font': FONT_NORMAL, 'size': (15, 1)}
+    folder_btn = {'font': FONT_NORMAL, 'size': (3, 1)}
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', font=FONT_NORMAL),
          Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
-        [checkbox_col, qr_code_col] if qr_code else [checkbox_col],
-        [Sg.Listbox(settings['music_folders'], size=(52, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
+        [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
                     key='music_dirs', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
          Sg.Column([
-             [Sg.Button('Remove Folder', key='remove_music_folder', **settings_btn)],
-             [Sg.FolderBrowse('Add Music Folder', key='add_music_folder', **settings_btn)],
-             [Sg.Button('Open settings.json', key='settings_file', **settings_btn)]])]]
+             [Sg.Button('❌', key='remove_music_folder', tooltip='remove selected folder', **folder_btn)],
+             [Sg.FolderBrowse('➕', key='add_music_folder', tooltip='add folder', **folder_btn)]])]]
     return layout
 
 

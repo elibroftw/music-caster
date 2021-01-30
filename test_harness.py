@@ -130,8 +130,6 @@ SAMPLE_MUSIC_FILES = [
 all_tracks = {}
 all_tracks_sorted = []
 for file_path in SAMPLE_MUSIC_FILES:
-    with suppress(mutagen.MutagenError):
-        assert len(get_metadata(file_path)) == 4
     file_path = file_path.replace('\\', '/')
     if valid_music_file(file_path) and os.path.exists(file_path):
         metadata = get_metadata_wrapped(file_path)
