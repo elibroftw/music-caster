@@ -619,9 +619,13 @@ def create_timer(settings, timer):
     sleep = settings['timer_sleep']
     fg, bg = settings['theme']['text'], settings['theme']['background']
     do_nothing = not (shut_down or hibernate or sleep)
-    timer_date = datetime.datetime.fromtimestamp(timer)
-    timer_date = timer_date.strftime('%#I:%M %p')
-    timer_text = f'Timer set for {timer_date}' if timer else 'No Timer Set'
+    # if timer is valid
+    if time.time() < timer:
+        timer_date = datetime.datetime.fromtimestamp(timer)
+        timer_date = timer_date.strftime('%#I:%M %p')
+        timer_text = f'Timer set for {timer_date}'
+    else:
+        timer_text = 'No Timer Set'
     # wait for last track to finish setting
     cancel_button = Sg.Button('Cancel Timer', key='cancel_timer', visible=timer != 0)
     defaults = {'text_color': fg, 'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True}
@@ -634,7 +638,7 @@ def create_timer(settings, timer):
          Sg.Input(key='timer_minutes', font=FONT_NORMAL, size=(11, 1)),
          Sg.Button('Submit', font=FONT_NORMAL, key='timer_submit')],
         [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=FONT_NORMAL, visible=False, key='timer_error')],
-        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1)), cancel_button]
+        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer!=0), cancel_button]
     ]
     return [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]]
 

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.3
+- [Fix] Timer tab
+
 4.74.2
 - [UI] Sort playlists alphabetically
 - [UI] Open Changelog file from settings

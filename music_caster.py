@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.2'
+VERSION = latest_version = '4.74.3'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -1814,7 +1814,8 @@ def read_main_window():
             with suppress(KeyError):
                 track_number = metadata['track_number']
                 title = f'{track_number}. {title}'
-    if gui_title != title:  # usually if music stops playing or another track starts playing
+    # usually if music stops playing or another track starts playing
+    if gui_title != title:
         if settings['mini_mode']: title = truncate_title(title)
         main_window['title'].update(title)
         main_window['artist'].update(artist)
@@ -1828,6 +1829,11 @@ def read_main_window():
                 album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
             main_window['album_art'].update(data=album_art_data)
         update_gui_queue = True
+    # update timer text if timer is old
+    if timer == 0 and main_window['timer_text'].metadata:
+        main_window['timer_text'].update('No Timer Set')
+        main_window['timer_text'].metadata = False
+        main_window['cancel_timer'].update(visible=False)
     # check updates from global variables
     if update_gui_queue and not settings['mini_mode']:
         update_gui_queue = False
@@ -2201,6 +2207,7 @@ def read_main_window():
     # timer
     elif main_event == 'cancel_timer':
         main_window['timer_text'].update('No Timer Set')
+        main_window['timer_text'].metadata = False
         main_window['timer_error'].update(visible=False)
         main_window['cancel_timer'].update(visible=False)
     # TODO: disable/enable submit button
@@ -2228,6 +2235,7 @@ def read_main_window():
             else:
                 timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
             main_window['timer_text'].update(f'Timer set for {timer_set_to}')
+            main_window['timer_text'].metadata = True
             main_window['cancel_timer'].update(visible=True)
             main_window['timer_error'].update(visible=False)
         except ValueError:
