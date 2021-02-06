@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.3'
+VERSION = latest_version = '4.74.4'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -117,7 +117,7 @@ settings_file = f'{working_dir}/settings.json'
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
-    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': True, 'repeat': False,
+    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': False, 'repeat': None,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
@@ -1196,14 +1196,13 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
     for path in paths:
         invalid_path = True
         if os.path.exists(path):
+            invalid_path = False
             path = path.rstrip('\\').rstrip('/')
             if os.path.isfile(path):
-                invalid_path = False
                 if valid_music_file(path): temp_queue.append(path)
             else:
                 for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
                     if valid_music_file(_file):
-                        invalid_path = False
                         temp_queue.append(_file)
         if invalid_path: temp_queue.extend(settings['playlists'].get(path, []))
     update_gui_queue = True

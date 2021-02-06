@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.4
+- [Fix] Shuffle and repeat off by default
+
 4.74.3
 - [Fix] Timer tab
 
