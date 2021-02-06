@@ -160,8 +160,6 @@ else:
 music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {**get_metadata(file_path), 'length': track_length,
                                               'art': f'{base64.b64encode(pict).decode("utf-8")}'}
 metadata = music_meta_data[file_path]
-artist, title = metadata['artist'].split(', ')[0], metadata['title']
-now_playing_text = f'{artist} - {title}'
 album_art_data = metadata.get('art', None)
 done_queue = SAMPLE_MUSIC_FILES[:3]
 next_queue = SAMPLE_MUSIC_FILES[3:6]

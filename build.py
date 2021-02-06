@@ -12,8 +12,6 @@ from distutils.dir_util import copy_tree
 try: from music_caster import VERSION
 except RuntimeError as e: VERSION = str(e)
 import requests
-import winreg as wr
-from helpers import is_os_64bit
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=True')
@@ -28,13 +26,7 @@ start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-
-def get_msbuild_path():
-    access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
-    msbuild_key = r'SOFTWARE\Microsoft\MSBuild\ToolsVersions\4.0'
-    with wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, msbuild_key, 0, access) as parent_key:
-        return wr.QueryValueEx(parent_key, 'MSBuildToolsPath')[0] + 'MSBuild.exe'
+MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe'
 
 
 def read_env(env_file='.env'):
@@ -132,7 +124,6 @@ def create_zip(zip_filename, files_to_zip):
                 print(f'{file} not found')
 
 
-MSBuild = get_msbuild_path()
 if args.dry: print('Dry Build')
 update_versions()
 print('Updated versions of build files')
