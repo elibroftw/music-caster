@@ -2,7 +2,7 @@ import time
 import subprocess
 import os
 import shutil
-from zipfile import ZipFile
+import zipfile
 import sys
 from contextlib import suppress
 from datetime import datetime
@@ -115,7 +115,7 @@ def update_versions():
 
 
 def create_zip(zip_filename, files_to_zip):
-    with ZipFile(zip_filename, 'w') as zf:
+    with zipfile.ZipFile(zip_filename, 'w', compression=zipfile.ZIP_BZIP2) as zf:
         for file in files_to_zip:
             try:
                 if type(file) == tuple: zf.write(*file)
@@ -182,16 +182,15 @@ if not args.dry:
         shutil.copyfile(res_file, 'dist/' + res_file)
 
     # noinspection PyTypeChecker
-    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')] + \
-                     res_files + glob.glob('vlc/**/*.*', recursive=True) + \
-                     [(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(updater_release_path)}/*.*')]
-    # [('dist/Updater.exe', 'Updater.exe')]
+    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')]
+    portable_files.extend(res_files + glob.glob('vlc/**/*.*', recursive=True))
+    portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(updater_release_path)}/*.*')])
+    print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files)
-    print('Created dist/Portable.zip')
+    print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
                                                    'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
                                                    'settings.json'] + res_files)
-    print('Created dist/Source Files Condensed.zip')
     if args.start:
         print('Launching Music Caster.exe')
         subprocess.Popen(r'"dist\Music Caster.exe --debug"')
@@ -214,6 +213,14 @@ for dist_file in dist_files:
     output_string = (dist_file + ':').ljust(30) + file_exists_str
     print(output_string)
     if not file_exists: all_exist = False
+
+
+with zipfile.ZipFile('dist/Portable.zip') as portable_zip:
+    if 'Updater.exe' in portable_zip.namelist():
+        print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
+    else:
+        print('Portable.zip/Updater.exe:'.ljust(30) + 'DOES NOT EXIST!')
+        all_exist = False
 
 if args.upload and all_exist and not args.dry:
     # upload to GitHub
