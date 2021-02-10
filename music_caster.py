@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.5'
+VERSION = latest_version = '4.74.6'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -1829,7 +1829,7 @@ def read_main_window():
             main_window['album_art'].update(data=album_art_data)
         update_gui_queue = True
     # update timer text if timer is old
-    if timer == 0 and main_window['timer_text'].metadata:
+    if not settings['mini_mode'] and timer == 0 and main_window['timer_text'].metadata:
         main_window['timer_text'].update('No Timer Set')
         main_window['timer_text'].metadata = False
         main_window['cancel_timer'].update(visible=False)
