@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.4'
+VERSION = latest_version = '4.74.5'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -1945,6 +1945,10 @@ def read_main_window():
                 delta = 5
             new_volume = main_values['volume_slider'] + delta
         change_settings('volume', new_volume)
+        if settings['muted'] and new_volume:
+            main_window['mute'].update(image_data=VOLUME_IMG)
+            main_window['mute'].set_tooltip('mute')
+            change_settings('muted', False)
         update_volume(new_volume)
     elif main_event in {'mute', 'm:77'}:  # toggle mute
         muted = change_settings('muted', not settings['muted'])
