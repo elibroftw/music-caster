@@ -563,7 +563,7 @@ def create_playlists_tab(settings):
                          border_width=0, button_color=(bg, bg), disabled=playlist_name == '')],
               [Sg.Frame('', [url_input, add_url, add_tracks,
                              [Sg.Button('Remove item(s)', key='pl_rm_items', tooltip='Ctrl + R', font=FONT_NORMAL,
-                                        enable_events=True, size=(12, 1))]],
+                                        enable_events=True, size=(12, 1), disabled=True)]],
                         background_color=bg, border_width=0),
                Sg.Listbox(tracks, size=(37, 14), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),

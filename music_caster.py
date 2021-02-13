@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.6'
+VERSION = latest_version = '4.74.7'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -886,8 +886,9 @@ def change_device(new_idx):
             update_volume(volume)
 
 
-def format_file(uri: str):
+def format_file(uri: str, use_basename=False):
     try:
+        if use_basename: raise TypeError
         metadata = get_uri_metadata(uri, read_file=False)
         title, artist = metadata['title'], metadata['artist']
         if artist.startswith('Unknown') or title.startswith('Unknown'): raise KeyError
@@ -1365,7 +1366,7 @@ def get_track_position():
                 mc.update_status()
                 if not mc.status.player_is_idle:
                     track_position = mc.status.adjusted_current_time
-            except (UnsupportedNamespace, NotConnected):
+            except (UnsupportedNamespace, NotConnected, TypeError):
                 if playing_status == 'PLAYING':
                     track_position = time.time() - track_start
                 # don't calculate if playing status is NOT PLAYING or PAUSED
@@ -1964,11 +1965,11 @@ def read_main_window():
         if not settings['mini_mode']:
             focused_element = main_window.FindElementWithFocus()
             move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
-            if focused_element == main_window['queue']:
+            if focused_element == main_window['queue'] and main_values['queue']:
                 new_i = main_window['queue'].get_list_values().index(main_values['queue'][0]) + move
                 new_i = min(max(new_i, 0), len(music_queue) - 1)
                 main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-            elif focused_element == main_window['pl_tracks']:
+            elif focused_element == main_window['pl_tracks'] and main_values['pl_tracks']:
                 new_i = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0]) + move
                 new_i = min(max(new_i, 0), len(pl_files) - 1)
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
@@ -2120,6 +2121,8 @@ def read_main_window():
         main_window['playlist_name'].set_focus()
         main_window['playlist_name'].update(value=pl_name)
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
+        main_window['pl_move_up'].update(disabled=not pl_files)
+        main_window['pl_move_down'].update(disabled=not pl_files)
     elif main_event == 'play_next':
         play_next()
         main_window.TKroot.focus_force()
@@ -2260,14 +2263,19 @@ def read_main_window():
         formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
-        main_window.refresh()
+        main_window['pl_rm_items'].update(disabled=not pl_files)
+        main_window['pl_move_up'].update(disabled=not pl_files)
+        main_window['pl_move_down'].update(disabled=not pl_files)
     elif main_event in {'new_pl', 'n:78'}:
         pl_name, pl_files = '', []
         main_window['playlist_name'].update(value=pl_name)
         main_window['playlist_name'].set_focus()
         main_window['pl_tracks'].update(values=pl_files, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
-        main_window.refresh()
+        main_window['playlist_combo'].update(value='')
+        main_window['pl_rm_items'].update(disabled=True)
+        main_window['pl_move_up'].update(disabled=True)
+        main_window['pl_move_down'].update(disabled=True)
     elif main_event == 'del_pl':
         pl_name = main_values.get('playlist_combo', '')
         if pl_name in playlists:
@@ -2283,7 +2291,9 @@ def read_main_window():
         main_window['pl_save'].update(disabled=pl_name == '')
         main_window['play_pl'].update(disabled=pl_name == '')
         main_window['queue_pl'].update(disabled=pl_name == '')
-        main_window.refresh()
+        main_window['pl_rm_items'].update(disabled=not pl_files)
+        main_window['pl_move_up'].update(disabled=not pl_files)
+        main_window['pl_move_down'].update(disabled=not pl_files)
         save_settings()
         refresh_playlists()
     elif main_event == 'play_pl':
@@ -2316,25 +2326,26 @@ def read_main_window():
             main_window['playlist_combo'].update(value=pl_name, values=playlist_names, visible=True)
             main_window['play_pl'].update(disabled=False)
             main_window['queue_pl'].update(disabled=False)
-            main_window.refresh()
         save_settings()
         refresh_playlists()
     elif main_event == 'playlist_name':
         main_window['pl_save'].update(disabled=main_values['playlist_name'] == '')
     elif main_event in {'pl_rm_items', 'r:82'}:  # remove item from playlist
         if main_values['pl_tracks']:
-            pl_items = main_window['pl_tracks'].get_list_values()
-            smallest_i = len(pl_items)
+            selected_items = main_values['pl_tracks']
+            smallest_i = max(len(selected_items) - 1, 0)
             # remove tracks from bottom to top so that we don't have to worry about adjusting other indices
-            for item_name in reversed(main_values['pl_tracks']):
-                index_to_rm = int(item_name.split('.', 1)[0]) - 1
-                if index_to_rm < len(pl_files) and pl_items[index_to_rm] == item_name.split('. ', 1)[1]:
-                    if index_to_rm < smallest_i: smallest_i = index_to_rm
-                    pl_files.pop(index_to_rm)
+            for item_name in reversed(selected_items):
+                index_removed = int(item_name.split('. ', 1)[0]) - 1
+                if index_removed < len(pl_files):
+                    pl_files.pop(index_removed)
+                    smallest_i = index_removed - 1
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
             scroll_to_index = max(smallest_i - 3, 0)
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=scroll_to_index)
-            main_window.refresh()
+            main_window['pl_move_up'].update(disabled=not pl_files)
+            main_window['pl_move_down'].update(disabled=not pl_files)
+            main_window['pl_rm_items'].update(disabled=not pl_files)
     elif main_event == 'pl_add_tracks':
         fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_FOLDER, wildcard=MUSIC_FILE_TYPES,
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
@@ -2346,6 +2357,9 @@ def read_main_window():
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            main_window['pl_move_up'].update(disabled=new_i == 0)
+            main_window['pl_move_down'].update(disabled=True)
+            main_window['pl_rm_items'].update(disabled=not pl_files)
     elif main_event == 'pl_url_input':
         # disable or enable add URL button if the text in the URL input is almost a valid link
         link = main_values['pl_url_input']
@@ -2358,31 +2372,46 @@ def read_main_window():
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            main_window['pl_rm_items'].update(disabled=False)
+            main_window['pl_move_up'].update(disabled=False)
+            main_window['pl_move_down'].update(disabled=False)
         else:
             tray.show_message('Music Caster', "ERROR: invalid url. URL's have to start with http:// or https://")
     elif main_event == 'pl_tracks':
-        main_window['pl_move_up'].update(disabled=len(main_value) != 1)
-        main_window['pl_move_down'].update(disabled=len(main_value) != 1)
+        pl_items = main_window['pl_tracks'].get_list_values()
+        main_window['pl_move_up'].update(disabled=len(main_value) != 1 or pl_items[0] == main_value[0])
+        main_window['pl_move_down'].update(disabled=len(main_value) != 1 or pl_items[-1] == main_value[0])
+        main_window['pl_rm_items'].update(disabled=not main_value)
     elif main_event == 'pl_move_up':
-        # only allow moving up if 1 item is selected
-        if len(main_values['pl_tracks']) == 1:
+        # only allow moving up if 1 item is selected and pl_files is not empty
+        if len(main_values['pl_tracks']) == 1 and pl_files:
             to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
             if to_move > 0:
                 new_i = to_move - 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
+                main_window['pl_move_up'].update(disabled=new_i == 0)
+                main_window['pl_move_down'].update(disabled=False)
+        else:
+            main_window['pl_move_up'].update(disabled=True)
+            main_window['pl_move_down'].update(disabled=True)
     elif main_event == 'pl_move_down':
-        # only allow moving down if 1 item is selected
-        if len(main_values['pl_tracks']) == 1:
+        # only allow moving down if 1 item is selected and pl_files is not empty
+        if len(main_values['pl_tracks']) == 1 and pl_files:
             to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
             if to_move < len(pl_files) - 1:
                 new_i = to_move + 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {os.path.basename(path)}' for i, path in enumerate(pl_files)]
+                formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
+                main_window['pl_move_up'].update(disabled=False)
+                main_window['pl_move_down'].update(disabled=new_i == len(pl_files) - 1)
+        else:
+            main_window['pl_move_up'].update(disabled=True)
+            main_window['pl_move_down'].update(disabled=True)
     # other GUI updates
     if time.time() - progress_bar_last_update > 0.5:
         # update progress bar every 0.5 seconds
