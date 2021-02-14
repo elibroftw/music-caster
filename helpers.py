@@ -426,12 +426,12 @@ def truncate_title(title):
 
 def create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position):
     # album_art_data is 125 x 125
-    album_art = Sg.Col([[Sg.Image(data=album_art_data, key='album_art', pad=(0, 0))]],
-                       element_justification='left', pad=(0, 0))
+    album_art = Sg.Column([[Sg.Image(data=album_art_data, key='album_art', pad=(0, 0))]],
+                          element_justification='left', pad=(0, 0))
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     title = truncate_title(title)
-    right_side = Sg.Col([
+    right_side = Sg.Column([
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=((10, 0), (0, 0)), size=(26, 1), justification='left')],
         [Sg.Text(artist, font=FONT_MID, key='artist', pad=((10, 0), (0, 0)), size=(26, 2), justification='left')],
         music_controls, progress_bar_layout], element_justification='left', pad=(0, 0))
@@ -638,7 +638,7 @@ def create_timer(settings, timer):
          Sg.Input(key='timer_minutes', font=FONT_NORMAL, size=(11, 1)),
          Sg.Button('Submit', font=FONT_NORMAL, key='timer_submit')],
         [Sg.Text('Invalid Input (enter minutes or HH:MM)', font=FONT_NORMAL, visible=False, key='timer_error')],
-        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer!=0), cancel_button]
+        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer != 0), cancel_button]
     ]
     return [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]]
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.8'
+VERSION = latest_version = '4.74.9'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -79,7 +79,8 @@ UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
 STREAM_CHUNK = 1024
 PRESSED_KEYS = set()
-update_devices = settings_file_in_use = False
+update_devices = False
+settings_file_lock = threading.Lock()
 update_available = exit_flag = False
 last_play_command = 0  # last call to /play/
 settings_last_modified, last_press = 0, time.time() + 5
@@ -140,12 +141,11 @@ stop_discovery = lambda: None  # this is for the chromecast discover function
 
 
 def save_settings():
-    global settings, settings_file, settings_file_in_use
-    if not settings_file_in_use:
-        settings_file_in_use = True
-        with open(settings_file, 'w') as outfile:
-            json.dump(settings, outfile, indent=4)
-        settings_file_in_use = False
+    global settings, settings_file
+    if not settings_file_lock.locked():
+        with settings_file_lock:
+            with open(settings_file, 'w') as outfile:
+                json.dump(settings, outfile, indent=4)
 
 
 def refresh_folders():
@@ -383,15 +383,13 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
         """
         use_temp = not not all_tracks  # use temp if all_tracks is not empty
         all_tracks_temp = {}
+        dict_to_use = all_tracks_temp if use_temp else all_tracks
         for folder in music_folders:
             for file_path in glob.iglob(f'{glob.escape(folder)}/**/*.*', recursive=True):
                 file_path = file_path.replace('\\', '/')
                 if valid_music_file(file_path):
                     metadata = get_metadata_wrapped(file_path)
-                    if use_temp:
-                        all_tracks_temp[file_path] = metadata
-                    else:
-                        all_tracks[file_path] = metadata
+                    dict_to_use[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
         all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
@@ -438,57 +436,53 @@ def get_window_location(window_key):
 
 def load_settings():  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
-    global settings, playlists, music_folders, settings_last_modified, settings_file_in_use, DEFAULT_FOLDER
-    if settings_file_in_use:
-        return
-    elif os.path.exists(settings_file):
-        settings_file_in_use = True
-        with open(settings_file) as json_file:
-            try:
+    global settings, playlists, music_folders, settings_last_modified, DEFAULT_FOLDER
+    if settings_file_lock.locked(): return
+    with settings_file_lock:
+        try:
+            with open(settings_file) as json_file:
                 loaded_settings = json.load(json_file)
-            except json.decoder.JSONDecodeError:
-                loaded_settings = {}
-            _save_settings = False
-            for setting_name, setting_value in tuple(loaded_settings.items()):
-                loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
-            for setting_name, setting_value in settings.items():
-                does_not_exist = setting_name not in loaded_settings
-                if does_not_exist or isinstance(type(setting_value), type(loaded_settings[setting_name])):
-                    loaded_settings[setting_name] = setting_value
-                    _save_settings = True
-                elif type(setting_value) == dict:
-                    # for theme key
-                    for k, v in setting_value.items():
-                        if k not in loaded_settings[setting_name]:
-                            loaded_settings[setting_name][k] = v
-                            _save_settings = True
-            settings = loaded_settings
-            playlists = settings['playlists']
-            refresh_playlists()
-            _temp = music_folders.copy()
+                _save_settings = False
+        except (FileNotFoundError, json.JSONDecodeError):
+            # if file does not exist or is invalid, use default settings
+            loaded_settings = {}
+            _save_settings = True
+        for setting_name, setting_value in tuple(loaded_settings.items()):
+            loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
+        for setting_name, setting_value in settings.items():
+            does_not_exist = setting_name not in loaded_settings
+            if does_not_exist or isinstance(type(setting_value), type(loaded_settings[setting_name])):
+                loaded_settings[setting_name] = setting_value
+                _save_settings = True
+            elif type(setting_value) == dict:
+                # for theme key
+                for k, v in setting_value.items():
+                    if k not in loaded_settings[setting_name]:
+                        loaded_settings[setting_name][k] = v
+                        _save_settings = True
+        settings = loaded_settings
+        # sort playlists by name
+        playlists = settings['playlists'] = {k: playlists[k] for k in sorted(playlists.keys())}
+        refresh_playlists()
+        # if music folders were modified, re-index library and refresh tray
+        if music_folders != settings['music_folders']:
             music_folders = settings['music_folders']
-            if _temp != music_folders:
-                if settings['scan_folders']: index_all_tracks()
-                refresh_folders()
-            del _temp
-            DEFAULT_FOLDER = music_folders[0] if music_folders else home_music_folder
-            theme = settings['theme']
-            for k, v in theme.copy().items():
-                # validate settings file color codes
-                if not valid_color_code(v):
-                    _save_settings = True
-                    theme[k] = DEFAULT_THEME[k]
-            Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
-                          background_color=theme['background'], text_element_background_color=theme['background'],
-                          element_background_color=theme['background'], scrollbar_color=theme['background'],
-                          input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
-                          button_color=(theme['background'], theme['accent']),
-                          border_width=1, slider_border_width=1, progress_meter_border_depth=0)
-        settings_file_in_use = False
+            if settings['scan_folders']: index_all_tracks()
+            refresh_folders()
+        DEFAULT_FOLDER = music_folders[0] if music_folders else home_music_folder
+        theme = settings['theme']
+        for k, v in theme.copy().items():
+            # validate settings file color codes
+            if not valid_color_code(v):
+                _save_settings = True
+                theme[k] = DEFAULT_THEME[k]
+        Sg.SetOptions(text_color=theme['text'], element_text_color=theme['text'],
+                      input_text_color=theme['text'], button_color=(theme['background'], theme['accent']),
+                      element_background_color=theme['background'], scrollbar_color=theme['background'],
+                      text_element_background_color=theme['background'], background_color=theme['background'],
+                      input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
+                      border_width=1, slider_border_width=1, progress_meter_border_depth=0)
         if _save_settings: save_settings()
-    else:
-        save_settings()
-        load_settings()
     settings_last_modified = os.path.getmtime(settings_file)
 
 
@@ -1195,17 +1189,19 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
     app_log.info(f'play_paths: len(paths) = {len(paths)}, queue_only = {queue_only}')
     temp_queue = []
     for path in paths:
-        invalid_path = True
         if os.path.exists(path):
-            invalid_path = False
             path = path.rstrip('\\').rstrip('/')
             if os.path.isfile(path):
-                if valid_music_file(path): temp_queue.append(path)
+                if valid_music_file(path):
+                    temp_queue.append(path)
+                    if path not in all_tracks: files_to_scan.put(path)
             else:
                 for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
                     if valid_music_file(_file):
                         temp_queue.append(_file)
-        if invalid_path: temp_queue.extend(settings['playlists'].get(path, []))
+                        if path not in all_tracks: files_to_scan.put(path)
+        # path could be a playlist name (since arguments are parsed from the command line)
+        else: temp_queue.extend(settings['playlists'].get(path, []))
     update_gui_queue = True
     if settings['shuffle']:
         # if from_explorer make temp_queue all files already in queue
@@ -1301,9 +1297,8 @@ def folder_action(action='Play Folder'):
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         temp_queue = []
         # folder_paths = dlg.GetPaths()
-        folder_paths = [dlg.GetPath()]
-        for folder_path in folder_paths:
-            # multi support
+        for folder_path in [dlg.GetPath()]:
+            # multidir support
             # drive, rest = folder_path.split('\\', 1)
             # drive = drive.split('(')[-1][:-1]
             # folder_path = drive + '/' + rest
@@ -1794,7 +1789,7 @@ def read_main_window():
     global track_position, track_start, track_end, timer, main_window, update_gui_queue
     global tray_playlists, pl_files, pl_name, playlists
     # make if statements into dict mapping
-    main_event, main_values = main_window.read(timeout=1)
+    main_event, main_values = main_window.read(timeout=2)
     if (main_event in {None, 'Escape:27'} and
             main_last_event not in {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
             or main_values is None):

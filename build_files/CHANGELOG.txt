@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.9
+- [Fix] Metadata scanning for folders
+
 4.74.8
 - [Fix] Add folder in settings
 - [Fix] Fixed Portable.zip compression
