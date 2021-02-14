@@ -114,8 +114,8 @@ def update_versions():
         f.truncate()
 
 
-def create_zip(zip_filename, files_to_zip):
-    with zipfile.ZipFile(zip_filename, 'w', compression=zipfile.ZIP_BZIP2) as zf:
+def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
+    with zipfile.ZipFile(zip_filename, 'w', compression=compression) as zf:
         for file in files_to_zip:
             try:
                 if type(file) == tuple: zf.write(*file)
@@ -186,7 +186,7 @@ if not args.dry:
     portable_files.extend(res_files + glob.glob('vlc/**/*.*', recursive=True))
     portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(updater_release_path)}/*.*')])
     print('Creating dist/Portable.zip')
-    create_zip('dist/Portable.zip', portable_files)
+    create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
                                                    'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),

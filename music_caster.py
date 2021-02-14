@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.7'
+VERSION = latest_version = '4.74.8'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title

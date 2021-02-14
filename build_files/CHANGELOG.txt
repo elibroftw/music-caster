@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.8
+- [Fix] Add folder in settings
+- [Fix] Fixed Portable.zip compression
+
 4.74.7
 - [Fix] Playlist tab
 

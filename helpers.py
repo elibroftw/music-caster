@@ -600,7 +600,7 @@ def create_settings(version, settings, qr_code):
         [Sg.Button('Changelog', key='changelog_file', font=FONT_NORMAL, pad=((15, 0), (5, 5)))]
     ], pad=(0, 0))
     email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': 'Send me an email'}
-    folder_btn = {'font': FONT_NORMAL, 'size': (3, 1)}
+    folder_btn = {'font': FONT_NORMAL, 'size': (3, 1), 'enable_events': True}
     layout = [
         [Sg.Text(f'Music Caster Version {version} by Elijah Lopez', font=FONT_NORMAL),
          Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
