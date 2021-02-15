@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.9'
+VERSION = latest_version = '4.74.10'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -20,6 +20,7 @@ from audio_player import AudioPlayer
 import base64
 
 from contextlib import suppress
+from collections import defaultdict
 from datetime import datetime, timedelta
 import errno
 # noinspection PyUnresolvedReferences
@@ -330,6 +331,7 @@ def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album,
         return get_metadata(file_path)
     except mutagen.MutagenError:
         try:
+            file_path = file_path.replace('\\', '/')
             metadata = all_tracks[file_path]
             return metadata
         except KeyError:
@@ -386,8 +388,8 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
         dict_to_use = all_tracks_temp if use_temp else all_tracks
         for folder in music_folders:
             for file_path in glob.iglob(f'{glob.escape(folder)}/**/*.*', recursive=True):
-                file_path = file_path.replace('\\', '/')
                 if valid_music_file(file_path):
+                    file_path = file_path.replace('\\', '/')
                     metadata = get_metadata_wrapped(file_path)
                     dict_to_use[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
@@ -1297,6 +1299,10 @@ def folder_action(action='Play Folder'):
     if dlg.ShowModal() != wx.ID_CANCEL and os.path.exists(dlg.GetPath()):
         temp_queue = []
         # folder_paths = dlg.GetPaths()
+
+        files_to_queue = defaultdict(list)
+        # folder_path: [basename]
+
         for folder_path in [dlg.GetPath()]:
             # multidir support
             # drive, rest = folder_path.split('\\', 1)
@@ -1305,10 +1311,18 @@ def folder_action(action='Play Folder'):
             if os.path.exists(folder_path):
                 for file_path in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
                     if valid_music_file(file_path):
-                        temp_queue.append(file_path)
+                        path = Path(file_path)
+                        file_path = path.as_posix()
+                        files_to_queue[path.parent.as_posix()].append(path.name)
                         if file_path not in all_tracks: files_to_scan.put(file_path)
-        if settings['shuffle']: shuffle(temp_queue)
-        else: temp_queue.sort(key=natural_key_file)
+        if settings['shuffle']:
+            for parent, files in files_to_queue.items():
+                temp_queue.extend([os.path.join(parent, file_path) for file_path in files])
+            shuffle(temp_queue)
+        else:
+            for parent, files in files_to_queue.items():
+                files = sorted([os.path.join(parent, file_path) for file_path in files], key=natural_key_file)
+                temp_queue.extend(files)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY

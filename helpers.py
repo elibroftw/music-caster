@@ -89,7 +89,7 @@ def natural_key(string):
 
 def natural_key_file(string):
     string = os.path.splitext(os.path.basename(string))[0]
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string)]
+    return natural_key(string)
 
 
 def valid_color_code(code):

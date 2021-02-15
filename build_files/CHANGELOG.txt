@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.10
+- [Fix] Improved natural sort
+
 4.74.9
 - [Fix] Metadata scanning for folders
 
