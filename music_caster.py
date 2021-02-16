@@ -1,8 +1,6 @@
 VERSION = latest_version = '4.74.11'
 UPDATE_MESSAGE = """
-[Important] You will need to re-add your music folders
-[Feature] Album Title
-[Optimized] Metadata scanning
+Fixed errors for new users
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -2775,4 +2773,6 @@ try:
         if active_windows['main']: read_main_window()
         if active_windows['play_url']: read_play_url_window()
 except Exception as e:
+    # try to auto-update before exiting
+    auto_update()
     handle_exception(e, True)
