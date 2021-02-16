@@ -598,6 +598,7 @@ def api_play():
 def api_get_now_playing():
     now_playing = get_current_metadata()
     now_playing['status'] = playing_status
+    now_playing['volume'] = settings['volume']
     return jsonify(now_playing)
 
 

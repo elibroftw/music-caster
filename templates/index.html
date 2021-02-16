@@ -368,9 +368,11 @@
                     const currentArtist = document.getElementById('info__artist').textContent;
                     const currentTitle = document.getElementById('info__track').textContent;
                     const currentAlbum = document.getElementById('info__album').textContent;
+                    const currentVol = document.getElementById('volRange').value;
                     if (response['artist'] !== currentArtist ||
                         response['title'] !== currentTitle ||
                         response['album'] !== currentAlbum ||
+                        response['volume'] != currentVol ||
                         response['status'] !== '{{ playing_status }}') {
                         // reload window since now playing has changed
                         window.location.reload();
