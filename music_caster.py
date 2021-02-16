@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.11'
+VERSION = latest_version = '4.74.12'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -19,6 +19,7 @@ import base64
 
 from contextlib import suppress
 from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime, timedelta
 import errno
 # noinspection PyUnresolvedReferences
@@ -125,6 +126,7 @@ settings = {  # default settings
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_folders': [home_music_folder], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
+default_settings = deepcopy(settings)
 # noinspection PyTypeChecker
 indexing_tracks_thread: Thread = None
 # noinspection PyTypeChecker
@@ -140,11 +142,11 @@ stop_discovery = lambda: None  # this is for the chromecast discover function
 
 
 def save_settings():
-    global settings, settings_file
-    if not settings_file_lock.locked():
-        with settings_file_lock:
-            with open(settings_file, 'w') as outfile:
-                json.dump(settings, outfile, indent=4)
+    global settings, settings_file, settings_last_modified
+    with settings_file_lock:
+        with open(settings_file, 'w') as outfile:
+            json.dump(settings, outfile, indent=4)
+        settings_last_modified = os.path.getmtime(settings_file)
 
 
 def refresh_folders():
@@ -384,7 +386,7 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
         use_temp = not not all_tracks  # use temp if all_tracks is not empty
         all_tracks_temp = {}
         dict_to_use = all_tracks_temp if use_temp else all_tracks
-        for folder in music_folders:
+        for folder in settings['music_folders']:
             for file_path in glob.iglob(f'{glob.escape(folder)}/**/*.*', recursive=True):
                 if valid_music_file(file_path):
                     file_path = file_path.replace('\\', '/')
@@ -437,20 +439,21 @@ def get_window_location(window_key):
 def load_settings(first_load=False):  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
     global settings, playlists, music_folders, settings_last_modified, DEFAULT_FOLDER
-    if settings_file_lock.locked(): return
     _save_settings = False
     with settings_file_lock:
         try:
             with open(settings_file) as json_file:
                 loaded_settings = json.load(json_file)
         except (FileNotFoundError, json.JSONDecodeError):
-            # if file does not exist or is invalid, use default settings
+            # if file does not exist
             loaded_settings = {}
         for setting_name, setting_value in tuple(loaded_settings.items()):
             loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
         for setting_name, setting_value in settings.items():
             does_not_exist = setting_name not in loaded_settings
-            if does_not_exist or isinstance(type(setting_value), type(loaded_settings[setting_name])):
+            types_differ = not isinstance(loaded_settings.get(setting_name), type(setting_value))
+            # use default settings if key/value does not exist or if value is the wrong type
+            if (does_not_exist or types_differ) and setting_name in default_settings:
                 loaded_settings[setting_name] = setting_value
                 _save_settings = True
             elif type(setting_value) == dict:
@@ -1530,7 +1533,8 @@ def background_tasks():
     global update_last_checked, latest_version, exit_flag, update_volume_slider, update_gui_queue
     while not exit_flag:
         # SETTINGS_LAST_MODIFIED
-        if os.path.getmtime(settings_file) != settings_last_modified: load_settings()  # last modified gets updated here
+        # if settings.json was updated outside of Music Caster, reload settings
+        if os.path.getmtime(settings_file) != settings_last_modified: load_settings()
         # Check cast every 5 seconds
         if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
             with suppress(UnsupportedNamespace):
@@ -2194,19 +2198,19 @@ def read_main_window():
             update_gui_queue = True
         elif main_event == 'scan_folders' and main_value:
             index_all_tracks()
-    elif main_event == 'remove_music_folder' and main_values['music_dirs']:
-        selected_item = main_values['music_dirs'][0]
-        if selected_item in music_folders:
-            music_folders.remove(selected_item)
-            main_window['music_dirs'].update(music_folders)
+    elif main_event == 'remove_music_folder' and main_values['music_folders']:
+        selected_item = main_values['music_folders'][0]
+        with suppress(ValueError):
+            settings['music_folders'].remove(selected_item)
+            main_window['music_folders'].update(settings['music_folders'])
             refresh_folders()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
         main_value = main_value.replace('\\', '/')  # sanitize
         if main_value not in music_folders and os.path.exists(main_value):
-            music_folders.append(main_value)
-            main_window['music_dirs'].update(music_folders)
+            settings['music_folders'].append(main_value)
+            main_window['music_folders'].update(settings['music_folders'])
             refresh_folders()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
@@ -2218,9 +2222,9 @@ def read_main_window():
     elif main_event == 'changelog_file':
         with suppress(FileNotFoundError):
             os.startfile('changelog.txt')
-    elif main_event == 'music_dirs':
+    elif main_event == 'music_folders':
         with suppress(IndexError):
-            Popen(f'explorer "{fix_path(main_values["music_dirs"][0])}"')
+            Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')
     # timer
     elif main_event == 'cancel_timer':
         main_window['timer_text'].update('No Timer Set')

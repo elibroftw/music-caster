@@ -135,10 +135,7 @@ def get_metadata(file_path: str):
 
 
 def fix_path(path, by_os=True):
-    if by_os and platform.system() == 'Windows':
-        return path.replace('/', '\\')
-    else:
-        return path.replace('\\', '/')
+    return path.replace('/', '\\') if by_os and platform.system() == 'Windows' else path.replace('\\', '/')
 
 
 def get_first_artist(artists: str) -> str:
@@ -606,7 +603,7 @@ def create_settings(version, settings, qr_code):
          Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
         [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
         [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
-                    key='music_dirs', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
+                    key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True, no_scrollbar=True),
          Sg.Column([
              [Sg.Button('❌', key='remove_music_folder', tooltip='remove selected folder', **folder_btn)],
              [Sg.FolderBrowse('➕', key='add_music_folder', tooltip='add folder', **folder_btn)]])]]
