@@ -15,9 +15,6 @@
 <meta name="msapplication-config" content="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/browserconfig.xml">
 <meta name="theme-color" content="#ededed">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{% if not settings.get('DEBUG', False) %}
-<meta http-equiv="refresh" content="30">
-{% endif %}
 <div id="wrapper">
     <div class="player__container">
         <!-- TODO: theme option -->
@@ -26,17 +23,9 @@
                 <img src="{{art|safe}}" alt="Album Art" style="text-align: center" />
             </div>
             <div class="body__info">
-                {% if metadata['album'] %}
-                <div class="info__album">{{metadata['album']}}</div>
-                {% else %}
-                <div class="info__album"><br></div>
-                {% endif %}
-                <div class="info__track">{{metadata['title']}}</div>
-                {% if metadata['artist'] %}
-                <div class="info__artist">{{metadata['artist']}}</div>
-                {% else %}
-                <div class="info__artist"><br></div>
-                {% endif %}
+                <div id="info__album">{{metadata['album'] if metadata['album'] else '<br>'|safe}}</div>
+                <div id="info__track">{{metadata['title']}}</div>
+                <div id="info__artist">{{metadata['artist'] if metadata['artist'] else '<br>'|safe}}</div>
             </div>
             <div class="body__buttons">
                 <ul class="list list--buttons">
@@ -53,9 +42,8 @@
         </div>
         <div class="player__footer">
             <ul class="list list--footer">
-<!--                <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li>-->
+                <!-- <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li> -->
                 <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
-<!--shuffle was here-->
                 <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
                     <svg width="20" height="20">
                         <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z"
@@ -77,11 +65,7 @@
             <div>
                 <select name="devices" id="devices" onchange="changeDevice()">
                 {% for device_name in devices %}
-                    {% if loop.index0 == device_index %}
-                    <option value="{{loop.index - 1}}" selected>{{ device_name }}</option>
-                    {% else %}
-                    <option value="{{loop.index - 1}}">{{ device_name }}</option>
-                    {% endif %}
+                    <option value="{{loop.index - 1}}" {{'selected' if loop.index0 == device_index else ''}}>{{ device_name }}</option>
                 {% endfor %}
                 </select>
             </div>
@@ -92,7 +76,7 @@
     <div class="modal-content">
         <h2>Music Queue (View Only)</h2>
         {% for track in queue %}
-            <a class="track">{{track}}</a>
+            <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}">{{track}}</a>
         {% endfor %}
     </div>
 </div>
@@ -137,7 +121,7 @@
             <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">
                 {{ setting_toggle[1] if setting_toggle|length == 2 else setting_toggle[2] }}
                 <label class="switch">
-                    <input type="checkbox">
+                    <input type="checkbox" {{'checked' if settings[setting_toggle[0]] else ''}}>
                     <span class="slider round"></span>
                 </label>
             </li>
@@ -178,8 +162,7 @@
 <script>
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
-    const settingToggles = document.getElementsByClassName('setting');
-    const timerToggles = document.getElementsByClassName('timerSetting');
+
     const searchBar = document.getElementById('searchBar');
 
     // modals
@@ -252,27 +235,6 @@
         // }
         // add playback control
     }
-
-    window.onload = () => {
-        try { showModal(getHash()); } catch (TypeError) {}
-
-        for (const settingEl of settingToggles) {
-            const checkBox = settingEl.getElementsByTagName('input')[0];
-            checkBox.checked = settingsFromServer[settingEl.dataset.key];
-        }
-
-        for (const timerEl of timerToggles) {
-            const radio = timerEl.getElementsByTagName('input')[0];
-            if (timerEl.dataset.key in settingsFromServer) {
-                const val = settingsFromServer[timerEl.dataset.key];
-                radio.checked = val;
-                if (val) break;
-            } else {
-                // stop only option
-                radio.checked = true;
-            }
-        }
-    };
 
     function filterTracks() {
         const filter = searchBar.value.toUpperCase();
@@ -396,4 +358,47 @@
             body: JSON.stringify({device_index: deviceIndex})
         });
     }
+
+    function reloadOnChange() {
+        fetch('/now-playing/', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(response => response.json()).then(
+                response => {
+                    const currentArtist = document.getElementById('info__artist').textContent;
+                    const currentTitle = document.getElementById('info__track').textContent;
+                    const currentAlbum = document.getElementById('info__album').textContent;
+                    if (response['artist'] !== currentArtist ||
+                        response['title'] !== currentTitle ||
+                        response['album'] !== currentAlbum ||
+                        response['status'] !== '{{ playing_status }}') {
+                        // reload window since now playing has changed
+                        window.location.reload();
+                    }
+                }
+            );
+        // check every 1.5 seconds
+        setTimeout(reloadOnChange, 1500);
+    }
+
+    window.onload = () => {
+        // show modal if there is a hash
+        try { showModal(getHash()); } catch (TypeError) {}
+
+        // populate timer option
+        const timerToggles = document.getElementsByClassName('timerSetting');
+        for (const timerEl of timerToggles) {
+            const radio = timerEl.getElementsByTagName('input')[0];
+            if (timerEl.dataset.key in settingsFromServer) {
+                const val = settingsFromServer[timerEl.dataset.key];
+                radio.checked = val;
+                if (val) break;
+            } else {
+                // stop only option
+                radio.checked = true;
+            }
+        }
+
+        reloadOnChange();
+    };
 </script>

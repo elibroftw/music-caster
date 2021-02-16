@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.10'
+VERSION = latest_version = '4.74.11'
 UPDATE_MESSAGE = """
 [Important] You will need to re-add your music folders
 [Feature] Album Title
@@ -136,7 +136,7 @@ ydl: YoutubeDL = None
 app = Flask(__name__)
 app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
-logging.getLogger('werkzeug').disabled = True
+logging.getLogger('werkzeug').disabled = not DEBUG
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 stop_discovery = lambda: None  # this is for the chromecast discover function
 
@@ -436,19 +436,18 @@ def get_window_location(window_key):
     return settings['window_locations'].get(window_key, (None, None))
 
 
-def load_settings():  # up to 0.4 seconds
+def load_settings(first_load=False):  # up to 0.4 seconds
     """load (and fix if needed) the settings file"""
     global settings, playlists, music_folders, settings_last_modified, DEFAULT_FOLDER
     if settings_file_lock.locked(): return
+    _save_settings = False
     with settings_file_lock:
         try:
             with open(settings_file) as json_file:
                 loaded_settings = json.load(json_file)
-                _save_settings = False
         except (FileNotFoundError, json.JSONDecodeError):
             # if file does not exist or is invalid, use default settings
             loaded_settings = {}
-            _save_settings = True
         for setting_name, setting_value in tuple(loaded_settings.items()):
             loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
         for setting_name, setting_value in settings.items():
@@ -467,7 +466,7 @@ def load_settings():  # up to 0.4 seconds
         playlists = settings['playlists'] = {k: playlists[k] for k in sorted(playlists.keys())}
         refresh_playlists()
         # if music folders were modified, re-index library and refresh tray
-        if music_folders != settings['music_folders']:
+        if music_folders != settings['music_folders'] or first_load:
             music_folders = settings['music_folders']
             if settings['scan_folders']: index_all_tracks()
             refresh_folders()
@@ -484,7 +483,7 @@ def load_settings():  # up to 0.4 seconds
                       text_element_background_color=theme['background'], background_color=theme['background'],
                       input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
                       border_width=1, slider_border_width=1, progress_meter_border_depth=0)
-        if _save_settings: save_settings()
+    if _save_settings: save_settings()
     settings_last_modified = os.path.getmtime(settings_file)
 
 
@@ -565,9 +564,11 @@ def web_index():  # web GUI
     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
 
     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
+                           playing_status=playing_status,
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
-                           device_index=device_index, devices=formatted_devices, version=VERSION)
+                           playing_index=len(done_queue), device_index=device_index, devices=formatted_devices,
+                           version=VERSION)
 
 
 @app.route('/play/', methods=['GET', 'POST'])
@@ -593,9 +594,11 @@ def api_play():
     return redirect('/') if request.method == 'GET' else 'true'
 
 
-@app.route('/metadata/')
-def api_get_metadata():
-    return jsonify(get_current_metadata())
+@app.route('/now-playing/')
+def api_get_now_playing():
+    now_playing = get_current_metadata()
+    now_playing['status'] = playing_status
+    return jsonify(now_playing)
 
 
 @app.errorhandler(InternalServerError)
@@ -2633,7 +2636,7 @@ try:
         if IS_FROZEN and not DEBUG: sys.exit()
     # quit if --exit was supplied to command line
     if args.exit: sys.exit()
-    load_settings()  # starts indexing all tracks
+    load_settings(True)  # starts indexing all tracks
     init_ydl_thread = Thread(target=init_youtube_dl, daemon=True, name='InitYoutubeDL')
     init_ydl_thread.start()
     audio_player = AudioPlayer()
@@ -2724,8 +2727,11 @@ try:
                     queue.append(file)
                     files_to_scan.put(file)
     elif settings['populate_queue_startup']:
-        indexing_tracks_thread.join()
-        play_all(queue_only=True)
+        try:
+            indexing_tracks_thread.join()
+            play_all(queue_only=True)
+        except AttributeError:
+            tray.show_message('Music Caster', 'ERROR: could not populate queue because library scan was turned off')
     print(f'Running in tray, DEBUG={settings.get("DEBUG", False) or DEBUG}, EXPERIMENTAL={settings["EXPERIMENTAL"]}')
     tray_actions = {
         '__ACTIVATED__': activate_main_window,

@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.11
+- [Fix] Populate queue on startup
+- [Fix] Loading settings
+- [Fix] Saving settings
+- [Fix] Improve web GUI
+
 4.74.10
 - [Fix] Improved natural sort
 

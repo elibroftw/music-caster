@@ -146,17 +146,17 @@ input:focus {
     padding-bottom: 1.25rem;
 }
 
-.info__album, .info__track {
+#info__album, #info__track {
     margin-bottom: 0.5rem;
 }
 
-.info__artist, .info__album {
+#info__artist, #info__album {
     font-size: 1rem;
     font-weight: 300;
     color: #666;
 }
 
-.info__track {
+#info__track {
     font-size: 1.5rem;
     font-weight: 400;
     color: #d30320;
@@ -301,7 +301,7 @@ h2 {
     font-size: large;
 }
 
-.track:hover, .modalRow:hover {
+.track:hover, .modalRow:hover, .cyan {
     color: cyan;
 }
 

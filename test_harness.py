@@ -2,6 +2,7 @@ import pyaudio
 
 from helpers import *
 import base64
+from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
 from pathlib import Path
 from contextlib import suppress
 import mutagen.id3
@@ -248,3 +249,84 @@ play_url_window = Sg.Window(
 play_url_window.TKroot.focus_force()
 play_url_window.Read(timeout=1500)  # 1.5 second timeout
 play_url_window.Close()
+
+
+app = Flask(__name__)
+app.jinja_env.lstrip_blocks = True
+app.jinja_env.trim_blocks = True
+os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
+
+@app.errorhandler(404)
+def page_not_found(_):
+    return redirect('/')
+
+
+# # use socket io?
+# @app.route('/', methods=['GET', 'POST'])
+# def web_index():  # web GUI
+#     global music_queue, playing_status, all_tracks
+#     if request.method == 'POST':
+#         daemon_commands.put('Bring to Front')  # tells main loop to bring to front all GUI's
+#         return 'true' if any(active_windows.values()) else 'Music Caster'
+#     if request.args:
+#         api_msg = 'Invalid Command'
+#         if 'play' in request.args:
+#             if resume():
+#                 api_msg = 'resumed playback'
+#             else:
+#                 if music_queue:
+#                     play(music_queue[0])
+#                     api_msg = 'started playing first track in queue'
+#                 else:
+#                     play_all()
+#                     api_msg = 'shuffled all and started playing'
+#         elif 'pause' in request.args:
+#             pause()  # resume == play
+#             api_msg = 'pause called'
+#         elif 'next' in request.args:
+#             next_track()
+#             api_msg = 'next track called'
+#         elif 'prev' in request.args:
+#             prev_track()
+#             api_msg = 'prev track called'
+#         elif 'repeat' in request.args:
+#             cycle_repeat()
+#             api_msg = 'cycled repeat to ' + human_readable_repeat()
+#         elif 'shuffle' in request.args:
+#             shuffle_option = change_settings('shuffle', not settings['shuffle'])
+#             api_msg = f'shuffle set to {shuffle_option}'
+#         if 'is_api' in request.args:
+#             return api_msg
+#         return redirect('/')
+#     metadata = get_current_metadata()
+#     art = get_current_album_art()
+#     if type(art) == bytes: art = art.decode()
+#     art = f'data:image/png;base64,{art}'
+#     repeat_option = settings['repeat']
+#     repeat_color = 'red' if settings['repeat'] is not None else ''
+#     shuffle_option = 'red' if settings['shuffle'] else ''
+#     # sort by the formatted title
+#     list_of_tracks = []
+#     if all_tracks_sorted_sort_key:
+#         sorted_tracks = all_tracks_sorted_sort_key
+#     else:
+#         sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+#
+#     for filename, data in sorted_tracks:
+#         filename = urllib.parse.urlencode({'path': filename})
+#         list_of_tracks.append({'title': data['sort_key'], 'href': f'/play?{filename}'})
+#     _queue = create_track_list()[0]
+#     device_index = 0
+#     for i, device_name in enumerate(device_names):
+#         if device_name.startswith(CHECK_MARK):
+#             device_index = i
+#             break
+#     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
+#
+#     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
+#                            playing_status=playing_status,
+#                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
+#                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
+#                            playing_index=len(done_queue), device_index=device_index, devices=formatted_devices,
+#                            version=VERSION)
