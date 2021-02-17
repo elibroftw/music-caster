@@ -451,7 +451,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
             loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
         for setting_name, setting_value in settings.items():
             does_not_exist = setting_name not in loaded_settings
-            if setting_value in {'volume', 'volume_delta', 'scrubbing_delta'}: types_differ = False
+            if setting_name in {'volume', 'volume_delta', 'scrubbing_delta'}: types_differ = False
             else: types_differ = not isinstance(loaded_settings.get(setting_name), type(setting_value))
             # use default settings if key/value does not exist or if value is the wrong type
             if (does_not_exist or types_differ) and setting_name in default_settings:
