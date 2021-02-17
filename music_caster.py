@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.12'
+VERSION = latest_version = '4.74.13'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -451,7 +451,8 @@ def load_settings(first_load=False):  # up to 0.4 seconds
             loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
         for setting_name, setting_value in settings.items():
             does_not_exist = setting_name not in loaded_settings
-            types_differ = not isinstance(loaded_settings.get(setting_name), type(setting_value))
+            if setting_value in {'volume', 'volume_delta', 'scrubbing_delta'}: types_differ = False
+            else: types_differ = not isinstance(loaded_settings.get(setting_name), type(setting_value))
             # use default settings if key/value does not exist or if value is the wrong type
             if (does_not_exist or types_differ) and setting_name in default_settings:
                 loaded_settings[setting_name] = setting_value
