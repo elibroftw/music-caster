@@ -79,7 +79,7 @@ def get_length(file_path):  # length in seconds
             audio_info = mutagen.File(file_path).info
             length = audio_info.length
         return length
-    except (AttributeError, HeaderNotFoundError, MutagenError, WavInfoEOFError):
+    except (AttributeError, HeaderNotFoundError, MutagenError, WavInfoEOFError, StopIteration):
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 

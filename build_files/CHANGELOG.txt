@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.14
+- [Fix] Wav file error
+
 4.74.13
 - [Fix] Load numerical settings
 
