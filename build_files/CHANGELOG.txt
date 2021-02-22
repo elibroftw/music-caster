@@ -1,13 +1,16 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.15
+- [Fix] Loading settings
+
 4.74.14
 - [Fix] Wav file error
 
 4.74.13
-- [Fix] Load numerical settings
+- [Fix] Loading numerical settings
 
 4.74.12
-- [Fix] Save settings
+- [Fix] Saving settings
 
 4.74.11
 - [Fix] Populate queue on startup
