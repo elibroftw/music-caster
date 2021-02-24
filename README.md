@@ -69,15 +69,15 @@ Aside from the global media hot-keys, Music Caster has its own shortcuts as seen
 
 ## Data Collection / Privacy Policy
 What is sent to me when an error is encountered?
-```JS
-// As seen in the function handle_exception,
+```python
+# As seen in the function handle_exception,
 'VERSION': VERSION,
-'EXCEPTION TYPE': exc_type.__name__,                  // error name
-'LINE': exc_tb.tb_lineno,                             // error location/line
-'TRACEBACK': trace_back_msg,                          // error message
-'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   // error unqiueness, hashed mac to preserve anonymity
-'LOG': log_lines,                                     // last 5 lines of the log file so I have more context
-'FATAL': restart_program,                             // if the error crashed the program
+'EXCEPTION TYPE': exc_type.__name__,                  # error name
+'LINE': exc_tb.tb_lineno,                             # error location/line
+'TRACEBACK': trace_back_msg,                          # error message
+'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   # error unqiueness, hashed mac to preserve anonymity
+'LOG': log_lines,                                     # last 5 lines of the log file so I have more context
+'FATAL': restart_program,                             # if the error crashed the program
 'OS': platform.platform(),
 'TIME': current_time
 ```
