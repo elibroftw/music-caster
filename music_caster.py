@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.15'
+VERSION = latest_version = '4.74.16'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -113,7 +113,7 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 playing_status = 'NOT PLAYING'  # or PLAYING or PAUSED
 # if music caster was launched in some other folder, play all or queue all that folder?
 DEFAULT_FOLDER = home_music_folder = f'{Path.home()}/Music'.replace('\\', '/')
-settings_file = f'{working_dir}/settings.json'
+settings_file = 'settings.json'
 
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
@@ -138,6 +138,7 @@ app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = not DEBUG
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+os.environ['FLASK_SKIP_DOTENV'] = '1'
 stop_discovery = lambda: None  # this is for the chromecast discover function
 
 
@@ -257,7 +258,7 @@ def handle_exception(exception, restart_program=False):
     exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
     playing_uri = 'url' if playing_url else ('file' if music_queue else 'none', 'live')[playing_live]
     try:
-        with open('music_caster.log') as f:
+        with open(f'{working_dir}/music_caster.log') as f:
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
     except FileNotFoundError:
         log_lines = []
@@ -266,25 +267,26 @@ def handle_exception(exception, restart_program=False):
                'TRACEBACK': fix_path(trace_back_msg), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
                'FATAL': restart_program, 'LOG': log_lines,
                'OS': platform.platform(), 'TIME': current_time, 'PLAYING_TYPE': playing_uri}
+    if IS_FROZEN:
+        change_settings('auto_update', True)  # turn auto update on so user will get the update down the line
+        with suppress(requests.RequestException):
+            requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
     try:
         with open('error.log', 'r') as _f:
             content = _f.read()
     except (FileNotFoundError, ValueError):
         content = ''
-    with open(f'error.log', 'w') as _f:
+    with open('error.log', 'w') as _f:
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
-    if not IS_FROZEN: raise exception  # raise exception if running in script rather than executable
-    change_settings('auto_update', True)  # turn auto update on so user will get the update down the line
-    with suppress(requests.ConnectionError):
-        requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
     if restart_program:
         with suppress(NameError):
             tray.show_message('Music Caster', 'An error occurred, restarting now', time=5000)
             with suppress(Exception): stop('error handling')
-            time.sleep(5)
+            time.sleep(3)
             if IS_FROZEN: os.startfile('Music Caster.exe')
+            else: raise exception  # raise exception if running in script rather than executable
             sys.exit()
 
 
@@ -1624,6 +1626,7 @@ def bring_to_front():
 
 def activate_main_window(selected_tab='tab_queue'):
     global active_windows, main_window
+    raise Exception
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     app_log.info(f'activate_main_window: selected_tab={selected_tab}, already_active={active_windows["main"]}')
     if not active_windows['main']:
@@ -2534,7 +2537,7 @@ def auto_update(auto_start=True):
     """
     auto_start is True on Startup, false on exit
     """
-    with suppress(requests.ConnectionError):
+    with suppress(requests.RequestException):
         app_log.info(f'Function called: auto_update(auto_start={auto_start})')
         release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', False)))
         if release:
@@ -2589,7 +2592,7 @@ def auto_update(auto_start=True):
 
 
 def send_info():
-    with suppress(requests.ConnectionError):
+    with suppress(requests.RequestException):
         mac = hashlib.md5(get_mac().encode()).hexdigest()
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION})
 
@@ -2603,7 +2606,7 @@ def init_youtube_dl():  # 1 - 1.4 seconds
 def activate_instance(port):
     r_text = ''
     while port <= 2004 and not r_text:
-        with suppress(requests.exceptions.InvalidSchema, requests.ConnectionError):
+        with suppress(requests.RequestException):
             endpoint = f'http://localhost:{port}'
             if args.exit:  # --exit argument
                 r_text = requests.post(f'{endpoint}/exit/').text
