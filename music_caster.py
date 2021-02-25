@@ -1626,7 +1626,6 @@ def bring_to_front():
 
 def activate_main_window(selected_tab='tab_queue'):
     global active_windows, main_window
-    raise Exception
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     app_log.info(f'activate_main_window: selected_tab={selected_tab}, already_active={active_windows["main"]}')
     if not active_windows['main']:
