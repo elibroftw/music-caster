@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.16'
+VERSION = latest_version = '4.74.17'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -996,10 +996,7 @@ def stream_live_audio(switching_device=False):
             after_play(title, artist, True, switching_device)
             return True
         except NotConnected:
-            if internet_available():
-                tray.show_message('Music Caster', 'ERROR: No Internet Connection')
-            else:
-                tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast')
+            tray.show_message('Music Caster', 'ERROR: Could not connect to Chromecast')
             return False
 
 
@@ -1358,36 +1355,18 @@ def folder_action(action='Play Folder'):
         main_last_event = 'folder_action'
 
 
-def internet_available(host='8.8.8.8', port=53, timeout=3):
-    """
-    Host: 8.8.8.8 (google-public-dns-a.google.com)
-    OpenPort: 53/tcp
-    Service: domain (DNS/TCP)
-    """
-    try:
-        socket.setdefaulttimeout(timeout)
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
-        return True
-    except socket.error:
-        return False
-
-
 def get_track_position():
     global track_position
     if cast is not None:
-        if internet_available():
-            try:
-                mc = cast.media_controller
-                mc.update_status()
-                if not mc.status.player_is_idle:
-                    track_position = mc.status.adjusted_current_time
-            except (UnsupportedNamespace, NotConnected, TypeError):
-                if playing_status == 'PLAYING':
-                    track_position = time.time() - track_start
-                # don't calculate if playing status is NOT PLAYING or PAUSED
-        elif playing_status == 'PLAYING':
+        try:
+            mc = cast.media_controller
+            mc.update_status()
+            if not mc.status.player_is_idle:
+                track_position = mc.status.adjusted_current_time
+        except (UnsupportedNamespace, NotConnected, TypeError):
+            if playing_status == 'PLAYING':
+                track_position = time.time() - track_start
             # don't calculate if playing status is NOT PLAYING or PAUSED
-            track_position = time.time() - track_start
     elif playing_status in {'PLAYING', 'PAUSED'}:
         track_position = audio_player.get_pos()
     return track_position
@@ -1404,7 +1383,7 @@ def pause():
                     app_log.info('paused local audio player')
                 else:
                     app_log.info('could not pause local audio player')
-            elif internet_available():
+            else:
                 mc = cast.media_controller
                 mc.update_status()
                 mc.pause()
@@ -1469,7 +1448,7 @@ def stop(stopped_from: str, stop_cast=True):
     if settings['discord_rpc']:
         with suppress(Exception): rich_presence.clear()
     if cast is not None:
-        if internet_available() and cast.app_id == APP_MEDIA_RECEIVER:
+        if cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
             if stop_cast:
                 mc.stop()
@@ -1537,7 +1516,7 @@ def background_tasks():
         # if settings.json was updated outside of Music Caster, reload settings
         if os.path.getmtime(settings_file) != settings_last_modified: load_settings()
         # Check cast every 5 seconds
-        if cast is not None and time.time() - cast_last_checked > 5 and internet_available():
+        if cast is not None and time.time() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller

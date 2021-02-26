@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.17
+- [Fix] Removed internet available calls
+
 4.74.16
 - [Fix] Error handling
 
