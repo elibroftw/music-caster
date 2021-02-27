@@ -137,9 +137,9 @@
         <a class="modalRow" href="/files">View Music Files Source Links</a>
         <h2>Timer</h2>
         <ul style="list-style: none">
-            {% for timer_toggle in (('timer_shut_off_computer', 'Shut Down Computer'),
-                                    ('timer_sleep_computer', 'Sleep Computer'),
-                                    ('timer_hibernate_computer', 'Hibernate Computer'),
+            {% for timer_toggle in (('timer_shut_down', 'Shut Down Computer'),
+                                    ('timer_sleep', 'Sleep Computer'),
+                                    ('timer_hibernate', 'Hibernate Computer'),
                                     ('timer_only_stop', 'Only Stop playback')) %}
             <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
                 <label for="{{ timer_toggle[0] }}">{{ timer_toggle[1] }}</label>

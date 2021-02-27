@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.17'
+VERSION = latest_version = '4.74.18'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -258,7 +258,7 @@ def handle_exception(exception, restart_program=False):
     exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
     playing_uri = 'url' if playing_url else ('file' if music_queue else 'none', 'live')[playing_live]
     try:
-        with open(f'{working_dir}/music_caster.log') as f:
+        with open('music_caster.log') as f:
             log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
     except FileNotFoundError:
         log_lines = []
