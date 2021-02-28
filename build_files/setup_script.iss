@@ -47,7 +47,6 @@ Type: filesandordirs; Name: {app}\Crypto
 Type: filesandordirs; Name: {app}\Cryptodome
 Type: filesandordirs; Name: {app}\google
 Type: filesandordirs; Name: {app}\greenlet
-Type: filesandordirs; Name: {app}\markupsafe
 Type: filesandordirs; Name: {app}\templates
 Type: filesandordirs; Name: {app}\images
 Type: filesandordirs; Name: {app}\lib2to3
