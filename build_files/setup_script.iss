@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.74.18"
+#define MyAppVersion "4.74.19"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "http://elopez.me/#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -46,6 +46,8 @@ Type: files; Name: {app}\*.dll
 Type: filesandordirs; Name: {app}\Crypto
 Type: filesandordirs; Name: {app}\Cryptodome
 Type: filesandordirs; Name: {app}\google
+Type: filesandordirs; Name: {app}\greenlet
+Type: filesandordirs; Name: {app}\markupsafe
 Type: filesandordirs; Name: {app}\templates
 Type: filesandordirs; Name: {app}\images
 Type: filesandordirs; Name: {app}\lib2to3

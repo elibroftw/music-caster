@@ -27,7 +27,9 @@ YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe'
-
+PORTABLE_SPEC_FILE = 'build_files/portable.spec'
+ONEDIR_SPEC_FILE = 'build_files/onedir.spec'
+UPDATER_SPEC_FILE = 'build_files/updater.spec'
 
 def read_env(env_file='.env'):
     with open(env_file) as f:
@@ -57,19 +59,19 @@ def add_new_changes(prev_changes):
 
 
 def set_spec_debug(debug_option):
-    with open('build_files/mc_portable.spec', 'r+') as _f:
+    with open(PORTABLE_SPEC_FILE, 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
         _f.write(new_spec)
         _f.truncate()
-    with open('build_files/mc_onedir.spec', 'r+') as _f:
+    with open(ONEDIR_SPEC_FILE, 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
         _f.write(new_spec)
         _f.truncate()
-    with open('build_files/updater.spec', 'r+') as _f:
+    with open(UPDATER_SPEC_FILE, 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
@@ -152,16 +154,16 @@ except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could
 if not args.dry:
     print(f'building executables with debug={args.debug}')
     py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
-    try: s1 = subprocess.Popen(f'pyinstaller {"--clean " if args.clean else ""}build_files/mc_portable.spec')
-    except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" build_files/mc_portable.spec')
+    try: s1 = subprocess.Popen(f'pyinstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC_FILE}')
+    except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" {PORTABLE_SPEC_FILE}')
     updater_release_path = r'Music Caster Updater\bin\x86\Release\netcoreapp3.1'
     shutil.rmtree(updater_release_path, True)
     subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build '
                           f'/p:Configuration=Release /p:PlatformTarget=x86')
-    # try: s2 = subprocess.Popen('pyinstaller build_files/updater.spec')
-    # except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" build_files/updater.spec')
-    try: subprocess.check_call(f'pyinstaller {"--clean" if args.clean else ""} build_files/mc_onedir.spec')
-    except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" build_files/mc_onedir.spec')
+    # try: s2 = subprocess.Popen('pyinstaller {UPDATER_SPEC_FILE}')
+    # except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" {UPDATER_SPEC_FILE}')
+    try: subprocess.check_call(f'pyinstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC_FILE}')
+    except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" {ONEDIR_SPEC_FILE}')
     # s2.wait()
     try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError: s4 = None
@@ -188,7 +190,7 @@ if not args.dry:
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
-    create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py', 'updater.py',
+    create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py',
                                                    'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
                                                    'settings.json'] + res_files)
     if args.start:

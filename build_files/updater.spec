@@ -1,12 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import sys
+# noinspection PyPackageRequirements
+from PyInstaller.building.api import PYZ, EXE
+# noinspection PyPackageRequirements
+from PyInstaller.building.build_main import Analysis
+# noinspection PyPackageRequirements
 from PyInstaller.config import CONF
+
 CONF['distpath'] = './dist'
 block_cipher = None
 # noinspection PyTypeChecker
 sys.modules['FixTk'] = None
-# noinspection PyUnresolvedReferences
 a = Analysis([f'{os.getcwd()}/updater.py'],
              pathex=[os.getcwd()],
              binaries=[],
@@ -20,10 +25,8 @@ a = Analysis([f'{os.getcwd()}/updater.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
-# noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
-# noinspection PyUnresolvedReferences
 exe = EXE(pyz,
           a.scripts,
           a.binaries,

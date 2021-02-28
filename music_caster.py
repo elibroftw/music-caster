@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.18'
+VERSION = latest_version = '4.74.19'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()

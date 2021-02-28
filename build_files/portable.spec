@@ -1,9 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+# noinspection PyPackageRequirements
+from PyInstaller.building.api import PYZ, EXE
+# noinspection PyPackageRequirements
+from PyInstaller.building.build_main import Analysis
+# noinspection PyPackageRequirements
 from PyInstaller.config import CONF
+
 CONF['distpath'] = './dist'
 block_cipher = None
-# noinspection PyUnresolvedReferences
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
@@ -11,16 +16,14 @@ a = Analysis([f'{os.getcwd()}/music_caster.py'],
              hiddenimports=['pkg_resources.py2_warn'],
              hookspath=[],
              runtime_hooks=[],
-             excludes=['pandas', 'numpy', 'crypto', 'cryptography', 'pycryptodome', 'pycryptodomex',
-                       'simplejson', 'PySide2', 'PyQt5'],
+             excludes=['crypto', 'cryptography', 'pycryptodome', 'pycryptodomex', 'Cryptodome',
+                       'pandas', 'numpy', 'simplejson', 'PySide2', 'PyQt5', 'greenlet', 'markupsafe'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
-# noinspection PyUnresolvedReferences
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
-# noinspection PyUnresolvedReferences
 exe = EXE(pyz,
           a.scripts,
           a.binaries,

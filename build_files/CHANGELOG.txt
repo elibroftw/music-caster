@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.19
+- [Fix] Improved binaries
+
 4.74.18
 - [Fix] Web GUI timer options
 
