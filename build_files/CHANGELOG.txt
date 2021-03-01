@@ -1,6 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
 4.74.19
+- [Fix] Folder cover override UX
+
+4.74.19
 - [Fix] Improved binaries
 
 4.74.18

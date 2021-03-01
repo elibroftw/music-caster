@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.19'
+VERSION = latest_version = '4.74.20'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -2178,6 +2178,13 @@ def read_main_window():
             update_gui_queue = True
         elif main_event == 'scan_folders' and main_value:
             index_all_tracks()
+        elif main_event == 'folder_cover_override':
+            size = COVER_MINI if settings['mini_mode'] else (255, 255)
+            try:
+                album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+            except (UnidentifiedImageError, OSError):
+                album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+            main_window['album_art'].update(data=album_art_data)
     elif main_event == 'remove_music_folder' and main_values['music_folders']:
         selected_item = main_values['music_folders'][0]
         with suppress(ValueError):
