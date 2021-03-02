@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.20'
+VERSION = latest_version = '4.74.21'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -297,15 +297,14 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
         for ext in ('png', 'jpg', 'jpeg'):
             folder_cover = os.path.join(folder, f'cover.{ext}')
             if os.path.exists(folder_cover):
-                data = io.BytesIO()
-                im = Image.open(folder_cover)
-                im.save(data, format='png', quality=95)
-                return ext, base64.b64encode(data.getvalue())
+                with open(folder_cover, 'rb') as f:
+                    data = base64.b64encode(f.read())
+                return ext, data
     tags = mutagen.File(file_path)
     if tags is not None:
         for tag in tags.keys():
             if 'APIC' in tag:
-                return tags[tag].mime, base64.b64encode(tags[tag].data).decode()  # 'utf-8'
+                return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
     return None, None
 
 
@@ -1613,9 +1612,14 @@ def activate_main_window(selected_tab='tab_queue'):
         mini_mode = settings['mini_mode']
         save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
         window_location = get_window_location(save_window_loc_key)
-        size = COVER_MINI if mini_mode else (255, 255)
-        album_art_data = resize_img(get_current_album_art(), settings['theme']['background'],
-                                    size).decode() if settings['show_album_art'] else None
+        if settings['show_album_art']:
+            size = COVER_MINI if mini_mode else (255, 255)
+            try:
+                album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+            except (UnidentifiedImageError, OSError):
+                album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+        else:
+            album_art_data = None
         window_margins = (0, 0) if mini_mode else (None, None)
         try:
             qr_code = create_qr_code(PORT)
