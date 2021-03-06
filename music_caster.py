@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.21'
+VERSION = latest_version = '4.74.22'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -2136,8 +2136,13 @@ def read_main_window():
             new_position = main_values['progress_bar']
             track_position = new_position
             if cast is not None:
-                cast.media_controller.seek(new_position)
-                playing_status = 'PLAYING'
+                cast.media_controller.update_status()
+                if cast.is_idle and music_queue:
+                    play(music_queue[0], position=new_position)
+                else:
+                    cast.wait()
+                    cast.media_controller.seek(new_position)
+                    playing_status = 'PLAYING'
             else:
                 audio_player.set_pos(new_position)
             update_progress_bar_text = True
