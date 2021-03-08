@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.24
+- [Fix] Playlists
+
 4.74.23
 - [Fix] Better scrubbing
 

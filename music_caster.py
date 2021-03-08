@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.23'
+VERSION = latest_version = '4.74.24'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -456,7 +456,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
             if does_not_exist and setting_name in default_settings:
                 loaded_settings[setting_name] = setting_value
                 _save_settings = True
-            elif type(setting_value) == dict:
+            elif setting_name in {'theme', 'queues'}:
                 # for theme key
                 for k, v in setting_value.items():
                     if k not in loaded_settings[setting_name]:
@@ -464,7 +464,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
                         _save_settings = True
         settings = loaded_settings
         # sort playlists by name
-        playlists = settings['playlists'] = {k: playlists[k] for k in sorted(playlists.keys())}
+        playlists = settings['playlists'] = {k: settings['playlists'][k] for k in sorted(settings['playlists'].keys())}
         refresh_playlists()
         # if music folders were modified, re-index library and refresh tray
         if music_folders != settings['music_folders'] or first_load:
