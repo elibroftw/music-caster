@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.22'
+VERSION = latest_version = '4.74.23'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -1361,7 +1361,7 @@ def get_track_position():
             mc = cast.media_controller
             mc.update_status()
             if not mc.status.player_is_idle:
-                track_position = mc.status.adjusted_current_time
+                track_position = mc.status.adjusted_current_time or (time.time() - track_start)
         except (UnsupportedNamespace, NotConnected, TypeError):
             if playing_status == 'PLAYING':
                 track_position = time.time() - track_start
@@ -2136,11 +2136,13 @@ def read_main_window():
             new_position = main_values['progress_bar']
             track_position = new_position
             if cast is not None:
-                cast.media_controller.update_status()
+                try:
+                    cast.media_controller.update_status()
+                except UnsupportedNamespace:
+                    cast.wait()
                 if cast.is_idle and music_queue:
                     play(music_queue[0], position=new_position)
                 else:
-                    cast.wait()
                     cast.media_controller.seek(new_position)
                     playing_status = 'PLAYING'
             else:
@@ -2430,9 +2432,8 @@ def read_main_window():
         if playing_status == 'NOT PLAYING':
             progress_bar.update(0, disabled=True)
         elif music_queue:
-            with suppress(ZeroDivisionError):
-                get_track_position()
-                progress_bar.update(track_position, range=(0, track_length), disabled=False)
+            get_track_position()
+            progress_bar.update(track_position, range=(0, track_length), disabled=False)
             update_progress_bar_text = True
             progress_bar_last_update = time.time()
         elif not playing_live:
