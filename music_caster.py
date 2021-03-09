@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.24'
+VERSION = latest_version = '4.74.25'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -62,6 +62,7 @@ import threading
 import pythoncom
 from PIL import UnidentifiedImageError
 import requests
+from urllib3.exceptions import ProtocolError
 import win32com.client
 from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
@@ -2566,7 +2567,7 @@ def auto_update(auto_start=True):
                             temp_tray.hide()
                             temp_tray.close()
                         return False
-                    except ConnectionAbortedError:
+                    except (ConnectionAbortedError, ProtocolError):
                         temp_tray.show_message('Music Caster', f'Update v{latest_ver} is available')
                         if auto_start:
                             temp_tray.hide()

@@ -10,6 +10,7 @@ PySimpleGUI~=4.34.0
 PySimpleGUIWx
 python-vlc
 requests~=2.22
+urllib3~=1.25
 wxpython~=4.1
 wavinfo==1.6
 youtube_dl
