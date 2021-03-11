@@ -345,7 +345,6 @@ def get_default_output_device():
 
 def resize_img(base64data, bg, new_size=(255, 255)) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
-    if type(base64data) == str: base64data = base64data.encode()
     img_data = io.BytesIO(base64.b64decode(base64data))
     art_img: Image = Image.open(img_data)
     w, h = art_img.size

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.26
+- [Fix] Album art display
+
 4.74.25
 - [Fix] Better download error handling
 
