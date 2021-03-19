@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.26'
+VERSION = latest_version = '4.74.27'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -146,9 +146,17 @@ stop_discovery = lambda: None  # this is for the chromecast discover function
 def save_settings():
     global settings, settings_file, settings_last_modified
     with settings_file_lock:
-        with open(settings_file, 'w') as outfile:
-            json.dump(settings, outfile, indent=4)
-        settings_last_modified = os.path.getmtime(settings_file)
+        try:
+            with open(settings_file, 'w') as outfile:
+                json.dump(settings, outfile, indent=4)
+            settings_last_modified = os.path.getmtime(settings_file)
+        except OSError as _e:
+            if _e.errno == errno.ENOSPC:
+                with suppress(NameError):
+                    tray.show_message('Music Caster', 'ERROR: No space left on device to save settings')
+            else:
+                with suppress(NameError):
+                    tray.show_message('Music Caster', f'ERROR: {_e}')
 
 
 def refresh_folders():

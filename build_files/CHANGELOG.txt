@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.27
+- [Fix] No space error handling while saving settings
+
 4.74.26
 - [Fix] Album art display
 

@@ -61,6 +61,7 @@ Aside from the global media hot-keys, Music Caster has its own shortcuts as seen
   - The first path is the default directory MC opens when you click "Play File"
 - The playlist setting follows the convention `{'PLAYLIST NAME': ['list of paths to files']}`
 - Some settings are there for the future and have no effect
+- 
 
 ## Limitations
 - Chromecasts only support the AAC version of WMA files
