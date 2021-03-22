@@ -89,7 +89,7 @@ def natural_key(string):
 
 def natural_key_file(string):
     string = os.path.splitext(os.path.basename(string))[0]
-    return natural_key(string)
+    return natural_key(string.lower())
 
 
 def valid_color_code(code):
@@ -97,7 +97,7 @@ def valid_color_code(code):
     return match
 
 
-def get_metadata(file_path: str):
+def get_metadata(file_path: str, sort_key_template='&title - &artist'):
     file_path = file_path.lower()
     title, artist, album, track_number, rating = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None, 'C'
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
@@ -128,8 +128,9 @@ def get_metadata(file_path: str):
         # if title or artist are unknown, use the basename of the URI (excluding extension)
         sort_key = os.path.splitext(os.path.basename(file_path))[0]
     else:
-        sort_key = f'{title} - {artist}'
-    metadata = {'title': title, 'artist': artist, 'album': album, 'rating': rating, 'sort_key': sort_key}
+        sort_key = sort_key_template.replace('&title', title).replace('&artist', artist).replace('&album', album)
+        sort_key = sort_key.replace('&trck', track_number or '')
+    metadata = {'title': title, 'artist': artist, 'album': album, 'rating': rating, 'sort_key': sort_key.lower()}
     if track_number is not None: metadata['track_number'] = track_number
     return metadata
 

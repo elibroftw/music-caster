@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.74.28
+- [Fix] Sorting improvements
+- [Fix] Improved Web GUI searching
+- [Fix] Improved Web GUI file display
+
 4.74.27
 - [Fix] No space error handling while saving settings
 

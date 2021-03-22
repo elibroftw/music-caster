@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.74.27'
+VERSION = latest_version = '4.74.28'
 UPDATE_MESSAGE = """
 Fixed errors for new users
 """.strip()
@@ -338,7 +338,7 @@ def get_current_album_art():
 
 def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
     try:
-        return get_metadata(file_path)
+        return get_metadata(file_path, settings['track_format'])
     except mutagen.MutagenError:
         try:
             file_path = file_path.replace('\\', '/')
@@ -404,8 +404,8 @@ def index_all_tracks(update_global=True, ignore_files: list = None):
                     dict_to_use[file_path] = metadata
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
-        all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
-        all_tracks_sorted_filename = sorted(all_tracks.items(), key=lambda item: item[0].lower())
+        all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
+        all_tracks_sorted_filename = sorted(all_tracks.items(), key=lambda item: natural_key_file(item[0]))
         update_gui_queue = True
 
     if not update_global:
@@ -560,11 +560,10 @@ def web_index():  # web GUI
     if all_tracks_sorted_sort_key:
         sorted_tracks = all_tracks_sorted_sort_key
     else:
-        sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
-
+        sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
     for filename, data in sorted_tracks:
-        filename = urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'title': data['sort_key'], 'href': f'/play?{filename}'})
+        play_file_path = urllib.parse.urlencode({'path': filename})
+        list_of_tracks.append({'text': format_file(filename), 'title': filename, 'href': f'/play?{play_file_path}'})
     _queue = create_track_list()[0]
     device_index = 0
     for i, device_name in enumerate(device_names):
@@ -736,11 +735,11 @@ def api_all_files():
     if all_tracks_sorted_filename:
         sorted_tracks = all_tracks_sorted_filename
     else:
-        sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[0].lower())
+        sorted_tracks = sorted(all_tracks.items(), key=lambda item: natural_key_file(item[0]))
     list_of_tracks = []
     for filename, metadata in sorted_tracks:
         query = urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'title': metadata['sort_key'], 'href': f'/file?{query}'})
+        list_of_tracks.append({'text': format_file(filename), 'title': filename, 'href': f'/file?{query}'})
     return render_template('files.html', files=list_of_tracks, device_name=device_name)
 
 

@@ -16,20 +16,20 @@
 <body>
     <div id="tracks-list" class="modal-content">
         <a href="/#more" style="color: white">go back</a>
-        <h2>Music Files on {{ device_name }}</h1>
+        <h2>Music Files on {{ device_name }}</h2>
             <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
                 placeholder="Search for music..." title="Type in artist/tracks">
             {% for file in files %}
-                <a class="track" title="{{file.title}}" href="{{file.href}}">{{file.title}}</a>
+                <a class="track" title="{{file.title}}" href="{{file.href}}">{{file.text}}</a>
             {% endfor %}
     </div>
 <script>
     const searchBar = document.getElementById('searchBar');
     function filterTracks() {
-        const filter = searchBar.value.toUpperCase();
+        const filter = searchBar.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const aTags = document.getElementById('tracks-list').getElementsByClassName('track');
         for (const a of aTags) {
-            const txtValue = (a.textContent || a.innerText).toUpperCase();
+            const txtValue = (a.textContent || a.innerText).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (txtValue.indexOf(filter) > -1) {
                 a.style.display = '';
             } else {
