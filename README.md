@@ -17,11 +17,11 @@ If you have music files in folders other than the home music folder, add them in
 
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 - [VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)
-- [Development Guide](https://github.com/elibroftw/music-caster/wiki/Development-Guide)
+- [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 
 ## Demo
 The image below directs to my demo video on YouTube.
-[Screenshots](http://www.elijahlopez.herokuapp.com/music-caster/) are also available.
+[Screenshots](https://elijahlopez.herokuapp.com/music-caster/) are also available.
 Both are outdated by 6+ months.
 
 <a href=https://youtu.be/MtkhqV1w3WE>
@@ -61,7 +61,6 @@ Aside from the global media hot-keys, Music Caster has its own shortcuts as seen
   - The first path is the default directory MC opens when you click "Play File"
 - The playlist setting follows the convention `{'PLAYLIST NAME': ['list of paths to files']}`
 - Some settings are there for the future and have no effect
-- 
 
 ## Limitations
 - Chromecasts only support the AAC version of WMA files
