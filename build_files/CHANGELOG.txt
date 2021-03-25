@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.76.2
+- [Fix] Get latest release
+
 4.76.1
 - [Fix] Registry error
 

@@ -237,7 +237,11 @@ if args.upload and all_exist and not args.dry:
     if r.status_code != 404: print(f'ERROR: Tag v{VERSION} already exists')
 
     old_release = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/latest').json()
-    old_release_id = old_release['id']
+    try:
+        old_release_id = old_release['id']
+    except KeyError:
+        print('rate limit exceeded, upload manually at https://github.com/elibroftw/music-caster/releases')
+        sys.exit()
     body = '' if VERSION.endswith('.0') else old_release['body']
     body = add_new_changes(body)
     #  chain changelog if not a major release

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.76.1'
+VERSION = latest_version = '4.76.2'
 UPDATE_MESSAGE = """
 [Feature] Move track in queue to next up & cleaner UI
 [Optimization] Lowered CPU usage and window drag stuttering
@@ -2662,11 +2662,11 @@ def get_latest_release(ver, force=False):
     """ Returns either False or {ver: cached link to the latest setup} """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     release = requests.get(releases_url).json()
-    latest_ver = release['tag_name'][1:]
+    latest_ver = release.get('tag_name', f'v{VERSION}')[1:]
     _version = [int(x) for x in ver.split('.')]
     compare_ver = [int(x) for x in latest_ver.split('.')]
     if compare_ver > _version or force:
-        for asset in release['assets']:
+        for asset in release.get('assets', []):
             # check if setup exists
             if 'exe' in asset['name']:
                 return {'version': latest_ver, 'setup': asset['browser_download_url']}
