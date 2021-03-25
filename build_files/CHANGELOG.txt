@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.75.0
+- [Feature] Live shuffle and un-shuffle the queue using the shuffle button
+- [Optimization] Using deques instead of lists for internal queues (faster for massive queues)
+
 4.74.28
 - [Fix] Sorting improvements
 - [Fix] Improved Web GUI searching

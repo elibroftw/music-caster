@@ -9,6 +9,7 @@ import io
 import os
 from math import floor
 import platform
+from random import getrandbits
 import re
 import socket
 from subprocess import PIPE, DEVNULL, Popen
@@ -152,6 +153,26 @@ def get_ipv4() -> str:
 
 
 def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
+
+
+def better_shuffle(seq, first=0, last=-1):
+    """
+    Shuffles based on indices
+    :param seq:
+    :param first:
+    :param last:
+    :return:
+    """
+    n = len(seq)
+    _, __ = seq[first], seq[last]  # check for IndexError
+    first = first % n
+    last = last % n
+    # use Fisher-Yates shuffle (Durstenfeld method)
+    for i in range(first, last + 1):
+        size = last - i + 1
+        j = getrandbits(size.bit_length()) % size + i
+        seq[i], seq[j] = seq[j], seq[i]
+    return seq
 
 
 def create_qr_code(port, ipv4=None):
@@ -472,7 +493,8 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         Sg.Column([[Sg.Button('Play File(s)', font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
                    [Sg.Button('Play Folder', font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
         Sg.Column([[Sg.Button('URL', font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)],
-                   [Sg.Button('Queue All', font=FONT_NORMAL, key='queue_all', size=(9, 1), enable_events=True)]])
+                   [Sg.Button('Queue All', font=FONT_NORMAL, tooltip='shuffle queue all',
+                              key='queue_all', size=(9, 1), enable_events=True)]])
     ]
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip='Launch mini mode')],

@@ -1,6 +1,7 @@
-VERSION = latest_version = '4.74.28'
+VERSION = latest_version = '4.75.0'
 UPDATE_MESSAGE = """
-Fixed errors for new users
+[Feature] Shuffle and un-shuffle (sort) the queue
+[Optimization] next and previous track are faster for massive queues
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
@@ -18,7 +19,9 @@ from audio_player import AudioPlayer
 import base64
 
 from contextlib import suppress
-from collections import defaultdict
+from collections import defaultdict, deque
+from collections.abc import Iterable
+from itertools import islice
 from copy import deepcopy
 from datetime import datetime, timedelta
 import errno
@@ -101,7 +104,7 @@ pl_files = []  # keep track of paths when editing playlists
 CHECK_MARK = '✓'
 chromecasts, device_names = [], [f'{CHECK_MARK} Local device']
 music_folders = []
-music_queue, done_queue, next_queue = [], [], []
+music_queue, done_queue, next_queue = deque(), deque(), deque()
 update_gui_queue = update_volume_slider = False
 mouse_hover = ''
 daemon_commands = Queue()
@@ -201,9 +204,9 @@ def save_queues():
     global save_queue_thread, settings
 
     def _save_queue():
-        settings['queues']['done'] = done_queue
-        settings['queues']['music'] = music_queue
-        settings['queues']['next'] = next_queue
+        settings['queues']['done'] = tuple(done_queue)
+        settings['queues']['music'] = tuple(music_queue)
+        settings['queues']['next'] = tuple(next_queue)
         save_settings()
 
     if save_queue_thread is None or not save_queue_thread.is_alive():
@@ -377,7 +380,7 @@ def get_current_metadata():
     return {'artist': '', 'title': 'Nothing Playing', 'album': ''}
 
 
-def index_all_tracks(update_global=True, ignore_files: list = None):
+def index_all_tracks(update_global=True, ignore_files: Iterable = None):
     """
     returns the music library dict if update_global is False
     starts scanning and building the music library/database if update_global is True
@@ -545,6 +548,8 @@ def web_index():  # web GUI
         elif 'shuffle' in request.args:
             shuffle_option = change_settings('shuffle', not settings['shuffle'])
             api_msg = f'shuffle set to {shuffle_option}'
+            if shuffle_option: shuffle_queue()
+            else: un_shuffle_queue()
         if 'is_api' in request.args:
             return api_msg
         return redirect('/')
@@ -895,6 +900,50 @@ def change_device(new_idx):
             update_volume(volume)
 
 
+def un_shuffle_queue():
+    """
+    To be called when shuffle is toggled off
+        sorts files by natural key...
+        splits at current playing
+    Does not affect next_queue
+    Keeps currently playing the same
+    """
+    global music_queue, done_queue, update_gui_queue
+    if music_queue:
+        # keep current playing track the same
+        track = music_queue[0]
+        temp_list = list(music_queue) + list(done_queue)
+        temp_list.sort(key=natural_key_file)
+        split_queue_at = temp_list.index(track)
+        done_queue = deque(temp_list[:split_queue_at])
+        music_queue = deque(temp_list[split_queue_at:])
+    elif done_queue:
+        # sort and set queue to first item
+        music_queue = deque(sorted(done_queue, key=natural_key_file))
+        done_queue.clear()
+    update_gui_queue = True
+
+
+def shuffle_queue():
+    """
+    To be called when shuffle is toggled  on
+        extends the music_queue with done_queue
+        and then shuffles it
+    Does not affect next_queue
+    Keeps currently playing the same
+    """
+    global update_gui_queue, music_queue
+    # keep track the same if in the process of playing something
+    first_index = 1 if playing_status in {'PLAYING', 'PAUSED'} and music_queue else 0
+    music_queue.extend(done_queue)
+    done_queue.clear()
+    # shuffle is slow for a deque so use a list
+    temp_list = list(music_queue)
+    better_shuffle(temp_list, first=first_index)
+    music_queue = deque(temp_list)
+    update_gui_queue = True
+
+
 def format_file(uri: str, use_basename=False):
     try:
         if use_basename: raise TypeError
@@ -936,7 +985,7 @@ def create_track_list():
         spacing = ' ' if i < 10 else ''
         formatted_item = f'{spacing}{i}. {formatted_track}'
         tracks.append(formatted_item)
-    for i, uri in enumerate(music_queue[1:]):
+    for i, uri in enumerate(islice(music_queue, 1, None)):
         formatted_track = format_file(uri)
         i += mq_start
         spacing = ' ' if i < 10 else ''
@@ -1099,7 +1148,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     try:
         track_length = get_length(uri)
     except InvalidAudioFile:
-        tray.show_message('Music Caster', f"ERROR: can't play {music_queue.pop(0)}")
+        tray.show_message('Music Caster', f"ERROR: can't play {music_queue.popleft()}")
         if music_queue: play(music_queue[0])
         return
     metadata = get_metadata_wrapped(uri)
@@ -1147,12 +1196,12 @@ def play(uri, position=0, autoplay=True, switching_device=False):
 
 
 def play_all(starting_files: list = None, queue_only=False):
-    global playing_status, indexing_tracks_thread
     """
     Clears done queue, music queue,
     Adds starting files to music queue,
     [shuffle] queues files in the "library" with index_all_tracks (ignores starting_files)
     """
+    global playing_status, indexing_tracks_thread, music_queue
     if not queue_only:
         music_queue.clear()
         done_queue.clear()
@@ -1164,7 +1213,10 @@ def play_all(starting_files: list = None, queue_only=False):
         music_queue.extend(index_all_tracks(False, starting_files).keys())
     else:
         music_queue.extend(all_tracks.keys())
-    if music_queue: shuffle(music_queue)
+    if music_queue:
+        temp_list = list(music_queue)
+        shuffle(temp_list)
+        music_queue = deque(temp_list)
     if starting_files:
         for j, _f in enumerate(starting_files):
             music_queue.insert(j, _f)
@@ -1216,11 +1268,12 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
         else: temp_queue.extend(settings['playlists'].get(path, []))
     update_gui_queue = True
     if settings['shuffle']:
-        # if from_explorer make temp_queue all files already in queue
-        temp_queue = music_queue[1:] * from_explorer + temp_queue
+        # if from_explorer make temp_queue should also include files in the queue
+        for item in islice(music_queue * from_explorer, 1, None):
+            temp_queue.append(item)
         shuffle(temp_queue)
         # remove all but first track if from_explorer
-        for _ in range(1, len(music_queue) * from_explorer): music_queue.pop()
+        for _ in range(len(music_queue) * from_explorer - 1): music_queue.pop()
     music_queue.extend(temp_queue)
     if not queue_only:
         if music_queue:
@@ -1487,8 +1540,8 @@ def next_track(from_timeout=False):
         # if repeat all or repeat is off or empty queue or not manual next
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
-            if music_queue: done_queue.append(music_queue.pop(0))
-            if next_queue: music_queue.insert(0, next_queue.pop(0))
+            if music_queue: done_queue.append(music_queue.popleft())
+            if next_queue: music_queue.insert(0, next_queue.popleft())
             # if queue is empty but repeat is all AND there are tracks in the done_queue
             if not music_queue and settings['repeat'] is False and done_queue:
                 music_queue.extend(done_queue)
@@ -1799,7 +1852,7 @@ def reset_progress():
 def read_main_window():
     global main_last_event, mouse_hover, playing_status, update_volume_slider, progress_bar_last_update
     global track_position, track_start, track_end, timer, main_window, update_gui_queue
-    global tray_playlists, pl_files, pl_name, playlists
+    global tray_playlists, pl_files, pl_name, playlists, music_queue, done_queue
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=2)
     if (main_event in {None, 'Escape:27'} and
@@ -1938,6 +1991,8 @@ def read_main_window():
         shuffle_image_data = SHUFFLE_ON if shuffle_option else SHUFFLE_OFF
         main_window['shuffle'].update(image_data=shuffle_image_data)
         main_window['shuffle'].metadata = shuffle_option
+        if shuffle_option: shuffle_queue()
+        else: un_shuffle_queue()
     elif main_event in {'repeat', 'r:82'}:
         cycle_repeat(True)
     elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
@@ -1991,9 +2046,9 @@ def read_main_window():
             else:
                 for _ in range(selected_track_index - len(done_queue)):
                     if not music_queue: break
-                    done_queue.append(music_queue.pop(0))
+                    done_queue.append(music_queue.popleft())
                     if next_queue:
-                        music_queue.insert(0, next_queue.pop(0))
+                        music_queue.insert(0, next_queue.popleft())
             if music_queue: play(music_queue[0])
             updated_list = create_track_list()[0]
             dq_len = len(done_queue)
@@ -2006,7 +2061,8 @@ def read_main_window():
         dq_len = len(done_queue)
         nq_len = len(next_queue)
         if index_to_move < dq_len and new_i >= 0:  # move within dq
-            done_queue.insert(new_i, done_queue.pop(index_to_move))
+            # swap places
+            done_queue[new_i], done_queue[index_to_move] = done_queue[index_to_move], done_queue[new_i]
         elif index_to_move == dq_len and done_queue:  # move index -1 to 1
             if next_queue:
                 next_queue.insert(1, done_queue.pop())
@@ -2014,17 +2070,22 @@ def read_main_window():
                 music_queue.insert(1, done_queue.pop())
         elif index_to_move == dq_len + 1:  # move 1 to -1
             if next_queue:
-                done_queue.append(next_queue.pop(0))
+                done_queue.append(next_queue.popleft())
             else:
-                done_queue.append(music_queue.pop(1))
+                track = music_queue[1]
+                del music_queue[1]
+                done_queue.append(track)
         elif next_queue and index_to_move > dq_len and index_to_move - dq_len < nq_len:  # within next_queue
             nq_i = new_i - dq_len - 1
-            next_queue.insert(nq_i, next_queue.pop(nq_i + 1))
+            # swap places, NOTE: could be more efficient using a custom deque with O(n) swaps instead of O(2n)
+            next_queue[nq_i], next_queue[nq_i + 1] = next_queue[nq_i + 1], next_queue[nq_i]
         elif next_queue and index_to_move == dq_len + nq_len + 1:  # moving into next queue
-            next_queue.insert(nq_len - 1, music_queue.pop(1))
+            track = music_queue[1]
+            del music_queue[1]
+            next_queue.insert(nq_len - 1, track)
         elif new_i >= 0:  # moving within mq
             mq_i = new_i - dq_len - nq_len
-            music_queue.insert(mq_i, music_queue.pop(mq_i + 1))
+            music_queue[mq_i], music_queue[mq_i + 1] = music_queue[mq_i + 1], music_queue[mq_i]
         else:
             new_i = max(new_i, 0)
         updated_list = create_track_list()[0]
@@ -2040,31 +2101,34 @@ def read_main_window():
                 else:
                     music_queue.insert(1, done_queue.pop())
             elif index_to_move < dq_len:  # move within dq
-                done_queue.insert(new_i, done_queue.pop(index_to_move))
+                done_queue[new_i], done_queue[new_i + 1] = done_queue[new_i + 1], done_queue[new_i]
             elif index_to_move == dq_len:  # move 1 to -1
                 if next_queue:
-                    done_queue.append(next_queue.pop(0))
+                    done_queue.append(next_queue.popleft())
                 else:
-                    done_queue.append(music_queue.pop(1))
+                    track = music_queue[1]
+                    del music_queue[1]
+                    done_queue.append(track)
             elif next_queue and index_to_move == dq_len + nq_len:  # moving into music_queue
                 music_queue.insert(2, next_queue.pop())
             elif index_to_move < dq_len + nq_len + 1:  # within next_queue
                 nq_i = index_to_move - dq_len - 1
-                next_queue.insert(nq_i, next_queue.pop(nq_i - 1))
+                next_queue[nq_i], next_queue[nq_i - 1] = next_queue[nq_i - 1], next_queue[nq_i]
             else:  # within music_queue
                 mq_i = new_i - dq_len - nq_len
-                music_queue.insert(mq_i, music_queue.pop(mq_i - 1))
+                # swap places
+                music_queue[mq_i], music_queue[mq_i - 1] = music_queue[mq_i - 1], music_queue[mq_i]
             updated_list = create_track_list()[0]
             main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'remove_track' and main_values['queue']:
         index_to_remove = main_window['queue'].get_list_values().index(main_values['queue'][0])
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
         if index_to_remove < dq_len:
-            done_queue.pop(index_to_remove)
+            del done_queue[index_to_remove]
         elif index_to_remove == dq_len:
             # remove the "0. XXXX" track that could be playing right now
-            music_queue.pop(0)
-            if next_queue: music_queue.insert(0, next_queue.pop(0))
+            music_queue.popleft()
+            if next_queue: music_queue.insert(0, next_queue.popleft())
             # if queue is empty but repeat is all AND there are tracks in the done_queue
             if not music_queue and settings['repeat'] is False and done_queue:
                 music_queue.extend(done_queue)
@@ -2075,9 +2139,9 @@ def read_main_window():
             else:
                 stop('remove_track')
         elif index_to_remove <= nq_len + dq_len:
-            next_queue.pop(index_to_remove - dq_len - 1)
+            del next_queue[index_to_remove - dq_len - 1]
         elif index_to_remove < nq_len + mq_len + dq_len:
-            music_queue.pop(index_to_remove - dq_len - nq_len)
+            del music_queue[index_to_remove - dq_len - nq_len]
         updated_list = create_track_list()[0]
         new_i = min(len(updated_list), index_to_remove)
         main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
@@ -2121,7 +2185,11 @@ def read_main_window():
         next_queue.clear()
         done_queue.clear()
     elif main_event == 'save_queue':
-        pl_files = done_queue + ([music_queue[0]] if music_queue else []) + next_queue + music_queue[1:]
+        pl_files = []
+        for path in done_queue: pl_files.append(path)
+        if music_queue: pl_files.append(music_queue[0])
+        for path in next_queue: pl_files.append(path)
+        for path in islice(music_queue, 1, None): pl_files.append(path)
         formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
         pl_name = ''
         main_window['tab_playlists'].select()
@@ -2164,7 +2232,7 @@ def read_main_window():
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
-                        'folder_context_menu', 'shuffle', 'save_window_positions', 'populate_queue_startup',
+                        'folder_context_menu', 'save_window_positions', 'populate_queue_startup',
                         'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
                         'show_album_art', 'reversed_play_next', 'scan_folders'}:
         change_settings(main_event, main_value)
@@ -2728,6 +2796,7 @@ try:
         while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
         play_paths(args.paths, queue_only=args.queue)
     elif settings['save_queue_sessions']:
+        # load saved queues from settings.json
         for queue_name in ('done', 'music', 'next'):
             queue = {'done': done_queue, 'music': music_queue, 'next': next_queue}[queue_name]
             for file in settings['queues'].get(queue_name, []):
@@ -2774,7 +2843,11 @@ try:
     }
     while True:
         tray_item = tray.Read(timeout=1 if any(active_windows.values()) else 100)
-        tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
+        try:
+            tray_actions.get(tray_item, lambda: other_tray_actions(tray_item))()
+        except AttributeError:  # tray_item is None
+            # tray was closed without "exit" being pressed
+            exit_program()
         while not daemon_commands.empty():
             daemon_command = daemon_commands.get()
             tray_actions.get(daemon_command, lambda: other_tray_actions(daemon_command))()
