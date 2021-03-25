@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.76.3
+- [Fix] Tray not showing up
+
 4.76.2
 - [Fix] Get latest release
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.76.2'
+VERSION = latest_version = '4.76.3'
 UPDATE_MESSAGE = """
 [Feature] Move track in queue to next up & cleaner UI
 [Optimization] Lowered CPU usage and window drag stuttering
@@ -12,6 +12,8 @@ parser.add_argument('--update', '-u', default=False, action='store_true', help='
 parser.add_argument('--exit', '-x', default=False, action='store_true',
                     help='exits any existing instance (including self)')
 parser.add_argument('paths', nargs='*', default=[], help='list of files/dirs/playlists to play/queue')
+# freeze_support() adds the following
+parser.add_argument('--multiprocessing-fork', default=False, action='store_true')
 # the following option is used in the build script since MC doesn't run as a CLI
 parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
 args = parser.parse_args()
@@ -2759,6 +2761,7 @@ def activate_instance(port):
 
 
 if __name__ == '__main__':
+    mp.freeze_support()
     try:
         with suppress(FileNotFoundError): os.remove('music_caster.log')
     except PermissionError:

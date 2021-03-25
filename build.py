@@ -136,7 +136,12 @@ else: set_spec_debug(False)
 if args.upload and not args.dry: print('Will upload to GitHub after building')
 
 # remove old builds
-shutil.rmtree('dist/Music Caster', True)
+try:
+    with suppress(FileNotFoundError):
+        shutil.rmtree('dist/Music Caster', False)
+except PermissionError:
+    print('files in dist/Music caster are in use somehow')
+    sys.exit()
 for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
     with suppress(FileNotFoundError):
         dist_file = os.path.join('dist', dist_file)
