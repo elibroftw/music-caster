@@ -319,7 +319,8 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
                 if ext != 'mp4': wr.SetValueEx(key, None, 0, wr.REG_SZ, 'MusicCaster_file')
         # add to Open With (prompts user to set default program when they try playing a file)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
-            wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, '')
+            # noinspection PyTypeChecker
+            wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, b'')  # type needs to be bytes
 
     play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
     queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'

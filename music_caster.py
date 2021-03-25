@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.76.0'
+VERSION = latest_version = '4.76.1'
 UPDATE_MESSAGE = """
 [Feature] Move track in queue to next up & cleaner UI
 [Optimization] Lowered CPU usage and window drag stuttering
