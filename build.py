@@ -9,8 +9,6 @@ from datetime import datetime
 import argparse
 import glob
 from distutils.dir_util import copy_tree
-try: from music_caster import VERSION
-except RuntimeError as e: VERSION = str(e)
 import requests
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
@@ -26,10 +24,13 @@ start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+os.chdir(starting_dir)
 MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe'
 PORTABLE_SPEC_FILE = 'build_files/portable.spec'
 ONEDIR_SPEC_FILE = 'build_files/onedir.spec'
 UPDATER_SPEC_FILE = 'build_files/updater.spec'
+VERSION = subprocess.check_output('python music_caster.py --version', text=True).strip()
+
 
 def read_env(env_file='.env'):
     with open(env_file) as f:

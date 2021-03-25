@@ -1,6 +1,6 @@
 from b64_images import *
 
-import base64
+from base64 import b64encode, b64decode
 from contextlib import suppress
 import ctypes
 import datetime
@@ -40,9 +40,9 @@ FONT_TITLE = 'Helvetica', 14
 FONT_MID = 'Helvetica', 12
 LINK_COLOR = '#3ea6ff'
 COVER_MINI = (125, 125)
+COVER_NORMAL = (255, 255)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 # for stealing focus when bring window to front
-set_to_foreground = ctypes.windll.user32.SetForegroundWindow
 keybd_event = ctypes.windll.user32.keybd_event
 alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
 
@@ -217,6 +217,7 @@ def valid_music_file(file_path):
             or file_path.endswith('.wma') or file_path.endswith('.wav'))
 
 
+# noinspection PyTypeChecker
 def parse_youtube_id(url):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
@@ -318,7 +319,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
                 if ext != 'mp4': wr.SetValueEx(key, None, 0, wr.REG_SZ, 'MusicCaster_file')
         # add to Open With (prompts user to set default program when they try playing a file)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
-            wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, b'')
+            wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, '')
 
     play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
     queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'
@@ -365,9 +366,9 @@ def get_default_output_device():
     return active_device_name
 
 
-def resize_img(base64data, bg, new_size=(255, 255)) -> bytes:
+def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
-    img_data = io.BytesIO(base64.b64decode(base64data))
+    img_data = io.BytesIO(b64decode(base64data))
     art_img: Image = Image.open(img_data)
     w, h = art_img.size
     if w == h:
@@ -384,7 +385,7 @@ def resize_img(base64data, bg, new_size=(255, 255)) -> bytes:
         img.paste(art_img, (paste_width, paste_height))
     data = io.BytesIO()
     img.save(data, format='png', quality=95)
-    return base64.b64encode(data.getvalue())
+    return b64encode(data.getvalue())
 
 
 # GUI LAYOUTS
@@ -473,10 +474,10 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     # 10 or 30
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
-        [Sg.Image(data=album_art_data, pad=(0, 0), size=(255, 255), key='album_art')] if album_art_data else [],
+        [Sg.Image(data=album_art_data, pad=(0, 0), size=COVER_NORMAL, key='album_art')] if album_art_data else [],
         [Sg.Text(album, font=FONT_MID, key='album', pad=((0, 0), (info_top_pad, 0)),
                  size=(30, 2), justification='center')],
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (10, 10)),
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (5, 5)),
                  size=(30, 2), justification='center')],
         [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)),
                  size=(30, 0), justification='center')],
@@ -501,10 +502,16 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip='Clear the queue')],
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip='Save queue to playlist')],
         [Sg.Button(key='locate_track', image_data=LOCATE_FILE, **img_button, tooltip='Locate track')],
-        [Sg.Button('▲', key='move_up', tooltip='Move track up', size=(3, 1))],
-        [Sg.Button('❌', key='remove_track', tooltip='Remove track', size=(3, 1))],
-        [Sg.Button('▼', key='move_down', tooltip='Move track down', size=(3, 1))]]
-    listbox_height = 18
+        [Sg.Button('▲', key='move_up', button_color=('#fff', bg), border_width=0,
+                   tooltip='Move track up', size=(2, 1))],
+        [Sg.Button('❌', key='remove_track', button_color=('#fff', bg), border_width=0,
+                   tooltip='Remove track', size=(2, 1))],
+        [Sg.Button('▼', key='move_down', button_color=('#fff', bg), border_width=0,
+                   tooltip='Move track down', size=(2, 1))],
+        [Sg.Button(key='move_to_next_up', image_data=MOVE_TO_NEXT_QUEUE, **img_button,
+                   tooltip='Move to next up')]
+    ]
+    listbox_height = 20
     queue_tab_layout = [queue_controls, [
         # TODO: add right click menus for list boxes
         Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
@@ -676,5 +683,5 @@ def create_play_url(combo_value='Play Immediately', default_text=''):
 def steal_focus(window: Sg.Window):
     # makes window the top-most application
     keybd_event(alt_key, 0, extended_key | 0, 0)
-    set_to_foreground(window.TKroot.winfo_id())
+    ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
     keybd_event(alt_key, 0, extended_key | key_up, 0)
