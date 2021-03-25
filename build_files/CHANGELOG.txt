@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.76.1
+- [Fix] Registry error
+
 4.76.0
 - [Feature] Move track in queue to next up
 - [UI] Better queue button
