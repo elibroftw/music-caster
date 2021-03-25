@@ -475,9 +475,9 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     main_part = Sg.Column([
         [Sg.Image(data=album_art_data, pad=(0, 0), size=(255, 255), key='album_art')] if album_art_data else [],
         [Sg.Text(album, font=FONT_MID, key='album', pad=((0, 0), (info_top_pad, 0)),
-                 size=(30, 0), justification='center')],
+                 size=(30, 2), justification='center')],
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), (10, 10)),
-                 size=(30, 0), justification='center')],
+                 size=(30, 2), justification='center')],
         [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)),
                  size=(30, 0), justification='center')],
         music_controls, progress_bar_layout], element_justification='center', pad=((left_pad, 5), (5, 5)))

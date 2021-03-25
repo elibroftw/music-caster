@@ -1,7 +1,8 @@
-VERSION = latest_version = '4.75.0'
+VERSION = latest_version = '4.75.1'
 UPDATE_MESSAGE = """
 [Feature] Shuffle and un-shuffle (sort) the queue
 [Optimization] next and previous track are faster for massive queues
+[Fix] Album and Title alignment resizing window
 """.strip()
 if __name__ != '__main__': raise RuntimeError(VERSION)  # hack
 import argparse
