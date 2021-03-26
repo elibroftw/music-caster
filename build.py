@@ -1,5 +1,7 @@
+from helpers import is_already_running, get_running_processes
+from test_harness import test_helpers
 import time
-import subprocess
+from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
 import os
 import shutil
 import zipfile
@@ -10,14 +12,16 @@ import argparse
 import glob
 from distutils.dir_util import copy_tree
 import requests
+import traceback
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=True')
 parser.add_argument('--ver_update', '-v', default=False, action='store_true', help="Only update build files' version")
-parser.add_argument('--start', '-s', default=False, action='store_true', help='Auto launch portable MC after building')
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
+parser.add_argument('--skip_build', '-sb', default=False, action='store_true',
+                    help='Skip to testing / uploading')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 args = parser.parse_args()
 start_time = time.time()
@@ -29,7 +33,8 @@ MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuil
 PORTABLE_SPEC_FILE = 'build_files/portable.spec'
 ONEDIR_SPEC_FILE = 'build_files/onedir.spec'
 UPDATER_SPEC_FILE = 'build_files/updater.spec'
-VERSION = subprocess.check_output('python music_caster.py --version', text=True).strip()
+UPDATER_DIST_PATH = r'Music Caster Updater\bin\x86\Release\netcoreapp3.1'
+VERSION = getoutput('python music_caster.py --version')
 
 
 def read_env(env_file='.env'):
@@ -128,50 +133,55 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 
 
 if args.dry: print('Dry Build')
-update_versions()
-print('Updated versions of build files')
+else:
+    for process in get_running_processes('Music Caster.exe'):
+        pid = process['pid']
+        os.kill(pid, 9)
+if not args.skip_build:
+    update_versions()
+    print('Updated versions of build files')
 if args.ver_update: sys.exit()
 if args.debug and not args.dry: set_spec_debug(True)
 else: set_spec_debug(False)
 if args.upload and not args.dry: print('Will upload to GitHub after building')
 
-# remove old builds
-try:
-    with suppress(FileNotFoundError):
-        shutil.rmtree('dist/Music Caster', False)
-except PermissionError:
-    print('files in dist/Music caster are in use somehow')
-    sys.exit()
-for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
-    with suppress(FileNotFoundError):
-        dist_file = os.path.join('dist', dist_file)
-        print(f'Removing {dist_file}')
-        os.remove(dist_file)
+if not args.skip_build:
+    # remove existing builds
+    try:
+        with suppress(FileNotFoundError):
+            shutil.rmtree('dist/Music Caster', False)
+    except PermissionError:
+        print('files in dist/Music caster are in use somehow')
+        sys.exit()
+    for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+        with suppress(FileNotFoundError):
+            dist_file = os.path.join('dist', dist_file)
+            print(f'Removing {dist_file}')
+            os.remove(dist_file)
+    shutil.rmtree(UPDATER_DIST_PATH, True)
 
-pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
-print('Installing / Updating dependencies...')
-py_exe = sys.executable
-subprocess.check_output(f'{py_exe} -m pip install --upgrade -r requirements.txt'.split(), text=True)
-try: subprocess.check_call(f'{py_exe} -m pip install build_files\\{pyaudio_whl}'.split(), stdout=subprocess.DEVNULL)
-except subprocess.CalledProcessError: print(f'WARNING: {pyaudio_whl} could not be installed with')
-try: subprocess.check_call(f'{py_exe} -m pip install build_files\\{pyinstaller_whl}'.split(), stdout=subprocess.DEVNULL)
-except subprocess.CalledProcessError: print(f'WARNING: "{pyinstaller_whl}" could not be installed with')
-if not args.dry:
+if not args.skip_build:
+    print('Installing / Updating dependencies...')
+    pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
+    pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
+    py_exe = sys.executable
+    getoutput(f'{py_exe} -m pip install --upgrade -r requirements.txt')
+    for whl in (pyaudio_whl, pyinstaller_whl):
+        try: check_call(f'{py_exe} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
+        except CalledProcessError: print(f'WARNING: {whl} could not be installed with')
+if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
-    py_installer_exe = os.path.dirname(sys.executable) + '\\Scripts\\pyinstaller.exe'
-    try: s1 = subprocess.Popen(f'pyinstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC_FILE}')
-    except FileNotFoundError: s1 = subprocess.Popen(f'"{py_installer_exe}" {PORTABLE_SPEC_FILE}')
-    updater_release_path = r'Music Caster Updater\bin\x86\Release\netcoreapp3.1'
-    shutil.rmtree(updater_release_path, True)
-    subprocess.check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln" /t:Build '
-                          f'/p:Configuration=Release /p:PlatformTarget=x86')
+    py_installer_exe = f'{os.path.dirname(sys.executable)}\\Scripts\\pyinstaller.exe'
+    try: s1 = Popen(f'pyinstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC_FILE}')
+    except FileNotFoundError: s1 = Popen(f'"{py_installer_exe}" {PORTABLE_SPEC_FILE}')
+    check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln"'
+               f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     # try: s2 = subprocess.Popen('pyinstaller {UPDATER_SPEC_FILE}')
     # except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" {UPDATER_SPEC_FILE}')
-    try: subprocess.check_call(f'pyinstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC_FILE}')
-    except FileNotFoundError: subprocess.check_call(f'"{py_installer_exe}" {ONEDIR_SPEC_FILE}')
+    try: check_call(f'pyinstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC_FILE}')
+    except FileNotFoundError: check_call(f'"{py_installer_exe}" {ONEDIR_SPEC_FILE}')
     # s2.wait()
-    try: s4 = subprocess.Popen('iscc build_files/setup_script.iss')
+    try: s4 = Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError: s4 = None
     portable_failed = s1.wait()
     if args.debug: set_spec_debug(False)
@@ -192,25 +202,22 @@ if not args.dry:
     # noinspection PyTypeChecker
     portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')]
     portable_files.extend(res_files + glob.glob('vlc/**/*.*', recursive=True))
-    portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(updater_release_path)}/*.*')])
+    portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py',
                                                    'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
                                                    'settings.json'] + res_files)
-    if args.start:
-        print('Launching Music Caster.exe')
-        subprocess.Popen(r'"dist\Music Caster.exe --debug"')
     if s4 is not None: s4.wait()  # Wait for inno script to finish
     else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
-print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
-print('Last commit id: ' + subprocess.getoutput('git log --format="%H" -n 1'))
+    print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
+    print('Last commit id: ' + getoutput('git log --format="%H" -n 1'))
 
 dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
 
 # check if all files were built
-all_exist = True
+tests_passed = True
 for dist_file in dist_files:
     file_name = f'dist/{dist_file}'
     file_exists = os.path.exists(file_name)
@@ -220,17 +227,49 @@ for dist_file in dist_files:
         file_exists_str += f' {file_size:,} KB'.rjust(12)
     output_string = (dist_file + ':').ljust(30) + file_exists_str
     print(output_string)
-    if not file_exists: all_exist = False
+    if not file_exists: tests_passed = False
 
 
-with zipfile.ZipFile('dist/Portable.zip') as portable_zip:
-    if 'Updater.exe' in portable_zip.namelist():
-        print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
-    else:
-        print('Portable.zip/Updater.exe:'.ljust(30) + 'DOES NOT EXIST!')
-        all_exist = False
+if tests_passed:
+    with zipfile.ZipFile('dist/Portable.zip') as portable_zip:
+        if 'Updater.exe' in portable_zip.namelist():
+            print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
+        else:
+            print('Portable.zip/Updater.exe:'.ljust(30) + 'DOES NOT EXIST!')
+            tests_passed = False
 
-if args.upload and all_exist and not args.dry:
+
+def test(title, fn, assert_statement=False):
+    try:
+        if assert_statement:
+            assert fn()
+        else:
+            fn()
+    except Exception as _e:
+        print('---')
+        print('TEST FAILED', title)
+        print('TEST TRACEBACK', traceback.format_exc())
+        print('---')
+        raise _e
+
+
+if not args.dry and tests_passed:
+    try:
+        test_helpers()
+    except AssertionError as e:
+        print('TESTS FAILED: test_helpers()')
+        raise e
+    # Test if executable can be run
+    p = Popen('"dist/Music Caster/Music Caster.exe"', shell=True)
+    time.sleep(3)
+    test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
+    time.sleep(3)
+    test('Music Caster Exit API', lambda: requests.get('http://localhost:2001/exit'))
+    time.sleep(3)
+    test('Music Caster Should Have Exited', lambda: not is_already_running(), True)
+
+
+if args.upload and tests_passed and not args.dry:
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}

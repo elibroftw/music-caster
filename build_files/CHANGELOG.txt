@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.77.0
+- [Feature] Support for YouTube playlists and SoundCloud Sets
+- [Fix] Playing YouTube links
+
 4.76.4
 - [Fix] Folder browse and playlists add tracks
 

@@ -1,332 +1,150 @@
-import pyaudio
-
 from helpers import *
-import base64
-from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
-from pathlib import Path
-from contextlib import suppress
-import mutagen.id3
 from helpers import get_metadata
-import argparse
-
-
-parser = argparse.ArgumentParser(description='Music Caster Test Harness')
-parser.add_argument('--pyaudio', '-p', default=False,
-                    action='store_true', help='test pyaudio')
-parser.add_argument('--helpers', '-f', default=False,
-                    action='store_true', help='test helper functions')
-args = parser.parse_args()
-
-if args.pyaudio:
-    p = pyaudio.PyAudio()
-    print('Default Audio Device:', get_default_output_device())
-    print('Sleeping for 1 second...')
-    time.sleep(1)
-
-with suppress(InvalidAudioFile):
-    # should raise an error but not crash program
-    get_length('audio_player.py')
-music_metadata = {}
-timer = time.time()
-
-if args.helpers:
-    print('is_already_running():', is_already_running(threshold=1), f'({round(time.time() - timer, 2)}s)')
-    print('get_mac():', get_mac())
-
-
-def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
-    try:
-        return get_metadata(file_path)
-    except mutagen.MutagenError:
-        try:
-            metadata = all_tracks[file_path]
-            return metadata
-        except KeyError:
-            return {'title': 'Unknown Title', 'artist': 'Unknown Artist',
-                    'album': 'Unknown Album', 'sort_key': 'Unknown - Unknown'}
-
-
-def get_uri_info(uri):
-    # get metadata from all_track and resort to url_metadata if not found in music_metadata
-    #   if file/url is not in all_track. e.g. links
-    uri = uri.replace('\\', '/')
-    try:
-        return music_metadata[uri]
-    except KeyError:
-        metadata = get_metadata_wrapped(uri)
-        with suppress(InvalidAudioFile):
-            length = get_length(uri)
-            metadata['length'] = length
-        music_metadata[uri] = metadata
-        return metadata
-
-
-def format_file(uri: str):
-    try:
-        metadata = get_uri_info(uri)
-        title, artist = metadata['title'], metadata['artist']
-        if artist.startswith('Unknown') or title.startswith('Unknown'):
-            raise KeyError
-        return f'{artist} - {title}'
-    except (TypeError, KeyError):  # show something useful instead of Unknown - Unknown
-        if uri.startswith('http'):
-            return uri
-        base = os.path.basename(uri)
-        return os.path.splitext(base)[0]
-
-
-def create_track_list():
-    """:returns the formatted tracks queue, and the selected value (currently playing)"""
-    tracks = []
-    dq_len = len(done_queue)
-    mq_start = len(next_queue) + 1
-    selected_item = None
-    # format: Index. Artists - Title
-    for i, uri in enumerate(done_queue):
-        formatted_track = format_file(uri)
-        formatted_item = f'-{dq_len - i}. {formatted_track}'
-        tracks.append(formatted_item)
-    if music_queue:
-        formatted_track = format_file(music_queue[0])
-        formatted_item = f' {0}. {formatted_track}'
-        tracks.append(formatted_item)
-        selected_item = formatted_item
-    for i, uri in enumerate(next_queue):
-        formatted_track = format_file(uri)
-        formatted_item = f' {i + 1}. {formatted_track}'
-        tracks.append(formatted_item)
-    for i, uri in enumerate(music_queue[1:]):
-        formatted_track = format_file(uri)
-        formatted_item = f' {i + mq_start}. {formatted_track}'
-        tracks.append(formatted_item)
-    return tracks, selected_item
+from music_caster import settings
 
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
-# MUSIC_FILE_WITHOUT_ALBUM_ART = r''
-SAMPLE_MUSIC_FILES = [
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - My Pet Coelacanth.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Not Exactly.mp3",
+TEST_MUSIC_FILES = [
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - My Pet Coelacanth.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Not Exactly.mp3',
     r"C:\Users\maste\OneDrive\Music\deadmau5 - Phantoms Can't Hang.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Rio.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - SATRN.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Saved.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Slip.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - So There I Was.mp3",  # DNE
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Sofi Needs a Ladder.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Some Kind of Blue.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Sometimes Things Get, Whatever.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 - Three Pound Chicken Wing.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5 & Kaskade - I Remember.mp3",
-    r"C:\Users\maste\OneDrive\Music\deadmau5, Grabbitz - Let Go.mp3",
-    r"C:\Users\maste\OneDrive\Music\Diplo, Trippie Redd - Wish.mp3",
-    r"C:\Users\maste\OneDrive\Music\Dirty South, Alesso, Ruben Haze - City Of Dreams.mp3",
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Rio.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - SATRN.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Saved.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Slip.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - So There I Was.mp3',  # DNE
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Sofi Needs a Ladder.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Some Kind of Blue.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Sometimes Things Get, Whatever.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 - Three Pound Chicken Wing.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5 & Kaskade - I Remember.mp3',
+    r'C:\Users\maste\OneDrive\Music\deadmau5, Grabbitz - Let Go.mp3',
+    r'C:\Users\maste\OneDrive\Music\Diplo, Trippie Redd - Wish.mp3',
+    r'C:\Users\maste\OneDrive\Music\Dirty South, Alesso, Ruben Haze - City Of Dreams.mp3',
     r"C:\Users\maste\OneDrive\Music\Dogzilla - Without You (John O'Callaghan Extended Remix).mp3",
-    r"C:\Users\maste\OneDrive\Music\Dogzilla - Without You (Ronald van Gelderen Extended Remix).mp3",
-    r"C:\Users\maste\OneDrive\Music\Dogzilla - Without You (Will Atkinson Remix).mp3",
+    r'C:\Users\maste\OneDrive\Music\Dogzilla - Without You (Ronald van Gelderen Extended Remix).mp3',
+    r'C:\Users\maste\OneDrive\Music\Dogzilla - Without You (Will Atkinson Remix).mp3',
     r"C:\Users\maste\OneDrive\Music\Drake - Hold On, We're Going Home.mp3",
-    r"C:\Users\maste\OneDrive\Music\Drake - Over (Ayobi Remix).mp3",
-    r"C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3"]
+    r'C:\Users\maste\OneDrive\Music\Drake - Over (Ayobi Remix).mp3',
+    r'C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3'
+]
 
-all_tracks = {}
-all_tracks_sorted = []
-for file_path in SAMPLE_MUSIC_FILES:
-    file_path = file_path.replace('\\', '/')
-    if valid_music_file(file_path) and os.path.exists(file_path):
-        metadata = get_metadata_wrapped(file_path)
-        all_tracks[file_path] = metadata
-        all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
+LIST_TO_NAT_SORT_1 = ['1. Hello World', '3. Hello World', '10. Hello World', '2. Hello World', '9. Hello World',
+                      '11. Hello World', '12. Hello World']
+LIST_TO_NAT_SORT_2 = ['C:/Users/maste/OneDrive/Music/1. Hello World', 'C:/Users/maste/OneDrive/Music/3. Hello World',
+                      'C:/Users/maste/OneDrive/Music/10. Hello World', 'C:/Users/maste/OneDrive/Music/2. Hello World',
+                      'C:/Users/maste/OneDrive/Music/9. Hello World', 'C:/Users/maste/OneDrive/Music/11. Hello World',
+                      'C:/Users/maste/OneDrive/Music/12. Hello World']
+NAT_SORTED_LIST_1 = ['1. Hello World', '2. Hello World', '3. Hello World', '9. Hello World', '10. Hello World',
+                     '11. Hello World', '12. Hello World']
+NAT_SORTED_LIST_2 = ['C:/Users/maste/OneDrive/Music/1. Hello World', 'C:/Users/maste/OneDrive/Music/2. Hello World',
+                     'C:/Users/maste/OneDrive/Music/3. Hello World', 'C:/Users/maste/OneDrive/Music/9. Hello World',
+                     'C:/Users/maste/OneDrive/Music/10. Hello World', 'C:/Users/maste/OneDrive/Music/11. Hello World',
+                     'C:/Users/maste/OneDrive/Music/12. Hello World']
 
-file_path = MUSIC_FILE_WITH_ALBUM_ART
-audio_info = mutagen.File(file_path).info
-track_length = audio_info.length
-pict = None
-try:
-    tags = mutagen.id3.ID3(file_path)
-except mutagen.id3.ID3NoHeaderError:
-    tags = mutagen.File(file_path)
-    tags.add_tags()
-    tags.save()
-for tag in tags.keys():
-    if 'APIC' in tag:
-        pict = tags[tag].data
-        break
-music_meta_data = {}
-
-if pict:
-    music_meta_data[file_path] = {**get_metadata(file_path), 'length': track_length,
-                                  'art': f'{base64.b64encode(pict).decode("utf-8")}'}
-else:
-    music_meta_data[file_path] = {**get_metadata(file_path), 'length': track_length}
-music_meta_data[MUSIC_FILE_WITH_ALBUM_ART] = {**get_metadata(file_path), 'length': track_length,
-                                              'art': f'{base64.b64encode(pict).decode("utf-8")}'}
-metadata = music_meta_data[file_path]
-album_art_data = metadata.get('art', None)
-done_queue = SAMPLE_MUSIC_FILES[:3]
-next_queue = SAMPLE_MUSIC_FILES[3:6]
-music_queue = [file_path] + SAMPLE_MUSIC_FILES[6:]
-home_music_dir = f'{Path.home()}/Music'
-DEFAULT_THEME = {'accent': '#00bfff', 'alternate_background': '#222222',
-                 'background': '#121212', 'text': '#d7d7d7'}
-settings = {
-    'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
-    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': True, 'repeat': False,
-    'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
-    'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
-    'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
-    'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'update_check_hours': 1,
-    'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'scan_folders': False,
-    'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
-    'music_folders': [home_music_dir], 'playlists': {'sample': SAMPLE_MUSIC_FILES},
-    'queues': {'done': [], 'music': [], 'next': []}}
-
-theme = settings['theme']
-Sg.SetOptions(text_color=theme['text'], input_text_color=theme['text'], element_text_color=theme['text'],
-              background_color=theme['background'], text_element_background_color=theme['background'],
-              element_background_color=theme['background'], scrollbar_color=theme['background'],
-              input_elements_background_color=theme['background'], progress_meter_color=theme['accent'],
-              button_color=(theme['background'], theme['accent']),
-              border_width=1, slider_border_width=1, progress_meter_border_depth=0)
-
-tracks_list, selected_value = create_track_list()
-qr_code = create_qr_code(2001)
-really_long_tile = 'extremely long convoluted title that tests max length'
-
-# album cover test
-mini_mode = False
-size = COVER_MINI if mini_mode else (255, 255)
-settings['mini_mode'] = mini_mode
-default_album_art = resize_img(
-    DEFAULT_ART, settings['theme']['background'], size).decode()
-
-main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
-              'album_art_data': default_album_art, 'qr_code': qr_code}
-
-other_main_layout = create_main(tracks_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
-                                all_tracks_sorted, **main_attrs)
-main_window1 = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
-                         icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
-                         use_default_focus=False, margins=(0, 0) if mini_mode else (None, None))
-mini_mode = settings['mini_mode'] = not mini_mode
-size = COVER_MINI if mini_mode else (255, 255)
-default_album_art = resize_img(
-    DEFAULT_ART, settings['theme']['background'], size).decode()
-main_attrs = {'title': really_long_tile, 'artist': 'Artist Name',
-              'album_art_data': default_album_art, 'qr_code': qr_code}
-other_main_layout = create_main(tracks_list, selected_value, 'PLAYING', settings, 'TEST', time.time() + 999,
-                                all_tracks_sorted, **main_attrs)
-mini_window = Sg.Window('Music Caster - Main Window Test', other_main_layout, grab_anywhere=mini_mode,
-                        icon=WINDOW_ICON, return_keyboard_events=True, no_titlebar=mini_mode,
-                        use_default_focus=False, margins=(0, 0) if mini_mode else (None, None))
-for main_window in {main_window1, mini_window}:
-    main_window.Finalize()
-    main_window.TKroot.focus_force()
-    window_active = True
-    while window_active:
-        main_event, main_values = main_window.Read()
-        if main_event in {None, 'q', 'Q'} or main_event == 'Escape:27':
-            main_window.Close()
-            window_active = False
-        if main_event == 'repeat':
-            if settings['repeat'] is None:
-                repeat_setting = False  # Repeat All
-            elif settings['repeat']:
-                repeat_setting = None  # Repeat OFF
-            else:
-                repeat_setting = True  # Repeat One
-            settings['repeat'] = repeat_setting
-            repeat_img, new_tooltip = get_repeat_img_et_tooltip(repeat_setting)
-            main_window['repeat'].Update(image_data=repeat_img)
-            main_window['repeat'].SetTooltip(new_tooltip)
-
-# Settings GUI
-
-# Timer GUI
-
-# URL GUI
-play_url_window = Sg.Window(
-    'Play URL', create_play_url(), finalize=True, return_keyboard_events=True)
-play_url_window.TKroot.focus_force()
-play_url_window.Read(timeout=1500)  # 1.5 second timeout
-play_url_window.Close()
+GET_METADATA_FROM = [
+        r'C:\Users\maste\OneDrive\Music\$teven Cannon - Inxanity.mp3',
+        r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3',
+        r'C:\Users\maste\OneDrive\Music\88GLAM, Lil Yachty - Lil Boat.mp3',
+        r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3'
+    ]
+EXPECTED_METADATA = [
+    {'album': 'Inxanity', 'artist': '$teven Cannon', 'rating': 'E', 'sort_key': 'inxanity - $teven cannon',
+     'title': 'Inxanity', 'track_number': '1'},
+    {'album': '6ixupsidedown', 'artist': '6ixbuzz, Pressa, Houdini', 'rating': 'E', 'title': 'Up & Down',
+     'sort_key': 'up & down - 6ixbuzz, pressa, houdini', 'track_number': '1'},
+    {'album': '88GLAM2.5', 'artist': '88GLAM, Lil Yachty', 'rating': 'E', 'title': 'Lil Boat',
+     'sort_key': 'lil boat - 88glam, lil yachty', 'track_number': '6'},
+    {'album': 'Rebirth Classics - Ibiza', 'artist': 'Adam K & Soha', 'rating': 'C', 'title': 'Twilight',
+     'sort_key': 'twilight - adam k & soha', 'track_number': '4'}
+]
+EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
-app = Flask(__name__)
-app.jinja_env.lstrip_blocks = True
-app.jinja_env.trim_blocks = True
-os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+def test_helpers():
+    # test get length
+    for file in TEST_MUSIC_FILES:
+        try:
+            assert get_length(file) > 0
+        except InvalidAudioFile:
+            assert not os.path.exists(file)
+    for file in ('audio_player.py', 'file.mp4', 'README.txt'):
+        with suppress(InvalidAudioFile):
+            # should raise an error but not crash program
+            get_length(file)
+
+    LIST_TO_NAT_SORT_1.sort(key=natural_key_file)
+    LIST_TO_NAT_SORT_2.sort(key=natural_key_file)
+    assert LIST_TO_NAT_SORT_1 == NAT_SORTED_LIST_1
+    assert LIST_TO_NAT_SORT_2 == NAT_SORTED_LIST_2
+
+    for code in ('#fff', '#ffffff', '#aaa', '#abc', '#999', '#000', '#010', '#000000', '#999999', '#aaaaaa'):
+        assert valid_color_code(code)
+
+    for code in ('fff', '000', 'abcdef', '999999', '.', 'czc/z', '#...', '#/.;ads', '#fff.aa', '#999999a', '#ggg'):
+        assert not valid_color_code(code)
+
+    for file, expected_metadata in zip(GET_METADATA_FROM, EXPECTED_METADATA):
+        assert get_metadata(file) == expected_metadata
+
+    if platform.system() == 'Windows':
+        assert fix_path('C:/Users/maste/OneDrive') == r'C:\Users\maste\OneDrive'
+    assert fix_path(r'C:\Users\maste\OneDrive', False) == 'C:/Users/maste/OneDrive'
+
+    for file, expected_first_artist in zip(GET_METADATA_FROM, EXPECTED_FIRST_ARTIST):
+        try:
+            assert get_first_artist(get_metadata(file)['artist']) == expected_first_artist
+        except AssertionError:
+            print('TEST FAILED', get_first_artist(file), '!=', expected_first_artist)
+            raise AssertionError
+
+    print('get_ipv4():', get_ipv4())
+    assert get_ipv4().count('.') == 3
+
+    print('get_mac():', get_mac())
+    assert get_mac().count(':') == 5
+
+    test_better_shuffle = list(range(10000))
+    better_shuffle(test_better_shuffle, 1, -2)
+    assert test_better_shuffle[0] == 0
+    assert test_better_shuffle[-1] == 9999
+
+    assert isinstance(create_qr_code('2001'), str)
+    for process in get_running_processes():
+        assert len(process) == 5
+        assert isinstance(process['pid'], int)
+    assert isinstance(is_already_running(), bool)
+    for file in ('.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'):
+        assert valid_audio_file(file)
+
+    for youtube_link in {'https://youtu.be/Dlxu28sQfkE',
+                         'https://www.youtube.com/watch?v=Dlxu28sQfkE&feature=youtu.be',
+                         'https://www.youtube.com/watch/Dlxu28sQfkE',
+                         'https://www.youtube.com/embed/Dlxu28sQfkE',
+                         'https://www.youtube.com/v/Dlxu28sQfkE',
+                         'https://www.youtube.com/playlist?list=PLRbcUrcJVEmX_eaAsubNOWfE4SlhGqjW4'}:
+        try:
+            assert parse_youtube_id(youtube_link)
+        except AssertionError:
+            print('TEST FAILED', youtube_link)
+            raise AssertionError
+
+    for option, expected in {True: (REPEAT_ONE_IMG, 'repeat off'),
+                             None: (REPEAT_OFF_IMG, 'repeat all'),
+                             False: (REPEAT_ALL_IMG, 'repeat track')}.items():
+        try:
+            assert get_repeat_img_et_tooltip(option) == expected
+        except AssertionError:
+            print('TEST FAILED', option)
+            raise AssertionError
+    assert create_progress_bar_text(30, 300) == ('0:30', '4:30')
+    print('Default Audio Device:', get_default_output_device())
+    for size in ((125, 425), COVER_MINI, COVER_NORMAL):
+        base64data = resize_img(DEFAULT_ART, settings['theme']['background'], new_size=size)
+        img_data = io.BytesIO(b64decode(base64data))
+        img: Image = Image.open(img_data)
+        assert img.size == size
 
 
-@app.errorhandler(404)
-def page_not_found(_):
-    return redirect('/')
-
-
-# # use socket io?
-# @app.route('/', methods=['GET', 'POST'])
-# def web_index():  # web GUI
-#     global music_queue, playing_status, all_tracks
-#     if request.method == 'POST':
-#         daemon_commands.put('Bring to Front')  # tells main loop to bring to front all GUI's
-#         return 'true' if any(active_windows.values()) else 'Music Caster'
-#     if request.args:
-#         api_msg = 'Invalid Command'
-#         if 'play' in request.args:
-#             if resume():
-#                 api_msg = 'resumed playback'
-#             else:
-#                 if music_queue:
-#                     play(music_queue[0])
-#                     api_msg = 'started playing first track in queue'
-#                 else:
-#                     play_all()
-#                     api_msg = 'shuffled all and started playing'
-#         elif 'pause' in request.args:
-#             pause()  # resume == play
-#             api_msg = 'pause called'
-#         elif 'next' in request.args:
-#             next_track()
-#             api_msg = 'next track called'
-#         elif 'prev' in request.args:
-#             prev_track()
-#             api_msg = 'prev track called'
-#         elif 'repeat' in request.args:
-#             cycle_repeat()
-#             api_msg = 'cycled repeat to ' + human_readable_repeat()
-#         elif 'shuffle' in request.args:
-#             shuffle_option = change_settings('shuffle', not settings['shuffle'])
-#             api_msg = f'shuffle set to {shuffle_option}'
-#         if 'is_api' in request.args:
-#             return api_msg
-#         return redirect('/')
-#     metadata = get_current_metadata()
-#     art = get_current_album_art()
-#     if type(art) == bytes: art = art.decode()
-#     art = f'data:image/png;base64,{art}'
-#     repeat_option = settings['repeat']
-#     repeat_color = 'red' if settings['repeat'] is not None else ''
-#     shuffle_option = 'red' if settings['shuffle'] else ''
-#     # sort by the formatted title
-#     list_of_tracks = []
-#     if all_tracks_sorted_sort_key:
-#         sorted_tracks = all_tracks_sorted_sort_key
-#     else:
-#         sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'].lower())
-#
-#     for filename, data in sorted_tracks:
-#         filename = urllib.parse.urlencode({'path': filename})
-#         list_of_tracks.append({'title': data['sort_key'], 'href': f'/play?{filename}'})
-#     _queue = create_track_list()[0]
-#     device_index = 0
-#     for i, device_name in enumerate(device_names):
-#         if device_name.startswith(CHECK_MARK):
-#             device_index = i
-#             break
-#     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
-#
-#     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
-#                            playing_status=playing_status,
-#                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
-#                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
-#                            playing_index=len(done_queue), device_index=device_index, devices=formatted_devices,
-#                            version=VERSION)
+if __name__ == '__main__':
+    test_helpers()

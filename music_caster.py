@@ -1,7 +1,6 @@
-VERSION = latest_version = '4.76.4'
+VERSION = latest_version = '4.77.0'
 UPDATE_MESSAGE = """
-[Feature] Move track in queue to next up & cleaner UI
-[Optimization] Lowered CPU usage and window drag stuttering
+[Feature] Support for YouTube Playlists and Soundcloud Sets
 """.strip()
 import argparse
 import sys
@@ -447,7 +446,7 @@ def index_all_tracks(update_global=True, ignore_files: Iterable = None):
         dict_to_use = all_tracks_temp if use_temp else all_tracks
         for folder in settings['music_folders']:
             for file_path in glob.iglob(f'{glob.escape(folder)}/**/*.*', recursive=True):
-                if valid_music_file(file_path):
+                if valid_audio_file(file_path):
                     file_path = file_path.replace('\\', '/')
                     metadata = get_metadata_wrapped(file_path)
                     dict_to_use[file_path] = metadata
@@ -761,7 +760,7 @@ def api_set_timer():
 def api_get_file():
     if 'path' in request.args:
         file_path = request.args['path']
-        if os.path.isfile(file_path) and valid_music_file(file_path):
+        if os.path.isfile(file_path) and valid_audio_file(file_path):
             if request.args.get('thumbnail_only', False):
                 mime_type, img_data = get_album_art(file_path)
                 if mime_type is None:
@@ -1042,7 +1041,7 @@ def create_track_list():
 
 
 def after_play(title, artists: str, autoplay, switching_device):
-    global playing_status, cast_last_checked
+    global playing_status, cast_last_checked, update_gui_queue
     app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
     # artists is comma separated string
     playing_text = f"{get_first_artist(artists)} - {title}"
@@ -1068,6 +1067,7 @@ def after_play(title, artists: str, autoplay, switching_device):
         with suppress(Exception):
             rich_presence.update(state=f'By: {artists}', details=title, large_image='default',
                                  large_text='Listening', small_image='logo', small_text='Music Caster')
+    update_gui_queue = True
 
 
 def stream_live_audio(switching_device=False):
@@ -1144,21 +1144,30 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
     if cast is None:
         tray_notify('ERROR: Not connected to a cast device')
         return False
-    elif url.startswith('http') and valid_music_file(url):  # source url e.g. http://...radio.mp3
+    elif url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
         metadata = {'title': title, 'artist': artist, 'length': 108000, 'album': album, 'src': url}
-        url_metadata[url.replace('\\', '/')] = metadata
+        url_metadata[url] = metadata
         track_length = 108000  # 3 hour default
         return play_url_generic(url, ext, title, artist, album, track_length, position=position,
                                 thumbnail=None, autoplay=autoplay, switching_device=switching_device)
     elif 'soundcloud.com' in url:
         if url not in url_metadata:
             r = ydl.extract_info(url, download=False)
-            url = url.replace('\\', '/')
-            url_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'Unknown Album',
-                                 'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
+            if 'entries' in r:
+                album = r['title']
+                music_queue.popleft()
+                for entry in reversed(r['entries']):
+                    url = entry['url']
+                    music_queue.insert(0, url)
+                    url_metadata[url] = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
+                                         'length': entry['duration'], 'art': entry['thumbnail'], 'src': entry['url'],
+                                         'ext': entry['ext']}
+            else:
+                url_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'SoundCloud',
+                                     'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
         metadata = url_metadata[url]
         return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
                                 metadata['album'], metadata['length'], position=position,
@@ -1167,20 +1176,33 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         try:
             if url not in url_metadata:
                 r = ydl.extract_info(url, download=False)
-                formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                formats.sort(key=lambda _f: _f['width'])
-                _f = formats[0]
-                url = url.replace('\\', '/')
-                url_metadata[url] = {'title': r['track'] or r['title'], 'artist': r['artist'] or r['uploader'],
-                                     'album': r['album'], 'length': r['duration'], 'art': r['thumbnail'],
-                                     'src': _f['url'], 'ext': _f['ext']}
+                if 'entries' in r:
+                    album = r['title']
+                    music_queue.popleft()
+                    for entry in reversed(r['entries']):
+                        url = entry['webpage_url']
+                        formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
+                        formats.sort(key=lambda _f: _f['width'])
+                        _f = formats[0]
+                        music_queue.insert(0, url)
+                        url_metadata[url] = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
+                                             'length': entry['duration'], 'art': entry['thumbnail'],
+                                             'src': _f['url'], 'ext': _f['ext']}
+                else:
+                    formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
+                    formats.sort(key=lambda _f: _f['width'])
+                    _f = formats[0]
+                    url_metadata[url] = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
+                                         'album': r.get('album', 'YouTube'), 'length': r['duration'],
+                                         'art': r['thumbnail'], 'src': _f['url'], 'ext': _f['ext']}
             metadata = url_metadata[url]
             artist = metadata['artist']
             return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
                                     metadata['length'], position=position, thumbnail=metadata['art'],
                                     autoplay=autoplay, switching_device=switching_device)
         except (StopIteration, DownloadError, KeyError) as _e:
-            tray_notify('ERROR: Could not play URL.\nAn update will fix this...')
+            tray_notify('ERROR: Could not play URL.')
+            handle_exception(_e)
             app_log.info(_e)
             if not IS_FROZEN: raise _e
     return False
@@ -1262,7 +1284,7 @@ def play_all(starting_files: list = None, queue_only=False):
         music_queue.clear()
         done_queue.clear()
     if starting_files is None: starting_files = []
-    starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_music_file(_f)]
+    starting_files = [_f.replace('\\', '/') for _f in starting_files if valid_audio_file(_f)]
     if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
         tray_notify('INFO: Files may be missing as files are still being scanned')
     if starting_files:
@@ -1312,12 +1334,12 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
         if os.path.exists(path):
             path = path.rstrip('\\').rstrip('/')
             if os.path.isfile(path):
-                if valid_music_file(path):
+                if valid_audio_file(path):
                     temp_queue.append(path)
                     if path not in all_tracks: files_to_scan.put(path)
             else:
                 for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
-                    if valid_music_file(_file):
+                    if valid_audio_file(_file):
                         temp_queue.append(_file)
                         if path not in all_tracks: files_to_scan.put(path)
         # path could be a playlist name (since arguments are parsed from the command line)
@@ -1357,26 +1379,26 @@ def file_action(action='pf'):
             music_queue.clear()
             done_queue.clear()
             for file_path in paths:
-                if valid_music_file(file_path):
+                if valid_audio_file(file_path):
                     music_queue.append(file_path)
                     if file_path not in all_tracks: files_to_scan.put(file_path)
             if music_queue: play(music_queue[0])
         elif action in {'Queue File(s)', 'qf'}:
             _start_playing = not music_queue
             for file_path in paths:
-                if valid_music_file(file_path):
+                if valid_audio_file(file_path):
                     music_queue.append(file_path)
                     if file_path not in all_tracks: files_to_scan.put(file_path)
             if _start_playing and music_queue: play(music_queue[0])
         elif action in {'Play File(s) Next', 'pfn'}:
             if settings['reversed_play_next']:
                 for file_path in paths:
-                    if valid_music_file(file_path):
+                    if valid_audio_file(file_path):
                         next_queue.insert(0, file_path)
                         if file_path not in all_tracks: files_to_scan.put(file_path)
             else:
                 for file_path in paths:
-                    if valid_music_file(file_path):
+                    if valid_audio_file(file_path):
                         next_queue.append(file_path)
                         if file_path not in all_tracks: files_to_scan.put(file_path)
             if playing_status == 'NOT PLAYING' and not music_queue and next_queue:
@@ -1402,7 +1424,7 @@ def folder_action(action='Play Folder'):
         for folder_path in [folder_path]:
             if os.path.exists(folder_path):
                 for file_path in glob.iglob(f'{glob.escape(folder_path)}/**/*.*', recursive=True):
-                    if valid_music_file(file_path):
+                    if valid_audio_file(file_path):
                         path = Path(file_path)
                         file_path = path.as_posix()
                         files_to_queue[path.parent.as_posix()].append(path.name)
@@ -2509,7 +2531,7 @@ def read_main_window():
         file_paths = Sg.PopupGetFile('Select Music File(s)', no_window=True, initial_folder=DEFAULT_FOLDER,
                                      multiple_files=True, file_types=MUSIC_FILE_TYPES)
         if file_paths:
-            pl_files += [file_path for file_path in file_paths if valid_music_file(file_path)]
+            pl_files += [file_path for file_path in file_paths if valid_audio_file(file_path)]
             main_window.TKroot.focus_force()
             main_window.normal()
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
@@ -2861,7 +2883,7 @@ if __name__ == '__main__':
             for queue_name in ('done', 'music', 'next'):
                 queue = {'done': done_queue, 'music': music_queue, 'next': next_queue}[queue_name]
                 for file in settings['queues'].get(queue_name, []):
-                    if valid_music_file(file):
+                    if valid_audio_file(file):
                         queue.append(file)
                         files_to_scan.put(file)
         elif settings['populate_queue_startup']:

@@ -103,7 +103,8 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
     title, artist, album, track_number, rating = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None, 'C'
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
-            audio = EasyID3(file_path)
+            audio = dict(EasyID3(file_path))
+            audio['rating'] = mutagen.File(file_path).get('TXXX:RATING', 'C')
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
             audio = EasyMP4(file_path)
         elif file_path.endswith('.wav'):
@@ -181,16 +182,19 @@ def create_qr_code(port, ipv4=None):
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
 
 
-def get_running_processes(look_for):
+def get_running_processes(look_for=''):
     # edited from https://stackoverflow.com/a/22914414/7732434
-    cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
+    if look_for:
+        cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
+    else:
+        cmd = f'tasklist /NH'
     p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
     task = p.stdout.readline()
     while task != '':
         task = p.stdout.readline().strip()
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
-            process = {'name': m.group(1), 'pid': m.group(2), 'session_name': m.group(3),
+            process = {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
                        'session_num': m.group(4), 'mem_usage': m.group(5)}
             yield process
 
@@ -203,7 +207,7 @@ def is_already_running(look_for='Music Caster.exe', threshold=1):
     return False
 
 
-def valid_music_file(file_path):
+def valid_audio_file(file_path):
     """
     check if file_path ends with a valid extension
     file_path does not have to exist
@@ -223,8 +227,10 @@ def parse_youtube_id(url):
     if query.hostname == 'youtu.be': return query.path[1:]
     if query.hostname in {'www.youtube.com', 'youtube.com'}:
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
+        if query.path[:7] == '/watch/': return query.path.split('/')[1]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
         if query.path[:3] == '/v/': return query.path.split('/')[2]
+        if query.path[:9] == '/playlist': return parse_qs(query.query)['list'][0]
     return None  # invalid YouTube url
 
 
