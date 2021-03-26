@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.76.4
+- [Fix] Folder browse and playlists add tracks
+
 4.76.3
 - [Fix] Tray not showing up
 

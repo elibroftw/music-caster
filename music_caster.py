@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.76.3'
+VERSION = latest_version = '4.76.4'
 UPDATE_MESSAGE = """
 [Feature] Move track in queue to next up & cleaner UI
 [Optimization] Lowered CPU usage and window drag stuttering
@@ -58,8 +58,6 @@ from flask import Flask, jsonify, render_template, request, redirect, send_file,
 from werkzeug.exceptions import InternalServerError
 import PySimpleGUIWx as SgWx
 import pyaudio
-import wx
-# import wx.lib.agw.multidirdialog as mdd
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
@@ -78,7 +76,7 @@ from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
 
 music_file_exts = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
-MUSIC_FILE_TYPES = 'Audio File (.' + ', .'.join(music_file_exts) + ')|*.' + ';*.'.join(music_file_exts)
+MUSIC_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(music_file_exts)),)
 DEBUG = args.debug
 main_window = timer_window = play_url_window = Sg.Window('')
 working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -1350,7 +1348,7 @@ def file_action(action='pf'):
     global music_queue, next_queue, playing_status, main_last_event, update_gui_queue
 
     paths = Sg.PopupGetFile('Select Music File(s)', no_window=True, initial_folder=DEFAULT_FOLDER, multiple_files=True,
-                            file_types=(('Audio File', '*.' + ' *.'.join(music_file_exts)),))
+                            file_types=MUSIC_FILE_TYPES)
     if paths:
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
         update_gui_queue = True
@@ -2228,7 +2226,8 @@ def read_main_window():
         Thread(target=file_action, name='FileAction', daemon=True,
                args=[main_values['file_option']]).start()
     elif main_event == 'folder_action':
-        wx.CallAfter(folder_action, action=main_values['folder_option'])
+        Thread(target=folder_action, name='FolderAction', daemon=True,
+               args=[main_values['folder_option']]).start()
     elif main_event == 'play_playlist':
         play_playlist(main_values['playlists'])
     elif main_event == 'url_actions':
@@ -2507,10 +2506,9 @@ def read_main_window():
             main_window['pl_move_down'].update(disabled=not pl_files)
             main_window['pl_rm_items'].update(disabled=not pl_files)
     elif main_event == 'pl_add_tracks':
-        fd = wx.FileDialog(None, 'Select Music File(s)', defaultDir=DEFAULT_FOLDER, wildcard=MUSIC_FILE_TYPES,
-                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
-        if fd.ShowModal() != wx.ID_CANCEL:
-            file_paths = fd.GetPaths()
+        file_paths = Sg.PopupGetFile('Select Music File(s)', no_window=True, initial_folder=DEFAULT_FOLDER,
+                                     multiple_files=True, file_types=MUSIC_FILE_TYPES)
+        if file_paths:
             pl_files += [file_path for file_path in file_paths if valid_music_file(file_path)]
             main_window.TKroot.focus_force()
             main_window.normal()
