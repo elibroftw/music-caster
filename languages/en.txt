@@ -30,7 +30,7 @@ ERROR
 Exit
 Folder context menu
 Folders
-Hibernate computer when timer runs out
+Hibernate when timer runs out
 Hibernate Computer
 INFO
 Invalid Input (enter minutes or HH:MM)
@@ -127,9 +127,9 @@ Show album art in GUI
 Show index in queue
 Show track number
 Show track number in queue
-Shut down computer when timer runs out
+Shut down when timer runs out
 Shut Down Computer
-Sleep computer when timer runs out
+Sleep when timer runs out
 Sleep computer
 Stop
 Thanks for installing Music Caster.

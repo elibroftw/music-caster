@@ -720,9 +720,9 @@ def create_timer(settings, timer):
     cancel_button = Sg.Button(gt('Cancel Timer'), key='cancel_timer', visible=timer != 0)
     defaults = {'text_color': fg, 'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True}
     layout = [
-        [Sg.Radio(gt('Shut down computer when timer runs out'), 'TIMER', default=shut_down, key='shut_down', **defaults)],
-        [Sg.Radio(gt('Sleep computer when timer runs out'), 'TIMER', default=sleep, key='sleep', **defaults)],
-        [Sg.Radio(gt('Hibernate computer when timer runs out'), 'TIMER', default=hibernate, key='hibernate', **defaults)],
+        [Sg.Radio(gt('Shut down when timer runs out'), 'TIMER', default=shut_down, key='shut_down', **defaults)],
+        [Sg.Radio(gt('Sleep when timer runs out'), 'TIMER', default=sleep, key='sleep', **defaults)],
+        [Sg.Radio(gt('Hibernate when timer runs out'), 'TIMER', default=hibernate, key='hibernate', **defaults)],
         [Sg.Radio(gt('Only stop playback'), 'TIMER', default=do_nothing, key='timer_only_stop', **defaults)],
         [Sg.Text(gt('Enter minutes or HH:MM'), tooltip='Press enter once done', font=FONT_NORMAL),
          Sg.Input(key='timer_minutes', font=FONT_NORMAL, size=(11, 1)),
