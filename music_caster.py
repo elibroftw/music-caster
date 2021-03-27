@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.79.1'
+VERSION = latest_version = '4.79.2'
 UPDATE_MESSAGE = """
 [UI] Several UI improvements
 [UI] Web UI interactive queue
@@ -573,12 +573,10 @@ def web_index():  # web GUI
             pause()  # resume == play
             api_msg = 'pause called'
         elif 'next' in request.args:
-            for i in range(int(request.args.get('times', 1))):
-                next_track()
+            next_track(times=int(request.args.get('times', 1)), forced=True)
             api_msg = 'next track called'
         elif 'prev' in request.args:
-            for i in range(int(request.args.get('times', 1))):
-                prev_track()
+            prev_track(times=int(request.args.get('times', 1)), forced=True)
             api_msg = 'prev track called'
         elif 'repeat' in request.args:
             cycle_repeat()
@@ -1588,41 +1586,45 @@ def stop(stopped_from: str, stop_cast=True):
         })
 
 
-def next_track(from_timeout=False):
+def next_track(from_timeout=False, times=1, forced=False):
+    """
+    :param from_timeout: whether next track is due to track ending
+    :param times: number of times to go to next track
+    :param forced: whether to ignore current playing status
+    :return:
+    """
     global playing_status
     app_log.info(f'next_track(from_timeout={from_timeout})')
-    if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
+    if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
         playing_status = PlayingStatus.NOT_PLAYING
-    elif playing_status != 'NOT PLAYING' and not playing_live and (next_queue or music_queue):
+    elif (forced or playing_status != 'NOT PLAYING' and not playing_live) and (next_queue or music_queue):
         # if repeat all or repeat is off or empty queue or not manual next
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
-            if music_queue: done_queue.append(music_queue.popleft())
-            if next_queue: music_queue.insert(0, next_queue.popleft())
-            # if queue is empty but repeat is all AND there are tracks in the done_queue
-            if not music_queue and settings['repeat'] is False and done_queue:
-                music_queue.extend(done_queue)
-                done_queue.clear()
-        if music_queue:
-            play(music_queue[0])
-        else:
-            stop('next track')  # repeat is off / no tracks in queue
+            for _ in range(times):
+                if music_queue: done_queue.append(music_queue.popleft())
+                if next_queue: music_queue.insert(0, next_queue.popleft())
+                # if queue is empty but repeat is all AND there are tracks in the done_queue
+                if not music_queue and settings['repeat'] is False and done_queue:
+                    music_queue.extend(done_queue)
+                    done_queue.clear()
+        try: play(music_queue[0])
+        except IndexError: stop('next track')  # repeat is off / no tracks in queue
 
 
-def prev_track():
+def prev_track(times=1, forced=False):
     global playing_status
     app_log.info('prev_track()')
-    if playing_status != 'NOT PLAYING' and not playing_live:
-        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
-            playing_status = PlayingStatus.NOT_PLAYING
-        else:
-            if done_queue:
+    if not forced and cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
+        playing_status = PlayingStatus.NOT_PLAYING
+    elif forced or playing_status != 'NOT PLAYING' and not playing_live:
+        if done_queue:
+            for _ in range(times):
                 if settings['repeat']: change_settings('repeat', False)
                 track = done_queue.pop()
                 music_queue.insert(0, track)
-                play(track)
-            elif music_queue:
-                play(music_queue[0])
+        with suppress(IndexError):
+            play(music_queue[0])
 
 
 def background_tasks():
@@ -2097,18 +2099,10 @@ def read_main_window():
     elif main_event == 'queue' and main_value:
         with suppress(ValueError):
             selected_track_index = main_window['queue'].get_indexes()[0]
-            if done_queue and selected_track_index < len(done_queue):
-                while next_queue:  # design decision to empty next queue
-                    music_queue.insert(1, next_queue.pop())
-                for _ in range(len(done_queue) - selected_track_index):
-                    music_queue.insert(0, done_queue.pop())
+            if selected_track_index <= len(done_queue):
+                prev_track(times=len(done_queue) - selected_track_index)
             else:
-                for _ in range(selected_track_index - len(done_queue)):
-                    if not music_queue: break
-                    done_queue.append(music_queue.popleft())
-                    if next_queue:
-                        music_queue.insert(0, next_queue.popleft())
-            if music_queue: play(music_queue[0])
+                next_track(times=selected_track_index - len(done_queue))
             updated_list = create_track_list()
             dq_len = len(done_queue)
             main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
