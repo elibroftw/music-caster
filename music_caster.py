@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.77.0'
+VERSION = latest_version = '4.78.0'
 UPDATE_MESSAGE = """
 [Feature] Support for YouTube Playlists and Soundcloud Sets
 """.strip()
