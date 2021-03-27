@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.79.3
+- [UI] Web GUI improvements
+
 4.79.2
 - [Optimization] Selecting from queue
 

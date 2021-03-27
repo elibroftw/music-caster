@@ -281,6 +281,9 @@ h2 {
     text-align: center;
     margin-left: auto;
     margin-right: auto;
+    position: sticky;
+    top: 10px;
+    background-color: #0006;
 }
 
 .track {
@@ -400,6 +403,8 @@ input:checked+.slider:before {
     margin-bottom: 12px;
     border: 1px solid black;
     border-radius: 2em;
+    position: sticky;
+    top: 20px;
 }
 
 #volControl > svg {
