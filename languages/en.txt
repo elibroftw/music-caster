@@ -4,13 +4,15 @@
 # If a line contains $X do not translate the $X, please use it in context
 # e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
 add folder
+Add Music Caster to folder context menu
 Add tracks
 Add URL
 An error occurred, restarting now
 An Internal Server Error occurred
 Audio Selection
-Auto Update
+Auto update
 By
+Cancel
 Cancel Timer
 Clear the queue
 Controls
@@ -18,30 +20,35 @@ Could not connect to cast device
 Could not play URL
 Could not populate queue because library scan is disabled
 Delete
-Discord Presence
+Discord presence
 Don't repeat
 Downloading update $VER
 Enter minutes or HH:MM
+Enter Time
 Enter URL (YouTube or *.ext src)
 ERROR
 Exit
 Folder context menu
 Folders
 Hibernate computer when timer runs out
+Hibernate Computer
 INFO
 Invalid Input (enter minutes or HH:MM)
 Invalid URL. URL's need to start with http:// or https://
+Keep mini mode on top
 Launch mini mode
-Left-Side Music Controls
+Left-side music controls
 Library
 Library indexing incomplete, only scanned files have been added
 Listening
 Live System Audio
 Local device
 Locate Track
-Mini Mode on Top
+Mini mode on top
+More
 Move down
 Move to next up
+Move track content to the left
 Move track down
 Move track up
 Move up
@@ -56,8 +63,9 @@ Not connected to a cast device
 Nothing Playing
 Notifications
 Only stop playback
+Only Stop Playback
 Pause
-Persistent Queue
+Persistent queue
 Play
 Play All
 Play File(s)
@@ -72,15 +80,16 @@ Playing
 Playlist name
 Playlists
 Playlists Menu
-Populate Queue on Startup
+Populate queue on startup
+Populates queue from folders on startup
 Previous Track
 Queue
-Queue (View Only)
 Queue All
 Queue File(s)
 Queue Folder
 Queue URL
 Refresh Devices
+Refreshing devices
 Remove item(s)
 remove selected folder
 Remove track
@@ -95,10 +104,12 @@ Repeat set to One
 Repeat track
 Rescan Library
 Resume
-Reversed Play Next
-Run on Startup
+Reverse play next behaviour
+Reversed play next
+Run on startup
+Save queue between sessions
 Save queue to playlist
-Save Window Positions
+Save window positions
 Scan folders
 Scroll mousewheel
 Search for music...
@@ -109,11 +120,17 @@ Select Music File(s)
 Send me an email
 set DEBUG = true in `settings.json` to enable this page
 Set Timer
+Set
 Settings
-Show Album Art
+Show album art
+Show album art in GUI
+Show index in queue
 Show track number
+Show track number in queue
 Shut down computer when timer runs out
+Shut Down Computer
 Sleep computer when timer runs out
+Sleep computer
 Stop
 Thanks for installing Music Caster.
 Timer
@@ -124,5 +141,8 @@ unmute
 Update $VER is available
 URL
 Use cover.* for album art
-Vertical Main GUI
+Use cover.* for art instead of file's album art
+cover.* image overrides file cover
+Vertical GUI
+View Audio Files Source Links
 Web GUI QR Code (click or scan)

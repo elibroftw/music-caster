@@ -28,6 +28,7 @@ from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import HeaderNotFoundError
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
+import pyperclip
 import pyqrcode
 import PySimpleGUI as Sg
 from PIL import Image, ImageFile
@@ -150,7 +151,8 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
             audio = dict(EasyID3(file_path))
-            audio['rating'] = mutagen.File(file_path).get('TXXX:RATING', 'C')
+            _audio = mutagen.File(file_path)
+            audio['rating'] = str(_audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', '0')))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
             audio = EasyMP4(file_path)
         elif file_path.endswith('.wav'):
@@ -162,7 +164,7 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
             audio = mutagen.File(file_path)
         title = audio.get('title', ['Unknown Title'])[0]
         album = audio.get('album', ['Unknown Album'])[0]
-        rating = audio.get('rating', 'C')
+        is_explicit = audio.get('rating', '0') not in {'C', '0', 0}
         with suppress(KeyError, TypeError, MutagenError):
             track_number = audio.get('tracknumber')[0].split('/', 1)[0]
         with suppress(KeyError, TypeError):
@@ -178,7 +180,7 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
     else:
         sort_key = sort_key_template.replace('&title', title).replace('&artist', artist).replace('&album', album)
         sort_key = sort_key.replace('&trck', track_number or '')
-    metadata = {'title': title, 'artist': artist, 'album': album, 'rating': rating, 'sort_key': sort_key.lower()}
+    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower()}
     if track_number is not None: metadata['track_number'] = track_number
     return metadata
 
@@ -546,8 +548,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
         Sg.Column([[Sg.Button(file_options[0], font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
                    [Sg.Button(folder_opts[0], font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
-        Sg.Column([[Sg.Button(gt('URL'), font=FONT_NORMAL, key='url_actions', size=(5, 1), enable_events=True)],
-                   [Sg.Button(gt('Queue All'), font=FONT_NORMAL, tooltip='shuffle queue all',
+        Sg.Column([[Sg.Button(gt('Queue All'), font=FONT_NORMAL, tooltip='shuffle queue all',
                               key='queue_all', size=(9, 1), enable_events=True)]])
     ]
     listbox_controls = [
@@ -592,23 +593,17 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                                 header_text_color=fg, header_background_color=bg,
                                 alternating_row_color=alternate_bg, key='library')]]
     library_tab = Sg.Tab(gt('Library'), library_layout, key='tab_library')
+    url_tab = Sg.Tab(gt('URL'), create_play_url(), key='tab_url')
     # will be good to use once I'm using Python 3.10 which will have tk 8.10
     if settings['EXPERIMENTAL']:
-        tab_group = [[queue_tab, playlists_tab, timer_tab, settings_tab, library_tab]]
-    else: tab_group = [[queue_tab, playlists_tab, timer_tab, settings_tab]]
+        tab_group = [[queue_tab, library_tab, url_tab, playlists_tab, timer_tab, settings_tab]]
+    else: tab_group = [[queue_tab, url_tab, playlists_tab, timer_tab, settings_tab]]
     tabs_part = Sg.TabGroup(tab_group,
                             title_color=fg, border_width=0, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)
     if settings['vertical_gui']: return [[main_part], [tabs_part]]
     return [[main_part, tabs_part]] if settings['flip_main_window'] else [[tabs_part, main_part]]
-
-
-def create_checkbox(name, key, settings, on_left=False):
-    bg = settings['theme']['background']
-    size = (20, 5) if on_left else (23, 5)
-    checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
-    return Sg.Checkbox(name, default=settings[key], key=key, **checkbox, size=size)
 
 
 def create_playlists_tab(settings):
@@ -652,26 +647,41 @@ def create_playlists_tab(settings):
     return layout
 
 
+def create_checkbox(name, key, settings, on_right=False):
+    bg = settings['theme']['background']
+    size = (23, 5) if on_right else (20, 5)
+    checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
+    return Sg.Checkbox(name, default=settings[key], key=key, **checkbox, size=size)
+
+
 def create_settings(version, settings, qr_code):
-    fg, bg = settings['theme']['text'], settings['theme']['background']
-    checkbox_col = Sg.Column([
-        [create_checkbox(gt('Auto Update'), 'auto_update', settings, True),
-         create_checkbox(gt('Discord Presence'), 'discord_rpc', settings)],
-        [create_checkbox(gt('Notifications'), 'notifications', settings, True),
-         create_checkbox(gt('Run on Startup'), 'run_on_startup', settings)],
-        [create_checkbox(gt('Save Window Positions'), 'save_window_positions', settings, True),
+    accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
+    # Sg.TabGroup(layout,)
+    general_tab = Sg.Tab(gt('General'), [
+        [create_checkbox(gt('Auto update'), 'auto_update', settings),
+         create_checkbox(gt('Discord Presence'), 'discord_rpc', settings, True)],
+        [create_checkbox(gt('Notifications'), 'notifications', settings),
+         create_checkbox(gt('Run on startup'), 'run_on_startup', settings, True)],
+        [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
-        [create_checkbox(gt('Populate Queue on Startup'), 'populate_queue_startup', settings, True),
-         create_checkbox(gt('Persistent Queue'), 'save_queue_sessions', settings)],
-        [create_checkbox(gt('Left-Side Music Controls'), 'flip_main_window', settings, True),
-         create_checkbox(gt('Vertical Main GUI'), 'vertical_gui', settings)],
-        [create_checkbox(gt('Show Album Art'), 'show_album_art', settings, True),
-         create_checkbox(gt('Mini Mode on Top'), 'mini_on_top', settings)],
-        [create_checkbox(gt('Use cover.* for album art'), 'folder_cover_override', settings, True),
-         create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings)],
-        [create_checkbox(gt('Show track number'), 'show_track_number', settings, True),
-         create_checkbox(gt('Reversed Play Next'), 'reversed_play_next', settings)]
-    ], pad=((0, 0), (5, 0)))
+        [create_checkbox(gt('Populate queue on startup'), 'populate_queue_startup', settings),
+         create_checkbox(gt('Persistent queue'), 'save_queue_sessions', settings, True)],
+        [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings)]
+    ], key='settings_tab_general', background_color=bg)
+    ui_tab = Sg.Tab(gt('UI'), [
+        [create_checkbox(gt('Save window positions'), 'save_window_positions', settings),
+         create_checkbox(gt('Show track number'), 'show_track_number', settings, True)],
+        [create_checkbox(gt('Left-side music controls'), 'flip_main_window', settings),
+         create_checkbox(gt('Vertical GUI'), 'vertical_gui', settings, True)],
+        [create_checkbox(gt('Show album art'), 'show_album_art', settings),
+         create_checkbox(gt('Mini mode on top'), 'mini_on_top', settings, True)],
+        [create_checkbox(gt('Use cover.* for album art'), 'folder_cover_override', settings),
+         create_checkbox(gt('Show index in queue'), 'show_queue_index', settings, True)]
+    ], key='settings_tab_ui', background_color=bg)
+    settings_tab_group = Sg.TabGroup([[general_tab, ui_tab]], title_color=fg, border_width=0, key='tab_group_settings',
+                                     selected_background_color=accent_color, enable_events=True,
+                                     tab_background_color=bg, selected_title_color=bg, background_color=bg)
+    checkbox_col = Sg.Column([[settings_tab_group]], pad=((0, 0), (5, 0)))
     qr_code_params = {'tooltip': gt('Web GUI QR Code (click or scan)'), 'border_width': 0, 'button_color': (bg, bg)}
     right_settings_col = Sg.Column([
         [Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)],
@@ -723,13 +733,15 @@ def create_timer(settings, timer):
     return [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]]
 
 
-def create_play_url(combo_value='Play Immediately', default_text=''):
-    # TODO: integrate into main window
+def create_play_url():
+    default_text: str = pyperclip.paste()
+    if not default_text.startswith('http'): default_text = ''
     layout = [[Sg.Text(gt('Enter URL (YouTube or *.ext src)'), font=FONT_NORMAL)],
-              [Sg.Radio(gt('Play Immediately'), 'url_option', combo_value == 'Play Immediately', key='play_immediately'),
-              Sg.Radio(gt('Queue'), 'url_option', combo_value == 'Queue', key='queue'),
-              Sg.Radio(gt('Play Next'), 'url_option', combo_value == 'Play Next', key='play_next')],
-              [Sg.Input(key='url', font=FONT_NORMAL, default_text=default_text), Sg.Submit(font=FONT_NORMAL)]]
+              [Sg.Radio(gt('Play Immediately'), 'url_option', key='url_play', default=True),
+               Sg.Radio(gt('Queue'), 'url_option',  key='url_queue'),
+               Sg.Radio(gt('Play Next'), 'url_option', key='url_play_next')],
+              [Sg.Input(key='url_input', font=FONT_NORMAL, default_text=default_text),
+               Sg.Submit(key='url_submit', font=FONT_NORMAL)]]
     return layout
 
 

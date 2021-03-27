@@ -14,6 +14,7 @@ monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547
 
 On the first run, you will need to click the arrow in your taskbar to see the app icon, you can move it for ease of access.
 If you have music files in folders other than the home music folder, add them in settings (right click tray icon -> settings).
+If you are able and willing to translate to other languages, click [here](https://github.com/elibroftw/music-caster/issues/12#issuecomment-808658776)
 
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 - [VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)

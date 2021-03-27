@@ -1,5 +1,13 @@
 Music Caster by Elijah Lopez Changelog
 
+4.79.0
+- [Feature] Added option to hide queue index
+- [Feature] Web GUI interactive queue
+- [UI] Better queue
+- [UI] More intuitive mini-mode behaviour
+- [UI] Integrated URL window with main window
+- [Optimization] Moving tracks
+
 4.78.1
 - [Fix] Web GUI
 

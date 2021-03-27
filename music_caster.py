@@ -1,6 +1,8 @@
-VERSION = latest_version = '4.78.1'
+VERSION = latest_version = '4.79.0'
 UPDATE_MESSAGE = """
-[Feature] Support for YouTube Playlists and Soundcloud Sets
+[UI] Several UI improvements
+[UI] Web UI interactive queue
+[HELP] Implemented translation framework, need translators
 """.strip()
 import argparse
 import sys
@@ -40,6 +42,7 @@ import json
 import logging
 from logging.handlers import RotatingFileHandler
 import multiprocessing as mp
+from math import log10
 from pathlib import Path
 import pprint
 from queue import Queue
@@ -62,7 +65,6 @@ from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
 from pychromecast import Chromecast
 import pynput.keyboard
-import pyperclip
 import pypresence
 import threading
 import pythoncom
@@ -94,7 +96,7 @@ exit_flag = False
 last_play_command = 0  # last call to /play/
 settings_last_modified, last_press = 0, time.time() + 5
 update_last_checked = time.time()  # check every hour
-active_windows = {'main': False, 'play_url': False}
+active_windows = {'main': False}
 
 main_last_event = None
 # noinspection PyTypeChecker
@@ -133,7 +135,7 @@ settings = {  # default settings
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
-    'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False,
+    'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'show_queue_index': True,
     'theme': DEFAULT_THEME.copy(), 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_folders': [home_music_folder], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 default_settings = deepcopy(settings)
@@ -195,11 +197,10 @@ def save_settings():
                 json.dump(settings, outfile, indent=4)
             settings_last_modified = os.path.getmtime(settings_file)
         except OSError as _e:
-            error_translation = gt('ERROR')
             if _e.errno == errno.ENOSPC:
-                tray_notify(f'{error_translation}:' + gt('No space left on device to save settings'))
+                tray_notify(gt('ERROR') + ': ' + gt('No space left on device to save settings'))
             else:
-                tray_notify(f'{error_translation}: {_e}')
+                tray_notify(gt('ERROR') + f': {_e}')
 
 
 def refresh_folders():
@@ -418,7 +419,7 @@ def get_uri_metadata(uri, read_file=True):
             return metadata
 
 
-def get_current_metadata():
+def get_current_metadata() -> dict:
     if playing_live: return url_metadata['LIVE']
     if music_queue: return get_uri_metadata(music_queue[0])
     return {'artist': '', 'title': 'Nothing Playing', 'album': ''}
@@ -554,7 +555,7 @@ def page_not_found(_):
 def web_index():  # web GUI
     global music_queue, playing_status, all_tracks
     if request.method == 'POST':
-        daemon_commands.put('Bring to Front')  # tells main loop to bring to front all GUI's
+        daemon_commands.put('__ACTIVATED__')  # tells main loop to bring to front all GUI's
         return 'true' if any(active_windows.values()) else 'Music Caster'
     if request.args:
         api_msg = 'Invalid Command'
@@ -572,10 +573,12 @@ def web_index():  # web GUI
             pause()  # resume == play
             api_msg = 'pause called'
         elif 'next' in request.args:
-            next_track()
+            for i in range(int(request.args.get('times', 1))):
+                next_track()
             api_msg = 'next track called'
         elif 'prev' in request.args:
-            prev_track()
+            for i in range(int(request.args.get('times', 1))):
+                prev_track()
             api_msg = 'prev track called'
         elif 'repeat' in request.args:
             cycle_repeat()
@@ -604,7 +607,7 @@ def web_index():  # web GUI
     for filename, data in sorted_tracks:
         play_file_path = urllib.parse.urlencode({'path': filename})
         list_of_tracks.append({'text': format_file(filename), 'title': filename, 'href': f'/play?{play_file_path}'})
-    _queue = create_track_list()[0]
+    _queue = create_track_list()
     device_index = 0
     for i, device_name in enumerate(device_names):
         if device_name.startswith(CHECK_MARK):
@@ -616,7 +619,7 @@ def web_index():  # web GUI
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
                            playing_index=len(done_queue), device_index=device_index, devices=formatted_devices,
-                           version=VERSION)
+                           version=VERSION, gt=gt)
 
 
 @app.route('/play/', methods=['GET', 'POST'])
@@ -644,7 +647,7 @@ def api_play():
 
 @app.route('/now-playing/')
 def api_get_now_playing():
-    now_playing = get_current_metadata()
+    now_playing = get_current_metadata().copy()
     now_playing['status'] = str(playing_status)
     now_playing['volume'] = settings['volume']
     return jsonify(now_playing)
@@ -1001,32 +1004,23 @@ def format_file(uri: str, use_basename=False):
 def create_track_list():
     """:returns the formatted tracks queue, and the selected value (currently playing)"""
     tracks = []
-    mq_start = len(next_queue) + 1
-    selected_value = None
-    # format: Index. Artists - Title
-    for i, uri in enumerate(done_queue):
-        formatted_track = format_file(uri)
-        i = len(done_queue) - i
-        formatted_item = f'-{i}. {formatted_track}'
-        tracks.append(formatted_item)
-    if music_queue:
-        formatted_track = format_file(music_queue[0])
-        formatted_item = f' {0}. {formatted_track}'
-        tracks.append(formatted_item)
-        selected_value = formatted_item
-    for i, uri in enumerate(next_queue):
-        formatted_track = format_file(uri)
-        i += 1
-        spacing = ' ' if i < 10 else ''
-        formatted_item = f'{spacing}{i}. {formatted_track}'
-        tracks.append(formatted_item)
-    for i, uri in enumerate(islice(music_queue, 1, None)):
-        formatted_track = format_file(uri)
-        i += mq_start
-        spacing = ' ' if i < 10 else ''
-        formatted_item = f'{spacing}{i}. {formatted_track}'
-        tracks.append(formatted_item)
-    return tracks, selected_value
+    try:
+        max_digits = int(log10(max(len(music_queue) - 1 + len(next_queue), len(done_queue) * 10))) + 2
+    except ValueError:
+        max_digits = 0
+    i = -len(done_queue)
+    # format: Index | Artists - Title
+    for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
+        for uri in items:
+            formatted_track = format_file(uri)
+            if settings['show_queue_index']:
+                if i < 0: pre = f'\u2012{abs(i)} '.center(max_digits, '\u2000')
+                else: pre = f'{i} '.center(max_digits, '\u2000')
+                formatted_item = f'\u2004{pre}|\u2000{formatted_track}'
+                i += 1
+            else: formatted_item = formatted_track
+            tracks.append(formatted_item)
+    return tracks
 
 
 def after_play(title, artists: str, autoplay, switching_device):
@@ -1736,18 +1730,17 @@ def on_release(key):
 
 
 def bring_to_front():
-    # bring an active window to front by priority or open the main window
-    if active_windows['play_url'] and not active_windows['main']: activate_play_url()
-    else: activate_main_window()
+    activate_main_window()
 
 
-def activate_main_window(selected_tab='tab_queue'):
+def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
     global active_windows, main_window
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     app_log.info(f'activate_main_window: selected_tab={selected_tab}, already_active={active_windows["main"]}')
     if not active_windows['main']:
         active_windows['main'] = True
-        lb_tracks, selected_value = create_track_list()
+        lb_tracks = create_track_list()
+        selected_value = lb_tracks[len(done_queue)] if lb_tracks else None
         mini_mode = settings['mini_mode']
         save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
         window_location = get_window_location(save_window_loc_key)
@@ -1796,33 +1789,24 @@ def activate_main_window(selected_tab='tab_queue'):
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         set_save_position_callback(main_window, save_window_loc_key)
-    else:
-        # set selected_tab to what is already selected to prevent the tab from switching
-        if not settings['mini_mode']: selected_tab = main_window['tab_group'].get()
-    if not settings['mini_mode']:
+    elif settings['mini_mode'] and selected_tab:
+        change_settings('mini_mode', not settings['mini_mode'])
+        active_windows['main'] = False
+        main_window.close()
+        return activate_main_window(selected_tab)
+    if not settings['mini_mode'] and selected_tab is not None:
         main_window[selected_tab].select()
         if selected_tab == 'tab_timer': main_window['timer_minutes'].set_focus()
+        if selected_tab == 'tab_url':
+            with suppress(KeyError):
+                main_window[url_option].update(True)
+            main_window['url_input'].set_focus()
+            default_text: str = pyperclip.paste()
+            if default_text.startswith('http'):
+                main_window['url_input'].update(value=default_text)
     steal_focus(main_window)
     main_window.normal()
     main_window.force_focus()
-
-
-def activate_play_url(combo_value='Play Immediately'):
-    # combo_values = ['Play Immediately', 'Queue', 'Play Next']
-    global play_url_window
-    if not active_windows['play_url']:
-        clipboard_txt: str = pyperclip.paste()
-        if not clipboard_txt.startswith('http'): clipboard_txt = ''
-        play_url_layout = create_play_url(combo_value=combo_value, default_text=clipboard_txt)
-        active_windows['play_url'] = True
-        window_location = get_window_location('play_url')
-        play_url_window = Sg.Window('Music Caster - Play URL', play_url_layout, icon=WINDOW_ICON,
-                                    finalize=True, return_keyboard_events=True, location=window_location)
-        set_save_position_callback(play_url_window, 'play_url')
-    steal_focus(play_url_window)
-    play_url_window.normal()
-    play_url_window.force_focus()
-    play_url_window['url'].set_focus()
 
 
 def cancel_timer():
@@ -1968,9 +1952,8 @@ def read_main_window():
     if update_gui_queue and not settings['mini_mode']:
         update_gui_queue = False
         dq_len = len(done_queue)
-        lb_music_queue: Sg.Listbox = main_window['queue']
-        lb_tracks = create_track_list()[0]
-        lb_music_queue.update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
+        lb_tracks = create_track_list()
+        main_window['queue'].update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
     if update_volume_slider:
         if settings['volume'] and settings['muted']:
             main_window['mute'].update(image_data=VOLUME_IMG)
@@ -2018,17 +2001,23 @@ def read_main_window():
     if main_event == Sg.TIMEOUT_KEY: pass
     elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue':
         main_window['file_action'].set_focus()
-    # change tabs with hot keys
-    elif main_event == '1:49' and not settings['mini_mode']:
-        main_window['tab_queue'].select()  # Ctrl + 1
-    elif main_event == '2:50' and not settings['mini_mode']:
-        main_window['tab_playlists'].select()  # Ctrl + 2
-    elif (main_event == '3:51' and not settings['mini_mode'] or
-          main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):  # Ctrl + 3
+    # change/select tabs with hot keys
+    elif main_event == '1:49' and not settings['mini_mode']:  # Ctrl + 1
+        main_window['tab_queue'].select()
+    elif main_event == '2:50' and not settings['mini_mode']:  # Ctrl + 2
+        main_window['tab_url'].select()
+        main_window['url_input'].set_focus()
+        default_text: str = pyperclip.paste()
+        if default_text.startswith('http'):
+            main_window['url_input'].update(value=default_text)
+    elif main_event == '3:51' and not settings['mini_mode']:  # Ctrl + 3
+        main_window['tab_playlists'].select()
+    elif (main_event == '4:52' and not settings['mini_mode'] or
+          main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):  # Ctrl + 4
         main_window['tab_timer'].select()
         main_window['timer_minutes'].set_focus()
-    elif main_event == '4:52' and not settings['mini_mode']:
-        main_window['tab_settings'].select()  # Ctrl + 4
+    elif main_event == '5:53' and not settings['mini_mode']:  # Ctrl + 5
+        main_window['tab_settings'].select()
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
                         'volume_slider_mouse_enter', 'library_mouse_enter'}:
         if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
@@ -2098,16 +2087,16 @@ def read_main_window():
             focused_element = main_window.FindElementWithFocus()
             move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
             if focused_element == main_window['queue'] and main_values['queue']:
-                new_i = main_window['queue'].get_list_values().index(main_values['queue'][0]) + move
+                new_i = main_window['queue'].get_indexes()[0] + move
                 new_i = min(max(new_i, 0), len(music_queue) - 1)
                 main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             elif focused_element == main_window['pl_tracks'] and main_values['pl_tracks']:
-                new_i = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0]) + move
+                new_i = main_window['pl_tracks'].get_indexes()[0] + move
                 new_i = min(max(new_i, 0), len(pl_files) - 1)
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         with suppress(ValueError):
-            selected_track_index = main_window['queue'].get_list_values().index(main_value[0])
+            selected_track_index = main_window['queue'].get_indexes()[0]
             if done_queue and selected_track_index < len(done_queue):
                 while next_queue:  # design decision to empty next queue
                     music_queue.insert(1, next_queue.pop())
@@ -2120,12 +2109,12 @@ def read_main_window():
                     if next_queue:
                         music_queue.insert(0, next_queue.popleft())
             if music_queue: play(music_queue[0])
-            updated_list = create_track_list()[0]
+            updated_list = create_track_list()
             dq_len = len(done_queue)
             main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
             reset_progress()
     elif main_event == 'move_to_next_up' and main_values['queue']:
-        index_to_move = main_window['queue'].get_list_values().index(main_values['queue'][0])
+        index_to_move = main_window['queue'].get_indexes()[0]
         dq_len = len(done_queue)
         nq_len = len(next_queue)
         if index_to_move < dq_len:
@@ -2133,7 +2122,7 @@ def read_main_window():
             del done_queue[index_to_move]
             if settings['reversed_play_next']: next_queue.insert(0, track)
             else: next_queue.append(track)
-            updated_list = create_track_list()[0]
+            updated_list = create_track_list()
             main_window['queue'].update(values=updated_list, set_to_index=len(done_queue) + len(next_queue),
                                         scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
         elif index_to_move > dq_len + nq_len:
@@ -2141,12 +2130,11 @@ def read_main_window():
             del music_queue[index_to_move - dq_len - nq_len]
             if settings['reversed_play_next']: next_queue.insert(0, track)
             else: next_queue.append(track)
-            updated_list = create_track_list()[0]
+            updated_list = create_track_list()
             main_window['queue'].update(values=updated_list, set_to_index=dq_len + len(next_queue),
                                         scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
     elif main_event == 'move_up' and main_values['queue']:
-        # index_to_move = int(main_values['queue'][0].split('.', 1)[0])
-        index_to_move = main_window['queue'].get_list_values().index(main_values['queue'][0])
+        index_to_move = main_window['queue'].get_indexes()[0]
         new_i = index_to_move - 1
         dq_len = len(done_queue)
         nq_len = len(next_queue)
@@ -2178,10 +2166,10 @@ def read_main_window():
             music_queue[mq_i], music_queue[mq_i + 1] = music_queue[mq_i + 1], music_queue[mq_i]
         else:
             new_i = max(new_i, 0)
-        updated_list = create_track_list()[0]
+        updated_list = create_track_list()
         main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
     elif main_event == 'move_down' and main_values['queue']:
-        index_to_move = main_window['queue'].get_list_values().index(main_values['queue'][0])
+        index_to_move = main_window['queue'].get_indexes()[0]
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
         if index_to_move < dq_len + nq_len + mq_len - 1:
             new_i = index_to_move + 1
@@ -2208,10 +2196,10 @@ def read_main_window():
                 mq_i = new_i - dq_len - nq_len
                 # swap places
                 music_queue[mq_i], music_queue[mq_i - 1] = music_queue[mq_i - 1], music_queue[mq_i]
-            updated_list = create_track_list()[0]
+            updated_list = create_track_list()
             main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'remove_track' and main_values['queue']:
-        index_to_remove = main_window['queue'].get_list_values().index(main_values['queue'][0])
+        index_to_remove = main_window['queue'].get_indexes()[0]
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
         if index_to_remove < dq_len:
             del done_queue[index_to_remove]
@@ -2232,7 +2220,7 @@ def read_main_window():
             del next_queue[index_to_remove - dq_len - 1]
         elif index_to_remove < nq_len + mq_len + dq_len:
             del music_queue[index_to_remove - dq_len - nq_len]
-        updated_list = create_track_list()[0]
+        updated_list = create_track_list()
         new_i = min(len(updated_list), index_to_remove)
         main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'file_option':
@@ -2247,8 +2235,6 @@ def read_main_window():
                args=[main_values['folder_option']]).start()
     elif main_event == 'play_playlist':
         play_playlist(main_values['playlists'])
-    elif main_event == 'url_actions':
-        activate_play_url()
     elif main_event == 'play_all':
         already_queueing = False
         for thread in threading.enumerate():
@@ -2319,10 +2305,11 @@ def read_main_window():
         Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
     elif main_event == 'web_gui':
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{PORT}']).start()
+    # toggle settings
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
                         'folder_context_menu', 'save_window_positions', 'populate_queue_startup',
                         'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
-                        'show_album_art', 'reversed_play_next', 'scan_folders'}:
+                        'show_album_art', 'reversed_play_next', 'scan_folders', 'show_queue_index'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup':
             create_shortcut()
@@ -2350,7 +2337,7 @@ def read_main_window():
             active_windows['main'] = False
             main_window.close()
             activate_main_window('tab_settings')
-        elif main_event == 'show_track_number':
+        elif main_event in {'show_track_number', 'show_queue_index'}:
             update_gui_queue = True
         elif main_event == 'scan_folders' and main_value:
             index_all_tracks()
@@ -2388,14 +2375,29 @@ def read_main_window():
     elif main_event == 'music_folders':
         with suppress(IndexError):
             Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')
-    # timer
+    # url tab
+    elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
+          and main_values.get('tab_group', None) == 'tab_url' and main_values['url_input']):
+        url_to_insert = main_values['url_input']
+        if main_values['url_play'] or not music_queue and not next_queue:
+            music_queue.insert(0, url_to_insert)
+            play(url_to_insert)
+        elif main_values['url_queue']:
+            music_queue.append(url_to_insert)
+            if len(music_queue) == 1: play(url_to_insert)
+        else:  # add to next queue
+            if settings['reversed_play_next']: next_queue.insert(0, url_to_insert)
+            else: next_queue.append(url_to_insert)
+        update_gui_queue = True
+    # timer tab
     elif main_event == 'cancel_timer':
         main_window['timer_text'].update('No Timer Set')
         main_window['timer_text'].metadata = False
         main_window['timer_error'].update(visible=False)
         main_window['cancel_timer'].update(visible=False)
+    # handle enter/submit event
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
-          and not settings['mini_mode'] and main_values['tab_group'] == 'tab_timer'):
+          and main_values.get('tab_group', None) == 'tab_timer'):
         try:
             timer_value: str = main_values['timer_minutes']
             if timer_value.isdigit():
@@ -2552,8 +2554,7 @@ def read_main_window():
             main_window['pl_move_up'].update(disabled=False)
             main_window['pl_move_down'].update(disabled=False)
         else:
-            error = gt('ERROR')
-            tray_notify(f'{error}: ' + gt("Invalid URL. URL's need to start with http:// or https://"))
+            tray_notify(gt('ERROR') + ': ' + gt("Invalid URL. URL's need to start with http:// or https://"))
     elif main_event == 'pl_tracks':
         pl_items = main_window['pl_tracks'].get_list_values()
         main_window['pl_move_up'].update(disabled=len(main_value) != 1 or pl_items[0] == main_value[0])
@@ -2562,7 +2563,7 @@ def read_main_window():
     elif main_event == 'pl_move_up':
         # only allow moving up if 1 item is selected and pl_files is not empty
         if len(main_values['pl_tracks']) == 1 and pl_files:
-            to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
+            to_move = main_window['pl_tracks'].get_indexes()[0]
             if to_move > 0:
                 new_i = to_move - 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
@@ -2577,7 +2578,7 @@ def read_main_window():
     elif main_event == 'pl_move_down':
         # only allow moving down if 1 item is selected and pl_files is not empty
         if len(main_values['pl_tracks']) == 1 and pl_files:
-            to_move = main_window['pl_tracks'].get_list_values().index(main_values['pl_tracks'][0])
+            to_move = main_window['pl_tracks'].get_indexes()[0]
             if to_move < len(pl_files) - 1:
                 new_i = to_move + 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
@@ -2725,8 +2726,7 @@ def auto_update(auto_start=True):
                     except OSError as _e:
                         if _e.errno == errno.ENOSPC:
                             if auto_start:
-                                error = gt('ERROR')
-                                tray_notify(f'{error}: ' + gt('No space left on device to auto-update'))
+                                tray_notify(gt('ERROR') + ': ' + gt('No space left on device to auto-update'))
                     except (ConnectionAbortedError, ProtocolError):
                         if auto_start:
                             tray_notify('update_available', context=latest_ver)
@@ -2898,11 +2898,11 @@ if __name__ == '__main__':
                 indexing_tracks_thread.join()
                 play_all(queue_only=True)
             except AttributeError:
-                error = gt('ERROR')
-                tray_notify(f'{error}:' + gt('Could not populate queue because library scan is disabled'))
+                tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
         audio_player = AudioPlayer()
         actions = {
             '__ACTIVATED__': activate_main_window,
+            # from tray menu
             gt('Rescan Library'): index_all_tracks,
             gt('Refresh Devices'): lambda: start_chromecast_discovery(start_thread=True),
             # isdigit should be an if statement
@@ -2912,9 +2912,9 @@ if __name__ == '__main__':
             gt('Set Timer'): lambda: activate_main_window('tab_timer'),
             gt('Cancel Timer'): cancel_timer,
             gt('Live System Audio'): stream_live_audio,
-            gt('Play URL'): activate_play_url,
-            gt('Queue URL'): lambda: activate_play_url('Queue'),
-            gt('Play URL Next'): lambda: activate_play_url('Play Next'),
+            gt('Play URL'): lambda: activate_main_window('tab_url', 'url_play'),
+            gt('Queue URL'): lambda: activate_main_window('tab_url', 'url_queue'),
+            gt('Play URL Next'): lambda: activate_main_window('tab_url', 'url_play_next'),
             gt('Play File(s)'): lambda: Thread(target=file_action, daemon=True).start(),
             gt('Queue File(s)'): lambda: Thread(target=file_action, args=['qf'], daemon=True).start(),
             gt('Play File(s) Next'): lambda: Thread(target=file_action, args=['pfn'], daemon=True).start(),
@@ -2928,9 +2928,7 @@ if __name__ == '__main__':
             gt('Repeat All'): lambda: change_settings('repeat', False),
             gt('Repeat Off'): lambda: change_settings('repeat', None),
             gt('Locate Track'): locate_track,
-            gt('Exit'): exit_program,
-            'Bring to Front': bring_to_front,
-            '': lambda: None,
+            gt('Exit'): exit_program
         }
 
         while True:
@@ -2941,9 +2939,8 @@ if __name__ == '__main__':
                 except AttributeError:  # daemon_command (tray_item) is None
                     # in the future, tray_item gets put into daemon_commands
                     exit_program()
-            if any(active_windows.values()):
-                if active_windows['main']: read_main_window()
-                if active_windows['play_url']: read_play_url_window()
+            if active_windows['main']:
+                read_main_window()
             else:
                 time.sleep(0.1)
     except Exception as e:

@@ -2,6 +2,7 @@
 <head>
 <title>Music Caster - {{device_name}}</title>
 <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="256x256" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/Music%20Caster%20Icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-16x16.png">
 <link rel="manifest" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/site.webmanifest">
@@ -71,9 +72,11 @@
 </div>
 <div id="queue-modal" class="modal">
     <div class="modal-content">
-        <h2>Queue (View Only)</h2>
+        <h2>{{ gt('Queue') }}</h2>
         {% for track in queue %}
-            <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}">{{track}}</a>
+            <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
+               href="{{'?prev&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
+                       '?next&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
         {% endfor %}
     </div>
 </div>
@@ -84,7 +87,7 @@
 </div>
 <div id="files-modal" class="modal">
     <div id="tracks-list" class="modal-content">
-        <h2>Audio Selection</h2>
+        <h2>{{ gt('Audio Selection') }}</h2>
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
                placeholder="Search for music..." title="Type in artist/tracks">
         {% for track in list_of_tracks %}
@@ -94,25 +97,27 @@
 </div>
 <div id="settings-modal" class="modal">
     <div class="modal-content">
-        <h2>Settings (v{{version}})</h2>
+        <h2>{{ gt('Settings') }} (v{{version}})</h2>
         <ul style="list-style: none">
             <!-- data-key, title, [inner-text] -->
-            {% set setting_toggles=(('auto_update', 'Auto Update'),
-                ('notifications', 'Notifications'),
-                ('discord_rpc', 'Discord Presence'),
-                ('run_on_startup', 'Run on Startup'),
-                ('save_window_positions', 'Save Window Positions'),
-                ('populate_queue_startup', 'Populates Queue From Folders on Startup', 'Populate Queue on Startup'),
-                ('save_queue_sessions', 'Save Queue Between Sessions', 'Persistent Queue'),
-                ('flip_main_window', 'Move Track Content to the Left'),
-                ('vertical_gui', 'Vertical Main GUI'),
-                ('show_album_art', 'Show Album Art on Main GUI'),
-                ('mini_on_top', 'Mini Mode Stays on Top'),
-                ('folder_cover_override', "Use Cover.* for art instead of file's album art", "Image cover.* override file's cover"),
-                ('folder_context_menu', 'Add to Folder Context Menu', 'Folder Context Menu'),
-                ('show_track_number', 'Show track number in queue', 'Show Track Number'),
-                ('reversed_play_next', 'Reverse play next behaviour', 'Reversed Play Next'),
-                ('scan_folders', 'Scan folders', 'Scan folders')
+            {% set setting_toggles=(
+                ('auto_update', gt('Auto update')),
+                ('notifications', gt('Notifications')),
+                ('discord_rpc', gt('Discord presence')),
+                ('run_on_startup', gt('Run on startup')),
+                ('save_window_positions', gt('Save window positions')),
+                ('populate_queue_startup', gt('Populates queue from folders on startup'), gt('Populate queue on startup')),
+                ('save_queue_sessions', gt('Save queue between sessions'), gt('Persistent queue')),
+                ('flip_main_window', gt('Move track content to the left')),
+                ('vertical_gui', gt('Vertical GUI')),
+                ('show_album_art', gt('Show album art in GUI')),
+                ('mini_on_top', gt('Keep mini mode on top')),
+                ('folder_cover_override', gt("Use cover.* for art instead of file's album art"), gt("cover.* image overrides file cover")),
+                ('folder_context_menu', gt('Add Music Caster to folder context menu'), gt('Folder context menu')),
+                ('show_track_number', gt('Show track number in queue'), gt('Show track number')),
+                ('reversed_play_next', gt('Reverse play next behaviour'), gt('Reversed play next')),
+                ('scan_folders', gt('Scan folders'), gt('Scan folders')),
+                ('show_queue_index', gt('Show index in queue'))
             ) %}
             {% for setting_toggle in setting_toggles %}
             <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">
@@ -128,16 +133,16 @@
 </div>
 <div id="more-modal" class="modal">
     <div class="modal-content">
-        <h2>More</h2>
-        <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">Rescan Library</p>
-        <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">Refresh Devices</p>
-        <a class="modalRow" href="/files">View Music Files Source Links</a>
-        <h2>Timer</h2>
+        <h2>{{ gt('More') }}</h2>
+        <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">{{ gt('Rescan Library') }}</p>
+        <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">{{ gt('Refresh Devices') }}</p>
+        <a class="modalRow" href="/files">{{ gt('View Audio Files Source Links') }}</a>
+        <h2>{{ gt('Timer') }}</h2>
         <ul style="list-style: none">
-            {% for timer_toggle in (('timer_shut_down', 'Shut Down Computer'),
-                                    ('timer_sleep', 'Sleep Computer'),
-                                    ('timer_hibernate', 'Hibernate Computer'),
-                                    ('timer_only_stop', 'Only Stop playback')) %}
+            {% for timer_toggle in (('timer_shut_down', gt('Shut Down Computer')),
+                                    ('timer_sleep', gt('Sleep Computer')),
+                                    ('timer_hibernate', gt('Hibernate Computer')),
+                                    ('timer_only_stop', gt('Only Stop Playback'))) %}
             <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
                 <label for="{{ timer_toggle[0] }}">{{ timer_toggle[1] }}</label>
                 <label class="switch">
@@ -147,15 +152,15 @@
             </li>
             {% endfor %}
             <li class="modalRow">
-                <label title="Enter HH:MM or minutes">Enter Time</label>
+                <label title="Enter HH:MM or minutes">{{ gt('Enter Time') }}</label>
                 <input id="timerMinutes" title="HH:MM or minutes" type="text" onchange="parseTimerInput()">
-                <button id="setTimer" onclick="setTimer()">Set</button>
-                <button id="cancelTimer" onclick="cancelTimer()">Cancel</button>
+                <button id="setTimer" onclick="setTimer()">{{ gt('Set') }}</button>
+                <button id="cancelTimer" onclick="cancelTimer()">{{ gt('Cancel') }}</button>
             </li>
         </ul>
     </div>
 </div>
-<div id="toast">Refreshing Devices</div>
+<div id="toast">{{ gt('Refreshing Devices') }}</div>
 <script>
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
