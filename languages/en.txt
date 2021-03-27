@@ -1,0 +1,128 @@
+# Language: English
+# Credits: Elijah Lopez
+# Any line starting with a # is ignored!
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+add folder
+Add tracks
+Add URL
+An error occurred, restarting now
+An Internal Server Error occurred
+Audio Selection
+Auto Update
+By
+Cancel Timer
+Clear the queue
+Controls
+Could not connect to cast device
+Could not play URL
+Could not populate queue because library scan is disabled
+Delete
+Discord Presence
+Don't repeat
+Downloading update $VER
+Enter minutes or HH:MM
+Enter URL (YouTube or *.ext src)
+ERROR
+Exit
+Folder context menu
+Folders
+Hibernate computer when timer runs out
+INFO
+Invalid Input (enter minutes or HH:MM)
+Invalid URL. URL's need to start with http:// or https://
+Launch mini mode
+Left-Side Music Controls
+Library
+Library indexing incomplete, only scanned files have been added
+Listening
+Live System Audio
+Local device
+Locate Track
+Mini Mode on Top
+Move down
+Move to next up
+Move track down
+Move track up
+Move up
+Music Caster is running in the tray.
+mute
+New
+Next Track
+No space left on device to auto-update
+No space left on device to save settings
+No Timer Set
+Not connected to a cast device
+Nothing Playing
+Notifications
+Only stop playback
+Pause
+Persistent Queue
+Play
+Play All
+Play File(s)
+Play File(s) Next
+Play Folder
+Play Folder Next
+Play Immediately
+Play Next
+Play URL
+Play URL Next
+Playing
+Playlist name
+Playlists
+Playlists Menu
+Populate Queue on Startup
+Previous Track
+Queue
+Queue (View Only)
+Queue All
+Queue File(s)
+Queue Folder
+Queue URL
+Refresh Devices
+Remove item(s)
+remove selected folder
+Remove track
+Repeat
+Repeat All
+Repeat Off
+Repeat One
+Repeat Options
+Repeat set to All
+Repeat set to Off
+Repeat set to One
+Repeat track
+Rescan Library
+Resume
+Reversed Play Next
+Run on Startup
+Save queue to playlist
+Save Window Positions
+Scan folders
+Scroll mousewheel
+Search for music...
+Select Device
+Select Folder
+Select Folder(s)
+Select Music File(s)
+Send me an email
+set DEBUG = true in `settings.json` to enable this page
+Set Timer
+Settings
+Show Album Art
+Show track number
+Shut down computer when timer runs out
+Sleep computer when timer runs out
+Stop
+Thanks for installing Music Caster.
+Timer
+Timer cancelled
+Timer set for $TIME
+Type in artist/tracks
+unmute
+Update $VER is available
+URL
+Use cover.* for album art
+Vertical Main GUI
+Web GUI QR Code (click or scan)

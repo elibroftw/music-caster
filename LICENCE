@@ -1,11 +1,16 @@
 Copyright © Elijah Lopez
 
-This licence lets you modify or use Music Caster and its source code for private use.
+You cannot sell Music Caster, unless there's an at least 50% royalty payment to the majority contributor (Elijah Lopez).
+Any modified version of Music Caster cannot be sold, unless again there's a 50%+ royalty
+to the majority contributor of the original version (Elijah Lopez).
+Any use of source code from Music Caster for the purpose of selling a competitor to Music Caster
+shall also have to meet a 50%+ royalty payment to the projects majority contributor (Elijah Lopez).
 
-You are not allowed to use or modify Music Caster and its source code to compete with Music Caster.
+(Obviously) No contributor of Music Caster is responsible for any
+damages caused by Music Caster, if any occur. This is not confirmation that damages are even remotely likely,
+it is simply a statement to protect contributors of this FREE and OPEN software.
 
-You are allowed to take parts of Music Caster, its source code, or concepts, and apply them to different projects which do not compete with Music Caster.
-Crediting Music Caster would be appreciated but is not required.
-- E.g. Non music player apps with casting abilities.
-- E.g. Using parts of my code pertaining to the GUI, HTTPS Server, Windows Shortcuts, etc...
-- If you are unsure, send me an email at elijahllopezz@gmail.com
+This license cannot restrict you from modifying the source code, compiling, and running it on your machine.
+This license also cannot restrict you from distributing PATCHES for Music Caster.
+
+This license is to be understood by spirit and motivation not by its letter.

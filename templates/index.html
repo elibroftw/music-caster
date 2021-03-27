@@ -17,7 +17,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <div id="wrapper">
     <div class="player__container">
-        <!-- TODO: theme option -->
         <div class="player__body">
             <div class="body__cover">
                 <img src="{{art|safe}}" alt="Album Art" style="text-align: center" />
@@ -42,7 +41,6 @@
         </div>
         <div class="player__footer">
             <ul class="list list--footer">
-                <!-- <li><a href="?fav" class="list__link"><i class="fa fa-heart-o"></i></a></li> -->
                 <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
                 <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
                     <svg width="20" height="20">
@@ -50,7 +48,6 @@
                               class="style-scope yt-icon"></path>
                     </svg>
                 </a></li>
-<!--repeat was here-->
                 <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file-audio"></i></a>
                 <li><a onclick="showModal('more')" href="/#more" class="list__link"><i class="fas fa-ellipsis-h"></i></a>
                 </li>
@@ -74,7 +71,7 @@
 </div>
 <div id="queue-modal" class="modal">
     <div class="modal-content">
-        <h2>Music Queue (View Only)</h2>
+        <h2>Queue (View Only)</h2>
         {% for track in queue %}
             <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}">{{track}}</a>
         {% endfor %}
@@ -87,7 +84,7 @@
 </div>
 <div id="files-modal" class="modal">
     <div id="tracks-list" class="modal-content">
-        <h2>Music Selection</h2>
+        <h2>Audio Selection</h2>
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
                placeholder="Search for music..." title="Type in artist/tracks">
         {% for track in list_of_tracks %}

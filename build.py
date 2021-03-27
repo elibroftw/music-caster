@@ -194,21 +194,23 @@ if not args.dry and not args.skip_build:
         with suppress(OSError): os.mkdir(folder)
 
     copy_tree('vlc', 'dist/vlc')
+    copy_tree('languages', 'dist/languages')
 
     res_files = ['static/style.css', 'templates/index.html', 'templates/files.html']
     for res_file in res_files:
         shutil.copyfile(res_file, 'dist/' + res_file)
-
+    lang_packs = glob.glob('languages/*.txt')
     # noinspection PyTypeChecker
     portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')]
     portable_files.extend(res_files + glob.glob('vlc/**/*.*', recursive=True))
+    portable_files.extend(lang_packs)
     portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py',
                                                    'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
-                                                   'settings.json'] + res_files)
+                                                   'settings.json'] + res_files + lang_packs)
     if s4 is not None: s4.wait()  # Wait for inno script to finish
     else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
