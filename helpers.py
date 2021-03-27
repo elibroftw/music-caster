@@ -164,7 +164,7 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
             audio = mutagen.File(file_path)
         title = audio.get('title', ['Unknown Title'])[0]
         album = audio.get('album', ['Unknown Album'])[0]
-        is_explicit = audio.get('rating', '0') not in {'C', '0', 0}
+        is_explicit = audio.get('rating', '0') not in {'C', 'T', '0', 0}
         with suppress(KeyError, TypeError, MutagenError):
             track_number = audio.get('tracknumber')[0].split('/', 1)[0]
         with suppress(KeyError, TypeError):

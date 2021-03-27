@@ -49,13 +49,13 @@ GET_METADATA_FROM = [
         r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3'
     ]
 EXPECTED_METADATA = [
-    {'album': 'Inxanity', 'artist': '$teven Cannon', 'rating': 'E', 'sort_key': 'inxanity - $teven cannon',
+    {'album': 'Inxanity', 'artist': '$teven Cannon', 'explicit': True, 'sort_key': 'inxanity - $teven cannon',
      'title': 'Inxanity', 'track_number': '1'},
-    {'album': '6ixupsidedown', 'artist': '6ixbuzz, Pressa, Houdini', 'rating': 'E', 'title': 'Up & Down',
+    {'album': '6ixupsidedown', 'artist': '6ixbuzz, Pressa, Houdini', 'explicit': True, 'title': 'Up & Down',
      'sort_key': 'up & down - 6ixbuzz, pressa, houdini', 'track_number': '1'},
-    {'album': '88GLAM2.5', 'artist': '88GLAM, Lil Yachty', 'rating': 'E', 'title': 'Lil Boat',
+    {'album': '88GLAM2.5', 'artist': '88GLAM, Lil Yachty', 'explicit': True, 'title': 'Lil Boat',
      'sort_key': 'lil boat - 88glam, lil yachty', 'track_number': '6'},
-    {'album': 'Rebirth Classics - Ibiza', 'artist': 'Adam K & Soha', 'rating': 'C', 'title': 'Twilight',
+    {'album': 'Rebirth Classics - Ibiza', 'artist': 'Adam K & Soha', 'explicit': False, 'title': 'Twilight',
      'sort_key': 'twilight - adam k & soha', 'track_number': '4'}
 ]
 EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
@@ -85,7 +85,11 @@ def test_helpers():
         assert not valid_color_code(code)
 
     for file, expected_metadata in zip(GET_METADATA_FROM, EXPECTED_METADATA):
-        assert get_metadata(file) == expected_metadata
+        try:
+            assert get_metadata(file) == expected_metadata
+        except AssertionError as e:
+            print('TEST FAILED:', file, get_metadata(file), 'vs.', expected_metadata)
+            raise e
 
     if platform.system() == 'Windows':
         assert fix_path('C:/Users/maste/OneDrive') == r'C:\Users\maste\OneDrive'
