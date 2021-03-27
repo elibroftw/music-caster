@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.79.0'
+VERSION = latest_version = '4.79.1'
 UPDATE_MESSAGE = """
 [UI] Several UI improvements
 [UI] Web UI interactive queue
@@ -2713,8 +2713,9 @@ def auto_update(auto_start=True):
                     if auto_start:
                         cmd_args = ' '.join(sys.argv[1:])
                         cmd += f' && "Music Caster.exe" {cmd_args}'  # auto start is True when updating on startup
-                        tray_notify('update_available', context=latest_ver)
-                        tray_tooltip = gt('Downloading update $VER').replace('$VER', latest_ver)
+                        download_update = gt('Downloading update $VER').replace('$VER', latest_ver)
+                        tray_notify(download_update)
+                        tray_tooltip = download_update
                         tray_process_queue.put({'method': 'update', 'kwargs': {'tooltip': tray_tooltip}})
                     try:
                         # download setup, close tray, run setup, and exit

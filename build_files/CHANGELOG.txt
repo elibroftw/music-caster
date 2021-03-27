@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.79.1
+- [Fix] Auto update notification
+
 4.79.0
 - [Feature] Added option to hide queue index
 - [Feature] Web GUI interactive queue
