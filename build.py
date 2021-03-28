@@ -1,5 +1,4 @@
 from helpers import is_already_running, get_running_processes
-from test_harness import test_helpers
 import time
 from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
 import os
@@ -20,7 +19,7 @@ parser.add_argument('--ver_update', '-v', default=False, action='store_true', he
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
-parser.add_argument('--skip_build', '-sb', default=False, action='store_true',
+parser.add_argument('--skip_build', '-t', default=False, action='store_true',
                     help='Skip to testing / uploading')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 args = parser.parse_args()
@@ -257,6 +256,8 @@ def test(title, fn, assert_statement=False):
 
 if not args.dry and tests_passed:
     try:
+        sys.argv = sys.argv[:1]
+        from test_harness import test_helpers
         test_helpers()
     except AssertionError as e:
         print('TESTS FAILED: test_helpers()')

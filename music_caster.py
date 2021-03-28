@@ -682,7 +682,7 @@ def api_running():
 
 @app.route('/exit/', methods=['GET', 'POST'])
 def api_exit():
-    daemon_commands.put('Exit')
+    daemon_commands.put(gt('Exit'))
     return 'true'
 
 
@@ -1836,6 +1836,7 @@ def locate_track(selected_track_index=0):
 def exit_program():
     global exit_flag
     exit_flag = True
+    print('exiting')
     main_window.close()
     tray_process_queue.put({'method': 'hide'})
     with suppress(UnsupportedNamespace, NotConnected):
