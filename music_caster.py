@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.79.4'
+VERSION = latest_version = '4.79.5'
 UPDATE_MESSAGE = """
 [UI] Several UI improvements
 [UI] Web UI interactive queue

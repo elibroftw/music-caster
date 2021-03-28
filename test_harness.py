@@ -68,7 +68,7 @@ def test_helpers():
         assert get_lang_pack(code)
 
     for line in get_lang_pack('en'):
-        for code in ('es', ):
+        for code in ('en', 'es', 'de'):
             get_translation(line, code)
     # test get length
     for file in TEST_MUSIC_FILES:

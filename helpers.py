@@ -98,7 +98,10 @@ def get_translation(string, lang=''):
     :return: string translated to display language
     """
     lang = lang or get_display_lang()
-    return string if lang == 'en' else get_lang_pack(lang)[get_lang_pack('en')[string]]
+    try:
+        return get_lang_pack(lang)[get_lang_pack('en')[string]]
+    except (IndexError, KeyError):
+        return string
 
 
 def gt(string):
