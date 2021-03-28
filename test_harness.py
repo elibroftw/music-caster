@@ -62,6 +62,14 @@ EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
 def test_helpers():
+
+    print('DISPLAY LANGUAGE', get_display_lang())
+    for code in ('en', 'es'):
+        assert get_lang_pack(code)
+
+    for line in get_lang_pack('en'):
+        for code in ('es', ):
+            get_translation(line, code)
     # test get length
     for file in TEST_MUSIC_FILES:
         try:

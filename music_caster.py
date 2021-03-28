@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.79.3'
+VERSION = latest_version = '4.79.4'
 UPDATE_MESSAGE = """
 [UI] Several UI improvements
 [UI] Web UI interactive queue
@@ -79,7 +79,7 @@ from youtube_dl.utils import DownloadError
 music_file_exts = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
 MUSIC_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(music_file_exts)),)
 DEBUG = args.debug
-main_window = timer_window = play_url_window = Sg.Window('')
+main_window = Sg.Window('')
 working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(working_dir)
 EMAIL = 'elijahllopezz@gmail.com'
@@ -1836,7 +1836,7 @@ def locate_track(selected_track_index=0):
 def exit_program():
     global exit_flag
     exit_flag = True
-    for window in (main_window, play_url_window): window.close()
+    main_window.close()
     tray_process_queue.put({'method': 'hide'})
     with suppress(UnsupportedNamespace, NotConnected):
         if cast is None:
@@ -2613,29 +2613,6 @@ def read_main_window():
     return True
 
 
-def read_play_url_window():
-    global update_gui_queue
-    play_url_event, play_url_values = play_url_window.read(timeout=100)
-    if play_url_event in {None, 'Escape:27', 'q'}:
-        active_windows['play_url'] = False
-        play_url_window.close()
-    elif play_url_event in {'\r', 'special 16777220', 'special 16777221', 'Submit'}:
-        active_windows['play_url'] = False
-        play_url_window.close()
-        url_to_play = play_url_values['url']
-        if play_url_values['play_immediately'] or not music_queue and not next_queue:
-            music_queue.insert(0, url_to_play)
-            play(url_to_play)
-        elif play_url_values['queue']:
-            music_queue.append(url_to_play)
-            if len(music_queue) == 1: play(url_to_play)
-        else:
-            # Add to Next Queue
-            if settings['reversed_play_next']: next_queue.insert(0, url_to_play)
-            else: next_queue.append(url_to_play)
-        update_gui_queue = True
-
-
 def create_shortcut():
     """
     Creates short-cut in Startup folder (enter "startup" in Explorer address bar to)
@@ -2822,7 +2799,7 @@ if __name__ == '__main__':
                                    gt('Folders'), tray_folders, gt('Playlists'), tray_playlists,
                                    gt('Select File(s)'),
                                    [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                                   gt('Play File Next'), gt('Play All')], gt('Exit')]]
+                                   gt('Play All')], gt('Exit')]]
         tray_menu_paused = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
                                  device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Controls'),
                                  [gt('Locate Track'), gt('Repeat Options'), repeat_menu, gt('Stop'),
@@ -2832,7 +2809,7 @@ if __name__ == '__main__':
                                   gt('Folders'), tray_folders, gt('Playlists'), tray_playlists,
                                   gt('Select File(s)'),
                                   [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                                  gt('Play File Next'), gt('Play All')], gt('Exit')]]
+                                  gt('Play All')], gt('Exit')]]
         tooltip = 'Music Caster'
         if settings.get('DEBUG', DEBUG):
             tooltip += ' [DEBUG]'

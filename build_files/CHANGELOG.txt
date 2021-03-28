@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.79.4
+- [UI] Added Spanish translation
+- [Fix] Translation framework
+- [Fix] Metadata
+
 4.79.3
 - [UI] Web GUI improvements
 

@@ -25,11 +25,12 @@ Don't repeat
 Downloading update $VER
 Enter minutes or HH:MM
 Enter Time
-Enter URL (YouTube or *.ext src)
+Enter URL
 ERROR
 Exit
 Folder context menu
 Folders
+General
 Hibernate when timer runs out
 Hibernate Computer
 INFO
@@ -44,6 +45,7 @@ Listening
 Live System Audio
 Local device
 Locate Track
+Locate track
 Mini mode on top
 More
 Move down
@@ -84,7 +86,7 @@ Populate queue on startup
 Populates queue from folders on startup
 Previous Track
 Queue
-Queue All
+queue all
 Queue File(s)
 Queue Folder
 Queue URL
@@ -116,6 +118,7 @@ Search for music...
 Select Device
 Select Folder
 Select Folder(s)
+Select File(s)
 Select Music File(s)
 Send me an email
 set DEBUG = true in `settings.json` to enable this page
@@ -127,16 +130,18 @@ Show album art in GUI
 Show index in queue
 Show track number
 Show track number in queue
+shuffle
 Shut down when timer runs out
 Shut Down Computer
 Sleep when timer runs out
-Sleep computer
+Sleep Computer
 Stop
 Thanks for installing Music Caster.
 Timer
 Timer cancelled
 Timer set for $TIME
 Type in artist/tracks
+UI
 unmute
 Update $VER is available
 URL

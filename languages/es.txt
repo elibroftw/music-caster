@@ -1,0 +1,153 @@
+# Language: Spanish
+# Credits: github.com/Varguit
+# Any line starting with a # is ignored!
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+agregar carpeta
+Agregar Music Caster al menú contextual de la carpeta
+Agregar pistas
+Agregar URL
+Ocurrió un error, reiniciando ahora
+Se produjo un error interno del servidor
+Selección de audio
+Actualización auto
+Por
+Cancelar
+Cancelar temporizador
+Limpiar la cola
+Controles
+No se pudo conectar al dispositivo de transmisión
+No se pudo reproducir la URL
+No se pudo completar la cola porque el escaneo de la biblioteca está deshabilitado
+Borrar
+Discord detectado
+No repitas
+Descargando la actualización $VER
+Ingrese minutos o HH:MM
+Ingrese la hora
+Ingrese la URL
+ERROR
+Salida
+Menú contextual de carpeta
+Carpetas
+General
+Hibernar cuando se acabe el tiempo
+Hibernar computadora
+INFO
+Entrada no válida (ingrese minutos o HH: MM)
+URL invalida.  La URL debe comenzar con http:// o https://
+Mantenga el modo mini en la parte superior
+Iniciar el modo mini
+Controles de música en lado izquierdo
+Biblioteca
+Indexación de la biblioteca incompleta, solo se han agregado archivos escaneados
+Escuchando
+Audio del sistema en vivo
+Dispositivo local
+Buscar Pista
+Buscar pista
+Modo Mini en la parte superior
+Más
+Mover hacia abajo
+Pasar al siguiente
+Mover el contenido de la pista a la izquierda
+Mover pista hacia abajo
+Mover pista hacia arriba
+Ascender
+Music Caster se está ejecutando en la bandeja.
+silencio
+Nuevo
+Siguiente pista
+No queda espacio en el dispositivo para actualizar automáticamente
+No queda espacio en el dispositivo para guardar la configuración
+Sin temporizador configurado
+No conectado a un dispositivo de transmisión
+Nada reproduciendose
+Notificaciones
+Detener solo la reproducción
+Detener solo la reproducción
+Pausa
+Cola persistente
+Reproducir
+Reproducir todo
+Reproducir archivo(s)
+Reproducir archivo(s) siguiente
+Carpeta de reproducción
+Reproducir carpeta siguiente
+Reproduce inmediatamente
+Reproduce siguiente
+Reproducir URL
+Reproducir URL Siguiente
+Reproduciendo
+Nombre de la lista de reproducción
+Listas de reproducción
+Menú de listas de reproducción
+Rellenar cola al inicio
+Llena la cola de las carpetas al inicio
+Pista anterior
+Cola
+Poner en cola todo
+Archivo(s) de cola
+Carpeta de cola
+URL de cola
+Actualizar dispositivos
+Actualizando dispositivos
+Eliminar elemento(s)
+eliminar carpeta seleccionada
+Quitar pista
+Repetir
+Repite todo
+Repetir apagado
+Repetir uno
+Opciones de repetición
+Repetir configurado en Todo
+Repetir configurado en Desactivado
+Repetir establecido en uno
+Repetir pista
+Volver a explorar la biblioteca
+Reanudar
+Invertir comportamiento de reproducir siguiente
+Reproducir siguiente invertido
+Reproduce al empezar
+Guardar cola entre sesiones
+Guardar la cola en la lista de reproducción
+Guardar posiciones de ventana
+Escanear carpetas
+Rueda del ratón de desplazamiento
+Buscar música ...
+Seleccione el dispositivo
+Seleccione la carpeta
+Seleccionar carpeta(s)
+Seleccionar archivo(s)
+Seleccionar archivo(s) de música
+Envíame un correo electrónico
+establezca DEBUG = true en `settings.json` para habilitar esta página
+Configurar temporizador
+Ajusta
+Ajustes
+Mostrar la carátula del álbum
+Mostrar la carátula del álbum en la GUI
+Mostrar índice en cola
+Mostrar número de pista
+Mostrar el número de pista en la cola
+barajar
+Apagar cuando se acabe el tiempo
+Apagar la computadora
+Hibernar cuando se acabe el tiempo
+Hibernar
+Detener
+Gracias por instalar Music Caster.
+Temporizador
+Temporizador cancelado
+Temporizador establecido a las $TIME
+Escribe artista / pistas
+UI
+activar el sonido
+La actualización $VER está disponible
+URL
+Use cover.* Para la carátula del álbum
+Use cover.* Para la carátula en lugar de la carátula del álbum del archivo
+cover.* la imagen anula la portada del archivo
+GUI vertical
+Ver enlaces de origen de archivos de audio
+Código QR de la GUI web (haga clic o escanee)

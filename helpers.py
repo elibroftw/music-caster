@@ -7,7 +7,7 @@ from functools import wraps, lru_cache
 from enum import Enum
 import io
 import locale
-from math import floor
+from math import floor, ceil
 import os
 import platform
 from random import getrandbits
@@ -72,7 +72,7 @@ class PlayingStatus(str, Enum):
 def get_lang_pack(lang):
     lang_pack = {} if lang == 'en' else []
     with suppress(FileNotFoundError):
-        with open(f'languages/{lang}.txt') as f:
+        with open(f'languages/{lang}.txt', encoding='utf-8') as f:
             i = 0
             line = f.readline().strip()
             while line:
@@ -84,16 +84,21 @@ def get_lang_pack(lang):
     return lang_pack
 
 
-def get_translation(string):
+def get_display_lang():
+    windll = ctypes.windll.kernel32
+    return locale.windows_locale[windll.GetUserDefaultUILanguage()].split('_')[0]
+
+
+def get_translation(string, lang=''):
     """
     Returns the translation of the string in the display language
     If lang pack does not exist, use original string
     :param string: English string
+    :param lang: Optional code to translate to. Defaults to using display language
     :return: string translated to display language
     """
-    windll = ctypes.windll.kernel32
-    lang = locale.windows_locale[windll.GetUserDefaultUILanguage()].split('_')[0]
-    return string if lang == 'en' else get_lang_pack(lang).get(get_lang_pack('en')[string], string)
+    lang = lang or get_display_lang()
+    return string if lang == 'en' else get_lang_pack(lang)[get_lang_pack('en')[string]]
 
 
 def gt(string):
@@ -147,7 +152,7 @@ def valid_color_code(code):
 
 def get_metadata(file_path: str, sort_key_template='&title - &artist'):
     file_path = file_path.lower()
-    title, artist, album, track_number, rating = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None, 'C'
+    title, artist, album, track_number, is_explicit = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None, False
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
             audio = dict(EasyID3(file_path))
@@ -541,18 +546,20 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     # tab 1 is the queue, tab 2 will be the library
     file_options = [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')]
     folder_opts = [gt('Play Folder'), gt('Queue Folder'), gt('Play Folder Next')]
+    biggest_word = max((len(x) for x in file_options + folder_opts))
+    combo_w = ceil(biggest_word * 0.8)
+    btn_defaults = {'font': FONT_NORMAL, 'enable_events': True, 'size': (combo_w - 1, 1)}
     queue_controls = [
-        Sg.Column([[Sg.Combo(file_options, default_value=file_options[0], key='file_option', size=(14, None),
+        Sg.Column([[Sg.Combo(file_options, default_value=file_options[0], key='file_option', size=(combo_w, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)))],
-                   [Sg.Combo(folder_opts, default_value=folder_opts[0], key='folder_option', size=(14, None),
+                   [Sg.Combo(folder_opts, default_value=folder_opts[0], key='folder_option', size=(combo_w, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)))]]),
-        Sg.Column([[Sg.Button(file_options[0], font=FONT_NORMAL, key='file_action', enable_events=True, size=(13, 1))],
-                   [Sg.Button(folder_opts[0], font=FONT_NORMAL, k='folder_action', enable_events=True, size=(13, 1))]]),
-        Sg.Column([[Sg.Button(gt('Queue All'), font=FONT_NORMAL, tooltip='shuffle queue all',
-                              key='queue_all', size=(9, 1), enable_events=True)]])
+        Sg.Column([[Sg.Button(file_options[0], key='file_action', **btn_defaults)],
+                   [Sg.Button(folder_opts[0], k='folder_action', **btn_defaults)]]),
     ]
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip=gt('Launch mini mode'))],
+        [Sg.Button(key='queue_all', image_data=QUEUE_ALL, **img_button, tooltip=gt('queue all'))],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip=gt('Clear the queue'))],
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip=gt('Save queue to playlist'))],
         [Sg.Button(key='locate_track', image_data=LOCATE_FILE, **img_button, tooltip=gt('Locate track'))],
@@ -572,7 +579,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                    select_mode=Sg.SELECT_MODE_SINGLE,
                    text_color=fg, key='queue', font=FONT_NORMAL,
                    bind_return_key=True),
-        Sg.Column(listbox_controls, pad=(0, 5))]]
+        Sg.Column(listbox_controls, pad=(0, 0))]]
     queue_tab = Sg.Tab(gt('Queue'), queue_tab_layout, key='tab_queue', background_color=bg)
     timer_layout = create_timer(settings, timer)
     timer_tab = Sg.Tab(gt('Timer'), timer_layout, key='tab_timer', background_color=bg)
@@ -659,7 +666,7 @@ def create_settings(version, settings, qr_code):
     # Sg.TabGroup(layout,)
     general_tab = Sg.Tab(gt('General'), [
         [create_checkbox(gt('Auto update'), 'auto_update', settings),
-         create_checkbox(gt('Discord Presence'), 'discord_rpc', settings, True)],
+         create_checkbox(gt('Discord presence'), 'discord_rpc', settings, True)],
         [create_checkbox(gt('Notifications'), 'notifications', settings),
          create_checkbox(gt('Run on startup'), 'run_on_startup', settings, True)],
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
@@ -736,7 +743,7 @@ def create_timer(settings, timer):
 def create_play_url():
     default_text: str = pyperclip.paste()
     if not default_text.startswith('http'): default_text = ''
-    layout = [[Sg.Text(gt('Enter URL (YouTube or *.ext src)'), font=FONT_NORMAL)],
+    layout = [[Sg.Text(gt('Enter URL'), font=FONT_NORMAL)],
               [Sg.Radio(gt('Play Immediately'), 'url_option', key='url_play', default=True),
                Sg.Radio(gt('Queue'), 'url_option',  key='url_queue'),
                Sg.Radio(gt('Play Next'), 'url_option', key='url_play_next')],
