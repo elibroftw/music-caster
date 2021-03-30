@@ -1090,7 +1090,6 @@ def stream_live_audio(switching_device=False):
 def play_url_generic(src, ext, title, artist, album, length, position=0,
                      thumbnail=None, autoplay=True, switching_device=False):
     global track_position, track_start, track_end, playing_url, track_length, progress_bar_last_update
-    _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
     if cast is None:
         audio_player.play(src, start_playing=autoplay, start_from=position)
     else:
@@ -1100,6 +1099,7 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
         if mc.status.player_is_playing or mc.status.player_is_paused:
             mc.stop()
             mc.block_until_active(WAIT_TIMEOUT)
+        _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
         mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                       current_time=position, autoplay=autoplay)
         mc.block_until_active(WAIT_TIMEOUT)
@@ -1174,7 +1174,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                                          'art': r['thumbnail'], 'src': _f['url'], 'audio_src': audio_src}
             metadata = url_metadata[url]
             artist = metadata['artist']
-            url_to_play = metadata.get('audio_src', metadata['src']) if cast is None else metadata['src']
+            url_to_play = metadata['audio_src'] if cast is None else metadata['src']
             return play_url_generic(url_to_play, metadata['ext'], metadata['title'], artist, metadata['album'],
                                     metadata['length'], position=position, thumbnail=metadata['art'],
                                     autoplay=autoplay, switching_device=switching_device)
