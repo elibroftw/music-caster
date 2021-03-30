@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.80.1
+- [Fix] Missing translation
+- [Fix] High pitch noise
+- [Fix] Locate track
+- [UI] Improved fonts and UI looks
+
 4.80.0
 - [Feature] Play URL on local device
 - [Fix] Tray menu

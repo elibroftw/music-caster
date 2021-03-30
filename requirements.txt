@@ -15,7 +15,7 @@ wxpython~=4.1
 wavinfo==1.6
 youtube_dl
 zeroconf==0.24.5
+werkzeug
 # windows only v
 pywin32
 pyperclip
-werkzeug

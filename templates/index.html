@@ -8,7 +8,7 @@
 <link rel="manifest" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/site.webmanifest">
 <link rel="mask-icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/safari-pinned-tab.svg" color="#00bfff">
 <link rel="shortcut icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon.ico">
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.28">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.29">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -72,7 +72,7 @@
 </div>
 <div id="queue-modal" class="modal">
     <div class="modal-content">
-        <h2>{{ gt('Queue') }}</h2>
+        <h2 class="modal-title">{{ gt('Queue') }}</h2>
         {% for track in queue %}
             <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
                href="{{'?prev&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
@@ -96,7 +96,7 @@
 </div>
 <div id="settings-modal" class="modal">
     <div class="modal-content">
-        <h2>{{ gt('Settings') }} (v{{version}})</h2>
+        <h2 class="modal-title">{{ gt('Settings') }} (v{{version}})</h2>
         <ul style="list-style: none">
             <!-- data-key, title, [inner-text] -->
             {% set setting_toggles=(
@@ -132,7 +132,7 @@
 </div>
 <div id="more-modal" class="modal">
     <div class="modal-content">
-        <h2>{{ gt('More') }}</h2>
+        <h2 class="modal-title">{{ gt('More') }}</h2>
         <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">{{ gt('Rescan Library') }}</p>
         <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">{{ gt('Refresh Devices') }}</p>
         <a class="modalRow" href="/files">{{ gt('View Audio Files Source Links') }}</a>
@@ -264,12 +264,14 @@
 
     function rescanLibrary() {
         fetch('/rescan-library/');
-        showToast('Rescanning Library');
+        const reScanLib = '{{ gt('Rescanning library') }}';
+        showToast(reScanLib);
     }
 
     function refreshDevices() {
         fetch('/refresh-devices/');
-        showToast('Refreshing Devices');
+        const refreshDevices = '{{ gt('Refreshing devices') }}';
+        showToast(refreshDevices);
     }
 
     function showToast(message) {
@@ -326,20 +328,22 @@
                 headers: { 'Content-Type': 'text/plain' },
                 body: seconds
             }).then(r => r.text()).then(text => {
-                console.log(text);
-                showToast('Timer set for ' + text);
+                const timerText = '{{ gt('Timer set for $TIME') }}';
+                showToast(timerText.replace(/\$TIME/g, text));
             });
         } else {
-            showToast('Could not set timer');
+            const timerSetError = '{{ gt('Could not set timer') }}';
+            showToast(timerSetError);
         }
     }
 
     function cancelTimer() {
+        const timerCancelled = '{{ gt('Timer cancelled') }}';
         fetch('/timer/', {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: 'cancel'
-        }).then(() => showToast('Timer cancelled'));
+        }).then(() => showToast(timerCancelled));
     }
 
 

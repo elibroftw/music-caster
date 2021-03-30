@@ -19,6 +19,7 @@ Controles
 No se pudo conectar al dispositivo de transmisión
 No se pudo reproducir la URL
 No se pudo completar la cola porque el escaneo de la biblioteca está deshabilitado
+No se pudo configurar el temporizador
 Borrar
 Discord detectado
 No repitas
@@ -48,21 +49,20 @@ Buscar Pista
 Buscar pista
 Modo Mini en la parte superior
 Más
-Mover hacia abajo
+mover hacia abajo
 Pasar al siguiente
 Mover el contenido de la pista a la izquierda
-Mover pista hacia abajo
-Mover pista hacia arriba
-Ascender
+ascender
 Music Caster se está ejecutando en la bandeja.
 silencio
 Nuevo
 Siguiente pista
+siguiente pista
 No queda espacio en el dispositivo para actualizar automáticamente
 No queda espacio en el dispositivo para guardar la configuración
 Sin temporizador configurado
 No conectado a un dispositivo de transmisión
-Nada reproduciendose
+Nada Reproduciendose
 Notificaciones
 Detener solo la reproducción
 Detener solo la reproducción
@@ -92,9 +92,8 @@ Carpeta de cola
 URL de cola
 Actualizar dispositivos
 Actualizando dispositivos
-Eliminar elemento(s)
 eliminar carpeta seleccionada
-Quitar pista
+quitar
 Repetir
 Repite todo
 Repetir apagado
@@ -105,6 +104,7 @@ Repetir configurado en Desactivado
 Repetir establecido en uno
 Repetir pista
 Volver a explorar la biblioteca
+Explorar comenzó
 Reanudar
 Invertir comportamiento de reproducir siguiente
 Reproducir siguiente invertido
@@ -136,6 +136,7 @@ Apagar la computadora
 Hibernar cuando se acabe el tiempo
 Hibernar
 Detener
+Presentar
 Gracias por instalar Music Caster.
 Temporizador
 Temporizador cancelado

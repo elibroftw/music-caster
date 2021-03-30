@@ -19,6 +19,7 @@ Controls
 Could not connect to cast device
 Could not play URL
 Could not populate queue because library scan is disabled
+Could not set timer
 Delete
 Discord presence
 Don't repeat
@@ -48,16 +49,15 @@ Locate Track
 Locate track
 Mini mode on top
 More
-Move down
+move down
 Move to next up
 Move track content to the left
-Move track down
-Move track up
-Move up
+move up
 Music Caster is running in the tray.
 mute
 New
 Next Track
+next track
 No space left on device to auto-update
 No space left on device to save settings
 No Timer Set
@@ -92,9 +92,8 @@ Queue Folder
 Queue URL
 Refresh Devices
 Refreshing devices
-Remove item(s)
 remove selected folder
-Remove track
+remove
 Repeat
 Repeat All
 Repeat Off
@@ -105,6 +104,7 @@ Repeat set to Off
 Repeat set to One
 Repeat track
 Rescan Library
+Rescanning library
 Resume
 Reverse play next behaviour
 Reversed play next
@@ -113,7 +113,7 @@ Save queue between sessions
 Save queue to playlist
 Save window positions
 Scan folders
-Scroll mousewheel
+scroll mousewheel
 Search for music...
 Select Device
 Select Folder
@@ -136,6 +136,7 @@ Shut Down Computer
 Sleep when timer runs out
 Sleep Computer
 Stop
+Submit
 Thanks for installing Music Caster.
 Timer
 Timer cancelled

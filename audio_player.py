@@ -45,7 +45,7 @@ class AudioPlayer:
         self.is_url = media_path.startswith('http')
         if volume is not None: self.set_volume(volume)
         while not self.player.is_playing(): pass
-        if start_from: self.set_pos(start_from)
+        self.set_pos(start_from)
         if not start_playing: self.pause()
 
     def load(self, file_path):
