@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.80.0
+- [Feature] Play URL on local device
+- [Fix] Tray menu
+
 4.79.5
 - [Fix] Translation framework
 

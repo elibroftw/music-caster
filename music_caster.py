@@ -1,7 +1,6 @@
-VERSION = latest_version = '4.79.5'
+VERSION = latest_version = '4.80.0'
 UPDATE_MESSAGE = """
-[UI] Several UI improvements
-[UI] Web UI interactive queue
+[Feature] Play urls on local device!
 [HELP] Implemented translation framework, need translators
 """.strip()
 import argparse
@@ -23,7 +22,6 @@ if args.version:
     sys.exit()
 from helpers import *
 from audio_player import AudioPlayer
-
 import base64
 from contextlib import suppress
 from collections import defaultdict, deque
@@ -203,26 +201,22 @@ def save_settings():
                 tray_notify(gt('ERROR') + f': {_e}')
 
 
-def refresh_folders():
+def refresh_tray():
+    # refresh folders
     tray_folders.clear()
     tray_folders.append(f'{gt("Select Folder(s)")}::PF')
     for folder in settings['music_folders']:
         folder = folder.replace('\\', '/').split('/')
         folder = f'../{"/".join(folder[-2:])}::PF' if len(folder) > 2 else ('/'.join(folder) + '::PF')
         tray_folders.append(folder)
-
-
-def refresh_playlists():
+    # refresh playlists
     tray_playlists.clear()
     tray_playlists.append(gt('Playlists Menu'))
     tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in settings['playlists'].keys()])
-
-
-def refresh_tray():
-    refresh_folders()
-    refresh_playlists()
-    menu = {'PLAYING': tray_menu_playing, 'PAUSED': tray_menu_paused}.get(playing_status, tray_menu_default)
-    tray_process_queue.put({'method': 'update', 'kwargs': {'menu': menu}})
+    # tell tray process to update
+    with suppress(NameError):
+        menu = {'PLAYING': tray_menu_playing, 'PAUSED': tray_menu_paused}.get(playing_status, tray_menu_default)
+        tray_process_queue.put({'method': 'update', 'kwargs': {'menu': menu}})
 
 
 def change_settings(settings_key, new_value):
@@ -522,12 +516,12 @@ def load_settings(first_load=False):  # up to 0.4 seconds
         settings = loaded_settings
         # sort playlists by name
         playlists = settings['playlists'] = {k: settings['playlists'][k] for k in sorted(settings['playlists'].keys())}
-        refresh_playlists()
+        refresh_tray()
         # if music folders were modified, re-index library and refresh tray
         if music_folders != settings['music_folders'] or first_load:
             music_folders = settings['music_folders']
             if settings['scan_folders']: index_all_tracks()
-            refresh_folders()
+            refresh_tray()
         DEFAULT_FOLDER = music_folders[0] if music_folders else home_music_folder
         theme = settings['theme']
         for k, v in theme.copy().items():
@@ -1097,19 +1091,22 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
                      thumbnail=None, autoplay=True, switching_device=False):
     global track_position, track_start, track_end, playing_url, track_length, progress_bar_last_update
     _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-    cast.wait(timeout=WAIT_TIMEOUT)
-    cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
-    mc = cast.media_controller
-    if mc.status.player_is_playing or mc.status.player_is_paused:
-        mc.stop()
+    if cast is None:
+        audio_player.play(src, start_playing=autoplay, start_from=position)
+    else:
+        cast.wait(timeout=WAIT_TIMEOUT)
+        cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
+        mc = cast.media_controller
+        if mc.status.player_is_playing or mc.status.player_is_paused:
+            mc.stop()
+            mc.block_until_active(WAIT_TIMEOUT)
+        mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
+                      current_time=position, autoplay=autoplay)
         mc.block_until_active(WAIT_TIMEOUT)
-    mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
-                  current_time=position, autoplay=autoplay)
-    mc.block_until_active(WAIT_TIMEOUT)
-    start_time = time.time()
-    while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
-        time.sleep(0.2)
-        if time.time() - start_time > 5: break  # show error?
+        start_time = time.time()
+        while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+            time.sleep(0.2)
+            if time.time() - start_time > 5: break  # show error?
     progress_bar_last_update = time.time()
     track_position = position
     track_length = length
@@ -1122,10 +1119,7 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
 
 def play_url(url, position=0, autoplay=True, switching_device=False):
     global cast, playing_url, playing_status, track_length, track_start, track_end, cast_last_checked
-    if cast is None:
-        tray_notify(gt('ERROR') + ': ' + gt('Not connected to a cast device'))
-        return False
-    elif url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
+    if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
@@ -1145,7 +1139,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                     music_queue.insert(0, url)
                     url_metadata[url] = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
                                          'length': entry['duration'], 'art': entry['thumbnail'], 'src': entry['url'],
-                                         'ext': entry['ext']}
+                                         'ext': entry['ext'], 'audio_src': entry['ur;']}
             else:
                 url_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'SoundCloud',
                                      'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
@@ -1162,23 +1156,26 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                     music_queue.popleft()
                     for entry in reversed(r['entries']):
                         url = entry['webpage_url']
+                        audio_src = next(filter(lambda item: item['vcodec'] == 'none', entry['formats']))['url']
                         formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                         formats.sort(key=lambda _f: _f['width'])
                         _f = formats[0]
                         music_queue.insert(0, url)
                         url_metadata[url] = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
                                              'length': entry['duration'], 'art': entry['thumbnail'],
-                                             'src': _f['url'], 'ext': _f['ext']}
+                                             'src': _f['url'], 'ext': _f['ext'], 'audio_src': audio_src}
                 else:
+                    audio_src = next(filter(lambda item: item['vcodec'] == 'none', r['formats']))['url']
                     formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     formats.sort(key=lambda _f: _f['width'])
                     _f = formats[0]
                     url_metadata[url] = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                                         'album': r.get('album', 'YouTube'), 'length': r['duration'],
-                                         'art': r['thumbnail'], 'src': _f['url'], 'ext': _f['ext']}
+                                         'album': r.get('album', 'YouTube'), 'length': r['duration'], 'ext': _f['ext'],
+                                         'art': r['thumbnail'], 'src': _f['url'], 'audio_src': audio_src}
             metadata = url_metadata[url]
             artist = metadata['artist']
-            return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], artist, metadata['album'],
+            url_to_play = metadata.get('audio_src', metadata['src']) if cast is None else metadata['src']
+            return play_url_generic(url_to_play, metadata['ext'], metadata['title'], artist, metadata['album'],
                                     metadata['length'], position=position, thumbnail=metadata['art'],
                                     autoplay=autoplay, switching_device=switching_device)
         except (StopIteration, DownloadError, KeyError) as _e:
@@ -2348,7 +2345,7 @@ def read_main_window():
         with suppress(ValueError):
             settings['music_folders'].remove(selected_item)
             main_window['music_folders'].update(settings['music_folders'])
-            refresh_folders()
+            refresh_tray()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
@@ -2356,7 +2353,7 @@ def read_main_window():
         if main_value not in music_folders and os.path.exists(main_value):
             settings['music_folders'].append(main_value)
             main_window['music_folders'].update(settings['music_folders'])
-            refresh_folders()
+            refresh_tray()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event in {'settings_file', 'o:79'}:
@@ -2469,7 +2466,7 @@ def read_main_window():
         main_window['pl_move_up'].update(disabled=not pl_files)
         main_window['pl_move_down'].update(disabled=not pl_files)
         save_settings()
-        refresh_playlists()
+        refresh_tray()
     elif main_event == 'play_pl':
         temp_lst = playlists.get(main_values['playlist_combo'], [])
         if temp_lst:
@@ -2501,7 +2498,7 @@ def read_main_window():
             main_window['play_pl'].update(disabled=False)
             main_window['queue_pl'].update(disabled=False)
         save_settings()
-        refresh_playlists()
+        refresh_tray()
     elif main_event == 'playlist_name':
         main_window['pl_save'].update(disabled=main_values['playlist_name'] == '')
     elif main_event in {'pl_rm_items', 'r:82'}:  # remove item from playlist

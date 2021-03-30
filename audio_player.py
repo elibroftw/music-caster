@@ -1,16 +1,16 @@
 """
-AudioPlayer v2.2.6
+AudioPlayer v2.3.0
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
 
+from enum import IntEnum
+import math
 import os
 import sys
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.environ['PYTHON_VLC_LIB_PATH'] = f'{starting_dir}\\vlc\\libvlc.dll'
 import vlc
-import math
-from enum import IntEnum
 
 
 class AudioPlayerUnit(IntEnum):
@@ -19,24 +19,12 @@ class AudioPlayerUnit(IntEnum):
 
 
 class AudioPlayer:
-    __slots__ = 'vlc_instance', 'player'
-
-    @staticmethod
-    def percent_to_db_percent(percent: float):
-        """
-        :param percent: float [0, 1]
-        """
-        try: return round(20 * math.log(percent * 100, 10), 3) / 40
-        except ValueError: return 0
-
-    @staticmethod
-    def db_percent_to_percent(db: float):
-        """ :param db: float [0, 40]"""
-        return 0 if db == 0 else round((10 ** (2 * db)) / 100, 2)
+    __slots__ = 'vlc_instance', 'player', 'is_url'
 
     def __init__(self):
         self.vlc_instance = vlc.Instance()
         self.player: vlc.MediaPlayer = self.vlc_instance.media_player_new()
+        self.is_url = False
 
     def has_media(self):
         return self.player.get_media() is not None
@@ -45,19 +33,19 @@ class AudioPlayer:
         """ Returns whether player is playing or is paused """
         return self.has_media()
 
-    def play(self, file_path, start_playing=True, volume=None, start_from=0):
+    def play(self, media_path, start_playing=True, volume=None, start_from=0):
         """
-        :param file_path: str
+        :param media_path: str
         :param start_playing: bool
         :param volume: float[0, 1]
         :param start_from: time to start from in seconds
         """
-        m = self.vlc_instance.media_new(file_path)  # Path
-        self.player.set_media(m)
+        self.player.set_mrl(media_path)
         self.player.play()
+        self.is_url = media_path.startswith('http')
         if volume is not None: self.set_volume(volume)
         while not self.player.is_playing(): pass
-        self.set_pos(start_from)
+        if start_from: self.set_pos(start_from)
         if not start_playing: self.pause()
 
     def load(self, file_path):
@@ -91,20 +79,35 @@ class AudioPlayer:
             return position
         return 0
 
+    @staticmethod
+    def percent_to_db_percent(percent: float):
+        """
+        :param percent: float [0, 1]
+        """
+        try: return round(20 * math.log(percent * 100, 10), 3) / 40
+        except ValueError: return 0
+
+    @staticmethod
+    def db_percent_to_percent(db: float):
+        """ :param db: float [0, 40]"""
+        return 0 if db == 0 else round((10 ** (2 * db)) / 120, 2)
+
+    def get_volume_multiple(self):
+        return 300 if self.is_url else 120
+
     def set_volume(self, volume):
         """
         Sets the output volume and not the program volume
         :param volume: float[0, 1]
-        Capped at 1 to prevent distortion
         """
-        self.player.audio_set_volume(int(self.percent_to_db_percent(volume) * 100))
+        self.player.audio_set_volume(int(volume * self.get_volume_multiple()))
 
     def get_volume(self):
         """
         get the volume of the output
         :return float [0, 1]
         """
-        return self.db_percent_to_percent(self.player.audio_get_volume() / 5 * 2)
+        return self.player.audio_get_volume() / self.get_volume_multiple()
 
     def set_pos(self, position, unit=AudioPlayerUnit.SECOND):
         """position is in seconds from start"""
