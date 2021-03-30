@@ -4,6 +4,7 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Missing translation
 - [Fix] High pitch noise
 - [Fix] Locate track
+- [Feature] Add option to pick language
 - [UI] Improved fonts and UI looks
 
 4.80.0
