@@ -296,24 +296,6 @@ def parse_youtube_id(url):
     return None  # invalid YouTube url
 
 
-def get_repeat_img_et_tooltip(repeat_setting):
-    if repeat_setting is None: return REPEAT_OFF_IMG, 'repeat all'
-    elif repeat_setting: return REPEAT_ONE_IMG, 'repeat off'
-    else: return REPEAT_ALL_IMG, 'repeat track'
-
-
-def create_progress_bar_text(position, length) -> (str, str):  #
-    """":return: time_elapsed_text, time_left_text"""
-    position = floor(position)
-    time_left = round(length) - position
-    mins_elapsed, mins_left = floor(position / 60), time_left // 60
-    secs_left = time_left % 60
-    secs_elapsed = floor(position % 60)
-    if secs_left < 10: secs_left = f'0{secs_left}'
-    if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
-    return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'
-
-
 def is_os_64bit():
     return platform.machine().endswith('64')
 
@@ -458,17 +440,22 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
 
 
 # GUI LAYOUTS
+def repeat_img_tooltip(repeat_setting):
+    if repeat_setting is None: return REPEAT_OFF_IMG, gt('Repeat All')
+    elif repeat_setting: return REPEAT_ONE_IMG, gt('Repeat Off')
+    else: return REPEAT_ALL_IMG, gt('Repeat One')
+
+
 def get_music_controls(settings, playing_status):
-    # TODO: stop button
     accent_color, bg = settings['theme']['accent'], settings['theme']['background']
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
-    repeat_img, repeat_tooltip = get_repeat_img_et_tooltip(settings['repeat'])
+    repeat_img, repeat_tooltip = repeat_img_tooltip(settings['repeat'])
     prev_button = {'pad': ((10, 5), None) if settings['mini_mode'] else None, 'tooltip': 'previous track'}
-    repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': repeat_tooltip}
+    repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': settings['repeat']}
     shuffle_button = {**img_button, 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
     mute_tooltip = gt('unmute') if is_muted else gt('mute')
     return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, **prev_button),
@@ -480,6 +467,18 @@ def get_music_controls(settings, playing_status):
             Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                       disable_number_display=True, enable_events=True, background_color=accent_color,
                       text_color='#000000', size=(10, 10), tooltip=gt('scroll mousewheel'), resolution=1)]
+
+
+def create_progress_bar_text(position, length) -> (str, str):  #
+    """":return: time_elapsed_text, time_left_text"""
+    position = floor(position)
+    time_left = round(length) - position
+    mins_elapsed, mins_left = floor(position / 60), time_left // 60
+    secs_left = time_left % 60
+    secs_elapsed = floor(position % 60)
+    if secs_left < 10: secs_left = f'0{secs_left}'
+    if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
+    return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'
 
 
 def get_progress_layout(settings, track_position, track_length, playing_status):
@@ -535,13 +534,14 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     alternate_bg = settings['theme']['alternate_background']
+    vertical_gui = settings['vertical_gui']
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     if not settings['show_album_art']: album_art_data = ''
-    info_top_pad = 10 + 60 * (not album_art_data) - 30 * (settings['vertical_gui'] and not album_art_data)
+    info_top_pad = 10 + 60 * (not album_art_data) - 30 * (vertical_gui and not album_art_data)
     # 10, 110, or 0
-    info_bot_pad = 10 + 40 * (not album_art_data) - 20 * (not album_art_data and settings['vertical_gui'])
+    info_bot_pad = 10 + 40 * (not album_art_data) - 20 * (not album_art_data and vertical_gui)
     # 10 or 30
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
@@ -552,7 +552,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                  size=(30, 2), justification='center')],
         [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)),
                  size=(30, 0), justification='center')],
-        music_controls, progress_bar_layout], element_justification='center', pad=((left_pad, 5), 0))
+        music_controls, progress_bar_layout], element_justification='center', pad=((left_pad, 5), 5 * vertical_gui))
     # tabs side is for music queue, queue controls, and later, the music library
     # tab 1 is the queue, tab 2 will be the library
     file_options = [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')]
@@ -644,6 +644,7 @@ def create_playlists_tab(settings):
     url_input = [Sg.Input('', key='pl_url_input', size=(12, 1), font=FONT_NORMAL, enable_events=True, border_width=1)]
     add_url = [Sg.Button(gt('Add URL'), key='pl_add_url', size=(12, 1), disabled=True, **btn_defaults)]
     add_tracks = [Sg.Button(gt('Add tracks'), key='pl_add_tracks', size=(12, 1), **btn_defaults)]
+    lb_height = 14 - 3 * settings['vertical_gui']
     layout = [[Sg.Column(playlist_selector, pad=(5, (40, 20)))],
               [Sg.Text(gt('Playlist name'), font=FONT_NORMAL, size=(13, 1), justification='center', pad=(5, (5, 10))),
                Sg.Input(playlist_name, key='playlist_name', size=(39, 1), font=FONT_NORMAL, enable_events=True,
@@ -651,7 +652,7 @@ def create_playlists_tab(settings):
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S',
                          border_width=0, button_color=(bg, bg), disabled=playlist_name == '')],
               [Sg.Frame('', [url_input, add_url, add_tracks], background_color=bg, border_width=0),
-               Sg.Listbox(tracks, size=(37, 14), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
+               Sg.Listbox(tracks, size=(37, lb_height), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
                Sg.Frame('', [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), border_width=0,
                                         tooltip=gt('move up'), size=(2, 1))],

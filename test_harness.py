@@ -141,11 +141,11 @@ def test_helpers():
             print('TEST FAILED', youtube_link)
             raise AssertionError
 
-    for option, expected in {True: (REPEAT_ONE_IMG, 'repeat off'),
-                             None: (REPEAT_OFF_IMG, 'repeat all'),
-                             False: (REPEAT_ALL_IMG, 'repeat track')}.items():
+    for option, expected in {None: (REPEAT_OFF_IMG, gt('Repeat All')),
+                             True: (REPEAT_ONE_IMG, gt('Repeat Off')),
+                             False: (REPEAT_ALL_IMG, gt('Repeat One'))}.items():
         try:
-            assert get_repeat_img_et_tooltip(option) == expected
+            assert repeat_img_tooltip(option) == expected
         except AssertionError:
             print('TEST FAILED', option)
             raise AssertionError

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.80.1'
+VERSION = latest_version = '4.80.2'
 UPDATE_MESSAGE = """
 [Feature] Play urls on local device!
 [HELP] Implemented translation framework, need translators
@@ -289,18 +289,9 @@ def update_volume(new_vol):
 
 def update_repeat_button():
     """ updates repeat button of main window """
-    repeat_value = settings['repeat']
     repeat_button: Sg.Button = main_window['repeat']
-    if repeat_value is None:
-        repeat_img = REPEAT_OFF_IMG
-        new_tooltip = gt('Repeat')
-    elif repeat_value:
-        repeat_img = REPEAT_ONE_IMG
-        new_tooltip = gt("Don't repeat")
-    else:
-        repeat_img = REPEAT_ALL_IMG
-        new_tooltip = gt('Repeat track')
-    repeat_button.metadata = repeat_value
+    repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
+    repeat_button.metadata = settings['repeat']
     repeat_button.update(image_data=repeat_img)
     repeat_button.set_tooltip(new_tooltip)
 
@@ -366,7 +357,6 @@ def handle_exception(exception, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
-    app_log.info('get_album_art called')
     folder = os.path.dirname(file_path)
     if settings['folder_cover_override']:
         for ext in ('png', 'jpg', 'jpeg'):

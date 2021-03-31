@@ -22,7 +22,6 @@ Could not populate queue because library scan is disabled
 Could not set timer
 Delete
 Discord presence
-Don't repeat
 Downloading update $VER
 Enter minutes or HH:MM
 Enter Time
@@ -102,7 +101,6 @@ Repeat Options
 Repeat set to All
 Repeat set to Off
 Repeat set to One
-Repeat track
 Rescan Library
 Rescanning library
 Resume

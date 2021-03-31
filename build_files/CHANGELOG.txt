@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.80.2
+- [Fix] Vertical GUI size
+- [Fix] Repeat button tooltip
+
 4.80.1
 - [Fix] Missing translation
 - [Fix] High pitch noise

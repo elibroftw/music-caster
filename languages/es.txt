@@ -22,7 +22,6 @@ No se pudo completar la cola porque el escaneo de la biblioteca está deshabilit
 No se pudo configurar el temporizador
 Borrar
 Discord detectado
-No repitas
 Descargando la actualización $VER
 Ingrese minutos o HH:MM
 Ingrese la hora
@@ -102,7 +101,6 @@ Opciones de repetición
 Repetir configurado en Todo
 Repetir configurado en Desactivado
 Repetir establecido en uno
-Repetir pista
 Volver a explorar la biblioteca
 Explorar comenzó
 Reanudar
@@ -114,7 +112,7 @@ Guardar la cola en la lista de reproducción
 Guardar posiciones de ventana
 Escanear carpetas
 Rueda del ratón de desplazamiento
-Buscar música ...
+Buscar música...
 Seleccione el dispositivo
 Seleccione la carpeta
 Seleccionar carpeta(s)
