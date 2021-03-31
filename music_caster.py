@@ -1,10 +1,15 @@
-VERSION = latest_version = '4.80.2'
+VERSION = latest_version = '4.80.3'
 UPDATE_MESSAGE = """
-[Feature] Play urls on local device!
-[HELP] Implemented translation framework, need translators
+[Optimization] Blazing fast startup and GUI open
+[HELP] Music Caster could use some translating
 """.strip()
 import argparse
+import os
 import sys
+from contextlib import suppress
+import requests
+import multiprocessing as mp
+from queue import Queue
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
 parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths are queued')
@@ -20,6 +25,76 @@ args = parser.parse_args()
 if args.version:
     print(VERSION)
     sys.exit()
+DEBUG = args.debug
+UNINSTALLER = 'unins000.exe'
+PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
+daemon_commands, tray_process_queue, files_to_scan = mp.Queue(), mp.Queue(), Queue()
+
+
+def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
+    """
+    To be called from the first process.
+    This process will take care of reading the tray
+    """
+    import PySimpleGUIWx as SgWx
+    from b64_images import UNFILLED_ICON
+    _tray = SgWx.SystemTray(menu=['', []], data_base64=UNFILLED_ICON, tooltip='Music Caster [LOADING]')
+    _tray_item = ''
+    exit_key = 'Exit'
+    while _tray_item is not {None, exit_key}:
+        _tray_item = _tray.Read(timeout=100)
+        main_queue.put(_tray_item)
+        with suppress(IndexError):
+            exit_key = _tray.Menu[-1][-1]
+        if _tray_item == exit_key:
+            _tray.hide()
+            _tray.close()
+        while not child_queue.empty():
+            tray_command = child_queue.get()
+            tray_method = tray_command['method']
+            method_args = tray_command.get('args', [])
+            method_kwargs = tray_command.get('kwargs', {})
+            if tray_method == 'update': _tray.update(**method_kwargs)
+            elif tray_method in {'notification', 'show_message', 'notify'}:
+                _tray.show_message(*method_args, **method_kwargs)
+            elif tray_method == 'hide': _tray.hide()
+            # elif tray_method == 'unhide': _tray.un_hide()
+            elif tray_method == 'close':
+                _tray.close()
+                _tray_item = None
+
+
+def activate_instance(port):
+    r_text = ''
+    while port <= 2004 and not r_text:
+        with suppress(requests.RequestException):
+            endpoint = f'http://127.0.0.1:{port}'
+            if args.exit:  # --exit argument
+                r_text = requests.post(f'{endpoint}/exit/').text
+            elif args.paths:  # MC was supplied at least one path to a folder/file
+                r_text = requests.post(f'{endpoint}/play/', data={'paths': args.paths, 'queue': args.queue}).text
+            else:  # neither --exit nor paths was supplied
+                r_text = requests.post(f'{endpoint}/').text
+        port += 1
+    return not not r_text
+
+
+if __name__ == '__main__':
+    mp.freeze_support()
+    # if the (exact) program is already running, open the running GUI and exit this instance
+    #   running a portable version after running an installed version won't open up the second GUI
+    try:
+        with suppress(FileNotFoundError): os.remove('music_caster.log')
+    except PermissionError:
+        # if music_caster.log can't be opened, its being used by an existing Music Caster process
+        if IS_FROZEN and not DEBUG:
+            activate_instance(PORT)
+            sys.exit()
+    if args.exit: sys.exit()
+    tray_process = mp.Process(target=system_tray, args=(daemon_commands, tray_process_queue), daemon=True)
+    tray_process.start()
+
+
 from helpers import *
 from audio_player import AudioPlayer
 import base64
@@ -39,11 +114,9 @@ import io
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-import multiprocessing as mp
 from math import log10
 from pathlib import Path
 import pprint
-from queue import Queue
 from random import shuffle
 from shutil import copyfileobj, rmtree
 from threading import Thread
@@ -56,7 +129,6 @@ import zipfile
 # 3rd party imports
 from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
 from werkzeug.exceptions import InternalServerError
-import PySimpleGUIWx as SgWx
 import pyaudio
 import pychromecast.controllers.media
 from pychromecast.error import UnsupportedNamespace, NotConnected
@@ -67,21 +139,17 @@ import pypresence
 import threading
 import pythoncom
 from PIL import UnidentifiedImageError
-import requests
 from urllib3.exceptions import ProtocolError
 import win32com.client
 from win32comext.shell import shell, shellcon
 from youtube_dl import YoutubeDL
 from youtube_dl.utils import DownloadError
 
-DEBUG = args.debug
 main_window = Sg.Window('')
 working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(working_dir)
-UNINSTALLER = 'unins000.exe'
 WELCOME_MSG = gt('Thanks for installing Music Caster.') + '\n' + \
               gt('Music Caster is running in the tray.')
-PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
 STREAM_CHUNK = 1024
 MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
@@ -109,7 +177,6 @@ music_folders = []
 music_queue, done_queue, next_queue = deque(), deque(), deque()
 update_devices = exit_flag = False
 playing_url = playing_live = update_gui_queue = update_volume_slider = False
-daemon_commands, tray_process_queue, files_to_scan = mp.Queue(), mp.Queue(), Queue()
 # files_to_scan is read by the background tasks thread in order to scan unread files in the queue
 live_lag = 0.0
 progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
@@ -144,34 +211,6 @@ os.environ['FLASK_SKIP_DOTENV'] = '1'
 stop_discovery = lambda: None  # this is for the chromecast discover function
 
 
-def system_tray(main_queue: mp.Queue, child_queue: mp.Queue, _tooltip):
-    """
-    To be called from the first process.
-    This process will take care of reading the tray
-    """
-    _tray = SgWx.SystemTray(menu=[], data_base64=UNFILLED_ICON, tooltip=_tooltip)
-    _tray_item = ''
-    while _tray_item not in {gt('Exit'), None}:
-        _tray_item = _tray.Read(timeout=100)
-        main_queue.put(_tray_item)
-        if _tray_item == gt('Exit'):
-            _tray.hide()
-            _tray.close()
-        while not child_queue.empty():
-            tray_command = child_queue.get()
-            tray_method = tray_command['method']
-            method_args = tray_command.get('args', [])
-            method_kwargs = tray_command.get('kwargs', {})
-            if tray_method == 'update': _tray.update(**method_kwargs)
-            elif tray_method in {'notification', 'show_message', 'notify'}:
-                _tray.show_message(*method_args, **method_kwargs)
-            elif tray_method == 'hide': _tray.hide()
-            # elif tray_method == 'unhide': _tray.un_hide()
-            elif tray_method == 'close':
-                _tray.close()
-                _tray_item = None
-
-
 def tray_notify(message, title='Music Caster', context=''):
     if message == 'update_available':
         message = gt('Update $VER is available').replace('$VER', f'v{context}')
@@ -203,8 +242,8 @@ def refresh_tray():
                                gt('URL'), [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                                gt('Folders'), tray_folders, gt('Playlists'), tray_playlists,
                                gt('Select File(s)'),
-                               [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                               gt('Play All')], gt('Exit')]]
+                               [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')], gt('Play All')],
+                              gt('Exit')]]
     tray_menu_playing = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
                               device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Controls'),
                               [gt('Locate Track'), gt('Repeat Options'), repeat_menu, gt('Stop'),
@@ -221,8 +260,8 @@ def refresh_tray():
                              [gt('Live System Audio'), gt('URL'),
                               [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')], gt('Folders'), tray_folders,
                               gt('Playlists'), tray_playlists, gt('Select File(s)'),
-                              [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                              gt('Play All')], gt('Exit')]]
+                              [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')], gt('Play All')],
+                             gt('Exit')]]
     tray_folders.clear()
     tray_folders.append(f'{gt("Select Folder(s)")}::PF')
     for folder in settings['music_folders']:
@@ -234,18 +273,17 @@ def refresh_tray():
     tray_playlists.append(gt('Playlists Menu'))
     tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in settings['playlists'].keys()])
     # tell tray process to update
-    with suppress(NameError):
-        menu = {'PLAYING': tray_menu_playing, 'PAUSED': tray_menu_paused}.get(playing_status, tray_menu_default)
-        icon = FILLED_ICON if playing_status == PlayingStatus.PLAYING else UNFILLED_ICON
-        if playing_status in {PlayingStatus.PLAYING, PlayingStatus.PAUSED}:
-            metadata = get_current_metadata()
-            artists = metadata['artist']
-            title = metadata['title']
-            _tooltip = f"{get_first_artist(artists)} - {title}"
-            _tooltip.replace('&', '&&&')
-        else: _tooltip = 'Music Caster'
-        if settings.get('DEBUG', DEBUG): _tooltip += ' [DEBUG]'
-        tray_process_queue.put({'method': 'update', 'kwargs': {'menu': menu, 'data_base64': icon, 'tooltip': _tooltip}})
+    menu = {'PLAYING': tray_menu_playing, 'PAUSED': tray_menu_paused}.get(playing_status, tray_menu_default)
+    icon = FILLED_ICON if playing_status == PlayingStatus.PLAYING else UNFILLED_ICON
+    if playing_status in {PlayingStatus.PLAYING, PlayingStatus.PAUSED}:
+        metadata = get_current_metadata()
+        artists = metadata['artist']
+        title = metadata['title']
+        _tooltip = f"{get_first_artist(artists)} - {title}"
+        _tooltip.replace('&', '&&&')
+    else: _tooltip = 'Music Caster'
+    if settings.get('DEBUG', DEBUG): _tooltip += ' [DEBUG]'
+    tray_process_queue.put({'method': 'update', 'kwargs': {'menu': menu, 'data_base64': icon, 'tooltip': _tooltip}})
 
 
 def change_settings(settings_key, new_value):
@@ -503,7 +541,10 @@ def get_window_location(window_key):
 
 
 def load_settings(first_load=False):  # up to 0.4 seconds
-    """load (and fix if needed) the settings file"""
+    """
+    load (and fix if needed) the settings file
+    calls refresh_tray(), index_all_tracks(), save_setting()
+    """
     global settings, playlists, music_folders, settings_last_modified, DEFAULT_FOLDER
     _save_settings = False
     with settings_file_lock:
@@ -530,12 +571,11 @@ def load_settings(first_load=False):  # up to 0.4 seconds
         settings = loaded_settings
         # sort playlists by name
         playlists = settings['playlists'] = {k: settings['playlists'][k] for k in sorted(settings['playlists'].keys())}
-        refresh_tray()
-        # if music folders were modified, re-index library and refresh tray
+        # if music folders were modified, re-index library
         if music_folders != settings['music_folders'] or first_load:
             music_folders = settings['music_folders']
             if settings['scan_folders']: index_all_tracks()
-            refresh_tray()
+        refresh_tray()
         DEFAULT_FOLDER = music_folders[0] if music_folders else home_music_folder
         theme = settings['theme']
         for k, v in theme.copy().items():
@@ -902,8 +942,9 @@ def start_chromecast_discovery(start_thread=False):
     time.sleep(WAIT_TIMEOUT + 1)
     stop_discovery()
     stop_discovery = None
-    if not device_names: device_names.append(f'{CHECK_MARK} Local device')
-    refresh_tray()
+    if not device_names:
+        device_names.append(f'{CHECK_MARK} Local device')
+        refresh_tray()
 
 
 def change_device(new_idx):
@@ -1563,8 +1604,7 @@ def stop(stopped_from: str, stop_cast=True):
     else:
         audio_player.stop()
     track_position = 0
-    if not exit_flag:
-        refresh_tray()
+    if not exit_flag: refresh_tray()
 
 
 def next_track(from_timeout=False, times=1, forced=False):
@@ -2717,21 +2757,6 @@ def init_youtube_dl():  # 1 - 1.4 seconds
     app_log.info('Finished initializing YTDL')
 
 
-def activate_instance(port):
-    r_text = ''
-    while port <= 2004 and not r_text:
-        with suppress(requests.RequestException):
-            endpoint = f'http://localhost:{port}'
-            if args.exit:  # --exit argument
-                r_text = requests.post(f'{endpoint}/exit/').text
-            elif args.paths:  # MC was supplied at least one path to a folder/file
-                r_text = requests.post(f'{endpoint}/play/', data={'paths': args.paths, 'queue': args.queue}).text
-            else:  # neither --exit nor paths was supplied
-                r_text = requests.post(f'{endpoint}/').text
-        port += 1
-    return not not r_text
-
-
 def handle_action(action):
     actions = {
         '__ACTIVATED__': activate_main_window,
@@ -2767,14 +2792,6 @@ def handle_action(action):
 
 
 if __name__ == '__main__':
-    mp.freeze_support()
-    try:
-        with suppress(FileNotFoundError): os.remove('music_caster.log')
-    except PermissionError:
-        # music_caster.log being open in writing mode implies that an instance is already running
-        if IS_FROZEN:
-            activate_instance(PORT)
-            sys.exit()
     log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
     log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
     log_handler.setFormatter(log_format)
@@ -2783,27 +2800,12 @@ if __name__ == '__main__':
     app_log.addHandler(log_handler)
     app_log.propagate = False  # disable console output
     try:
-        # if an instance is already running, open that one's GUI and exit this instance
-        if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2):
-            app_log.info('Another instance of Music Caster was found')
-            activate_instance(PORT)
-            if IS_FROZEN and not DEBUG: sys.exit()
-        # quit if --exit was supplied to command line
-        if args.exit: sys.exit()
         load_settings(True)  # starts indexing all tracks
-        # check for update and update if no starting arguments were supplied or if the update flag was used
-
-        tooltip = 'Music Caster'
-        if settings.get('DEBUG', DEBUG):
-            tooltip += ' [DEBUG]'
-            if settings['EXPERIMENTAL']: tooltip += ' [EXPERIMENTAL]'
-        tray_process = mp.Process(target=system_tray, args=(daemon_commands, tray_process_queue, tooltip), daemon=True)
-        tray_process.start()
-        refresh_tray()
         if settings['notifications']:
             if settings['update_message'] == '': tray_notify(WELCOME_MSG)
             elif settings['update_message'] != UPDATE_MESSAGE: tray_notify(UPDATE_MESSAGE)
         change_settings('update_message', UPDATE_MESSAGE)
+        # check for update and update if no starting arguments were supplied or if the update flag was used
         if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
         # set file handlers only if installed from the setup (Not a portable installation)
         if os.path.exists(UNINSTALLER):
@@ -2816,14 +2818,14 @@ if __name__ == '__main__':
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(0.05)
             while True:
-                if not s.connect_ex(('localhost', PORT)) == 0:  # if port is not occupied
+                if not s.connect_ex(('127.0.0.1', PORT)) == 0:  # if port is not occupied
                     with suppress(OSError):
                         # try to start server binded to PORT
                         server_kwargs = {'host': '0.0.0.0', 'port': PORT, 'threaded': True}
                         Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                         break
                 PORT += 1  # port in use or failed to bind to port
-        print(f'Running on http://localhost:{PORT}/')
+        print(f'Running on http://127.0.0.1:{PORT}/')
         rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
         if settings['discord_rpc']:
             with suppress(Exception): rich_presence.connect()

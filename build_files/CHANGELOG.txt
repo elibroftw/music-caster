@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.80.3
+- [Optimization] Blazing fast startup + open GUI
+
 4.80.2
 - [Fix] Vertical GUI size
 - [Fix] Repeat button tooltip
