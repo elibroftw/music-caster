@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.80.3'
+VERSION = latest_version = '4.80.4'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -662,7 +662,7 @@ def web_index():  # web GUI
             break
     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
     return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
-                           playing_status=str(playing_status),
+                           playing_status=playing_status,
                            metadata=metadata, main_button='pause' if playing_status == 'PLAYING' else 'play', art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
                            playing_index=len(done_queue), device_index=device_index, devices=formatted_devices,
@@ -695,7 +695,7 @@ def api_play():
 @app.route('/now-playing/')
 def api_get_now_playing():
     now_playing = get_current_metadata().copy()
-    now_playing['status'] = str(playing_status)
+    now_playing['status'] = playing_status
     now_playing['volume'] = settings['volume']
     return jsonify(now_playing)
 

@@ -66,7 +66,7 @@ def timing(f):
 class InvalidAudioFile(Exception): pass
 
 
-class PlayingStatus(str, Enum):
+class PlayingStatus:
     NOT_PLAYING = 'NOT PLAYING'
     PLAYING = 'PLAYING'
     PAUSED = 'PAUSED'
