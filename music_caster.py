@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.80.4'
+VERSION = latest_version = '4.80.5'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -16,7 +16,7 @@ parser.add_argument('--queue', '-q', default=False, action='store_true', help='s
 parser.add_argument('--update', '-u', default=False, action='store_true', help='allow updating')
 parser.add_argument('--exit', '-x', default=False, action='store_true',
                     help='exits any existing instance (including self)')
-parser.add_argument('paths', nargs='*', default=[], help='list of files/dirs/playlists to play/queue')
+parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
 # freeze_support() adds the following
 parser.add_argument('--multiprocessing-fork', default=False, action='store_true')
 # the following option is used in the build script since MC doesn't run as a CLI
@@ -71,8 +71,8 @@ def activate_instance(port):
             endpoint = f'http://127.0.0.1:{port}'
             if args.exit:  # --exit argument
                 r_text = requests.post(f'{endpoint}/exit/').text
-            elif args.paths:  # MC was supplied at least one path to a folder/file
-                r_text = requests.post(f'{endpoint}/play/', data={'paths': args.paths, 'queue': args.queue}).text
+            elif args.uris:  # MC was supplied at least one path to a folder/file
+                r_text = requests.post(f'{endpoint}/play/', data={'uris': args.uris, 'queue': args.queue}).text
             else:  # neither --exit nor paths was supplied
                 r_text = requests.post(f'{endpoint}/').text
         port += 1
@@ -371,7 +371,7 @@ def handle_exception(exception, restart_program=False):
                'PORTABLE': not os.path.exists(UNINSTALLER),
                'TRACEBACK': fix_path(trace_back_msg), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
                'FATAL': restart_program, 'LOG': log_lines,
-               'OS': platform.platform(), 'TIME': current_time, 'PLAYINgtYPE': playing_uri}
+               'OS': platform.platform(), 'TIME': current_time, 'PLAYING_TYPE': playing_uri}
     if IS_FROZEN:
         with suppress(requests.RequestException):
             requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
@@ -652,7 +652,7 @@ def web_index():  # web GUI
     else:
         sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
     for filename, data in sorted_tracks:
-        play_file_path = urllib.parse.urlencode({'path': filename})
+        play_file_path = urllib.parse.urlencode({'uri': filename})
         list_of_tracks.append({'text': format_file(filename), 'title': filename, 'href': f'/play?{play_file_path}'})
     _queue = create_track_list()
     device_index = 0
@@ -676,12 +676,12 @@ def api_play():
     queue_only = request.values.get('queue', 'false').lower() == 'true' or from_explorer
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
-    if 'paths' in request.values:
-        play_paths(request.values.getlist('paths'), queue_only=queue_only,
-                   from_explorer=from_explorer)
-    elif 'path' in request.values:
-        play_paths([request.values['path']], queue_only=queue_only,
-                   from_explorer=from_explorer)
+    if 'uris' in request.values:
+        play_uris(request.values.getlist('uris'), queue_only=queue_only,
+                  from_explorer=from_explorer)
+    elif 'uri' in request.values:
+        play_uris([request.values['uri']], queue_only=queue_only,
+                  from_explorer=from_explorer)
         # Since its the web GUI, we can queue all as well
         already_queueing = False
         for thread in threading.enumerate():
@@ -1337,12 +1337,12 @@ def queue_all():
     update_gui_queue = True
 
 
-def play_paths(paths: list, queue_only=False, from_explorer=False):
+def play_uris(paths: list, queue_only=False, from_explorer=False):
     global playing_status, update_gui_queue
     """
-    Appends all music files in the provided paths/names (folders, files, playlist names) to a temp list,
+    Appends all music files in the provided uris (folders, files, urls, playlist names) to a temp list,
         which is shuffled if shuffled is enabled in settings, and then extends music_queue.
-        Note: file/folder paths take precedence over playlist name
+        Note: file/folder paths take precedence over playlist names
     If queue_only is false, the music queue and done queue are cleared,
         before files are added to the music_queue
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
@@ -1365,6 +1365,8 @@ def play_paths(paths: list, queue_only=False, from_explorer=False):
                     if valid_audio_file(_file):
                         temp_queue.append(_file)
                         if path not in all_tracks: files_to_scan.put(path)
+        # handle url
+        elif path.startswith('http'): temp_queue.append(path)
         # path could be a playlist name (since arguments are parsed from the command line)
         else: temp_queue.extend(settings['playlists'].get(path, []))
     update_gui_queue = True
@@ -1894,7 +1896,7 @@ def other_tray_actions(_tray_item):
         if _tray_item == gt('Select Folder(s)') + '::PF':
             Thread(target=folder_action).start()
         else:
-            Thread(target=play_paths, name='PlayFolder', daemon=True,
+            Thread(target=play_uris, name='PlayFolder', daemon=True,
                    args=[[music_folders[tray_folders.index(_tray_item) - 1]]]).start()
     elif playing_status == 'PLAYING' and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
@@ -2820,7 +2822,7 @@ if __name__ == '__main__':
             while True:
                 if not s.connect_ex(('127.0.0.1', PORT)) == 0:  # if port is not occupied
                     with suppress(OSError):
-                        # try to start server binded to PORT
+                        # try to start server and bind it to PORT
                         server_kwargs = {'host': '0.0.0.0', 'port': PORT, 'threaded': True}
                         Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                         break
@@ -2838,18 +2840,18 @@ if __name__ == '__main__':
         cast_last_checked = time.time()
         Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
         start_chromecast_discovery(start_thread=True)
-        if args.paths:
+        if args.uris:
             # wait until previous device has been found or if it hasn't been found
             while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
-            play_paths(args.paths, queue_only=args.queue)
+            play_uris(args.uris, queue_only=args.queue)
         elif settings['save_queue_sessions']:
             # load saved queues from settings.json
             for queue_name in ('done', 'music', 'next'):
                 queue = {'done': done_queue, 'music': music_queue, 'next': next_queue}[queue_name]
-                for file in settings['queues'].get(queue_name, []):
-                    if valid_audio_file(file):
-                        queue.append(file)
-                        files_to_scan.put(file)
+                for file_or_url in settings['queues'].get(queue_name, []):
+                    if valid_audio_file(file_or_url) or file_or_url.startswith('http'):
+                        queue.append(file_or_url)
+                        files_to_scan.put(file_or_url)
         elif settings['populate_queue_startup']:
             try:
                 indexing_tracks_thread.join()
