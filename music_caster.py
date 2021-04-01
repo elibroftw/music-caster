@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.6'
+VERSION = latest_version = '4.81.7'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -2155,12 +2155,10 @@ def read_main_window():
             reset_progress()
     elif main_event in {'album', 'title', 'artist'}: locate_uri()
     elif main_event in {'locate_uri', 'e:69'}:
-        try:
-            selected_uri_index = int(main_window['queue'].get_indexes()[0]) - len(done_queue)
-            locate_uri(selected_uri_index)
-        except (KeyError, IndexError):
-            # if no file is selected, or in mini-mode, try locating the currently set uri
-            locate_uri()
+        if settings['mini_mode'] and main_window['queue'].get_indexes():
+            selected_uri_index = main_window['queue'].get_indexes()[0] - len(done_queue)
+        else: selected_uri_index = 0
+        locate_uri(selected_uri_index)
     elif main_event == 'move_to_next_up' and main_values['queue']:
         index_to_move = main_window['queue'].get_indexes()[0]
         dq_len = len(done_queue)

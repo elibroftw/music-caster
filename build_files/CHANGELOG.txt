@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.7
+- [Fix] Locate uri
+
 4.81.6
 - [Fix] Scan queued urls
 
