@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.5'
+VERSION = latest_version = '4.81.6'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -29,7 +29,7 @@ if args.version:
 DEBUG = args.debug
 UNINSTALLER = 'unins000.exe'
 PORT, WAIT_TIMEOUT, IS_FROZEN = 2001, 15, getattr(sys, 'frozen', False)
-daemon_commands, tray_process_queue, files_to_scan = mp.Queue(), mp.Queue(), Queue()
+daemon_commands, tray_process_queue, uris_to_scan = mp.Queue(), mp.Queue(), Queue()
 
 
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
@@ -1384,12 +1384,12 @@ def play_uris(paths: list, queue_only=False, from_explorer=False):
             if os.path.isfile(path):
                 if valid_audio_file(path):
                     temp_queue.append(path)
-                    if path not in all_tracks: files_to_scan.put(path)
+                    if path not in all_tracks: uris_to_scan.put(path)
             else:
                 for _file in glob.iglob(f'{glob.escape(path)}/**/*.*', recursive=True):
                     if valid_audio_file(_file):
                         temp_queue.append(_file)
-                        if path not in all_tracks: files_to_scan.put(path)
+                        if path not in all_tracks: uris_to_scan.put(path)
         # handle url
         elif path.startswith('http'): temp_queue.append(path)
         # path could be a playlist name (since arguments are parsed from the command line)
@@ -1431,26 +1431,26 @@ def file_action(action='pf'):
             for file_path in paths:
                 if valid_audio_file(file_path):
                     music_queue.append(file_path)
-                    if file_path not in all_tracks: files_to_scan.put(file_path)
+                    if file_path not in all_tracks: uris_to_scan.put(file_path)
             if music_queue: play(music_queue[0])
         elif action in {'Queue File(s)', 'qf'}:
             _start_playing = not music_queue
             for file_path in paths:
                 if valid_audio_file(file_path):
                     music_queue.append(file_path)
-                    if file_path not in all_tracks: files_to_scan.put(file_path)
+                    if file_path not in all_tracks: uris_to_scan.put(file_path)
             if _start_playing and music_queue: play(music_queue[0])
         elif action in {'Play File(s) Next', 'pfn'}:
             if settings['reversed_play_next']:
                 for file_path in paths:
                     if valid_audio_file(file_path):
                         next_queue.insert(0, file_path)
-                        if file_path not in all_tracks: files_to_scan.put(file_path)
+                        if file_path not in all_tracks: uris_to_scan.put(file_path)
             else:
                 for file_path in paths:
                     if valid_audio_file(file_path):
                         next_queue.append(file_path)
-                        if file_path not in all_tracks: files_to_scan.put(file_path)
+                        if file_path not in all_tracks: uris_to_scan.put(file_path)
             if playing_status == 'NOT PLAYING' and not music_queue and next_queue:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = PlayingStatus.PLAYING
@@ -1478,7 +1478,7 @@ def folder_action(action='Play Folder'):
                         path = Path(file_path)
                         file_path = path.as_posix()
                         files_to_queue[path.parent.as_posix()].append(path.name)
-                        if file_path not in all_tracks: files_to_scan.put(file_path)
+                        if file_path not in all_tracks: uris_to_scan.put(file_path)
         if settings['shuffle']:
             for parent, files in files_to_queue.items():
                 temp_queue.extend([os.path.join(parent, file_path) for file_path in files])
@@ -1742,13 +1742,13 @@ def background_tasks():
         # scan at most 500 files per loop.
         # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
         files_scanned = 0
-        while files_scanned < 500 and not files_to_scan.empty():
-            uri = files_to_scan.get().replace('\\', '/')
+        while files_scanned < 500 and not uris_to_scan.empty():
+            uri = uris_to_scan.get().replace('\\', '/')
             if uri.startswith('http'):
                 get_url_metadata(uri)
             else:
                 all_tracks[uri] = get_metadata_wrapped(uri)
-            files_to_scan.task_done()
+            uris_to_scan.task_done()
             files_scanned += 1
         if files_scanned: update_gui_queue = True
         # if no files were scanned, pause for 5 seconds
@@ -2438,9 +2438,11 @@ def read_main_window():
         elif main_values['url_queue']:
             music_queue.append(url_to_insert)
             if len(music_queue) == 1: play(url_to_insert)
+            else: uris_to_scan.put(url_to_insert)
         else:  # add to next queue
             if settings['reversed_play_next']: next_queue.insert(0, url_to_insert)
             else: next_queue.append(url_to_insert)
+            uris_to_scan.put(url_to_insert)
         update_gui_queue = True
     # timer tab
     elif main_event == 'cancel_timer':
@@ -2889,7 +2891,7 @@ if __name__ == '__main__':
                 for file_or_url in settings['queues'].get(queue_name, []):
                     if valid_audio_file(file_or_url) or file_or_url.startswith('http'):
                         queue.append(file_or_url)
-                        files_to_scan.put(file_or_url)
+                        uris_to_scan.put(file_or_url)
         elif settings['populate_queue_startup']:
             try:
                 indexing_tracks_thread.join()
