@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.2'
+VERSION = latest_version = '4.81.3'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1231,7 +1231,7 @@ def get_url_metadata(url):
                 for future in concurrent.futures.as_completed(futures):
                     metadata_list[futures[future]] = future.result()[0]
         elif youtube_links:
-            metadata_list[0] = get_url_metadata(youtube_links[0])
+            metadata_list[0] = get_url_metadata(youtube_links[0])[0]
             for i in range(1, len(youtube_links)):
                 # play_url will look for 'url' parameter, it won't care about the others
                 metadata_list[i] = {'url': metadata_list[i]}
