@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.8'
+VERSION = latest_version = '4.81.10'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1209,7 +1209,7 @@ def get_url_metadata(url):
                     url_metadata[entry['webpage_url']] = metadata
                     metadata_list.append(metadata)
             else:
-                audio_src = next(filter(lambda item: item['vcodec'] == 'none', r['formats']))['url']
+                audio_src = sorted(filter(lambda item: item['vcodec'] == 'none', r['formats']), key=lambda item: item['tbr'], reverse=True)[0]['url']
                 formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                 formats.sort(key=lambda _f: _f['width'])
                 _f = formats[0]
@@ -1248,7 +1248,8 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             for metadata in reversed(metadata_list):
                 music_queue.insert(0, metadata['url'])
         metadata = metadata_list[0]
-        return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
+        src = metadata['audio_src'] if cast is None and 'audio_src' in metadata else metadata['src']
+        return play_url_generic(src, metadata['ext'], metadata['title'], metadata['artist'],
                                 metadata['album'], metadata['length'], position=position,
                                 thumbnail=metadata['art'], autoplay=autoplay, switching_device=switching_device)
     tray_notify(gt('ERROR') + ': ' + gt('Could not play URL'))
