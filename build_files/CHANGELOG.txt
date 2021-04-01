@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.12
+- [Fix] Web GUI
+
 4.81.11
 - [Fix] URL expiry
 

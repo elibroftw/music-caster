@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.11'
+VERSION = latest_version = '4.81.12'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -702,6 +702,7 @@ def api_play():
 @app.route('/now-playing/')
 def api_get_now_playing():
     now_playing = get_current_metadata().copy()
+    now_playing.pop('art_data', None)
     now_playing['status'] = playing_status
     now_playing['volume'] = settings['volume']
     return jsonify(now_playing)
@@ -2794,9 +2795,7 @@ def send_info():
 
 def init_youtube_dl():  # 1 - 1.4 seconds
     global ydl
-    # app_log.info('Initializing YTDL')
     ydl = YoutubeDL()
-    # app_log.info('Finished initializing YTDL')
 
 
 def ytdl_extract_info(url):
