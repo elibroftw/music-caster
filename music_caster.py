@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.1'
+VERSION = latest_version = '4.81.2'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating

@@ -781,6 +781,7 @@ def youtube_search(query):
 
 
 def get_spotify_headers(url):
+    url = url[:url.find('?')]  # get rid of query parameters
     r = requests.get(url, headers={'user-agent': 'Firefox/78.0'})
     soup = BeautifulSoup(r.text, 'html.parser')
     s = soup.find('script', {'id': 'config'})
