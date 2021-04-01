@@ -1,0 +1,152 @@
+# Language: Italiano
+# Credits: Antonio Negrini github.com/antonio-negrini
+# Any line starting with a # is ignored!
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+aggiungi cartella
+Aggiungi Music Caster al menu contestuale della cartella
+Aggiungi tracce
+Aggiungi URL
+Si è verificato un errore, riavviare ora
+Si è verificato un errore interno al Server
+Selezione audio
+Aggiornamento automatico
+Da
+Annulla
+Annulla il timer
+Cancella la coda
+Controlla
+Impossibile connettersi al dispositivo cast
+Impossibile riprodurre l'URL
+Impossibile popolare la coda perché la scansione della libreria è disabilitata
+Impossibile impostare il timer
+Elimina
+Presenza su Discord
+Download dell'aggiornamento $VER
+Inserisci i minuti o HH:MM
+Inserisci il tempo
+Inserisci l'URL
+ERRORE
+Esci da
+Menu contestuale della cartella
+Cartelle
+Generale
+Ibernazione allo scadere del timer
+Ibernazione del computer
+INFO
+Input non valido (inserire minuti o HH:MM)
+URL non valido. Gli URL devono iniziare con http:// o https://
+Mantenere il modo mini in alto
+Avvia il modo mini
+Controlli musicali sul lato sinistro
+Libreria
+Indicizzazione della libreria incompleta, sono stati aggiunti solo i file scansionati
+Ascolto
+Audio di sistema dal vivo
+Dispositivo locale
+Trova Brano
+Trova brano
+Modalità mini in alto
+Più
+spostarsi verso il basso
+Sposta al successivo in alto
+Sposta il contenuto della traccia a sinistra
+sposta in alto
+Music Caster è in esecuzione nel tray.
+mute
+Nuovo
+Brano Successivo
+brano successivo
+Non c'è spazio sul dispositivo per l'aggiornamento automatico
+Non c'è spazio sul dispositivo per salvare le impostazioni
+Nessun timer impostato
+Non collegato a un dispositivo cast
+Niente in riproduzione
+Notifiche
+Interrompi solo la riproduzione
+Ferma solo la riproduzione
+Pausa
+Coda persistente
+Riproduci
+Riproduci tutto
+Riproduci File(s)
+Riproduci File(s) Dopo
+Riproduci Cartella
+Riproduci Cartella Dopo
+Riproduci Immediatamente
+Riproduci Prossimo
+Riproduci URL
+Riproduci URL Dopo
+In riproduzione
+Nome della playlist
+Playlist
+Menu Playlist
+Riempi la coda all'avvio
+Riempi la coda dalle cartelle all'avvio
+Traccia Precedente
+Coda
+Metti in coda tutti
+Metti in coda File(s)
+Metti in coda Cartella
+Metti in coda URL
+Aggiornare i dispositivi
+Aggiornamento dispositivi
+rimuovere la cartella selezionata
+rimuovi
+Ripeti
+Ripeti Tutto
+Ripeti Off
+Ripeti Uno
+Opzioni di ripetizione
+Ripeti impostato su Tutto
+Ripeti impostato su Off
+Ripeti impostato su Uno
+Scansione della libreria
+Scansionando la libreria
+Riprendi
+Inverti modalità riproduzione successiva
+Riproduzione successiva invertita
+Esegui all'avvio
+Salva la coda tra le sessioni
+Salva la coda nella playlist
+Salva le posizioni delle finestre
+Scansione cartelle
+scorrere la rotella del mouse
+Cerca la musica...
+Seleziona Dispositivo
+Seleziona Cartella
+Seleziona Cartella(e)
+Seleziona file(s)
+Seleziona file(s) musicali
+Inviami un'e-mail
+imposta DEBUG = true in `settings.json` per abilitare questa pagina
+Imposta Timer
+Imposta
+Impostazioni
+Mostra la cover dell'album
+Mostra la cover dell'album nella GUI
+Mostra l'indice nella coda
+Mostra il numero del brano
+Mostra il numero del brano in coda
+Random
+Spegnere quando il timer scade
+Spegnere il computer
+Sleep quando il timer si esaurisce
+Mettere in Sleep il computer
+Stop
+Invia
+Grazie per aver installato Music Caster.
+Timer
+Timer cancellato
+Timer impostato per $TIME
+Inserisci artista/tracce
+UI
+togli il mute
+Aggiornamento $VER disponibile
+URL
+Usa cover.* per la cover dell'album
+Usa cover.* per la cover invece della cover nel file
+L'immagine cover.* sovrascrive la cover nel file
+GUI verticale
+Visualizza i file audio Link alla fonte
+Web GUI QR Code (clicca o scansiona)

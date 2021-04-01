@@ -11,6 +11,8 @@ import argparse
 import glob
 from distutils.dir_util import copy_tree
 import requests
+import win32com.client
+from win32comext.shell import shell, shellcon
 import traceback
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
@@ -318,7 +320,13 @@ if args.upload and tests_passed and not args.dry:
         requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
+if tests_passed and not args.dry:
     print('Installing Music Caster [Will Launch After]')
-    cmd = r'"dist\Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
+    startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
+    shortcut_path = startup_dir + '\\Music Caster.lnk'
+    shell = win32com.client.Dispatch('WScript.Shell')
+    shortcut = shell.CreateShortCut(shortcut_path)
+    exe = shortcut.Targetpath
+    install_cmd = '"dist\\Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
+    cmd = f'{install_cmd} && "{exe}"'
     Popen(cmd, shell=True)
-    print('Finished Installing Music Caster')

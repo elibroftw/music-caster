@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.10
+- [UI] Added Italian translation
+
 4.81.9
 - [Fix] Local url playback
 - [Fix] Improve YouTube local playback quality
