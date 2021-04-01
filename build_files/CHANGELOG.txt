@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.1
+- [Fix] Spotify URL
+
 4.81.0
 - [Feature] Added Spotify support
 

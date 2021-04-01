@@ -784,8 +784,7 @@ def get_spotify_headers(url):
     r = requests.get(url, headers={'user-agent': 'Firefox/78.0'})
     soup = BeautifulSoup(r.text, 'html.parser')
     s = soup.find('script', {'id': 'config'})
-    # noinspection PyUnresolvedReferences
-    spotify_config = json.loads(s.text)
+    spotify_config = json.loads(s.string)
     return {'Authorization': 'Bearer ' + spotify_config['accessToken']}
 
 

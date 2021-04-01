@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.0'
+VERSION = latest_version = '4.81.1'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 from contextlib import suppress
+# noinspection PyUnresolvedReferences
 import requests
 import multiprocessing as mp
 from queue import Queue
