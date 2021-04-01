@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.4
+- [Fix] Spotify URL
+
 4.81.3
 - [Fix] Spotify URL
 
