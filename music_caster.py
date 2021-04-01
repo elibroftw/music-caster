@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.10'
+VERSION = latest_version = '4.81.11'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1653,7 +1653,7 @@ def next_track(from_timeout=False, times=1, forced=False):
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
         playing_status = PlayingStatus.NOT_PLAYING
     elif (forced or playing_status != 'NOT PLAYING' and not playing_live) and (next_queue or music_queue):
-        # if repeat all or repeat is off or empty queue or not manual next
+        # if repeat all or repeat is off or empty queue or manual next
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
             for _ in range(times):
@@ -2794,12 +2794,11 @@ def send_info():
 
 def init_youtube_dl():  # 1 - 1.4 seconds
     global ydl
-    app_log.info('Initializing YTDL')
+    # app_log.info('Initializing YTDL')
     ydl = YoutubeDL()
-    app_log.info('Finished initializing YTDL')
+    # app_log.info('Finished initializing YTDL')
 
 
-@lru_cache
 def ytdl_extract_info(url):
     return ydl.extract_info(url, download=False)
 
