@@ -1,4 +1,4 @@
-from helpers import is_already_running, get_running_processes
+from shared import is_already_running, get_running_processes
 import time
 from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
 import os
@@ -318,3 +318,7 @@ if args.upload and tests_passed and not args.dry:
         requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
+    print('Installing Music Caster [Will Launch After]')
+    cmd = r'"dist\Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
+    Popen(cmd, shell=True)
+    print('Finished Installing Music Caster')

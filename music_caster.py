@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.10'
+VERSION = latest_version = '4.81.9'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -9,8 +9,10 @@ import sys
 from contextlib import suppress
 # noinspection PyUnresolvedReferences
 import requests
+from shared import *
 import multiprocessing as mp
 from queue import Queue
+
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
 parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths are queued')
@@ -86,6 +88,10 @@ if __name__ == '__main__':
     #   running a portable version after running an installed version won't open up the second GUI
     try:
         with suppress(FileNotFoundError): os.remove('music_caster.log')
+        # if an instance is already running, open that one's GUI and exit this instance
+        if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2):
+            activate_instance(PORT)
+            if IS_FROZEN and not DEBUG: sys.exit()
     except PermissionError:
         # if music_caster.log can't be opened, its being used by an existing Music Caster process
         if IS_FROZEN and not DEBUG:
@@ -1198,7 +1204,7 @@ def get_url_metadata(url):
             if 'entries' in r:
                 album = r['title']
                 for entry in r['entries']:
-                    audio_src = next(filter(lambda item: item['vcodec'] == 'none', entry['formats']))['url']
+                    audio_src = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     formats.sort(key=lambda _f: _f['width'])
                     _f = formats[0]
@@ -1209,7 +1215,7 @@ def get_url_metadata(url):
                     url_metadata[entry['webpage_url']] = metadata
                     metadata_list.append(metadata)
             else:
-                audio_src = sorted(filter(lambda item: item['vcodec'] == 'none', r['formats']), key=lambda item: item['tbr'], reverse=True)[0]['url']
+                audio_src = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                 formats.sort(key=lambda _f: _f['width'])
                 _f = formats[0]

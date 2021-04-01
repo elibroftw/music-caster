@@ -17,7 +17,6 @@ import platform
 from random import getrandbits
 import re
 import socket
-from subprocess import PIPE, DEVNULL, Popen
 import time
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
@@ -247,31 +246,6 @@ def create_qr_code(port, ipv4=None):
     ipv4 = ipv4 or get_ipv4()
     qr_code = pyqrcode.create(f'http://{ipv4}:{port}')
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
-
-
-def get_running_processes(look_for=''):
-    # edited from https://stackoverflow.com/a/22914414/7732434
-    if look_for:
-        cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
-    else:
-        cmd = f'tasklist /NH'
-    p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
-    task = p.stdout.readline()
-    while task != '':
-        task = p.stdout.readline().strip()
-        m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
-        if m is not None:
-            process = {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
-                       'session_num': m.group(4), 'mem_usage': m.group(5)}
-            yield process
-
-
-def is_already_running(look_for='Music Caster.exe', threshold=1):
-    for process in get_running_processes(look_for=look_for):
-        if process['name'] == look_for:
-            threshold -= 1
-            if threshold < 0: return True
-    return False
 
 
 def valid_audio_file(file_path):

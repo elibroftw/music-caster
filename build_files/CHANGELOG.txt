@@ -3,6 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.81.9
 - [Fix] Local url playback
 - [Fix] Improve YouTube local playback quality
+- [Fix] Instance resolver
 
 4.81.8
 - [Fix] Locate uri
