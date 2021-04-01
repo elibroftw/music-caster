@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.80.5'
+VERSION = latest_version = '4.80.6'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1161,72 +1161,78 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
     return True
 
 
-def play_url(url, position=0, autoplay=True, switching_device=False):
-    global cast, playing_url, playing_status, track_length, track_start, track_end, cast_last_checked
+def get_url_metadata(url):
+    """
+    Tries to parse url and set url_metadata[url] to parsed metadata
+    Supports: YouTube, Soundcloud, any url ending with a valid audio extension
+    """
+    metadata_list = []
     if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
-        metadata = {'title': title, 'artist': artist, 'length': 108000, 'album': album, 'src': url}
-        url_metadata[url] = metadata
-        track_length = 108000  # 3 hour default
-        return play_url_generic(url, ext, title, artist, album, track_length, position=position,
-                                thumbnail=None, autoplay=autoplay, switching_device=switching_device)
+        url_metadata[url] = metadata = {'title': title, 'artist': artist, 'length': 108000, 'album': album,
+                                        'src': url, 'url': url, 'ext': ext}
+        metadata_list.append(metadata)
     elif 'soundcloud.com' in url:
-        if url not in url_metadata:
-            r = ydl.extract_info(url, download=False)
+        with suppress(StopIteration, DownloadError, KeyError):
+            r = ytdl_extract_info(url)
             if 'entries' in r:
                 album = r['title']
-                music_queue.popleft()
-                for entry in reversed(r['entries']):
-                    url = entry['url']
-                    music_queue.insert(0, url)
-                    url_metadata[url] = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
-                                         'length': entry['duration'], 'art': entry['thumbnail'], 'src': entry['url'],
-                                         'ext': entry['ext'], 'audio_src': entry['ur;']}
+                for entry in r['entries']:
+                    metadata = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
+                                'length': entry['duration'], 'art': entry['thumbnail'],
+                                'src': entry['url'], 'ext': entry['ext'],
+                                'audio_src': entry['url'], 'url': entry['webpage_url']}
+                    url_metadata[entry['webpage_url']] = metadata
+                    metadata_list.append(metadata)
             else:
-                url_metadata[url] = {'title': r['title'], 'artist': r['uploader'], 'album': 'SoundCloud',
-                                     'length': r['duration'], 'art': r['thumbnail'], 'src': r['url'], 'ext': r['ext']}
-        metadata = url_metadata[url]
+                url_metadata[url] = metadata = {'title': r['title'], 'artist': r['uploader'], 'album': 'SoundCloud',
+                                                'url': url, 'ext': r['ext'],
+                                                'length': r['duration'], 'art': r['thumbnail'], 'src': r['url']}
+                metadata_list.append(metadata)
+    elif parse_youtube_id(url) is not None:
+        with suppress(StopIteration, DownloadError, KeyError):
+            r = ytdl_extract_info(url)
+            if 'entries' in r:
+                album = r['title']
+                for entry in r['entries']:
+                    audio_src = next(filter(lambda item: item['vcodec'] == 'none', entry['formats']))['url']
+                    formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
+                    formats.sort(key=lambda _f: _f['width'])
+                    _f = formats[0]
+                    metadata = {'title': entry['title'], 'artist': entry['uploader'],
+                                'album': album, 'length': entry['duration'],
+                                'art': entry['thumbnail'], 'ext': _f['ext'],
+                                'url': entry['webpage_url'], 'src': _f['url'], 'audio_src': audio_src}
+                    url_metadata[entry['webpage_url']] = metadata
+                    metadata_list.append(metadata)
+            else:
+                audio_src = next(filter(lambda item: item['vcodec'] == 'none', r['formats']))['url']
+                formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
+                formats.sort(key=lambda _f: _f['width'])
+                _f = formats[0]
+                metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
+                            'album': r.get('album', 'YouTube'), 'length': r['duration'], 'ext': _f['ext'],
+                            'art': r['thumbnail'], 'src': _f['url'], 'audio_src': audio_src, 'url': url}
+                url_metadata[url] = metadata
+                metadata_list.append(metadata)
+    return metadata_list
+
+
+def play_url(url, position=0, autoplay=True, switching_device=False):
+    global cast, playing_url, playing_status, track_length, track_start, track_end, cast_last_checked
+    metadata_list = get_url_metadata(url)
+    if metadata_list:
+        if len(metadata_list) > 1:
+            music_queue.popleft()
+            for metadata in reversed(metadata_list):
+                music_queue.insert(0, metadata['url'])
+        metadata = metadata_list[0]
         return play_url_generic(metadata['src'], metadata['ext'], metadata['title'], metadata['artist'],
                                 metadata['album'], metadata['length'], position=position,
                                 thumbnail=metadata['art'], autoplay=autoplay, switching_device=switching_device)
-    elif parse_youtube_id(url) is not None:
-        try:
-            if url not in url_metadata:
-                r = ydl.extract_info(url, download=False)
-                if 'entries' in r:
-                    album = r['title']
-                    music_queue.popleft()
-                    for entry in reversed(r['entries']):
-                        url = entry['webpage_url']
-                        audio_src = next(filter(lambda item: item['vcodec'] == 'none', entry['formats']))['url']
-                        formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                        formats.sort(key=lambda _f: _f['width'])
-                        _f = formats[0]
-                        music_queue.insert(0, url)
-                        url_metadata[url] = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
-                                             'length': entry['duration'], 'art': entry['thumbnail'],
-                                             'src': _f['url'], 'ext': _f['ext'], 'audio_src': audio_src}
-                else:
-                    audio_src = next(filter(lambda item: item['vcodec'] == 'none', r['formats']))['url']
-                    formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                    formats.sort(key=lambda _f: _f['width'])
-                    _f = formats[0]
-                    url_metadata[url] = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                                         'album': r.get('album', 'YouTube'), 'length': r['duration'], 'ext': _f['ext'],
-                                         'art': r['thumbnail'], 'src': _f['url'], 'audio_src': audio_src}
-            metadata = url_metadata[url]
-            artist = metadata['artist']
-            url_to_play = metadata['audio_src'] if cast is None else metadata['src']
-            return play_url_generic(url_to_play, metadata['ext'], metadata['title'], artist, metadata['album'],
-                                    metadata['length'], position=position, thumbnail=metadata['art'],
-                                    autoplay=autoplay, switching_device=switching_device)
-        except (StopIteration, DownloadError, KeyError) as _e:
-            tray_notify(gt('ERROR') + ': ' + gt('Could not play URL'))
-            handle_exception(_e)
-            app_log.info(_e)
-            if not IS_FROZEN: raise _e
+    tray_notify(gt('ERROR') + ': ' + gt('Could not play URL'))
     return False
 
 
@@ -1718,8 +1724,11 @@ def background_tasks():
         # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
         files_scanned = 0
         while files_scanned < 500 and not files_to_scan.empty():
-            file_path = files_to_scan.get().replace('\\', '/')
-            all_tracks[file_path] = get_metadata_wrapped(file_path)
+            uri = files_to_scan.get().replace('\\', '/')
+            if uri.startswith('http'):
+                get_url_metadata(uri)
+            else:
+                all_tracks[uri] = get_metadata_wrapped(uri)
             files_to_scan.task_done()
             files_scanned += 1
         if files_scanned: update_gui_queue = True
@@ -2757,6 +2766,11 @@ def init_youtube_dl():  # 1 - 1.4 seconds
     app_log.info('Initializing YTDL')
     ydl = YoutubeDL()
     app_log.info('Finished initializing YTDL')
+
+
+@lru_cache
+def ytdl_extract_info(url):
+    return ydl.extract_info(url, download=False)
 
 
 def handle_action(action):
