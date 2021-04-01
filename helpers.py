@@ -1,13 +1,15 @@
 from b64_images import *
 from shared import Shared
 from base64 import b64encode, b64decode
+from bs4 import BeautifulSoup
 from contextlib import suppress
 import ctypes
+import concurrent.futures
 import datetime
-from enum import Enum
 from functools import wraps, lru_cache
 import glob
 import io
+import json
 import locale
 from math import floor, ceil
 import os
@@ -34,7 +36,9 @@ import pyperclip
 import pyqrcode
 import PySimpleGUI as Sg
 from PIL import Image, ImageFile
+import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
+from youtubesearchpython import VideosSearch
 
 # CONSTANTS
 FONT_NORMAL = 'Segoe UI', 11
@@ -48,6 +52,7 @@ LINK_COLOR = '#3ea6ff'
 COVER_MINI = (125, 125)
 COVER_NORMAL = (255, 255)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
 keybd_event = ctypes.windll.user32.keybd_event
 alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
@@ -768,3 +773,75 @@ def steal_focus(window: Sg.Window):
     keybd_event(alt_key, 0, extended_key | 0, 0)
     ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
     keybd_event(alt_key, 0, extended_key | key_up, 0)
+
+
+def youtube_search(query):
+    results: list = VideosSearch(query, limit=1).result()['result']
+    return results[0]['link']
+
+
+def get_spotify_headers(url):
+    r = requests.get(url, headers={'user-agent': 'Firefox/78.0'})
+    soup = BeautifulSoup(r.text, 'html.parser')
+    s = soup.find('script', {'id': 'config'})
+    # noinspection PyUnresolvedReferences
+    spotify_config = json.loads(s.text)
+    return {'Authorization': 'Bearer ' + spotify_config['accessToken']}
+
+
+def spotify_track_to_youtube(url):
+    try:
+        track_id = urlparse(url).path.split('/track/', 1)[1]
+    except IndexError:
+        # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
+        track_id = re.search(r'track:.*', url).group()[6:]
+    r = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
+    track_name = r['name']
+    track_artist = r['artists'][0]['name']
+    search_query = f'{track_artist} - {track_name}'
+    result = youtube_search(search_query)
+    return result
+
+
+def spotify_album_to_youtube(url):
+    album_id = urlparse(url).path.split('/album/', 1)[1]
+    r = requests.get(f'{SPOTIFY_API}/albums/{album_id}/tracks', headers=get_spotify_headers(url)).json()
+    tracks = ['' for _ in r['items']]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
+        futures = {}
+        for i, track in enumerate(r['items']):
+            track_title = track['name']
+            track_artist = track['artists'][0]['name']
+            query = f'{track_artist} - {track_title}'
+            futures[executor.submit(youtube_search, query)] = i
+        for future in concurrent.futures.as_completed(futures):
+            tracks[futures[future]] = future.result()
+    return tracks
+
+
+def spotify_playlist_to_youtube(url):
+    playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
+    r = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers(url)).json()
+    tracks = ['' for _ in r['items']]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
+        futures = {}
+        for i, track in enumerate(r['items']):
+            track = track['track']
+            track_title = track['name']
+            track_artist = track['artists'][0]['name']
+            query = f'{track_artist} - {track_title}'
+            futures[executor.submit(youtube_search, query)] = i
+        for future in concurrent.futures.as_completed(futures):
+            tracks[futures[future]] = future.result()
+    return tracks
+
+
+@lru_cache
+def spotify_to_youtube(url):
+    if 'track' in url:
+        return [spotify_track_to_youtube(url)]
+    elif 'album' in url:
+        return spotify_album_to_youtube(url)
+    elif 'playlist' in url:
+        return spotify_playlist_to_youtube(url)
+    return []

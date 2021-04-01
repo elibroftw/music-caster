@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.3.0
+AudioPlayer v2.3.1
 Author: Elijah Lopez
 Make sure VLC .dll files are located in ./vlc/
 """
@@ -93,7 +93,7 @@ class AudioPlayer:
         return 0 if db == 0 else round((10 ** (2 * db)) / 120, 2)
 
     def get_volume_multiple(self):
-        return 300 if self.is_url else 120
+        return 150 if self.is_url else 120
 
     def set_volume(self, volume):
         """

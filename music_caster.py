@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.80.6'
+VERSION = latest_version = '4.81.0'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1217,6 +1217,23 @@ def get_url_metadata(url):
                             'art': r['thumbnail'], 'src': _f['url'], 'audio_src': audio_src, 'url': url}
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
+    elif url.startswith('https://open.spotify.com'):
+        youtube_links = spotify_to_youtube(url)
+        if len(youtube_links) == 1:
+            url_metadata[url] = metadata = get_url_metadata(youtube_links[0])[0]
+            metadata_list.append(metadata)
+        elif len(youtube_links) <= 35:
+            # if there aren't that any links, we can just get the metadata using youtube-dl
+            metadata_list = [{} for _ in youtube_links]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
+                futures = {executor.submit(get_url_metadata, url): i for i, url in enumerate(youtube_links)}
+                for future in concurrent.futures.as_completed(futures):
+                    metadata_list[futures[future]] = future.result()[0]
+        elif youtube_links:
+            metadata_list[0] = get_url_metadata(youtube_links[0])
+            for i in range(1, len(youtube_links)):
+                # play_url will look for 'url' parameter, it won't care about the others
+                metadata_list[i] = {'url': metadata_list[i]}
     return metadata_list
 
 
@@ -1225,6 +1242,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
     metadata_list = get_url_metadata(url)
     if metadata_list:
         if len(metadata_list) > 1:
+            # url was for multiple sources
             music_queue.popleft()
             for metadata in reversed(metadata_list):
                 music_queue.insert(0, metadata['url'])
@@ -2286,6 +2304,7 @@ def read_main_window():
         music_queue.clear()
         next_queue.clear()
         done_queue.clear()
+        if settings['save_queue_sessions']: save_queues()
     elif main_event == 'save_queue':
         pl_files = []
         for path in done_queue: pl_files.append(path)
