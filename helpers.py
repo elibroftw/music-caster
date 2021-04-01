@@ -551,11 +551,11 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
         [Sg.Image(data=album_art_data, pad=(0, 0), size=COVER_NORMAL, key='album_art')] if album_art_data else [],
-        [Sg.Text(album, font=FONT_MID, key='album', pad=((0, 0), (info_top_pad, 0)),
+        [Sg.Text(album, font=FONT_MID, key='album', pad=((0, 0), (info_top_pad, 0)), enable_events=True,
                  size=(30, 2), justification='center')],
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), 4),
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), 4), enable_events=True,
                  size=(30, 2), justification='center')],
-        [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)),
+        [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)), enable_events=True,
                  size=(30, 0), justification='center')],
         music_controls, progress_bar_layout], element_justification='center', pad=((left_pad, 5), 5 * vertical_gui))
     # tabs side is for music queue, queue controls, and later, the music library
@@ -579,7 +579,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button(key='queue_all', image_data=QUEUE_ALL, **img_button, tooltip=gt('queue all'))],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip=gt('Clear the queue'))],
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip=gt('Save queue to playlist'))],
-        [Sg.Button(key='locate_track', image_data=LOCATE_FILE, **img_button, tooltip=gt('Locate track'))],
+        [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, **img_button, tooltip=gt('Locate track'))],
         [Sg.Button('▲', key='move_up', button_color=('#fff', bg), border_width=0,
                    tooltip=gt('move up'), size=(2, 1))],
         [Sg.Button('❌', key='remove_track', button_color=('#fff', bg), border_width=0,

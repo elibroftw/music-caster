@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.4'
+VERSION = latest_version = '4.81.5'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1867,7 +1867,7 @@ def cancel_timer():
     if settings['notifications']: tray_notify(gt('Timer cancelled'))
 
 
-def locate_track(selected_track_index=0):
+def locate_uri(selected_track_index=0):
     with suppress(IndexError):
         if selected_track_index < 0:
             uri = done_queue[selected_track_index]
@@ -2080,12 +2080,8 @@ def read_main_window():
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()
         mouse_hover = '' if main_event != 'volume_slider_mouse_leave' else mouse_hover
-    elif main_event in {'locate_track', 'e:69'} and main_values['queue']:
-        with suppress(IndexError):
-            selected_track_index = int(main_window['queue'].get_indexes()[0]) - len(done_queue)
-            locate_track(selected_track_index)
-    elif (main_event == 'pause/resume' or main_event == 'k' and (
-            settings['mini_mode'] or main_values['tab_group'] not in {'tab_timer', 'tab_playlists'})):
+    elif (main_event == 'pause/resume' or main_event == 'k' and
+          main_values.get('tab_group') not in {'tab_timer', 'tab_playlists'}):
         if playing_status == 'PAUSED': resume()
         elif playing_status == 'PLAYING': pause()
         elif music_queue: play(music_queue[0])
@@ -2148,15 +2144,23 @@ def read_main_window():
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         with suppress(ValueError):
-            selected_track_index = main_window['queue'].get_indexes()[0]
-            if selected_track_index <= len(done_queue):
-                prev_track(times=len(done_queue) - selected_track_index, forced=True)
+            selected_uri_index = main_window['queue'].get_indexes()[0]
+            if selected_uri_index <= len(done_queue):
+                prev_track(times=len(done_queue) - selected_uri_index, forced=True)
             else:
-                next_track(times=selected_track_index - len(done_queue), forced=True)
+                next_track(times=selected_uri_index - len(done_queue), forced=True)
             updated_list = create_track_list()
             dq_len = len(done_queue)
             main_window['queue'].update(values=updated_list, set_to_index=dq_len, scroll_to_index=dq_len)
             reset_progress()
+    elif main_event in {'album', 'title', 'artist'}: locate_uri()
+    elif main_event in {'locate_uri', 'e:69'}:
+        try:
+            selected_uri_index = int(main_window['queue'].get_indexes()[0]) - len(done_queue)
+            locate_uri(selected_uri_index)
+        except (KeyError, IndexError):
+            # if no file is selected, or in mini-mode, try locating the currently set uri
+            locate_uri()
     elif main_event == 'move_to_next_up' and main_values['queue']:
         index_to_move = main_window['queue'].get_indexes()[0]
         dq_len = len(done_queue)
@@ -2821,7 +2825,7 @@ def handle_action(action):
         gt('Repeat One'): lambda: change_settings('repeat', True),
         gt('Repeat All'): lambda: change_settings('repeat', False),
         gt('Repeat Off'): lambda: change_settings('repeat', None),
-        gt('Locate Track'): locate_track,
+        gt('Locate Track'): locate_uri,
         gt('Exit'): exit_program
     }
     actions.get(action, lambda: other_tray_actions(action))()

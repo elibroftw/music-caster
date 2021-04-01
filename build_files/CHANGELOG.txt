@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.5
+- [UI] Clicking title/artist/album text opens url or explorer
+- [Fix] Locate track for mini-mode
+
 4.81.4
 - [Fix] Spotify URL
 
