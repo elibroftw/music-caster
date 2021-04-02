@@ -1,4 +1,3 @@
-from music_caster import is_already_running, get_running_processes, VERSION
 import time
 from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
 import os
@@ -35,6 +34,8 @@ PORTABLE_SPEC_FILE = 'build_files/portable.spec'
 ONEDIR_SPEC_FILE = 'build_files/onedir.spec'
 UPDATER_SPEC_FILE = 'build_files/updater.spec'
 UPDATER_DIST_PATH = r'Music Caster Updater\bin\x86\Release\netcoreapp3.1'
+sys.argv = sys.argv[:1]
+from music_caster import is_already_running, get_running_processes, VERSION
 
 
 def read_env(env_file='.env'):
