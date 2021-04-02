@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.81.13
+- [Fix] Translations
+- [Fix] Web GUI auto reload
+
 4.81.12
 - [Fix] Web GUI
 

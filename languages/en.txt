@@ -84,6 +84,7 @@ Playlists Menu
 Populate queue on startup
 Populates queue from folders on startup
 Previous Track
+previous track
 Queue
 queue all
 Queue File(s)

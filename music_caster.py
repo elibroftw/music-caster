@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.12'
+VERSION = latest_version = '4.81.13'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -1887,7 +1887,7 @@ def locate_uri(selected_track_index=0):
             uri = ''
         if uri.startswith('http'):
             if uri.startswith('http'): Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
-        else:
+        elif os.path.exists(uri):
             Popen(f'explorer /select,"{fix_path(uri)}"')
 
 

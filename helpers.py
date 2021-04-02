@@ -433,7 +433,7 @@ def get_music_controls(settings, playing_status):
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = repeat_img_tooltip(settings['repeat'])
-    prev_button = {'pad': ((10, 5), None) if settings['mini_mode'] else None, 'tooltip': 'previous track'}
+    prev_button = {'pad': ((10, 5), None) if settings['mini_mode'] else None, 'tooltip': gt('previous track')}
     repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': settings['repeat']}
     shuffle_button = {**img_button, 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
     mute_tooltip = gt('unmute') if is_muted else gt('mute')

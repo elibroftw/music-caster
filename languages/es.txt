@@ -84,6 +84,7 @@ Menú de listas de reproducción
 Rellenar cola al inicio
 Llena la cola de las carpetas al inicio
 Pista anterior
+pista anterior
 Cola
 Poner en cola todo
 Archivo(s) de cola
