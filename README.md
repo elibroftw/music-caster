@@ -19,11 +19,11 @@ If you are able and willing to translate to other languages, click [here](https:
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 - [VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)
 - [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
+- [Screenshots](https://elijahlopez.herokuapp.com/music-caster/)
 
 ## Demo
-The image below directs to my demo video on YouTube.
-[Screenshots](https://elijahlopez.herokuapp.com/music-caster/) are also available.
-Both are outdated by 6+ months.
+The image below directs to my demo video on YouTube. Note that it is outdated by 6+ months, and does not represent
+the current state of Music Caster.
 
 <a href=https://youtu.be/MtkhqV1w3WE>
   <img width=75% src="https://img.youtube.com/vi/MtkhqV1w3WE/maxresdefault.jpg" alt="Demo on Youtube" align="center"/>
