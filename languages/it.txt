@@ -151,6 +151,10 @@ GUI verticale
 Visualizza i file audio Link alla fonte
 Web GUI QR Code (clicca o scansiona)
 nuova playlist
+esporta playlist
 elimina playlist
 riproduci playlist
 playlist in coda
+Titolo Sconosciuto
+Artista Sconosciuto
+Album Sconosciuto

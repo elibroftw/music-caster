@@ -366,7 +366,7 @@
     }
 
     function reloadOnChange() {
-        fetch('/now-playing/', {
+        fetch('/status/', {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             }).then(response => response.json()).then(
@@ -375,9 +375,12 @@
                     const currentTitle = document.getElementById('info__track').textContent;
                     const currentAlbum = document.getElementById('info__album').textContent;
                     const currentVol = document.getElementById('volRange').value;
+                    const queueTracks = modals['queue'].getElementsByClassName('track');
                     if (response['artist'] !== currentArtist ||
                         response['title'] !== currentTitle ||
                         response['album'] !== currentAlbum ||
+                        response['lang'] !== settingsFromServer.lang ||
+                        response['queue_length'] !== queueTracks.length ||
                         Math.round(response['volume']) != Math.round(currentVol) ||
                         response['status'] !== '{{ playing_status }}') {
                         // reload window since now playing has changed

@@ -1,7 +1,6 @@
 from helpers import *
 from helpers import get_metadata
-from shared import is_already_running, get_running_processes
-from music_caster import settings
+from music_caster import settings, get_running_processes, is_already_running
 
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"

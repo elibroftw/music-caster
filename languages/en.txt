@@ -151,6 +151,10 @@ Vertical GUI
 View Audio Files Source Links
 Web GUI QR Code (click or scan)
 new playlist
+export playlist
 delete playlist
 play playlist
 queue playlist
+Unknown Title
+Unknown Artist
+Unknown Album

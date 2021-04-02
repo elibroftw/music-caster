@@ -1,5 +1,4 @@
 from b64_images import *
-from shared import Shared
 from base64 import b64encode, b64decode
 from bs4 import BeautifulSoup
 from contextlib import suppress
@@ -57,6 +56,13 @@ keybd_event = ctypes.windll.user32.keybd_event
 alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
 
 
+class Shared:
+    """
+    variables in Shared are modifed by music_caster.py
+    """
+    lang = ''
+
+
 def timing(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -74,11 +80,34 @@ class PlayingStatus:
     NOT_PLAYING = 'NOT PLAYING'
     PLAYING = 'PLAYING'
     PAUSED = 'PAUSED'
+    BUSY = {PLAYING, PAUSED}
+
+
+class Unknown:
+    __slots__ = 'property'
+
+    def __init__(self, _property):
+        self.property = _property
+
+    def __repr__(self):
+        return gt(f'Unknown {self.property}')
+
+    def __eq__(self, other):
+        return str(other) == str(self)
+
+    def __ne__(self, other):
+        return not self.__eq__(str(other))
+
+    def split(self, *args, **kwargs):
+        return str(self).split(*args, **kwargs)
+
+
+def get_file_name(file_path): return os.path.splitext(os.path.basename(file_path))[0]
 
 
 @lru_cache(maxsize=1)
-def get_langs():
-    return [''] + [os.path.splitext(os.path.basename(lang))[0] for lang in glob.iglob('languages/*.txt')]
+def get_languages():
+    return [''] + [get_file_name(lang) for lang in glob.iglob('languages/*.txt')]
 
 
 @lru_cache(maxsize=3)
@@ -153,9 +182,9 @@ def natural_key(string):
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string)]
 
 
-def natural_key_file(string):
-    string = os.path.splitext(os.path.basename(string))[0]
-    return natural_key(string.lower())
+def natural_key_file(file_name):
+    file_name = get_file_name(file_name)
+    return natural_key(file_name.lower())
 
 
 def valid_color_code(code):
@@ -165,7 +194,9 @@ def valid_color_code(code):
 
 def get_metadata(file_path: str, sort_key_template='&title - &artist'):
     file_path = file_path.lower()
-    title, artist, album, track_number, is_explicit = 'Unknown Title', 'Unknown Artist', 'Unknown Album', None, False
+    unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
+    title, artist, album = unknown_title, unknown_artist, unknown_album
+    track_number, is_explicit = None, False
     with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         if file_path.endswith('.mp3'):
             audio = dict(EasyID3(file_path))
@@ -180,8 +211,8 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
             audio = {'title': [title], 'artist': [artist], 'album': [album]}
         else:
             audio = mutagen.File(file_path)
-        title = audio.get('title', ['Unknown Title'])[0]
-        album = audio.get('album', ['Unknown Album'])[0]
+        title = audio.get('title', [title])[0]
+        album = audio.get('album', [album])[0]
         is_explicit = audio.get('rating', '0') not in {'C', 'T', '0', 0}
         with suppress(KeyError, TypeError, MutagenError):
             track_number = audio.get('tracknumber')[0].split('/', 1)[0]
@@ -190,11 +221,11 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
                 # in case the sep char is a slash
                 audio['artist'] = audio['artist'][0].split('/')
             artist = ', '.join(audio['artist'])
-    if title is None: title = 'Unknown Title'
-    if artist is None: artist = 'Unknown Artist'
-    if title == 'Unknown Title' or artist == 'Unknown Artist':
+    if title is None: title = unknown_title
+    if artist is None: artist = unknown_artist
+    if title == unknown_title or artist == unknown_artist:
         # if title or artist are unknown, use the basename of the URI (excluding extension)
-        sort_key = os.path.splitext(os.path.basename(file_path))[0]
+        sort_key = get_file_name(file_path)
     else:
         sort_key = sort_key_template.replace('&title', title).replace('&artist', artist).replace('&album', album)
         sort_key = sort_key.replace('&trck', track_number or '')
@@ -623,16 +654,17 @@ def create_playlists_tab(settings):
     img_button = {'border_width': 0, 'button_color': (bg, bg)}
     playlist_selector = [
         [Sg.Button('➕', key='new_pl', tooltip=gt('new playlist'), button_color=('#fff', bg)),
+         Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), **img_button),
          Sg.Button(image_data=DELETE_ICON, key='del_pl', tooltip=gt('delete playlist'), **img_button),
          Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'),
                    pad=((12, 5), 5), disabled=default_pl_name is None, **img_button),
          Sg.Button(image_data=QUEUE_ICON, key='queue_pl', tooltip=gt('queue playlist'),
                    disabled=default_pl_name is None, **img_button),
-         Sg.Combo(values=playlists_names, size=(38, 5), key='playlist_combo', font=FONT_NORMAL,
+         Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
-    paths = playlists.get(playlist_name, [])
-    tracks = [f'{i + 1}. {os.path.splitext(os.path.basename(path))[0]}' for i, path in enumerate(paths)]
+    uris = playlists.get(playlist_name, [])
+    tracks = [f'{i + 1}. {uri if uri.startswith("http") else get_file_name(uri)}' for i, uri in enumerate(uris)]
     url_input = [Sg.Input('', key='pl_url_input', size=(12, 1), font=FONT_NORMAL, enable_events=True, border_width=1)]
     add_url = [Sg.Button(gt('Add URL'), key='pl_add_url', size=(13, 1), disabled=True, **btn_defaults)]
     add_tracks = [Sg.Button(gt('Add tracks'), key='pl_add_tracks', size=(13, 1), **btn_defaults)]
@@ -676,7 +708,8 @@ def create_settings(version, settings, qr_code):
          create_checkbox(gt('Persistent queue'), 'save_queue_sessions', settings, True)],
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
          Sg.Text('🌐'),
-         Sg.Combo(values=get_langs(), default_value=settings['lang'], key='lang', readonly=True, enable_events=True)]
+         Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'],
+                  key='lang', readonly=True, enable_events=True)]
     ], key='settings_tab_general', background_color=bg)
     ui_tab = Sg.Tab(gt('UI'), [
         [create_checkbox(gt('Save window positions'), 'save_window_positions', settings),
@@ -820,3 +853,24 @@ def spotify_to_youtube(url):
     elif 'playlist' in url:
         return spotify_playlist_to_youtube(url)
     return []
+
+
+def export_playlist(playlist_name, uris):
+    # location should be downloads folder
+    from pathlib import Path
+    playlist_name = re.sub('[^A-Za-z0-9]+', '', playlist_name)
+    playlist_path = f'{Path.home()}/Downloads/{playlist_name}.m3u'
+    with open(playlist_path, 'w') as f:
+        f.write('#EXTM3U\n')
+        for uri in uris: f.write(uri + '\n')
+    return playlist_path
+
+
+def parse_m3u(playlist_file):
+    with open(playlist_file) as f:
+        line = f.readline()
+        if line.startswith('#'): line = f.readline()
+        while line:
+            if not line.startswith('#'):
+                yield line.lstrip('file:').lstrip('/').rstrip()
+            line = f.readline()

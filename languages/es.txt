@@ -20,7 +20,7 @@ No se pudo conectar al dispositivo de transmisión
 No se pudo reproducir la URL
 No se pudo completar la cola porque el escaneo de la biblioteca está deshabilitado
 No se pudo configurar el temporizador
-Discord detectado
+Discord activo
 Descargando la actualización $VER
 Ingrese minutos o HH:MM
 Ingrese la hora
@@ -50,7 +50,7 @@ Más
 mover hacia abajo
 Pasar al siguiente
 Mover el contenido de la pista a la izquierda
-ascender
+mover hacia arriba
 Music Caster se está ejecutando en la bandeja.
 silencio
 Nuevo
@@ -60,7 +60,7 @@ No queda espacio en el dispositivo para actualizar automáticamente
 No queda espacio en el dispositivo para guardar la configuración
 Sin temporizador configurado
 No conectado a un dispositivo de transmisión
-Nada Reproduciendose
+Nada Reproduciéndose
 Notificaciones
 Detener solo la reproducción
 Detener solo la reproducción
@@ -77,7 +77,7 @@ Reproduce siguiente
 Reproducir URL
 Reproducir URL Siguiente
 Reproduciendo
-Nombre de la lista de reproducción
+Nombre lista reprod.
 Listas de Reproducción
 Menú de Listas de Reproducción
 Rellenar cola al inicio
@@ -128,13 +128,13 @@ Mostrar la carátula del álbum en la GUI
 Mostrar índice en cola
 Mostrar número de pista
 Mostrar el número de pista en la cola
-barajar
-Apagar cuando se acabe el tiempo
-Apagar la computadora
+Aleatorio
+Activar modo sleep cuando se acabe el tiempo
+Activar modo Sleep la computadora
 Hibernar cuando se acabe el tiempo
 Hibernar
 Detener
-Presentar
+Activar
 Gracias por instalar Music Caster.
 Temporizador
 Temporizador cancelado
@@ -151,6 +151,10 @@ GUI vertical
 Ver enlaces de origen de archivos de audio
 Código QR de la GUI web (haga clic o escanee)
 nueva lista de reproducción
+exportar lista de reproducción
 eliminar lista de reproducción
 reproducir lista de reproducción
 lista de reproducción en cola
+Título Desconocido
+Artista Desconocido
+Álbum Desconocido
