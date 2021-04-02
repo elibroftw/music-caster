@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.1
+- [Fix] M3U support
+
 4.82.0
 - [Feature] M3U(8) beta support
 - [Fix] Translations

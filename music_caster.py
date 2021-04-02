@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.0'
+VERSION = latest_version = '4.82.1'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -521,8 +521,8 @@ def get_audio_files(*uris, scan_files=True):
         elif os.path.isfile(uri):
             if uri.endswith('.m3u') or uri.endswith('.m3u8'):
                 for _uri in parse_m3u(uri):
-                    if uri.startswith('http') or valid_audio_file(_uri):
-                        if scan_files and uri not in all_tracks and uri not in url_metadata: uris_to_scan.put(uri)
+                    if _uri.startswith('http') or valid_audio_file(_uri):
+                        if scan_files and _uri not in all_tracks and _uri not in url_metadata: uris_to_scan.put(_uri)
                         yield _uri
             elif valid_audio_file(uri):
                 uri = uri.replace('\\', '/')
