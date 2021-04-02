@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.81.13'
+VERSION = latest_version = '4.81.14'
 UPDATE_MESSAGE = """
 [Optimization] Blazing fast startup and GUI open
 [HELP] Music Caster could use some translating
@@ -2059,24 +2059,25 @@ def read_main_window():
             main_event = 'progress_bar'
             main_window.refresh()
     if main_event == Sg.TIMEOUT_KEY: pass
-    elif main_event == 'tab_group' and main_values['tab_group'] == 'tab_queue':
-        main_window['file_action'].set_focus()
-    # change/select tabs with hot keys
-    elif main_event == '1:49' and not settings['mini_mode']:  # Ctrl + 1
+    # change/select tabs
+    elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
         main_window['tab_queue'].select()
-    elif main_event == '2:50' and not settings['mini_mode']:  # Ctrl + 2
+    elif (main_event == '2:50' and not settings['mini_mode'] or  # URL tab [Ctrl + 2]
+          main_event == 'tab_group' and main_values['tab_group'] == 'tab_url'):
         main_window['tab_url'].select()
         main_window['url_input'].set_focus()
         default_text: str = pyperclip.paste()
         if default_text.startswith('http'):
             main_window['url_input'].update(value=default_text)
-    elif main_event == '3:51' and not settings['mini_mode']:  # Ctrl + 3
+    elif (main_event == '3:51' and not settings['mini_mode'] or  # Playlists tab [Ctrl + 3]:
+          main_event == 'tab_group' and main_values['tab_group'] == 'tab_playlists'):
         main_window['tab_playlists'].select()
-    elif (main_event == '4:52' and not settings['mini_mode'] or
-          main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):  # Ctrl + 4
+        main_window['playlist_combo'].set_focus()
+    elif (main_event == '4:52' and not settings['mini_mode'] or  # Timer Tab [Ctrl + 4]
+          main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):
         main_window['tab_timer'].select()
         main_window['timer_minutes'].set_focus()
-    elif main_event == '5:53' and not settings['mini_mode']:  # Ctrl + 5
+    elif main_event == '5:53' and not settings['mini_mode']:  # Settings tab [Ctrl + 5]
         main_window['tab_settings'].select()
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
                         'volume_slider_mouse_enter', 'library_mouse_enter'}:

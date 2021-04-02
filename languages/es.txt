@@ -20,7 +20,6 @@ No se pudo conectar al dispositivo de transmisión
 No se pudo reproducir la URL
 No se pudo completar la cola porque el escaneo de la biblioteca está deshabilitado
 No se pudo configurar el temporizador
-Borrar
 Discord detectado
 Descargando la actualización $VER
 Ingrese minutos o HH:MM
@@ -79,8 +78,8 @@ Reproducir URL
 Reproducir URL Siguiente
 Reproduciendo
 Nombre de la lista de reproducción
-Listas de reproducción
-Menú de listas de reproducción
+Listas de Reproducción
+Menú de Listas de Reproducción
 Rellenar cola al inicio
 Llena la cola de las carpetas al inicio
 Pista anterior
@@ -151,3 +150,7 @@ cover.* la imagen anula la portada del archivo
 GUI vertical
 Ver enlaces de origen de archivos de audio
 Código QR de la GUI web (haga clic o escanee)
+nueva lista de reproducción
+eliminar lista de reproducción
+reproducir lista de reproducción
+lista de reproducción en cola

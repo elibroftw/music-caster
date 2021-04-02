@@ -20,7 +20,6 @@ Impossibile connettersi al dispositivo cast
 Impossibile riprodurre l'URL
 Impossibile popolare la coda perché la scansione della libreria è disabilitata
 Impossibile impostare il timer
-Elimina
 Presenza su Discord
 Download dell'aggiornamento $VER
 Inserisci i minuti o HH:MM
@@ -151,3 +150,7 @@ il file cover.* sovrascrive la cover inclusa nel file
 GUI verticale
 Visualizza i file audio Link alla fonte
 Web GUI QR Code (clicca o scansiona)
+nuova playlist
+elimina playlist
+riproduci playlist
+playlist in coda

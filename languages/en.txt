@@ -20,7 +20,6 @@ Could not connect to cast device
 Could not play URL
 Could not populate queue because library scan is disabled
 Could not set timer
-Delete
 Discord presence
 Downloading update $VER
 Enter minutes or HH:MM
@@ -151,3 +150,7 @@ cover.* image overrides file cover
 Vertical GUI
 View Audio Files Source Links
 Web GUI QR Code (click or scan)
+new playlist
+delete playlist
+play playlist
+queue playlist
