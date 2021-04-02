@@ -384,7 +384,12 @@
                         window.location.reload();
                     }
                 }
-            );
+            ).catch(error => {
+                // ignore network errors
+                if (error.name !== 'NetworkError') {
+                    console.log(error);
+                }
+            });
         // check every 1.5 seconds
         setTimeout(reloadOnChange, 1500);
     }
