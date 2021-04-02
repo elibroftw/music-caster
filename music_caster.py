@@ -2497,6 +2497,7 @@ def read_main_window():
             if settings['reversed_play_next']: next_queue.insert(0, url_to_insert)
             else: next_queue.append(url_to_insert)
             uris_to_scan.put(url_to_insert)
+        main_window['url_input'].update(value='')
         update_gui_queue = True
     # timer tab
     elif main_event == 'cancel_timer':
