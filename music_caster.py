@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.1'
+VERSION = latest_version = '4.82.2'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -162,7 +162,7 @@ from urllib.parse import urlsplit
 import webbrowser  # takes 0.05 seconds
 import zipfile
 # 3rd party imports
-from flask import Flask, jsonify, render_template, request, redirect, send_file, Response
+from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
 from werkzeug.exceptions import InternalServerError
 import pyaudio
 import pychromecast.controllers.media
@@ -787,9 +787,12 @@ def api_get_debug_info():
     return gt('set DEBUG = true in `settings.json` to enable this page')
 
 
-@app.route('/running/')
+@app.route('/running/', methods=['GET', 'POST', 'OPTIONS'])
 def api_running():
-    return 'true'
+    response = make_response('true')
+    if request.environ.get('HTTP_ORIGIN') in {'https://elijahlopez.herokuapp.com', 'http://elijahlopez.herokuapp.com'}:
+        response.headers.add('Access-Control-Allow-Origin', request.environ['HTTP_ORIGIN'])
+    return response
 
 
 @app.route('/exit/', methods=['GET', 'POST'])
@@ -1137,9 +1140,11 @@ def create_track_list():
 def after_play(title, artists: str, autoplay, switching_device):
     global playing_status, cast_last_checked, update_gui_queue
     app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
-    # artists is comma separated string
+    # prevent Windows from going to sleep
+    ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
     if autoplay:
         if settings['notifications'] and not switching_device and not active_windows['main']:
+            # artists is comma separated string
             tray_notify(gt('Playing') + f': {get_first_artist(artists)} - {title}')
     playing_status = PlayingStatus.PLAYING
     refresh_tray()
@@ -1646,6 +1651,8 @@ def stop(stopped_from: str, stop_cast=True):
     """
     global playing_status, cast, track_position, playing_live, playing_url
     app_log.info(f'Stop reason: {stopped_from}')
+    # allow Windows to go to sleep
+    ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
     playing_status = PlayingStatus.NOT_PLAYING
     playing_live = playing_url = False
     if settings['discord_rpc']:

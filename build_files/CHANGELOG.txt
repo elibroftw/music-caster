@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.2
+- [Fix] Prevent Windows from sleeping
+
 4.82.1
 - [Fix] M3U support
 
