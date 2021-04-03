@@ -37,4 +37,4 @@ exe = EXE(pyz,
           upx=False,
           upx_exclude=['vcruntime140.dll', 'msvcp140.dll', 'python36.dll', 'python37.dll', 'python38.dll'],
           runtime_tmpdir=None,
-          console=False, version='mc_version_info.txt', icon=os.path.abspath('resources/Music Caster Icon.ico'))
+          console=False, version='mc_version_info.txt', icon=os.path.abspath('../resources/Music Caster Icon.ico'))

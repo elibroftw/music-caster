@@ -40,7 +40,7 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=False,
-          console=False, version='mc_version_info.txt', icon=os.path.abspath('resources/Music Caster Icon.ico'))
+          console=False, version='mc_version_info.txt', icon=os.path.abspath('../resources/Music Caster Icon.ico'))
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,

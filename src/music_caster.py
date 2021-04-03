@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.2'
+VERSION = latest_version = '4.82.3'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -2505,6 +2505,7 @@ def read_main_window():
             else: next_queue.append(url_to_insert)
             uris_to_scan.put(url_to_insert)
         main_window['url_input'].update(value='')
+        main_window['url_input'].set_focus()
         update_gui_queue = True
     # timer tab
     elif main_event == 'cancel_timer':
@@ -2672,6 +2673,7 @@ def read_main_window():
             # empty the input field
             main_window['pl_url_input'].update(value='')
             main_window['pl_add_url'].update(disabled=True)
+            main_window['pl_url_input'].set_focus()
         else:
             tray_notify(gt('ERROR') + ': ' + gt("Invalid URL. URL's need to start with http:// or https://"))
     elif main_event == 'pl_tracks':
