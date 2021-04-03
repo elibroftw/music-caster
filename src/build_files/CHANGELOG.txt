@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.6
+- [Fix] Delete old files
+
 4.82.5
 - [Fix] Sharp noise when playing audio
 - [Fix] Unknown album errors

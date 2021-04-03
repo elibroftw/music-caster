@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.82.5"
+#define MyAppVersion "4.82.6"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.herokuapp.com/software#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -55,6 +55,8 @@ Type: filesandordirs; Name: {app}\markupsafe
 Type: filesandordirs; Name: {app}\pygame
 Type: filesandordirs; Name: {app}\PyQt5
 Type: filesandordirs; Name: {app}\wx
+Type: filesandordirs; Name: {app}\vlc
+Type: filesandordirs; Name: {app}\vlc_lib
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
