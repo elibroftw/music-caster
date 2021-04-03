@@ -228,7 +228,7 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
         # if title or artist are unknown, use the basename of the URI (excluding extension)
         sort_key = get_file_name(file_path)
     else:
-        sort_key = sort_key_template.replace('&title', title).replace('&artist', artist).replace('&album', album)
+        sort_key = sort_key_template.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower()}
     if track_number is not None: metadata['track_number'] = track_number

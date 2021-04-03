@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.5
+- [Fix] Sharp noise when playing audio
+- [Fix] Unknown album errors
+
 4.82.4
 - [Fix] Spotify handling
 

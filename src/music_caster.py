@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.4'
+VERSION = latest_version = '4.82.5'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language

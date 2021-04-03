@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.3.1
+AudioPlayer v2.3.2
 Author: Elijah Lopez
 Make sure VLC .dll files are located in "vlc_lib/"
 """
@@ -40,9 +40,9 @@ class AudioPlayer:
         :param volume: float[0, 1]
         :param start_from: time to start from in seconds
         """
+        self.is_url = media_path.startswith('http')
         self.player.set_mrl(media_path)
         self.player.play()
-        self.is_url = media_path.startswith('http')
         if volume is not None: self.set_volume(volume)
         while not self.player.is_playing(): pass
         self.set_pos(start_from)
