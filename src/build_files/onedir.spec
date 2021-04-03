@@ -10,11 +10,10 @@ from PyInstaller.config import CONF
 
 CONF['distpath'] = './dist'
 block_cipher = None
-vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('vlc/**/*.*', recursive=True)]
+vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('vlc_lib/**/*.*', recursive=True)]
 lang_packs = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('languages/*.txt')]
 data_files = [('Music Caster.VisualElementsManifest.xml', '.'),
               (os.path.abspath('templates/index.html'), 'templates'),
-              (os.path.abspath('templates/files.html'), 'templates'),
               (os.path.abspath('static/style.css'), 'static')] + vlc_files + lang_packs
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],

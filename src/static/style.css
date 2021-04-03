@@ -12,6 +12,11 @@ a {
     color: inherit;
 }
 
+.playLink {
+    display: inline-block;
+    width: 95%;
+}
+
 button {
     background-color: #2196f3;
     border: none;
@@ -487,9 +492,9 @@ input:checked+.slider:before {
         margin-top: 10%;
     }
 
-    /* .player__container {
-        margin-top: 2em;
-    } */
+    .playLink {
+        width: 90%;
+    }
 }
 
 #toast {

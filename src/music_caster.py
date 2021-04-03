@@ -39,19 +39,13 @@ daemon_commands, tray_process_queue, uris_to_scan = mp.Queue(), mp.Queue(), Queu
 
 
 def get_running_processes(look_for=''):
-    if look_for:
-        cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"'
-    else:
-        cmd = f'tasklist /NH'
+    cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"' if look_for else f'tasklist /NH'
     p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
-    task = p.stdout.readline()
-    while task != '':
-        task = p.stdout.readline().strip()
+    for task in iter(lambda: p.stdout.readline().strip(), ''):
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
-            process = {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
-                       'session_num': m.group(4), 'mem_usage': m.group(5)}
-            yield process
+            yield {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
+                   'session_num': m.group(4), 'mem_usage': m.group(5)}
 
 
 def is_already_running(look_for='Music Caster.exe', threshold=1):
@@ -709,8 +703,9 @@ def web_index():  # web GUI
     else:
         sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
     for filename, data in sorted_tracks:
-        play_file_path = urllib.parse.urlencode({'uri': filename})
-        list_of_tracks.append({'text': format_file(filename), 'title': filename, 'href': f'/play?{play_file_path}'})
+        href = '/play?' + urllib.parse.urlencode({'uri': filename})
+        src_href = '/file?' + urllib.parse.urlencode({'path': filename})
+        list_of_tracks.append({'text': format_file(filename), 'title': filename, 'src': src_href, 'href': href})
     _queue = create_track_list()
     device_index = 0
     for i, device_name in enumerate(device_names):
@@ -880,21 +875,6 @@ def api_get_file():
                                  mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
             return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
     return '401'
-
-
-@app.route('/files/')
-def api_all_files():
-    device_name = platform.node()
-    # sort by filename
-    if all_tracks_sorted_filename:
-        sorted_tracks = all_tracks_sorted_filename
-    else:
-        sorted_tracks = sorted(all_tracks.items(), key=lambda item: natural_key_file(item[0]))
-    list_of_tracks = []
-    for filename, metadata in sorted_tracks:
-        query = urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'text': format_file(filename), 'title': filename, 'href': f'/file?{query}'})
-    return render_template('files.html', files=list_of_tracks, device_name=device_name)
 
 
 def gen_header(sample_rate, bits_per_sample, channels):
@@ -1211,7 +1191,7 @@ def play_url_generic(src, ext, title, artist, album, length, position=0,
         if mc.status.player_is_playing or mc.status.player_is_paused:
             mc.stop()
             mc.block_until_active(WAIT_TIMEOUT)
-        _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+        _metadata = {'metadataType': 3, 'albumName': str(album), 'title': str(title), 'artist': str(artist)}
         mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                       current_time=position, autoplay=autoplay)
         mc.block_until_active(WAIT_TIMEOUT)
@@ -1362,8 +1342,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
                 cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(_volume)
             mc = cast.media_controller
-            metadata = {'title': metadata['title'], 'artist': metadata['artist'],
-                        'albumName': metadata['album'], 'metadataType': 3}
+            metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
+                        'albumName': str(metadata['album']), 'metadataType': 3}
             ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)

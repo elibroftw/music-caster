@@ -8,7 +8,7 @@
 <link rel="manifest" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/site.webmanifest">
 <link rel="mask-icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/safari-pinned-tab.svg" color="#00bfff">
 <link rel="shortcut icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon.ico">
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.2.29">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.3.0">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -90,7 +90,10 @@
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
                placeholder="Search for music..." title="Type in artist/tracks">
         {% for track in list_of_tracks %}
-            <a class="track" title="{{track.title}}" href="{{track.href}}">{{track.text}}</a>
+            <div class="track">
+                <a class="playLink" title="play {{track.title}}" href="{{track.href}}">{{track.text}}</a>
+                <a style="float: right;" title="download file" href="{{track.src}}"><i class="fas fa-download"></i></a>
+            </div>
         {% endfor %}
     </div>
 </div>
@@ -135,7 +138,6 @@
         <h2 class="modal-title">{{ gt('More') }}</h2>
         <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">{{ gt('Rescan Library') }}</p>
         <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">{{ gt('Refresh Devices') }}</p>
-        <a class="modalRow" href="/files">{{ gt('View Audio Files Source Links') }}</a>
         <h2>{{ gt('Timer') }}</h2>
         <ul style="list-style: none">
             {% for timer_toggle in (('timer_shut_down', gt('Shut Down Computer')),

@@ -1,6 +1,6 @@
+from music_caster import settings, get_running_processes, is_already_running
 from helpers import *
 from helpers import get_metadata
-from music_caster import settings, get_running_processes, is_already_running
 
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
@@ -156,6 +156,11 @@ def test_helpers():
         img_data = io.BytesIO(b64decode(base64data))
         img: Image = Image.open(img_data)
         assert img.size == size
+
+    test_uris = TEST_MUSIC_FILES + ['https://www.youtube.com/watch?v=_jh9lMUjBLo']
+    path = export_playlist('test_playlist_support', test_uris)
+    assert list(parse_m3u(path)) == test_uris
+    os.remove(path)
 
 
 if __name__ == '__main__':

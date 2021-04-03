@@ -1,7 +1,7 @@
 """
 AudioPlayer v2.3.1
 Author: Elijah Lopez
-Make sure VLC .dll files are located in ./vlc/
+Make sure VLC .dll files are located in "vlc_lib/"
 """
 
 from enum import IntEnum
@@ -9,7 +9,7 @@ import math
 import os
 import sys
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-os.environ['PYTHON_VLC_LIB_PATH'] = f'{starting_dir}\\vlc\\libvlc.dll'
+os.environ['PYTHON_VLC_LIB_PATH'] = f'{starting_dir}\\vlc_lib\\libvlc.dll'
 import vlc
 
 

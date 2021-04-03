@@ -164,6 +164,8 @@ if not args.skip_build:
 if args.clean:
     shutil.rmtree('dist', True)
     shutil.rmtree('build', True)
+    for file in glob.iglob('*.log'):
+        os.remove(file)
 
 if not args.skip_build:
     print('Installing / Updating dependencies...')
@@ -198,16 +200,16 @@ if not args.dry and not args.skip_build:
     for folder in {'dist/static', 'dist/templates'}:
         with suppress(OSError): os.mkdir(folder)
 
-    copy_tree('vlc', 'dist/vlc')
+    copy_tree('vlc_lib', 'dist/vlc_lib')
     copy_tree('languages', 'dist/languages')
 
-    res_files = ['static/style.css', 'templates/index.html', 'templates/files.html']
+    res_files = ['static/style.css', 'templates/index.html']
     for res_file in res_files:
         shutil.copyfile(res_file, 'dist/' + res_file)
     lang_packs = glob.glob('languages/*.txt')
     # noinspection PyTypeChecker
     portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')]
-    portable_files.extend(res_files + glob.glob('vlc/**/*.*', recursive=True))
+    portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
     portable_files.extend(lang_packs)
     portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
     print('Creating dist/Portable.zip')

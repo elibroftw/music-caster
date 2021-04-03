@@ -868,9 +868,6 @@ def export_playlist(playlist_name, uris):
 
 def parse_m3u(playlist_file):
     with open(playlist_file) as f:
-        line = f.readline()
-        if line.startswith('#'): line = f.readline()
-        while line:
+        for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
                 yield line.lstrip('file:').lstrip('/').rstrip()
-            line = f.readline()

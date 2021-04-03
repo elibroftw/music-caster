@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.3
+- [Fix] Unknown property bugs
+- [Fix] Better web GUI
+
 4.82.2
 - [Fix] Prevent Windows from sleeping
 
