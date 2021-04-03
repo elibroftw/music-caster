@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.3'
+VERSION = latest_version = '4.82.4'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -131,7 +131,6 @@ import base64
 from contextlib import suppress
 from collections import defaultdict, deque
 from collections.abc import Iterable
-from itertools import islice
 from copy import deepcopy
 from datetime import datetime, timedelta
 import errno
@@ -1267,22 +1266,16 @@ def get_url_metadata(url):
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
     elif url.startswith('https://open.spotify.com'):
-        youtube_links = spotify_to_youtube(url)
-        if len(youtube_links) == 1:
-            url_metadata[url] = metadata = get_url_metadata(youtube_links[0])[0]
+        urls = spotify_to_youtube(url)
+        # spotify_to_youtube blocks for some time, therefore don't scan more than the first url
+        # note that spotify_to_youtube can also return spotify urls
+        if len(urls) >= 1:
+            url_metadata[url] = metadata = get_url_metadata(urls[0])[0]
             metadata_list.append(metadata)
-        elif len(youtube_links) <= 35:
-            # if there aren't that any links, we can just get the metadata using youtube-dl
-            metadata_list = [{} for _ in youtube_links]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
-                futures = {executor.submit(get_url_metadata, url): i for i, url in enumerate(youtube_links)}
-                for future in concurrent.futures.as_completed(futures):
-                    metadata_list[futures[future]] = future.result()[0]
-        elif youtube_links:
-            metadata_list.append(get_url_metadata(youtube_links[0])[0])
-            for i in range(1, len(youtube_links)):
-                # play_url will look for 'url' parameter, it won't care about the others
-                metadata_list.append({'url': youtube_links[i]})
+            for link in islice(urls, 1):
+                uris_to_scan.put(link)
+                # play_url will look for 'url' field, it won't care about the others
+                metadata_list.append({'url': link})
     return metadata_list
 
 
@@ -1947,7 +1940,7 @@ def playlist_action(playlist_name, action='play'):
             else:
                 shuffle_from = len(music_queue)
             music_queue.extend(get_uris_from_playlist(playlist_name))
-            if settings['shuffle'] and shuffle_from < len(music_queue): better_shuffle(music_queue, shuffle_from)
+            if settings['shuffle']: better_shuffle(music_queue, shuffle_from)
             if action == 'play' or shuffle_from == 0: play(music_queue[0])
         elif 'next':
             next_queue.extend(get_uris_from_playlist(playlist_name))

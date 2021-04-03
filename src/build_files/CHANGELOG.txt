@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.4
+- [Fix] Spotify handling
+
 4.82.3
 - [Fix] Unknown property bugs
 - [Fix] Better web GUI

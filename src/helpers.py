@@ -1,4 +1,5 @@
 from b64_images import *
+from itertools import islice
 from base64 import b64encode, b64decode
 from bs4 import BeautifulSoup
 from contextlib import suppress
@@ -262,15 +263,15 @@ def better_shuffle(seq, first=0, last=-1):
     :return:
     """
     n = len(seq)
-    _, __ = seq[first], seq[last]  # check for IndexError
-    first = first % n
-    last = last % n
-    # use Fisher-Yates shuffle (Durstenfeld method)
-    for i in range(first, last + 1):
-        size = last - i + 1
-        j = getrandbits(size.bit_length()) % size + i
-        seq[i], seq[j] = seq[j], seq[i]
-    return seq
+    with suppress(IndexError):
+        first = first % n
+        last = last % n
+        # use Fisher-Yates shuffle (Durstenfeld method)
+        for i in range(first, last + 1):
+            size = last - i + 1
+            j = getrandbits(size.bit_length()) % size + i
+            seq[i], seq[j] = seq[j], seq[i]
+        return seq
 
 
 def create_qr_code(port, ipv4=None):
@@ -829,11 +830,16 @@ def spotify_album_to_youtube(url):
 
 def spotify_playlist_to_youtube(url):
     playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
-    r = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers(url)).json()
-    tracks = ['' for _ in r['items']]
+    response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers(url)).json()
+    results = response['items']
+    while len(results) < response['total']:
+        response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
+                                headers=get_spotify_headers(url)).json()
+        results.extend(response['items'])
+    tracks = ['' for _ in results]
     with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
         futures = {}
-        for i, track in enumerate(r['items']):
+        for i, track in enumerate(islice(results, 0, 36)):
             track = track['track']
             track_title = track['name']
             track_artist = track['artists'][0]['name']
@@ -841,6 +847,8 @@ def spotify_playlist_to_youtube(url):
             futures[executor.submit(youtube_search, query)] = i
         for future in concurrent.futures.as_completed(futures):
             tracks[futures[future]] = future.result()
+    for i, result in enumerate(islice(results, 36, None)):
+        tracks[i] = result['track']['external_urls']['spotify']
     return tracks
 
 
@@ -871,3 +879,4 @@ def parse_m3u(playlist_file):
         for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
                 yield line.lstrip('file:').lstrip('/').rstrip()
+
