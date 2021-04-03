@@ -7,4 +7,4 @@ set args=%args% %1
 shift
 goto start
 :done
-cd src && python build.py %args%
+python build.py %args%

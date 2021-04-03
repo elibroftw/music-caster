@@ -161,6 +161,10 @@ if not args.skip_build:
             os.remove(dist_file)
     shutil.rmtree(UPDATER_DIST_PATH, True)
 
+if args.clean:
+    shutil.rmtree('dist', True)
+    shutil.rmtree('build', True)
+
 if not args.skip_build:
     print('Installing / Updating dependencies...')
     pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
