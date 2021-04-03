@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.82.2"
+#define MyAppVersion "4.82.3"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.herokuapp.com/software#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -29,7 +29,7 @@ OutputBaseFilename=Music Caster Setup
 UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallLogMode=overwrite
-SetupIconFile="..\resources\Music Caster Icon.ico"
+SetupIconFile="..\..\resources\Music Caster Icon.ico"
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
