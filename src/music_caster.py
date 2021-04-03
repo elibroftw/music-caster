@@ -41,6 +41,7 @@ daemon_commands, tray_process_queue, uris_to_scan = mp.Queue(), mp.Queue(), Queu
 def get_running_processes(look_for=''):
     cmd = f'tasklist /NH /FI "IMAGENAME eq {look_for}"' if look_for else f'tasklist /NH'
     p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
+    p.stdout.readline()
     for task in iter(lambda: p.stdout.readline().strip(), ''):
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:

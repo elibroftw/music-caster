@@ -63,6 +63,8 @@ EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 def test_helpers():
 
+    assert list(get_running_processes())
+
     print('DISPLAY LANGUAGE', get_display_lang())
     for code in ('en', 'es'):
         assert get_lang_pack(code)
