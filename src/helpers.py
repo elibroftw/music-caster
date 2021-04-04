@@ -214,7 +214,7 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
             audio = mutagen.File(file_path)
         title = audio.get('title', [title])[0]
         album = audio.get('album', [album])[0]
-        is_explicit = audio.get('rating', '0') not in {'C', 'T', '0', 0}
+        is_explicit = audio.get('rating', ['0'])[0] not in {'C', 'T', '0', 0}
         with suppress(KeyError, TypeError, MutagenError):
             track_number = audio.get('tracknumber')[0].split('/', 1)[0]
         with suppress(KeyError, TypeError):
@@ -519,8 +519,8 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
 
 def truncate_title(title):
     """ truncate title for mini mode """
-    if len(title) > 34:
-        return title[:31] + '...'
+    if len(title) > 29:
+        return title[:26] + '...'
     return title
 
 
@@ -532,9 +532,9 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     title = truncate_title(title)
     right_side = Sg.Column([
-        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((10, 0), (0, 0)), size=(26, 1), justification='left')],
-        [Sg.Text(artist, font=FONT_MID, key='artist', pad=((10, 0), (0, 0)), size=(26, 2), justification='left')],
-        music_controls, progress_bar_layout], element_justification='left', pad=(0, 0))
+        [Sg.Text(title, font=FONT_TITLE, key='title', pad=((10, 0), 0), size=(28, 1))],
+        [Sg.Text(artist, font=FONT_MID, key='artist', pad=((10, 0), 0), size=(28, 2))],
+        music_controls, progress_bar_layout], pad=(0, 0))
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
@@ -568,7 +568,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     # tab 1 is the queue, tab 2 will be the library
     file_options = [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')]
     folder_opts = [gt('Play Folder'), gt('Queue Folder'), gt('Play Folder Next')]
-    biggest_word = max((len(x) for x in file_options + folder_opts))
+    biggest_word = len(max(*file_options, *folder_opts, key=len))
     combo_w = ceil(biggest_word * 0.95)
     btn_defaults = {'font': FONT_BTN, 'border_width': 0, 'highlight_colors': ('#fff', fg),
                     'enable_events': True, 'size': (combo_w, 1), 'image_subsample': 4, 'use_ttk_buttons': True}
@@ -708,9 +708,10 @@ def create_settings(version, settings, qr_code):
         [create_checkbox(gt('Populate queue on startup'), 'populate_queue_startup', settings),
          create_checkbox(gt('Persistent queue'), 'save_queue_sessions', settings, True)],
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
-         Sg.Text('🌐'),
-         Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'],
-                  key='lang', readonly=True, enable_events=True)]
+         create_checkbox(gt('Always queue library'), 'queue_library', settings)],
+        [Sg.Text('🌐'),
+         Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
+                  enable_events=True)]
     ], key='settings_tab_general', background_color=bg)
     ui_tab = Sg.Tab(gt('UI'), [
         [create_checkbox(gt('Save window positions'), 'save_window_positions', settings),
@@ -769,7 +770,7 @@ def create_timer(settings, timer):
         [Sg.Radio(gt('Hibernate when timer runs out'), 'TIMER', default=hibernate, key='hibernate', **defaults)],
         [Sg.Radio(gt('Only stop playback'), 'TIMER', default=do_nothing, key='timer_only_stop', **defaults)],
         [Sg.Text(gt('Enter minutes or HH:MM'), font=FONT_NORMAL),
-         Sg.Input(key='timer_minutes', font=FONT_NORMAL, size=(11, 1), border_width=1),
+         Sg.Input(key='timer_input', font=FONT_NORMAL, size=(11, 1), border_width=1),
          Sg.Button(gt('Submit'), font=FONT_BTN, key='timer_submit', border_width=0, use_ttk_buttons=True)],
         [Sg.Text(gt('Invalid Input (enter minutes or HH:MM)'), font=FONT_NORMAL, visible=False, key='timer_error')],
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer != 0), cancel_button]
@@ -815,7 +816,7 @@ def spotify_track_to_youtube(url):
 def spotify_album_to_youtube(url):
     album_id = urlparse(url).path.split('/album/', 1)[1]
     r = requests.get(f'{SPOTIFY_API}/albums/{album_id}/tracks', headers=get_spotify_headers(url)).json()
-    tracks = ['' for _ in r['items']]
+    tracks = [''] * r['total']
     with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
         futures = {}
         for i, track in enumerate(r['items']):
@@ -836,7 +837,7 @@ def spotify_playlist_to_youtube(url):
         response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
                                 headers=get_spotify_headers(url)).json()
         results.extend(response['items'])
-    tracks = ['' for _ in results]
+    tracks = [''] * response['total']
     with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
         futures = {}
         for i, track in enumerate(islice(results, 0, 36)):
@@ -856,9 +857,9 @@ def spotify_playlist_to_youtube(url):
 def spotify_to_youtube(url):
     if 'track' in url:
         return [spotify_track_to_youtube(url)]
-    elif 'album' in url:
+    if 'album' in url:
         return spotify_album_to_youtube(url)
-    elif 'playlist' in url:
+    if 'playlist' in url:
         return spotify_playlist_to_youtube(url)
     return []
 
@@ -879,4 +880,3 @@ def parse_m3u(playlist_file):
         for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
                 yield line.lstrip('file:').lstrip('/').rstrip()
-

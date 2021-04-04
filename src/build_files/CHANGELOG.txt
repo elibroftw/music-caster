@@ -1,5 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.7
+- [Fix] Tray select files
+- [Fix] Metadata error
+- [Fix] Commandline arguments
+- [Optimization] Lowered CPU usage
+- [Feature] Queue library always
+
 4.82.6
 - [Fix] Delete old files
 
