@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.8
+- [Fix] URL support
+
 4.82.7
 - [Fix] Tray select files
 - [Fix] Metadata error

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.7'
+VERSION = latest_version = '4.82.8'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -500,7 +500,7 @@ def get_current_metadata() -> dict:
     return {'artist': '', 'title': gt('Nothing Playing'), 'album': ''}
 
 
-def get_audio_files(uris: Iterable, scan_uris=True, ignore_m3u=False):
+def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False):
     """
     :param uris: A list of URIs (urls, folders, m3u files, files)
     :param scan_uris: whether to add to uris_to_scan
@@ -509,19 +509,19 @@ def get_audio_files(uris: Iterable, scan_uris=True, ignore_m3u=False):
     """
     if isinstance(uris, str): uris = (uris,)
     for uri in uris:
-        if uri in playlists: yield from get_audio_files(playlists[uri])  # if playlists contain dirs
+        if uri in playlists: yield from get_audio_uris(playlists[uri])  # if playlists contain dirs
         elif os.path.isdir(uri):  # if scanning a folder, ignore playlist files as they can be redundant
-            yield from get_audio_files(glob.iglob(f'{glob.escape(uri)}/**/*.*', recursive=True), ignore_m3u=True)
+            yield from get_audio_uris(glob.iglob(f'{glob.escape(uri)}/**/*.*', recursive=True), ignore_m3u=True)
         elif os.path.isfile(uri):
             if not ignore_m3u and (uri.endswith('.m3u') or uri.endswith('.m3u8')):
-                yield from get_audio_files(parse_m3u(uri))
+                yield from get_audio_uris(parse_m3u(uri))
             elif valid_audio_file(uri):
                 uri = uri.replace('\\', '/')
                 if scan_uris and uri not in all_tracks: uris_to_scan.put(uri)
                 yield uri
         elif uri.startswith('http'):
             if scan_uris and uri not in url_metadata: uris_to_scan.put(uri)
-            return uri
+            yield uri
 
 
 def index_all_tracks(update_global=True, ignore_files: set = None):
@@ -545,7 +545,7 @@ def index_all_tracks(update_global=True, ignore_files: set = None):
         use_temp = len(all_tracks)  # use temp if all_tracks is not empty
         all_tracks_temp = {}
         dict_to_use = all_tracks_temp if use_temp else all_tracks
-        for file_path in get_audio_files(settings['music_folders'], False):
+        for file_path in get_audio_uris(settings['music_folders'], False):
             dict_to_use[file_path] = get_metadata_wrapped(file_path)
         if use_temp: all_tracks = all_tracks_temp.copy()
         del all_tracks_temp
@@ -1380,7 +1380,7 @@ def play_all(starting_files: tuple = None, queue_only=False):
         music_queue.clear()
         done_queue.clear()
     if starting_files is None: starting_files = []
-    starting_files = list(get_audio_files(starting_files))
+    starting_files = list(get_audio_uris(starting_files))
     if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
         info = gt('INFO')
         tray_notify(f'{info}: ' + gt('Library indexing incomplete, only scanned files have been added'))
@@ -1413,7 +1413,7 @@ def play_uris(uris: list, queue_only=False, from_explorer=False):
         music_queue.clear()
         done_queue.clear()
     app_log.info(f'play_paths: len(paths) = {len(uris)}, queue_only = {queue_only}')
-    temp_queue = list(get_audio_files(uris))
+    temp_queue = list(get_audio_uris(uris))
     update_gui_queue = True
     if settings['shuffle']:
         # if from_explorer make temp_queue should also include files in the queue
@@ -1451,17 +1451,17 @@ def file_action(action='pf'):
             else:
                 music_queue.clear()
                 done_queue.clear()
-                music_queue.extend(get_audio_files(paths))
+                music_queue.extend(get_audio_uris(paths))
                 if music_queue: play(music_queue[0])
         elif action in {'Queue File(s)', 'qf'}:
             _start_playing = not music_queue
-            music_queue.extend(get_audio_files(paths))
+            music_queue.extend(get_audio_uris(paths))
             if _start_playing and music_queue: play(music_queue[0])
         elif action in {'Play File(s) Next', 'pfn'}:
             if settings['reversed_play_next']:
-                next_queue.extendleft(get_audio_files(paths))
+                next_queue.extendleft(get_audio_uris(paths))
             else:
-                next_queue.extend(get_audio_files(paths))
+                next_queue.extend(get_audio_uris(paths))
             if playing_status == 'NOT PLAYING' and not music_queue and next_queue:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status = PlayingStatus.PLAYING
@@ -1483,7 +1483,7 @@ def folder_action(action='Play Folder'):
     if folder_path:
         temp_queue = []
         files_to_queue = defaultdict(list)
-        for file_path in get_audio_files(folder_path):
+        for file_path in get_audio_uris(folder_path):
             path = Path(file_path)
             files_to_queue[path.parent.as_posix()].append(path.name)
         if settings['shuffle']:
@@ -1915,11 +1915,11 @@ def playlist_action(playlist_name, action='play'):
                 music_queue.clear()
                 done_queue.clear()
             shuffle_from = len(music_queue)
-            music_queue.extend(get_audio_files(playlist_name))
+            music_queue.extend(get_audio_uris(playlist_name))
             if settings['shuffle']: better_shuffle(music_queue, shuffle_from)
             if action == 'play' or shuffle_from == 0: play(music_queue[0])
         elif 'next':
-            next_queue.extend(get_audio_files(playlist_name))
+            next_queue.extend(get_audio_uris(playlist_name))
 
 
 def other_tray_actions(_tray_item):
@@ -2600,7 +2600,7 @@ def read_main_window():
         file_paths = Sg.popup_get_file('Select Music File(s)', no_window=True, initial_folder=DEFAULT_FOLDER,
                                        multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
         if file_paths:
-            pl_files.extend(get_audio_files(file_paths))
+            pl_files.extend(get_audio_uris(file_paths))
             main_window.TKroot.focus_force()
             main_window.normal()
             formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
