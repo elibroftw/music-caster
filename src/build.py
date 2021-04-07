@@ -126,12 +126,12 @@ def update_versions():
 
 def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
     with zipfile.ZipFile(zip_filename, 'w', compression=compression) as zf:
-        for file in files_to_zip:
+        for file_to_zip in files_to_zip:
             try:
-                if type(file) == tuple: zf.write(*file)
-                else: zf.write(file)
+                if type(file_to_zip) == tuple: zf.write(*file_to_zip)
+                else: zf.write(file_to_zip)
             except FileNotFoundError:
-                print(f'{file} not found')
+                print(f'{file_to_zip} not found')
 
 
 if args.dry: print('Dry Build')
