@@ -266,8 +266,8 @@ def test(title, fn, assert_statement=False):
 if not args.dry and tests_passed:
     try:
         sys.argv = sys.argv[:1]
-        from test_harness import test_helpers
-        test_helpers()
+        from test_harness import run_tests
+        run_tests()
     except AssertionError as e:
         print('TESTS FAILED: test_helpers()')
         raise e
