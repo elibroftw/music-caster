@@ -133,23 +133,24 @@ def get_display_lang():
     return locale.windows_locale[windll.GetUserDefaultUILanguage()].split('_')[0]
 
 
-def get_translation(string, lang=''):
+def get_translation(string, lang='', as_title=False):
     """
     Returns the translation of the string in the display language
     If lang pack does not exist, use original string
     :param string: English string
     :param lang: Optional code to translate to. Defaults to using display language
+    :param as_title: The phrase returned has each word capitalized
     :return: string translated to display language
     """
     lang = lang or get_display_lang()
-    try:
-        return get_lang_pack(lang)[get_lang_pack('en')[string]]
-    except (IndexError, KeyError):
-        return string
+    with suppress(IndexError, KeyError):
+        string = get_lang_pack(lang)[get_lang_pack('en')[string]]
+    if as_title: string = ' '.join(word[0].upper() + word[1:] for word in string.split())
+    return string
 
 
-def gt(string):
-    return get_translation(string, Shared.lang)
+def gt(string, as_title=False):
+    return get_translation(string, lang=Shared.lang, as_title=as_title)
 
 
 def get_length(file_path) -> int:
@@ -586,7 +587,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         [Sg.Button(key='queue_all', image_data=QUEUE_ICON, **img_button, tooltip=gt('queue all'))],
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip=gt('Clear the queue'))],
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip=gt('Save queue to playlist'))],
-        [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, **img_button, tooltip=gt('Locate track'))],
+        [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, **img_button, tooltip=gt('locate track'))],
         [Sg.Button('▲', key='move_up', button_color=('#fff', bg), border_width=0,
                    tooltip=gt('move up'), size=(2, 1))],
         [Sg.Button('❌', key='remove_track', button_color=('#fff', bg), border_width=0,
@@ -769,7 +770,7 @@ def create_timer(settings, timer):
         [Sg.Radio(gt('Shut down when timer runs out'), 'TIMER', default=shut_down, key='shut_down', **defaults)],
         [Sg.Radio(gt('Sleep when timer runs out'), 'TIMER', default=sleep, key='sleep', **defaults)],
         [Sg.Radio(gt('Hibernate when timer runs out'), 'TIMER', default=hibernate, key='hibernate', **defaults)],
-        [Sg.Radio(gt('Only stop playback'), 'TIMER', default=do_nothing, key='timer_only_stop', **defaults)],
+        [Sg.Radio(gt('Only Stop Playback').capitalize(), 'TIMER', default=do_nothing, key='timer_stop', **defaults)],
         [Sg.Text(gt('Enter minutes or HH:MM'), font=FONT_NORMAL),
          Sg.Input(key='timer_input', font=FONT_NORMAL, size=(11, 1), border_width=1),
          Sg.Button(gt('Submit'), font=FONT_BTN, key='timer_submit', border_width=0, use_ttk_buttons=True)],

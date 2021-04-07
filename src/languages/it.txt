@@ -43,8 +43,7 @@ Indicizzazione della libreria incompleta, sono stati aggiunti solo i file scansi
 Ascolto
 Audio di sistema dal vivo
 Dispositivo locale
-Individua Brano
-Individua brano
+individua brano
 Modalità mini in alto
 Più
 Sposta giù
@@ -54,7 +53,6 @@ Sposta su
 Music Caster è in esecuzione nel tray.
 Mute
 Nuovo
-Brano Successivo
 brano successivo
 Non c'è spazio sul dispositivo per l'aggiornamento automatico
 Non c'è spazio sul dispositivo per salvare le impostazioni
@@ -62,8 +60,7 @@ Timer non impostato
 Non collegato a un dispositivo cast
 Niente in riproduzione
 Notifiche
-Interrompi solo la riproduzione
-Ferma solo la riproduzione
+Ferma solo la Riproduzione
 Pausa
 Coda persistente
 Riproduci
@@ -82,15 +79,13 @@ Playlist
 Menu Playlist
 Riempi la coda all'avvio
 Riempi la coda dalle cartelle all'avvio
-Traccia Precedente
 traccia precedente
 Coda
 Metti tutti in coda
 Metti in coda File(s)
 Metti in coda Cartella
 Metti in coda URL
-Aggiornare i dispositivi
-Aggiornamento dispositivi
+Aggiornare i Dispositivi
 rimuovere la cartella selezionata
 Rimuovi
 Ripeti
@@ -155,7 +150,7 @@ esporta playlist
 elimina playlist
 riproduci playlist
 playlist in coda
-Titolo Sconosciuto
+Brano Sconosciuto
 Artista Sconosciuto
 Album Sconosciuto
-Accoda sempre la libreria
+Metti sempre in coda la libreria

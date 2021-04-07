@@ -143,7 +143,7 @@
             {% for timer_toggle in (('timer_shut_down', gt('Shut Down Computer')),
                                     ('timer_sleep', gt('Sleep Computer')),
                                     ('timer_hibernate', gt('Hibernate Computer')),
-                                    ('timer_only_stop', gt('Only Stop Playback'))) %}
+                                    ('timer_stop', gt('Only Stop Playback'))) %}
             <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
                 <label for="{{ timer_toggle[0] }}">{{ timer_toggle[1] }}</label>
                 <label class="switch">
@@ -161,7 +161,7 @@
         </ul>
     </div>
 </div>
-<div id="toast">{{ gt('Refreshing devices') }}</div>
+<div id="toast"></div>
 <script>
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
@@ -272,7 +272,7 @@
 
     function refreshDevices() {
         fetch('/refresh-devices/');
-        const refreshDevices = '{{ gt('Refreshing devices') }}';
+        const refreshDevices = '{{ gt('Refreshing Devices').capitalize() }}';
         showToast(refreshDevices);
     }
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.11'
+VERSION = latest_version = '4.82.12'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -276,8 +276,8 @@ def refresh_tray():
                               gt('Exit')]]
     tray_menu_playing = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
                               device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Controls'),
-                              [gt('Locate Track'), gt('Repeat Options'), repeat_menu, gt('Stop'),
-                               gt('Previous Track'), gt('Next Track'), gt('Pause')], gt('Play'),
+                              [gt('locate track', 1), gt('Repeat Options'), repeat_menu, gt('Stop'),
+                               gt('previous track', 1), gt('next track', 1), gt('Pause')], gt('Play'),
                               [gt('Live System Audio'),
                                gt('URL'), [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                                gt('Folders'), tray_folders, gt('Playlists'), tray_playlists, gt('Select File(s)'),
@@ -285,8 +285,8 @@ def refresh_tray():
                               gt('Exit')]]
     tray_menu_paused = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
                              device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Controls'),
-                             [gt('Locate Track'), gt('Repeat Options'), repeat_menu, gt('Stop'),
-                              gt('Previous Track'), gt('Next Track'), gt('Resume')], gt('Play'),
+                             [gt('locate track', 1), gt('Repeat Options'), repeat_menu, gt('Stop'),
+                              gt('previous track', 1), gt('next track', 1), gt('Resume')], gt('Play'),
                              [gt('Live System Audio'), gt('URL'),
                               [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')], gt('Folders'), tray_folders,
                               gt('Playlists'), tray_playlists, gt('Select File(s)'),
@@ -801,13 +801,13 @@ def api_exit():
 def api_change_setting():
     with suppress(KeyError):
         setting_key = request.json['setting_name']
-        if setting_key in settings or setting_key in {'timer_only_stop'}:
+        if setting_key in settings or setting_key in {'timer_stop'}:
             val = request.json['value']
             change_settings(setting_key, val)
             timer_settings = {'timer_hibernate', 'timer_sleep',
-                              'timer_shut_down', 'timer_only_stop'}
+                              'timer_shut_down', 'timer_stop'}
             if val and setting_key in timer_settings:
-                for timer_setting in timer_settings.difference({setting_key, 'timer_only_stop'}):
+                for timer_setting in timer_settings.difference({setting_key, 'timer_stop'}):
                     change_settings(timer_setting, False)
             if setting_key == 'volume':
                 update_volume(0 if settings['muted'] else settings['volume'])
@@ -2521,7 +2521,7 @@ def read_main_window():
                 main_window['timer_error'].update(text_color='red')
                 main_window.read(10)
             main_window['timer_input'].set_focus()
-    elif main_event in {'shut_down', 'hibernate', 'sleep', 'timer_only_stop'}:
+    elif main_event in {'shut_down', 'hibernate', 'sleep', 'timer_stop'}:
         change_settings('timer_hibernate', main_values['hibernate'])
         change_settings('timer_sleep', main_values['sleep'])
         change_settings('timer_shut_down', main_values['shut_down'])
@@ -2858,13 +2858,13 @@ def handle_action(action):
         gt('Play All'): play_all,
         gt('Pause'): pause,
         gt('Resume'): resume,
-        gt('Next Track'): next_track,
-        gt('Previous Track'): prev_track,
+        gt('next track', 1): next_track,
+        gt('previous track', 1): prev_track,
         gt('Stop'): lambda: stop('tray'),
         gt('Repeat One'): lambda: change_settings('repeat', True),
         gt('Repeat All'): lambda: change_settings('repeat', False),
         gt('Repeat Off'): lambda: change_settings('repeat', None),
-        gt('Locate Track'): locate_uri,
+        gt('locate track', 1): locate_uri,
         gt('Exit'): exit_program
     }
     actions.get(action, lambda: other_tray_actions(action))()

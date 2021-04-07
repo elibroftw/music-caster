@@ -43,8 +43,7 @@ Indexación de la biblioteca incompleta, solo se han agregado archivos escaneado
 Escuchando
 Audio del sistema en vivo
 Dispositivo local
-Buscar Pista
-Buscar pista
+buscar pista
 Modo Mini en la parte superior
 Más
 mover hacia abajo
@@ -54,7 +53,6 @@ mover hacia arriba
 Music Caster se está ejecutando en la bandeja.
 silencio
 Nuevo
-Siguiente pista
 siguiente pista
 No queda espacio en el dispositivo para actualizar automáticamente
 No queda espacio en el dispositivo para guardar la configuración
@@ -62,8 +60,7 @@ Sin temporizador configurado
 No conectado a un dispositivo de transmisión
 Nada Reproduciéndose
 Notificaciones
-Detener solo la reproducción
-Detener solo la reproducción
+Detener solo la Reproducción
 Pausa
 Cola persistente
 Reproducir
@@ -82,15 +79,13 @@ Listas de Reproducción
 Menú de Listas de Reproducción
 Rellenar cola al inicio
 Llena la cola de las carpetas al inicio
-Pista anterior
 pista anterior
 Cola
 Poner en cola todo
 Archivo(s) de cola
 Carpeta de cola
 URL de cola
-Actualizar dispositivos
-Actualizando dispositivos
+Actualizar Dispositivos
 eliminar carpeta seleccionada
 quitar
 Repetir

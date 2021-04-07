@@ -43,8 +43,7 @@ Library indexing incomplete, only scanned files have been added
 Listening
 Live System Audio
 Local device
-Locate Track
-Locate track
+locate track
 Mini mode on top
 More
 move down
@@ -54,7 +53,6 @@ move up
 Music Caster is running in the tray.
 mute
 New
-Next Track
 next track
 No space left on device to auto-update
 No space left on device to save settings
@@ -62,7 +60,6 @@ No Timer Set
 Not connected to a cast device
 Nothing Playing
 Notifications
-Only stop playback
 Only Stop Playback
 Pause
 Persistent queue
@@ -82,7 +79,6 @@ Playlists
 Playlists Menu
 Populate queue on startup
 Populates queue from folders on startup
-Previous Track
 previous track
 Queue
 queue all
@@ -90,7 +86,6 @@ Queue File(s)
 Queue Folder
 Queue URL
 Refresh Devices
-Refreshing devices
 remove selected folder
 remove
 Repeat

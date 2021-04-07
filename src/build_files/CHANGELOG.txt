@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.12
+- [UI] Translation framework
+
 4.82.11
 - [Fix] Play URL double count
 
