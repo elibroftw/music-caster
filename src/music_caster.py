@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.9'
+VERSION = latest_version = '4.82.10'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -1098,12 +1098,12 @@ def format_uri(uri: str, use_basename=False):
 
 def create_track_list():
     """:returns the formatted tracks queue, and the selected value (currently playing)"""
-    tracks = []
     try:
         max_digits = int(log10(max(len(music_queue) - 1 + len(next_queue), len(done_queue) * 10))) + 2
     except ValueError:
         max_digits = 0
     i = -len(done_queue)
+    tracks = []
     # format: Index | Artists - Title
     for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
         for uri in items:
@@ -1111,10 +1111,9 @@ def create_track_list():
             if settings['show_queue_index']:
                 if i < 0: pre = f'\u2012{abs(i)} '.center(max_digits, '\u2000')
                 else: pre = f'{i} '.center(max_digits, '\u2000')
-                formatted_item = f'\u2004{pre}|\u2000{formatted_track}'
+                formatted_track = f'\u2004{pre}|\u2000{formatted_track}'
                 i += 1
-            else: formatted_item = formatted_track
-            tracks.append(formatted_item)
+            tracks.append(formatted_track)
     return tracks
 
 
@@ -1817,7 +1816,7 @@ def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
     if not active_windows['main']:
         active_windows['main'] = True
         lb_tracks = create_track_list()
-        selected_value = lb_tracks[len(done_queue)] if lb_tracks else None
+        selected_value = lb_tracks[len(done_queue)] if lb_tracks and len(done_queue) < len(lb_tracks) else None
         mini_mode = settings['mini_mode']
         save_window_loc_key = 'main' + '_mini_mode' if mini_mode else ''
         window_location = get_window_location(save_window_loc_key)

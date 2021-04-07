@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.10
+- [Fix] Main GUI when repeat is disabled
+
 4.82.9
 - [Fix] URL support
 - [Fix] Soundcloud support
