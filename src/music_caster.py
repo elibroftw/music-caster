@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.12'
+VERSION = latest_version = '4.82.13'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -745,17 +745,12 @@ def api_play():
     return redirect('/') if request.method == 'GET' else 'true'
 
 
-@app.route('/status/')
-def api_status():
-    now_playing = get_current_metadata().copy()
-    now_playing.pop('art_data', None)
-    now_playing['status'] = playing_status
-    now_playing['volume'] = settings['volume']
-    now_playing['title'] = str(now_playing['title'])
-    now_playing['artist'] = str(now_playing['artist'])
-    now_playing['album'] = str(now_playing['album'])
-    now_playing['lang'] = settings['lang']
-    now_playing['queue_length'] = len(done_queue) + len(music_queue) + len(next_queue)
+@app.route('/state/')
+def api_state():
+    metadata = get_current_metadata()
+    now_playing = {'status': playing_status, 'volume': settings['volume'], 'lang': settings['lang'],
+                   'title': str(metadata['title']), 'artist': str(metadata['artist']), 'album': str(metadata['album']),
+                   'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
     return jsonify(now_playing)
 
 

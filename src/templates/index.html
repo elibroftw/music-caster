@@ -368,18 +368,18 @@
     }
 
     function reloadOnChange() {
-        fetch('/status/', {
+        fetch('/state/', {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             }).then(response => response.json()).then(
                 response => {
-                    const currentArtist = document.getElementById('info__artist').textContent;
                     const currentTitle = document.getElementById('info__track').textContent;
+                    const currentArtist = document.getElementById('info__artist').textContent;
                     const currentAlbum = document.getElementById('info__album').textContent;
                     const currentVol = document.getElementById('volRange').value;
                     const queueTracks = modals['queue'].getElementsByClassName('track');
-                    if (response['artist'] !== currentArtist ||
-                        response['title'] !== currentTitle ||
+                    if (response['title'] !== currentTitle ||
+                        response['artist'] !== currentArtist ||
                         response['album'] !== currentAlbum ||
                         response['lang'] !== settingsFromServer.lang ||
                         response['queue_length'] !== queueTracks.length ||
