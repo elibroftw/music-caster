@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.11
+- [Fix] Play URL double count
+
 4.82.10
 - [Fix] Main GUI when repeat is disabled
 

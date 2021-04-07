@@ -824,7 +824,7 @@ def get_spotify_track(url):
         # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
         track_id = re.search(r'track:.*', url).group()[6:]
     track = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
-    return parse_spotify_track(track)
+    return {**parse_spotify_track(track), 'src': url}
 
 
 def get_spotify_album(url):

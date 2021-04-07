@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.10'
+VERSION = latest_version = '4.82.11'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -1265,7 +1265,7 @@ def get_url_metadata(url):
                 metadata = {**get_url_metadata(youtube_url)[0], **metadata}
                 url_metadata[metadata['src']] = url_metadata[youtube_url] = metadata
                 metadata_list.append(metadata)
-                for spotify_track in islice(spotify_tracks, 1):
+                for spotify_track in islice(spotify_tracks, 1, None):
                     url_metadata[spotify_track['src']] = spotify_track
                     uris_to_scan.put(spotify_track['src'])
                     metadata_list.append(spotify_track)
@@ -2464,13 +2464,12 @@ def read_main_window():
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
           and main_values.get('tab_group', None) == 'tab_url' and main_values['url_input']):
         url_to_insert = main_values['url_input']
-        if main_values['url_play'] or not music_queue and not next_queue:
+        if main_values['url_play'] or not music_queue:
             music_queue.insert(0, url_to_insert)
             play(url_to_insert)
         elif main_values['url_queue']:
             music_queue.append(url_to_insert)
-            if len(music_queue) == 1: play(url_to_insert)
-            else: uris_to_scan.put(url_to_insert)
+            uris_to_scan.put(url_to_insert)
         else:  # add to next queue
             if settings['reversed_play_next']: next_queue.insert(0, url_to_insert)
             else: next_queue.append(url_to_insert)
