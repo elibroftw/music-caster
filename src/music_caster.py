@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.8'
+VERSION = latest_version = '4.82.9'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -1180,6 +1180,7 @@ def stream_live_audio(switching_device=False):
             return False
 
 
+# noinspection PyTypeChecker
 def get_url_metadata(url):
     """
     Tries to parse url and set url_metadata[url] to parsed metadata

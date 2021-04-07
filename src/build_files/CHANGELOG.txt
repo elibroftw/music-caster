@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.9
+- [Fix] URL support
+- [Fix] Soundcloud support
+
 4.82.8
 - [Fix] URL support
 
