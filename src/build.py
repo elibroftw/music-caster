@@ -23,6 +23,7 @@ parser.add_argument('--upload', '-u', '--publish', default=False, action='store_
 parser.add_argument('--skip_build', '-t', default=False, action='store_true',
                     help='Skip to testing / uploading')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
+parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of depencencies')
 args = parser.parse_args()
 start_time = time.time()
 YEAR = datetime.today().year
@@ -167,7 +168,7 @@ if args.clean:
     for file in glob.iglob('*.log'):
         os.remove(file)
 
-if not args.skip_build:
+if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
     pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
     pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'

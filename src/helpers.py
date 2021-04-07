@@ -59,9 +59,10 @@ alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
 
 class Shared:
     """
-    variables in Shared are modifed by music_caster.py
+    variables in Shared are modified by music_caster.py
     """
     lang = ''
+    track_format = '&title - &artist'
 
 
 def timing(f):
@@ -193,7 +194,7 @@ def valid_color_code(code):
     return match
 
 
-def get_metadata(file_path: str, sort_key_template='&title - &artist'):
+def get_metadata(file_path: str):
     file_path = file_path.lower()
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
@@ -228,7 +229,7 @@ def get_metadata(file_path: str, sort_key_template='&title - &artist'):
         # if title or artist are unknown, use the basename of the URI (excluding extension)
         sort_key = get_file_name(file_path)
     else:
-        sort_key = sort_key_template.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
+        sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower()}
     if track_number is not None: metadata['track_number'] = track_number
@@ -799,33 +800,95 @@ def get_spotify_headers(url):
     return {'Authorization': 'Bearer ' + spotify_config['accessToken']}
 
 
-def spotify_track_to_youtube(url):
+def parse_spotify_track(track_obj) -> dict:
+    """
+    Returns a metadata dict for a given Spotify track
+    """
+    artist = ', '.join((artist['name'] for artist in track_obj['artists'] if artist['type'] == 'artist'))
+    title = track_obj['name']
+    is_explicit = track_obj['explicit']
+    album = track_obj['album']['name']
+    src_url = track_obj['external_urls']['spotify']
+    track_number = str(track_obj['track_number'])
+    sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
+    sort_key = sort_key.replace('&trck', track_number).lower()
+    art = track_obj['album']['images'][0]['url']
+    return {'src': src_url, 'title': title, 'artist': artist, 'album': album, 'art': art,
+            'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
+
+
+def get_spotify_track(url):
     try:
         track_id = urlparse(url).path.split('/track/', 1)[1]
     except IndexError:
         # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
         track_id = re.search(r'track:.*', url).group()[6:]
-    r = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
-    track_name = r['name']
-    track_artist = r['artists'][0]['name']
+    track = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
+    return parse_spotify_track(track)
+
+
+def get_spotify_album(url):
+    album_id = urlparse(url).path.split('/album/', 1)[1]
+    r = requests.get(f'{SPOTIFY_API}/albums/{album_id}/tracks', headers=get_spotify_headers(url)).json()
+    return [parse_spotify_track(track) for track in r['items']]
+
+
+def get_spotify_playlist(url):
+    playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
+    response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers(url)).json()
+    results = response['items']
+    while len(results) < response['total']:
+        response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
+                                headers=get_spotify_headers(url)).json()
+        results.extend(response['items'])
+    return [parse_spotify_track(result['track']) for result in results]
+
+
+@lru_cache
+def get_spotify_tracks(url):
+    """
+    Returns a list of spotify track objects stemming from a Spotify url
+    """
+    if 'track' in url:
+        return [get_spotify_track(url)]
+    if 'album' in url:
+        return get_spotify_album(url)
+    if 'playlist' in url:
+        return get_spotify_playlist(url)
+    return []
+
+
+def spotify_track_to_youtube(url) -> tuple:
+    try:
+        track_id = urlparse(url).path.split('/track/', 1)[1]
+    except IndexError:
+        # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
+        track_id = re.search(r'track:.*', url).group()[6:]
+    track = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
+    track_name = track['name']
+    track_artist = track['artists'][0]['name']
     search_query = f'{track_artist} - {track_name}'
+    parse_spotify_track(track)
     result = youtube_search(search_query)
-    return result
+    return url, result
 
 
 def spotify_album_to_youtube(url):
     album_id = urlparse(url).path.split('/album/', 1)[1]
     r = requests.get(f'{SPOTIFY_API}/albums/{album_id}/tracks', headers=get_spotify_headers(url)).json()
-    tracks = [''] * r['total']
+    tracks = [('', '')] * r['total']
     with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
         futures = {}
         for i, track in enumerate(r['items']):
+            parse_spotify_track(track)
             track_title = track['name']
             track_artist = track['artists'][0]['name']
             query = f'{track_artist} - {track_title}'
             futures[executor.submit(youtube_search, query)] = i
         for future in concurrent.futures.as_completed(futures):
-            tracks[futures[future]] = future.result()
+            index = futures[future]
+            src_url = r['items'][index]['track']['external_urls']['spotify']
+            tracks[index] = src_url, future.result()
     return tracks
 
 
@@ -837,7 +900,7 @@ def spotify_playlist_to_youtube(url):
         response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
                                 headers=get_spotify_headers(url)).json()
         results.extend(response['items'])
-    tracks = [''] * response['total']
+    tracks = [('', '')] * response['total']
     with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
         futures = {}
         for i, track in enumerate(islice(results, 0, 36)):
@@ -847,9 +910,12 @@ def spotify_playlist_to_youtube(url):
             query = f'{track_artist} - {track_title}'
             futures[executor.submit(youtube_search, query)] = i
         for future in concurrent.futures.as_completed(futures):
-            tracks[futures[future]] = future.result()
+            index = futures[future]
+            src_url = results[index]['track']['external_urls']['spotify']
+            tracks[index] = src_url, future.result()
     for i, result in enumerate(islice(results, 36, None)):
-        tracks[i] = result['track']['external_urls']['spotify']
+        src_url = result['track']['external_urls']['spotify']
+        tracks[i] = src_url, src_url
     return tracks
 
 

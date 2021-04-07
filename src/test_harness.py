@@ -1,4 +1,4 @@
-from music_caster import settings, get_running_processes, is_already_running
+from music_caster import settings, get_running_processes, is_already_running, get_album_art
 from helpers import *
 from helpers import get_metadata
 
@@ -61,7 +61,7 @@ EXPECTED_METADATA = [
 EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
-def test_helpers():
+def run_tests():
 
     assert list(get_running_processes())
 
@@ -128,6 +128,10 @@ def test_helpers():
         assert len(process) == 5
         assert isinstance(process['pid'], int)
     assert isinstance(is_already_running(), bool)
+
+    for file in TEST_MUSIC_FILES + ['DEFAULT_ART']:
+        get_album_art(file)
+
     for file in ('.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'):
         assert valid_audio_file(file)
 
@@ -166,4 +170,4 @@ def test_helpers():
 
 
 if __name__ == '__main__':
-    test_helpers()
+    run_tests()

@@ -12,13 +12,10 @@ settings.json.bak
 PySimpleGUI.py
 PySimpleGUIWx.py
 tempCodeRunnerFile.py
-test.py
-test.pyw
-test.spec
+test.*
 demo.py
 error.log
 music_caster.log*
-test.jpg
 resources/assets.png
 .vs/
 *.rsuser

@@ -424,19 +424,20 @@ def handle_exception(exception, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
-    folder = os.path.dirname(file_path)
-    if settings['folder_cover_override']:
-        for ext in ('png', 'jpg', 'jpeg'):
-            folder_cover = os.path.join(folder, f'cover.{ext}')
-            if os.path.exists(folder_cover):
-                with open(folder_cover, 'rb') as f:
-                    data = base64.b64encode(f.read())
-                return ext, data
-    tags = mutagen.File(file_path)
-    if tags is not None:
-        for tag in tags.keys():
-            if 'APIC' in tag:
-                return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+    with suppress(MutagenError):
+        folder = os.path.dirname(file_path)
+        if settings['folder_cover_override']:
+            for ext in ('png', 'jpg', 'jpeg'):
+                folder_cover = os.path.join(folder, f'cover.{ext}')
+                if os.path.exists(folder_cover):
+                    with open(folder_cover, 'rb') as f:
+                        data = base64.b64encode(f.read())
+                    return ext, data
+        tags = mutagen.File(file_path)
+        if tags is not None:
+            for tag in tags.keys():
+                if 'APIC' in tag:
+                    return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
     return None, None
 
 
@@ -461,7 +462,7 @@ def get_current_album_art():
 
 def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
     try:
-        return get_metadata(file_path, settings['track_format'])
+        return get_metadata(file_path)
     except mutagen.MutagenError:
         try:
             file_path = file_path.replace('\\', '/')
@@ -634,6 +635,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
                 _save_settings = True
                 theme[k] = DEFAULT_THEME[k]
         Shared.lang = settings['lang']
+        Shared.track_format = settings['track_format']
         fg, bg, accent = theme['text'], theme['background'], theme['accent']
         Sg.set_options(text_color=fg, element_text_color=fg, input_text_color=fg,
                        button_color=(bg, accent), element_background_color=bg, scrollbar_color=bg,
@@ -704,7 +706,7 @@ def web_index():  # web GUI
     for filename, data in sorted_tracks:
         href = '/play?' + urllib.parse.urlencode({'uri': filename})
         src_href = '/file?' + urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'text': format_file(filename), 'title': filename, 'src': src_href, 'href': href})
+        list_of_tracks.append({'text': format_uri(filename), 'title': filename, 'src': src_href, 'href': href})
     _queue = create_track_list()
     device_index = 0
     for i, device_name in enumerate(device_names):
@@ -859,8 +861,8 @@ def api_set_timer():
 def api_get_file():
     if 'path' in request.args:
         file_path = request.args['path']
-        if os.path.isfile(file_path) and valid_audio_file(file_path):
-            if request.args.get('thumbnail_only', False):
+        if os.path.isfile(file_path) and valid_audio_file(file_path) or file_path == 'DEFAULT_ART':
+            if request.args.get('thumbnail_only', False) or file_path == 'DEFAULT_ART':
                 mime_type, img_data = get_album_art(file_path)
                 if mime_type is None:
                     mime_type, img_data = 'image/png', DEFAULT_ART
@@ -1075,7 +1077,7 @@ def shuffle_queue():
     update_gui_queue = True
 
 
-def format_file(uri: str, use_basename=False):
+def format_uri(uri: str, use_basename=False):
     try:
         if use_basename: raise TypeError
         metadata = get_uri_metadata(uri, read_file=False)
@@ -1105,7 +1107,7 @@ def create_track_list():
     # format: Index | Artists - Title
     for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
         for uri in items:
-            formatted_track = format_file(uri)
+            formatted_track = format_uri(uri)
             if settings['show_queue_index']:
                 if i < 0: pre = f'\u2012{abs(i)} '.center(max_digits, '\u2000')
                 else: pre = f'{i} '.center(max_digits, '\u2000')
@@ -1178,48 +1180,19 @@ def stream_live_audio(switching_device=False):
             return False
 
 
-def play_url_generic(src, ext, title, artist, album, length, position=0,
-                     thumbnail=None, autoplay=True, switching_device=False):
-    global track_position, track_start, track_end, playing_url, track_length, progress_bar_last_update
-    if cast is None:
-        audio_player.play(src, start_playing=autoplay, start_from=position)
-    else:
-        cast.wait(timeout=WAIT_TIMEOUT)
-        cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
-        mc = cast.media_controller
-        if mc.status.player_is_playing or mc.status.player_is_paused:
-            mc.stop()
-            mc.block_until_active(WAIT_TIMEOUT)
-        _metadata = {'metadataType': 3, 'albumName': str(album), 'title': str(title), 'artist': str(artist)}
-        mc.play_media(src, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
-                      current_time=position, autoplay=autoplay)
-        mc.block_until_active(WAIT_TIMEOUT)
-        start_time = time.time()
-        while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
-            time.sleep(0.2)
-            if time.time() - start_time > 5: break  # show error?
-    progress_bar_last_update = time.time()
-    track_position = position
-    track_length = length
-    track_start = time.time() - track_position
-    track_end = track_start + track_length
-    playing_url = True
-    after_play(title, artist, autoplay, switching_device)
-    return True
-
-
 def get_url_metadata(url):
     """
     Tries to parse url and set url_metadata[url] to parsed metadata
     Supports: YouTube, Soundcloud, any url ending with a valid audio extension
     """
     metadata_list = []
+    if url in url_metadata and not url_metadata[url].get('expired', lambda: True)(): return [url_metadata[url]]
     if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
         url_metadata[url] = metadata = {'title': title, 'artist': artist, 'length': 108000, 'album': album,
-                                        'src': url, 'url': url, 'ext': ext}
+                                        'src': url, 'url': url, 'ext': ext, 'expired': lambda: False}
         metadata_list.append(metadata)
     elif 'soundcloud.com' in url:
         with suppress(StopIteration, DownloadError, KeyError):
@@ -1227,16 +1200,22 @@ def get_url_metadata(url):
             if 'entries' in r:
                 album = r['title']
                 for entry in r['entries']:
+                    parsed_url = parse_qs(urlparse(entry['url']).query)['Policy'][0].replace('_', '=')
+                    policy = base64.b64decode(parsed_url).decode()
+                    expiry_time = json.loads(policy)['Statement'][0]['Condition']['DateLessThan']['AWS:EpochTime']
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
                                 'length': entry['duration'], 'art': entry['thumbnail'],
-                                'src': entry['url'], 'ext': entry['ext'],
-                                'audio_src': entry['url'], 'url': entry['webpage_url']}
+                                'url': entry['url'], 'ext': entry['ext'], 'expired': lambda: time.time() > expiry_time,
+                                'audio_url': entry['url'], 'src': entry['webpage_url']}
                     url_metadata[entry['webpage_url']] = metadata
                     metadata_list.append(metadata)
             else:
+                policy = base64.b64decode(parse_qs(urlparse(r['url']).query)['Policy'][0].replace('_', '=')).decode()
+                expiry_time = json.loads(policy)['Statement'][0]['Condition']['DateLessThan']['AWS:EpochTime']
+                is_expired = lambda: time.time() > expiry_time
                 url_metadata[url] = metadata = {'title': r['title'], 'artist': r['uploader'], 'album': 'SoundCloud',
-                                                'url': url, 'ext': r['ext'],
-                                                'length': r['duration'], 'art': r['thumbnail'], 'src': r['url']}
+                                                'src': url, 'ext': r['ext'], 'expired': is_expired,
+                                                'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                 metadata_list.append(metadata)
     elif parse_youtube_id(url) is not None:
         with suppress(StopIteration, DownloadError, KeyError):
@@ -1244,53 +1223,95 @@ def get_url_metadata(url):
             if 'entries' in r:
                 album = r['title']
                 for entry in r['entries']:
-                    audio_src = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
+                    audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     formats.sort(key=lambda _f: _f['width'])
                     _f = formats[0]
-                    metadata = {'title': entry['title'], 'artist': entry['uploader'],
-                                'album': album, 'length': entry['duration'],
-                                'art': entry['thumbnail'], 'ext': _f['ext'],
-                                'url': entry['webpage_url'], 'src': _f['url'], 'audio_src': audio_src}
+                    expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
+                    metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
+                                'album': album, 'length': entry['duration'], 'ext': _f['ext'],
+                                'expired': lambda: time.time() > expiry_time,
+                                'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
                     url_metadata[entry['webpage_url']] = metadata
                     metadata_list.append(metadata)
             else:
-                audio_src = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
+                audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                 formats.sort(key=lambda _f: _f['width'])
                 _f = formats[0]
+                expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
                 metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
+                            'expired': lambda: time.time() > expiry_time,
                             'album': r.get('album', 'YouTube'), 'length': r['duration'], 'ext': _f['ext'],
-                            'art': r['thumbnail'], 'src': _f['url'], 'audio_src': audio_src, 'url': url}
+                            'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
     elif url.startswith('https://open.spotify.com'):
-        urls = spotify_to_youtube(url)
-        # spotify_to_youtube blocks for some time, therefore don't scan more than the first url
-        # note that spotify_to_youtube can also return spotify urls
-        if len(urls) >= 1:
-            url_metadata[url] = metadata = get_url_metadata(urls[0])[0]
-            metadata_list.append(metadata)
-            for link in islice(urls, 1):
-                uris_to_scan.put(link)
-                # play_url will look for 'url' field, it won't care about the others
-                metadata_list.append({'url': link})
+        # Handle Spotify URL (get metadata to search for track on YouTube)
+        if url in url_metadata:
+            metadata = url_metadata[url]
+            query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
+            youtube_url = youtube_search(query)
+            metadata = {**get_url_metadata(youtube_url)[0], **metadata}
+            url_metadata[url] = url_metadata[youtube_url] = metadata
+            return [metadata]
+        else:
+            # get a list of spotify tracks from the track/album/playlist Spotify URL
+            spotify_tracks = get_spotify_tracks(url)
+            if spotify_tracks:
+                metadata = spotify_tracks[0]
+                query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
+                youtube_url = youtube_search(query)
+                metadata = {**get_url_metadata(youtube_url)[0], **metadata}
+                url_metadata[metadata['src']] = url_metadata[youtube_url] = metadata
+                metadata_list.append(metadata)
+                for spotify_track in islice(spotify_tracks, 1):
+                    url_metadata[spotify_track['src']] = spotify_track
+                    uris_to_scan.put(spotify_track['src'])
+                    metadata_list.append(spotify_track)
     return metadata_list
 
 
 def play_url(url, position=0, autoplay=True, switching_device=False):
-    global cast, playing_url, playing_status, track_length, track_start, track_end, cast_last_checked
+    global cast, playing_url, playing_status, cast_last_checked
+    global track_length, track_start, track_end, track_position, progress_bar_last_update
     metadata_list = get_url_metadata(url)
     if metadata_list:
         if len(metadata_list) > 1:
             # url was for multiple sources
             music_queue.popleft()
-            music_queue.extendleft((metadata['url'] for metadata in reversed(metadata_list)))
+            music_queue.extendleft((metadata['src'] for metadata in reversed(metadata_list)))
         metadata = metadata_list[0]
-        src = metadata['audio_src'] if cast is None and 'audio_src' in metadata else metadata['src']
-        return play_url_generic(src, metadata['ext'], metadata['title'], metadata['artist'],
-                                metadata['album'], metadata['length'], position=position,
-                                thumbnail=metadata['art'], autoplay=autoplay, switching_device=switching_device)
+        title, artist, album = str(metadata['title']), str(metadata['artist']), str(metadata['album'])
+        ext = metadata['ext']
+        url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
+        thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART'
+        if cast is None:
+            audio_player.play(url, start_playing=autoplay, start_from=position)
+        else:
+            cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
+            cast.wait(timeout=WAIT_TIMEOUT)
+            cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
+            mc = cast.media_controller
+            if mc.status.player_is_playing or mc.status.player_is_paused:
+                mc.stop()
+                mc.block_until_active(WAIT_TIMEOUT)
+            _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
+                          current_time=position, autoplay=autoplay)
+            mc.block_until_active(WAIT_TIMEOUT)
+            start_time = time.time()
+            while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+                time.sleep(0.2)
+                if time.time() - start_time > 5: break  # show error?
+        progress_bar_last_update = time.time()
+        track_position = position
+        track_length = metadata['length']
+        track_start = time.time() - track_position
+        track_end = track_start + track_length
+        playing_url = True
+        after_play(title, artist, autoplay, switching_device)
+        return True
     tray_notify(gt('ERROR') + ': ' + gt('Could not play URL'))
     return False
 
@@ -1557,7 +1578,7 @@ def pause():
                 app_log.info('paused cast device')
             playing_status = PlayingStatus.PAUSED
             if settings['discord_rpc'] and (music_queue or playing_live):
-                metadata = url_metadata['LIVE'] if playing_live else get_uri_metadata(music_queue[0])
+                metadata = get_current_metadata()
                 title, artist = metadata['title'], metadata['artist']
                 with suppress(Exception):
                     rich_presence.update(state=gt('By') + f': {artist}', details=title,
@@ -1986,7 +2007,7 @@ def read_main_window():
     gui_title = main_window['title'].DisplayText
     update_progress_bar_text, title, artist, album = False, gt('Nothing Playing'), '', ''
     if playing_status in PlayingStatus.BUSY and (playing_live or music_queue):
-        metadata = url_metadata['LIVE'] if playing_live else get_current_metadata()
+        metadata = get_current_metadata()
         title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
         if settings['show_track_number']:
             with suppress(KeyError):
@@ -2327,7 +2348,7 @@ def read_main_window():
         if music_queue: pl_files.append(music_queue[0])
         pl_files.extend(next_queue)
         pl_files.extend(islice(music_queue, 1, None))
-        formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
         pl_name = ''
         main_window['tab_playlists'].select()
         main_window['playlist_name'].set_focus()
@@ -2511,7 +2532,7 @@ def read_main_window():
         pl_name = main_value if main_value in playlists else ''
         pl_files = playlists.get(pl_name, []).copy()
         main_window['playlist_name'].update(value=pl_name)
-        formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
         main_window['pl_rm_items'].update(disabled=not pl_files)
@@ -2539,7 +2560,7 @@ def read_main_window():
         pl_name = playlist_names[0] if playlist_names else ''
         main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
         pl_files = playlists.get(pl_name, []).copy()
-        formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
         # update playlist editor
         main_window['playlist_name'].update(value=pl_name)
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
@@ -2590,7 +2611,7 @@ def read_main_window():
                 if index_removed < len(pl_files):
                     pl_files.pop(index_removed)
                     smallest_i = index_removed - 1
-            formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
             scroll_to_index = max(smallest_i - 3, 0)
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=scroll_to_index)
             main_window['pl_move_up'].update(disabled=not pl_files)
@@ -2603,7 +2624,7 @@ def read_main_window():
             pl_files.extend(get_audio_uris(file_paths))
             main_window.TKroot.focus_force()
             main_window.normal()
-            formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             main_window['pl_move_up'].update(disabled=new_i == 0)
@@ -2618,7 +2639,7 @@ def read_main_window():
         link = main_values['pl_url_input']
         if link.startswith('http://') or link.startswith('https://'):
             pl_files.append(link)
-            formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             main_window['pl_rm_items'].update(disabled=False)
@@ -2642,7 +2663,7 @@ def read_main_window():
             if to_move:
                 new_i = to_move - 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+                formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
                 main_window['pl_move_up'].update(disabled=new_i == 0)
@@ -2657,7 +2678,7 @@ def read_main_window():
             if to_move < len(pl_files) - 1:
                 new_i = to_move + 1
                 pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {format_file(path)}' for i, path in enumerate(pl_files)]
+                formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
                 main_window['pl_move_up'].update(disabled=False)
