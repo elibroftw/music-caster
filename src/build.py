@@ -217,8 +217,9 @@ if not args.dry and not args.skip_build:
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py',
-                                                   'requirements.txt', ('resources/Music Caster Icon.ico', 'icon.ico'),
-                                                   'settings.json'] + res_files + lang_packs)
+                                                   'requirements.txt', 'settings.json',
+                                                   ('../resources/Music Caster Icon.ico', 'icon.ico')
+                                                   ] + res_files + lang_packs)
     if s4 is not None: s4.wait()  # Wait for inno script to finish
     else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
