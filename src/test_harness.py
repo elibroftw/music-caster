@@ -1,4 +1,4 @@
-from music_caster import settings, get_running_processes, is_already_running, get_album_art
+from music_caster import *
 from helpers import *
 from helpers import get_metadata
 
@@ -61,7 +61,7 @@ EXPECTED_METADATA = [
 EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
-def run_tests():
+def run_tests(uploading_after=False):
 
     assert list(get_running_processes())
 
@@ -76,6 +76,7 @@ def run_tests():
     for file in TEST_MUSIC_FILES:
         try:
             assert get_length(file) > 0
+            assert valid_audio_file(file)
         except InvalidAudioFile:
             assert not os.path.exists(file)
     for file in ('audio_player.py', 'file.mp4', 'README.txt'):
@@ -94,22 +95,22 @@ def run_tests():
     for code in ('fff', '000', 'abcdef', '999999', '.', 'czc/z', '#...', '#/.;ads', '#fff.aa', '#999999a', '#ggg'):
         assert not valid_color_code(code)
 
-    for file, expected_metadata in zip(GET_METADATA_FROM, EXPECTED_METADATA):
+    for ext, expected_metadata in zip(GET_METADATA_FROM, EXPECTED_METADATA):
         try:
-            assert get_metadata(file) == expected_metadata
-        except AssertionError as e:
-            print('TEST FAILED:', file, get_metadata(file), 'vs.', expected_metadata)
-            raise e
+            assert get_metadata(ext) == expected_metadata
+        except AssertionError as _e:
+            print('TEST FAILED:', ext, get_metadata(ext), 'vs.', expected_metadata)
+            raise _e
 
     if platform.system() == 'Windows':
         assert fix_path('C:/Users/maste/OneDrive') == r'C:\Users\maste\OneDrive'
     assert fix_path(r'C:\Users\maste\OneDrive', False) == 'C:/Users/maste/OneDrive'
 
-    for file, expected_first_artist in zip(GET_METADATA_FROM, EXPECTED_FIRST_ARTIST):
+    for ext, expected_first_artist in zip(GET_METADATA_FROM, EXPECTED_FIRST_ARTIST):
         try:
-            assert get_first_artist(get_metadata(file)['artist']) == expected_first_artist
+            assert get_first_artist(get_metadata(ext)['artist']) == expected_first_artist
         except AssertionError:
-            print('TEST FAILED', get_first_artist(file), '!=', expected_first_artist)
+            print('TEST FAILED', get_first_artist(ext), '!=', expected_first_artist)
             raise AssertionError
 
     print('get_ipv4():', get_ipv4())
@@ -132,8 +133,8 @@ def run_tests():
     for file in TEST_MUSIC_FILES + ['DEFAULT_ART']:
         get_album_art(file)
 
-    for file in ('.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'):
-        assert valid_audio_file(file)
+    for ext in ('.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'):
+        assert valid_audio_file(f'x{ext}')
 
     for youtube_link in {'https://youtu.be/Dlxu28sQfkE',
                          'https://www.youtube.com/watch?v=Dlxu28sQfkE&feature=youtu.be',
@@ -167,6 +168,13 @@ def run_tests():
     path = export_playlist('test_playlist_support', test_uris)
     assert list(parse_m3u(path)) == test_uris
     os.remove(path)
+
+    # in case we forgot to update the version
+    version = [int(x) for x in VERSION.split('.')]
+    compare_ver = get_latest_release(VERSION, True)['version']
+    compare_ver = [int(x) for x in compare_ver.split('.')]
+    if uploading_after: assert compare_ver < version
+    else: assert compare_ver <= version
 
 
 if __name__ == '__main__':

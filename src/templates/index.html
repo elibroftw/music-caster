@@ -88,7 +88,7 @@
 <div id="files-modal" class="modal">
     <div id="tracks-list" class="modal-content">
         <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
-               placeholder="Search for music..." title="Type in artist/tracks">
+               placeholder="{{ gt('Search for music...') }}" title="Type in artist/tracks">
         {% for track in list_of_tracks %}
             <div class="track">
                 <a class="playLink" title="play {{track.title}}" href="{{track.href}}">{{track.text}}</a>
@@ -109,7 +109,7 @@
                 ('run_on_startup', gt('Run on startup')),
                 ('save_window_positions', gt('Save window positions')),
                 ('populate_queue_startup', gt('Populates queue from folders on startup'), gt('Populate queue on startup')),
-                ('save_queue_sessions', gt('Save queue between sessions'), gt('Persistent queue')),
+                ('persistent_queue', gt('Save queue between sessions'), gt('Persistent queue')),
                 ('flip_main_window', gt('Move track content to the left')),
                 ('vertical_gui', gt('Vertical GUI')),
                 ('show_album_art', gt('Show album art in GUI')),

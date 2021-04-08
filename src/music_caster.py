@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.82.13'
+VERSION = latest_version = '4.82.14'
 UPDATE_MESSAGE = """
 [Feature] M3U(8) import / export
 [UI] Added God-Father language
@@ -217,7 +217,7 @@ DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7'
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'EXPERIMENTAL': False,
     'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': False, 'repeat': None,
-    'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'save_queue_sessions': False,
+    'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'persistent_queue': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
@@ -226,10 +226,7 @@ settings = {  # default settings
     'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_folders': [home_music_folder], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 default_settings = deepcopy(settings)
-# noinspection PyTypeChecker
-indexing_tracks_thread: Thread = None
-# noinspection PyTypeChecker
-save_queue_thread: Thread = None
+indexing_tracks_thread = save_queue_thread = Thread()
 # noinspection PyTypeChecker
 ydl: YoutubeDL = None
 app = Flask(__name__)
@@ -332,7 +329,7 @@ def change_settings(settings_key, new_value):
 
 
 def save_queues():
-    global save_queue_thread, settings
+    global save_queue_thread
 
     def _save_queue():
         settings['queues']['done'] = tuple(done_queue)
@@ -340,7 +337,7 @@ def save_queues():
         settings['queues']['next'] = tuple(next_queue)
         save_settings()
 
-    if save_queue_thread is None or not save_queue_thread.is_alive():
+    if settings['persistent_queue'] and not save_queue_thread.is_alive():
         save_queue_thread = Thread(target=_save_queue, name='SaveQueue')
         save_queue_thread.start()
 
@@ -1124,7 +1121,7 @@ def after_play(title, artists: str, autoplay, switching_device):
     playing_status = PlayingStatus.PLAYING
     refresh_tray()
     cast_last_checked = time.time()
-    if settings['save_queue_sessions']: save_queues()
+    save_queues()
     if settings['discord_rpc']:
         with suppress(Exception):
             rich_presence.update(state=gt('By') + f': {artists}', details=title, large_image='default',
@@ -1175,7 +1172,7 @@ def stream_live_audio(switching_device=False):
 
 
 # noinspection PyTypeChecker
-def get_url_metadata(url):
+def get_url_metadata(url, fetch_art=True):
     """
     Tries to parse url and set url_metadata[url] to parsed metadata
     Supports: YouTube, Soundcloud, any url ending with a valid audio extension
@@ -1247,9 +1244,9 @@ def get_url_metadata(url):
             metadata = url_metadata[url]
             query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
             youtube_url = youtube_search(query)
-            metadata = {**get_url_metadata(youtube_url)[0], **metadata}
+            metadata = {**get_url_metadata(youtube_url, False)[0], **metadata}
             url_metadata[url] = url_metadata[youtube_url] = metadata
-            return [metadata]
+            metadata_list.append(metadata)
         else:
             # get a list of spotify tracks from the track/album/playlist Spotify URL
             spotify_tracks = get_spotify_tracks(url)
@@ -1257,13 +1254,18 @@ def get_url_metadata(url):
                 metadata = spotify_tracks[0]
                 query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
                 youtube_url = youtube_search(query)
-                metadata = {**get_url_metadata(youtube_url)[0], **metadata}
+                metadata = {**get_url_metadata(youtube_url, False)[0], **metadata}
                 url_metadata[metadata['src']] = url_metadata[youtube_url] = metadata
                 metadata_list.append(metadata)
                 for spotify_track in islice(spotify_tracks, 1, None):
                     url_metadata[spotify_track['src']] = spotify_track
                     uris_to_scan.put(spotify_track['src'])
                     metadata_list.append(spotify_track)
+    if metadata_list and fetch_art:
+        # fetch and cache album art for first url
+        metadata = metadata_list[0]
+        if 'art' in metadata and 'art_data' not in metadata:
+            url_metadata[url]['art_data'] = base64.b64encode(requests.get(metadata['art']).content)
     return metadata_list
 
 
@@ -2200,6 +2202,7 @@ def read_main_window():
             updated_list = create_track_list()
             main_window['queue'].update(values=updated_list, set_to_index=len(done_queue) + len(next_queue),
                                         scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
+            save_queues()
         elif index_to_move > dq_len + nq_len:
             track = music_queue[index_to_move - dq_len - nq_len]
             del music_queue[index_to_move - dq_len - nq_len]
@@ -2208,6 +2211,7 @@ def read_main_window():
             updated_list = create_track_list()
             main_window['queue'].update(values=updated_list, set_to_index=dq_len + len(next_queue),
                                         scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
+            save_queues()
     elif main_event == 'move_up' and main_values['queue']:
         index_to_move = main_window['queue'].get_indexes()[0]
         new_i = index_to_move - 1
@@ -2243,6 +2247,7 @@ def read_main_window():
             new_i = max(new_i, 0)
         updated_list = create_track_list()
         main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
+        save_queues()
     elif main_event == 'move_down' and main_values['queue']:
         index_to_move = main_window['queue'].get_indexes()[0]
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
@@ -2273,6 +2278,7 @@ def read_main_window():
                 music_queue[mq_i], music_queue[mq_i - 1] = music_queue[mq_i - 1], music_queue[mq_i]
             updated_list = create_track_list()
             main_window['queue'].update(values=updated_list, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            save_queues()
     elif main_event == 'remove_track' and main_values['queue']:
         index_to_remove = main_window['queue'].get_indexes()[0]
         dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
@@ -2336,7 +2342,7 @@ def read_main_window():
         music_queue.clear()
         next_queue.clear()
         done_queue.clear()
-        if settings['save_queue_sessions']: save_queues()
+        save_queues()
     elif main_event == 'save_queue':
         pl_files = []
         pl_files.extend(done_queue)
@@ -2382,19 +2388,19 @@ def read_main_window():
     # toggle settings
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
                         'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang',
-                        'show_track_number', 'save_queue_sessions', 'flip_main_window', 'vertical_gui',
+                        'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui',
                         'show_album_art', 'reversed_play_next', 'scan_folders', 'show_queue_index', 'queue_library'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup':
             create_shortcut()
-        elif main_event == 'save_queue_sessions':
+        elif main_event == 'persistent_queue':
             if main_value: save_queues()
             else: change_settings('queues', {'done': [], 'music': [], 'next': []})
             change_settings('populate_queue_startup', False)
             main_window['populate_queue_startup'].update(value=False)
         elif main_event in 'populate_queue_startup':
-            main_window['save_queue_sessions'].update(value=False)
-            change_settings('save_queue_sessions', False)
+            main_window['persistent_queue'].update(value=False)
+            change_settings('persistent_queue', False)
         elif main_event == 'discord_rpc':
             with suppress(Exception):
                 if main_value and playing_status in PlayingStatus.BUSY:
@@ -2744,7 +2750,12 @@ def create_shortcut():
 
 
 def get_latest_release(ver, force=False):
-    """ Returns either False or {ver: cached link to the latest setup} """
+    """
+    returns {'version': latest_ver, 'setup': 'setup_link'}
+        if the latest release verison is newer (>) than VERSION
+    if latest release version <= VERSION, returns false
+    if force: return latest release even if latest version <= VERSION
+    """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     release = requests.get(releases_url).json()
     latest_ver = release.get('tag_name', f'v{VERSION}')[1:]
@@ -2907,7 +2918,7 @@ if __name__ == '__main__':
         if temp.count(True) > 1:  # Only one of the below can be True
             if settings['timer_shut_down']: change_settings('timer_hibernate', False)
             change_settings('timer_sleep', False)
-        if settings['save_queue_sessions'] and settings['populate_queue_startup']:  # mutually exclusive
+        if settings['persistent_queue'] and settings['populate_queue_startup']:  # mutually exclusive
             change_settings('populate_queue_startup', False)
         cast_last_checked = time.time()
         Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
@@ -2917,7 +2928,7 @@ if __name__ == '__main__':
             # wait until previous device has been found or if it hasn't been found
             while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
             play_uris(args.uris, queue_only=args.queue)
-        elif settings['save_queue_sessions']:
+        elif settings['persistent_queue']:
             # load saved queues from settings.json
             for queue_name in ('done', 'music', 'next'):
                 queue = {'done': done_queue, 'music': music_queue, 'next': next_queue}[queue_name]

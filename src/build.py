@@ -268,7 +268,7 @@ if not args.dry and tests_passed:
     try:
         sys.argv = sys.argv[:1]
         from test_harness import run_tests
-        run_tests()
+        run_tests(uploading_after=args.upload)
     except AssertionError as e:
         print('TESTS FAILED: test_helpers()')
         raise e

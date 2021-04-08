@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.82.14
+- [Fix] Better persistent queue
+- [Fix] Web GUI translation
+- [Fix] M3U(8) File Handler
+
 4.82.13
 - [Fix] Web GUI auto-fresh
 

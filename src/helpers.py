@@ -199,8 +199,7 @@ def get_metadata(file_path: str):
     file_path = file_path.lower()
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
-    track_number, is_explicit = None, False
-    with suppress(ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
+    try:
         if file_path.endswith('.mp3'):
             audio = dict(EasyID3(file_path))
             _audio = mutagen.File(file_path)
@@ -214,23 +213,25 @@ def get_metadata(file_path: str):
             audio = {'title': [title], 'artist': [artist], 'album': [album]}
         else:
             audio = mutagen.File(file_path)
-        title = audio.get('title', [title])[0]
-        album = audio.get('album', [album])[0]
-        is_explicit = audio.get('rating', ['0'])[0] not in {'C', 'T', '0', 0}
-        with suppress(KeyError, TypeError, MutagenError):
-            track_number = audio.get('tracknumber')[0].split('/', 1)[0]
-        with suppress(KeyError, TypeError):
-            if len(audio['artist']) == 1:
-                # in case the sep char is a slash
-                audio['artist'] = audio['artist'][0].split('/')
-            artist = ', '.join(audio['artist'])
+    except (ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
+        audio = {}
+    title = audio.get('title', [title])[0]
+    album = audio.get('album', [album])[0]
+    is_explicit = audio.get('rating', ['0'])[0] not in {'C', 'T', '0', 0}
+    track_number = str(audio['tracknumber'][0]).split('/', 1)[0] if 'tracknumber' in audio else None
+    with suppress(KeyError, TypeError):
+        if len(audio['artist']) == 1:
+            # in case the sep char is a slash
+            audio['artist'] = audio['artist'][0].split('/')
+        artist = ', '.join(audio['artist'])
     if title is None: title = unknown_title
     if artist is None: artist = unknown_artist
     if title == unknown_title or artist == unknown_artist:
         # if title or artist are unknown, use the basename of the URI (excluding extension)
         sort_key = get_file_name(file_path)
     else:
-        sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
+        sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist)
+        sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower()}
     if track_number is not None: metadata['track_number'] = track_number
@@ -282,18 +283,13 @@ def create_qr_code(port, ipv4=None):
     return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
 
 
-def valid_audio_file(file_path):
+def valid_audio_file(uri) -> bool:
     """
-    check if file_path ends with a valid extension
-    file_path does not have to exist
-    :param file_path:
-    :return:
+    check if uri has a valid audio extension
+    NOTE: uri does not have to be a file that exists
     """
-    file_path = file_path.lower()
-    return (file_path.endswith('.mp3') or file_path.endswith('.flac') or file_path.endswith('.m4a')
-            or file_path.endswith('.mp4') or file_path.endswith('.aac') or file_path.endswith('.mpeg')
-            or file_path.endswith('.ogg') or file_path.endswith('.opus')
-            or file_path.endswith('.wma') or file_path.endswith('.wav'))
+    ext = os.path.splitext(os.path.basename(uri))[1].lower()
+    return ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
 
 
 # noinspection PyTypeChecker
@@ -371,7 +367,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
 
     # set file handlers
-    for ext in {'mp3', 'flac', 'm4a', 'mp4', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg'}:
+    for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
         key_path = f'{classes_path}.{ext}'
         try:  # check if key exists
             with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _: pass
@@ -708,7 +704,7 @@ def create_settings(version, settings, qr_code):
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
         [create_checkbox(gt('Populate queue on startup'), 'populate_queue_startup', settings),
-         create_checkbox(gt('Persistent queue'), 'save_queue_sessions', settings, True)],
+         create_checkbox(gt('Persistent queue'), 'persistent_queue', settings, True)],
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
          create_checkbox(gt('Always queue library'), 'queue_library', settings)],
         [Sg.Text('🌐'),
