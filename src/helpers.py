@@ -457,22 +457,21 @@ def repeat_img_tooltip(repeat_setting):
 
 def get_music_controls(settings, playing_status):
     accent_color, bg = settings['theme']['accent'], settings['theme']['background']
-    img_button = {'border_width': 0, 'button_color': (bg, bg)}
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
     pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = repeat_img_tooltip(settings['repeat'])
     prev_button = {'pad': ((10, 5), None) if settings['mini_mode'] else None, 'tooltip': gt('previous track')}
-    repeat_button = {**img_button, 'tooltip': repeat_tooltip, 'metadata': settings['repeat']}
-    shuffle_button = {**img_button, 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
+    repeat_button = {'button_color': (bg, bg), 'tooltip': repeat_tooltip, 'metadata': settings['repeat']}
+    shuffle_button = {'button_color': (bg, bg), 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
     mute_tooltip = gt('unmute') if is_muted else gt('mute')
-    return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, **img_button, **prev_button),
-            Sg.Button(key='pause/resume', image_data=pause_resume_img, **img_button, metadata=playing_status),
-            Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, **img_button, tooltip=gt('next track')),
+    return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, button_color=(bg, bg), **prev_button),
+            Sg.Button(key='pause/resume', image_data=pause_resume_img, button_color=(bg, bg), metadata=playing_status),
+            Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, button_color=(bg, bg), tooltip=gt('next track')),
             Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
             Sg.Button(key='shuffle', **shuffle_button, tooltip=gt('shuffle'), metadata=settings['shuffle']),
-            Sg.Button(key='mute', image_data=v_slider_img, **img_button, tooltip=mute_tooltip),
+            Sg.Button(key='mute', image_data=v_slider_img, button_color=(bg, bg), tooltip=mute_tooltip),
             Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                       disable_number_display=True, enable_events=True, background_color=accent_color,
                       text_color='#000000', size=(10, 10), tooltip=gt('scroll mousewheel'), resolution=1)]
@@ -510,8 +509,7 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
                                size=text_size, font=FONT_NORMAL)]
     if mini_mode:
         progress_layout.append(Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, size=(1, 1), enable_events=True,
-                                         border_width=0, button_color=(bg, bg), tooltip=gt('restore window'),
-                                         pad=(0, 0)))
+                                         button_color=(bg, bg), tooltip=gt('restore window'), pad=(0, 0)))
     return progress_layout
 
 
@@ -544,7 +542,6 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     alternate_bg = settings['theme']['alternate_background']
     vertical_gui = settings['vertical_gui']
-    img_button = {'border_width': 0, 'button_color': (bg, bg)}
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
     if not settings['show_album_art']: album_art_data = ''
@@ -568,7 +565,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     folder_opts = [gt('Play Folder'), gt('Queue Folder'), gt('Play Folder Next')]
     biggest_word = len(max(*file_options, *folder_opts, key=len))
     combo_w = ceil(biggest_word * 0.95)
-    btn_defaults = {'font': FONT_BTN, 'border_width': 0, 'highlight_colors': ('#fff', fg),
+    btn_defaults = {'font': FONT_BTN, 'highlight_colors': ('#fff', fg),
                     'enable_events': True, 'size': (combo_w, 1), 'image_subsample': 4, 'use_ttk_buttons': True}
     queue_controls = [
         Sg.Column([[Sg.Combo(file_options, default_value=file_options[0], key='file_option', size=(combo_w, None),
@@ -579,18 +576,15 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                    [Sg.Button(folder_opts[0], k='folder_action', **btn_defaults, pad=(0, 4))]]),
     ]
     listbox_controls = [
-        [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, **img_button, tooltip=gt('Launch mini mode'))],
-        [Sg.Button(key='queue_all', image_data=QUEUE_ICON, **img_button, tooltip=gt('queue all'))],
-        [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, **img_button, tooltip=gt('Clear the queue'))],
-        [Sg.Button(key='save_queue', image_data=SAVE_IMG, **img_button, tooltip=gt('Save queue to playlist'))],
-        [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, **img_button, tooltip=gt('locate track'))],
-        [Sg.Button('▲', key='move_up', button_color=('#fff', bg), border_width=0,
-                   tooltip=gt('move up'), size=(2, 1))],
-        [Sg.Button('❌', key='remove_track', button_color=('#fff', bg), border_width=0,
-                   tooltip=gt('remove'), size=(2, 1))],
-        [Sg.Button('▼', key='move_down', button_color=('#fff', bg), border_width=0,
-                   tooltip=gt('move down'), size=(2, 1))],
-        [Sg.Button(key='move_to_next_up', image_data=MOVE_TO_NEXT_QUEUE, **img_button,
+        [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, button_color=(bg, bg), tooltip=gt('Launch mini mode'))],
+        [Sg.Button(key='queue_all', image_data=QUEUE_ICON, button_color=(bg, bg), tooltip=gt('queue all'))],
+        [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, button_color=(bg, bg), tooltip=gt('Clear the queue'))],
+        [Sg.Button(key='save_queue', image_data=SAVE_IMG, button_color=(bg, bg), tooltip=gt('Save queue to playlist'))],
+        [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, button_color=(bg, bg), tooltip=gt('locate track'))],
+        [Sg.Button('▲', key='move_up', button_color=('#fff', bg), tooltip=gt('move up'), size=(2, 1))],
+        [Sg.Button('❌', key='remove_track', button_color=('#fff', bg), tooltip=gt('remove'), size=(2, 1))],
+        [Sg.Button('▼', key='move_down', button_color=('#fff', bg), tooltip=gt('move down'), size=(2, 1))],
+        [Sg.Button(key='move_to_next_up', image_data=MOVE_TO_NEXT_QUEUE, button_color=(bg, bg),
                    tooltip=gt('Move to next up'))]
     ]
     listbox_height = 18 - 5 * settings['vertical_gui']
@@ -623,8 +617,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
         library_tab = Sg.Tab(gt('Library'), library_layout, key='tab_library')
         tab_group = [[queue_tab, library_tab, url_tab, playlists_tab, timer_tab, settings_tab]]
     else: tab_group = [[queue_tab, url_tab, playlists_tab, timer_tab, settings_tab]]
-    tabs_part = Sg.TabGroup(tab_group, font=FONT_TAB,
-                            title_color=fg, border_width=0, key='tab_group',
+    tabs_part = Sg.TabGroup(tab_group, font=FONT_TAB, border_width=0, title_color=fg, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)
     if settings['vertical_gui']: return [[main_part], [tabs_part]]
@@ -639,8 +632,7 @@ def create_url_tab():
                Sg.Radio(gt('Queue'), 'url_option', key='url_queue'),
                Sg.Radio(gt('Play Next'), 'url_option', key='url_play_next')],
               [Sg.Input(key='url_input', font=FONT_NORMAL, default_text=default_text, border_width=1),
-               Sg.Button(gt('Submit'), key='url_submit', font=FONT_BTN, border_width=0,
-                         bind_return_key=True, use_ttk_buttons=True)]]
+               Sg.Button(gt('Submit'), key='url_submit', font=FONT_BTN, bind_return_key=True, use_ttk_buttons=True)]]
     return [[Sg.Column(layout, pad=(5, 20))]]
 
 
@@ -650,15 +642,14 @@ def create_playlists_tab(settings):
     playlists_names = list(playlists.keys())
     default_pl_name = playlists_names[0] if playlists_names else None
     btn_defaults = {'enable_events': True, 'font': FONT_BTN, 'use_ttk_buttons': True}
-    img_button = {'border_width': 0, 'button_color': (bg, bg)}
     playlist_selector = [
         [Sg.Button('➕', key='new_pl', tooltip=gt('new playlist'), button_color=('#fff', bg)),
-         Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), **img_button),
-         Sg.Button(image_data=DELETE_ICON, key='del_pl', tooltip=gt('delete playlist'), **img_button),
+         Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), button_color=(bg, bg)),
+         Sg.Button(image_data=DELETE_ICON, key='del_pl', tooltip=gt('delete playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'),
-                   pad=((12, 5), 5), disabled=default_pl_name is None, **img_button),
+                   pad=((12, 5), 5), disabled=default_pl_name is None, button_color=(bg, bg)),
          Sg.Button(image_data=QUEUE_ICON, key='queue_pl', tooltip=gt('queue playlist'),
-                   disabled=default_pl_name is None, **img_button),
+                   disabled=default_pl_name is None, button_color=(bg, bg)),
          Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
@@ -673,17 +664,17 @@ def create_playlists_tab(settings):
                Sg.Input(playlist_name, key='playlist_name', size=(48, 1), font=FONT_NORMAL, enable_events=True,
                         pad=((6, 5), (5, 10)), border_width=1),
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S',
-                         border_width=0, button_color=(bg, bg), disabled=playlist_name == '')],
-              [Sg.Frame('', [url_input, add_url, add_tracks], background_color=bg, border_width=0),
+                         button_color=(bg, bg), disabled=playlist_name == '')],
+              [Sg.Column([url_input, add_url, add_tracks]),
                Sg.Listbox(tracks, size=(45, lb_height), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
-               Sg.Frame('', [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), border_width=0,
-                                        tooltip=gt('move up'), size=(2, 1))],
-                             [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), border_width=0,
-                                        tooltip=gt('Ctrl + R'), size=(2, 1))],
-                             [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), border_width=0,
-                                        tooltip=gt('move down'), size=(2, 1))]],
-                        background_color=bg, border_width=0)]]
+               Sg.Column(
+                   [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), disabled=True, size=(2, 1))],
+                    [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), disabled=True, size=(2, 1))],
+                    [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), disabled=True, size=(2, 1))],
+                    [Sg.Button(image_data=LOCATE_FILE, key='pl_locate_track', button_color=(bg, bg),
+                               tooltip=gt('locate track'), size=(2, 1))]],
+                   background_color=bg)]]
     return layout
 
 
@@ -706,8 +697,9 @@ def create_settings(version, settings, qr_code):
         [create_checkbox(gt('Populate queue on startup'), 'populate_queue_startup', settings),
          create_checkbox(gt('Persistent queue'), 'persistent_queue', settings, True)],
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
-         create_checkbox(gt('Always queue library'), 'queue_library', settings)],
-        [Sg.Text('🌐'),
+         create_checkbox(gt('Always queue library'), 'queue_library', settings, True)],
+        [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
+         Sg.Text('🌐'),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
                   enable_events=True)]
     ], key='settings_tab_general', background_color=bg)
@@ -721,11 +713,11 @@ def create_settings(version, settings, qr_code):
         [create_checkbox(gt('Use cover.* for album art'), 'folder_cover_override', settings),
          create_checkbox(gt('Show index in queue'), 'show_queue_index', settings, True)]
     ], key='settings_tab_ui', background_color=bg)
-    settings_tab_group = Sg.TabGroup([[general_tab, ui_tab]], title_color=fg, border_width=0, key='tab_group_settings',
+    settings_tab_group = Sg.TabGroup([[general_tab, ui_tab]], title_color=fg, key='tab_group_settings', border_width=0,
                                      selected_background_color=accent_color, enable_events=True, font=FONT_TAB,
                                      tab_background_color=bg, selected_title_color=bg, background_color=bg)
     checkbox_col = Sg.Column([[settings_tab_group]], pad=((0, 0), (5, 0)))
-    qr_code_params = {'tooltip': gt('Web GUI QR Code (click or scan)'), 'border_width': 0, 'button_color': (bg, bg)}
+    qr_code_params = {'tooltip': gt('Web GUI QR Code (click or scan)'), 'button_color': (bg, bg)}
     right_settings_col = Sg.Column([
         [Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)],
         [Sg.Button('settings.json', key='settings_file', font=FONT_BTN, pad=((15, 0), (5, 5)), use_ttk_buttons=True)],
@@ -769,7 +761,7 @@ def create_timer(settings, timer):
         [Sg.Radio(gt('Only Stop Playback').capitalize(), 'TIMER', default=do_nothing, key='timer_stop', **defaults)],
         [Sg.Text(gt('Enter minutes or HH:MM'), font=FONT_NORMAL),
          Sg.Input(key='timer_input', font=FONT_NORMAL, size=(11, 1), border_width=1),
-         Sg.Button(gt('Submit'), font=FONT_BTN, key='timer_submit', border_width=0, use_ttk_buttons=True)],
+         Sg.Button(gt('Submit'), font=FONT_BTN, key='timer_submit', use_ttk_buttons=True)],
         [Sg.Text(gt('Invalid Input (enter minutes or HH:MM)'), font=FONT_NORMAL, visible=False, key='timer_error')],
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer != 0), cancel_button]
     ]

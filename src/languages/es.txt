@@ -28,6 +28,7 @@ Ingrese la URL
 ERROR
 Salida
 Menú contextual de carpeta
+Carpeta no contiene archivos de audio
 Carpetas
 General
 Hibernar cuando se acabe el tiempo
@@ -86,6 +87,7 @@ Archivo(s) de cola
 Carpeta de cola
 URL de cola
 Actualizar Dispositivos
+Recuerde última carpeta
 eliminar carpeta seleccionada
 quitar
 Repetir

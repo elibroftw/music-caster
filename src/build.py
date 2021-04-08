@@ -134,15 +134,15 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
+if not args.skip_build:
+    update_versions()
+    print('Updated versions of build files')
+if args.ver_update: sys.exit()
 if args.dry: print('Dry Build')
 else:
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
         os.kill(pid, 9)
-if not args.skip_build:
-    update_versions()
-    print('Updated versions of build files')
-if args.ver_update: sys.exit()
 if args.debug and not args.dry: set_spec_debug(True)
 else: set_spec_debug(False)
 if args.upload and not args.dry: print('Will upload to GitHub after building')

@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.83.0
+- [Feature] Locate tracks in playlists
+- [Feature] Added option to remember selected folder
+- [Optimization] Spotify URL
+- [Fix] YouTube/Soundcloud playlist/set support
+
 4.82.14
 - [Fix] Better persistent queue
 - [Fix] Web GUI translation

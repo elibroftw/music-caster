@@ -1,7 +1,7 @@
-VERSION = latest_version = '4.82.14'
+VERSION = latest_version = '4.83.0'
 UPDATE_MESSAGE = """
-[Feature] M3U(8) import / export
-[UI] Added God-Father language
+[Feature] Locate tracks in playlists
+[Feature] Added option to remember selected folder
 [HELP] Could use some translators
 """.strip()
 import argparse
@@ -194,9 +194,9 @@ active_windows = {'main': False}
 main_last_event = None
 # noinspection PyTypeChecker
 cast: Chromecast = None
+# playlist_name: [], file_path: metadata, url/string: metadata
 playlists, all_tracks, url_metadata = {}, {}, {}
 all_tracks_sorted_sort_key = []
-# playlist_name: [], formatted_name: file path, file: {artist: str, title: str}
 tray_playlists, tray_folders = [gt('Playlists Menu')], []
 mouse_hover = pl_name = ''
 pl_files = []  # keep track of paths when editing playlists
@@ -206,12 +206,10 @@ music_folders = []
 music_queue, done_queue, next_queue = deque(), deque(), deque()
 update_devices = exit_flag = False
 playing_url = playing_live = update_gui_queue = update_volume_slider = False
-# files_to_scan is read by the background tasks thread in order to scan unread files in the queue
 live_lag = 0.0
-progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 # seconds but using time()
+progress_bar_last_update = track_position = timer = track_end = track_length = track_start = 0
 playing_status = PlayingStatus.NOT_PLAYING
-# if music caster was launched in some other folder, play all or queue all that folder?
 DEFAULT_FOLDER = home_music_folder = f'{Path.home()}/Music'.replace('\\', '/')
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
@@ -222,20 +220,18 @@ settings = {  # default settings
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'show_queue_index': True,
-    'queue_library': False, 'lang': '', 'theme': DEFAULT_THEME.copy(),
-    'track_format': '&artist - &title', 'reversed_play_next': False,
-    'music_folders': [home_music_folder], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
+    'queue_library': False, 'lang': '', 'theme': DEFAULT_THEME.copy(), 'use_last_folder': False,
+    'last_folder': DEFAULT_FOLDER, 'track_format': '&artist - &title', 'reversed_play_next': False,
+    'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 default_settings = deepcopy(settings)
 indexing_tracks_thread = save_queue_thread = Thread()
-# noinspection PyTypeChecker
-ydl: YoutubeDL = None
+ydl = YoutubeDL(auto_init=False)
 app = Flask(__name__)
-app.jinja_env.lstrip_blocks = True
-app.jinja_env.trim_blocks = True
+app.jinja_env.lstrip_blocks = app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = not DEBUG
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 os.environ['FLASK_SKIP_DOTENV'] = '1'
-stop_discovery = lambda: None  # this is for the chromecast discover function
+stop_discovery = lambda: None  # stop chromecast discovery
 
 
 def tray_notify(message, title='Music Caster', context=''):
@@ -1188,13 +1184,13 @@ def get_url_metadata(url, fetch_art=True):
         metadata_list.append(metadata)
     elif 'soundcloud.com' in url:
         with suppress(StopIteration, DownloadError, KeyError):
-            r = ytdl_extract_info(url)
+            r = ydl.extract_info(url, download=False)
             if 'entries' in r:
-                album = r['title']
                 for entry in r['entries']:
                     parsed_url = parse_qs(urlparse(entry['url']).query)['Policy'][0].replace('_', '=')
                     policy = base64.b64decode(parsed_url).decode()
                     expiry_time = json.loads(policy)['Statement'][0]['Condition']['DateLessThan']['AWS:EpochTime']
+                    album = entry.get('album', r.get('title', 'SoundCloud'))
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
                                 'length': entry['duration'], 'art': entry['thumbnail'],
                                 'url': entry['url'], 'ext': entry['ext'], 'expired': lambda: time.time() > expiry_time,
@@ -1209,17 +1205,17 @@ def get_url_metadata(url, fetch_art=True):
                                                 'src': url, 'ext': r['ext'], 'expired': is_expired,
                                                 'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                 metadata_list.append(metadata)
-    elif parse_youtube_id(url) is not None:
+    elif parse_youtube_id(url) is not None or url.startswith('ytsearch:'):
         with suppress(StopIteration, DownloadError, KeyError):
-            r = ytdl_extract_info(url)
+            r = ydl.extract_info(url, download=False)
             if 'entries' in r:
-                album = r['title']
                 for entry in r['entries']:
-                    audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
+                    audio_url = max(entry['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     formats.sort(key=lambda _f: _f['width'])
                     _f = formats[0]
                     expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
+                    album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
                                 'album': album, 'length': entry['duration'], 'ext': _f['ext'],
                                 'expired': lambda: time.time() > expiry_time,
@@ -1243,9 +1239,9 @@ def get_url_metadata(url, fetch_art=True):
         if url in url_metadata:
             metadata = url_metadata[url]
             query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-            youtube_url = youtube_search(query)
-            metadata = {**get_url_metadata(youtube_url, False)[0], **metadata}
-            url_metadata[url] = url_metadata[youtube_url] = metadata
+            youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+            metadata = {**youtube_metadata, **metadata}
+            url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
             metadata_list.append(metadata)
         else:
             # get a list of spotify tracks from the track/album/playlist Spotify URL
@@ -1253,9 +1249,9 @@ def get_url_metadata(url, fetch_art=True):
             if spotify_tracks:
                 metadata = spotify_tracks[0]
                 query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                youtube_url = youtube_search(query)
-                metadata = {**get_url_metadata(youtube_url, False)[0], **metadata}
-                url_metadata[metadata['src']] = url_metadata[youtube_url] = metadata
+                youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                metadata = {**youtube_metadata, **metadata}
+                url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                 metadata_list.append(metadata)
                 for spotify_track in islice(spotify_tracks, 1, None):
                     url_metadata[spotify_track['src']] = spotify_track
@@ -1455,11 +1451,12 @@ def file_action(action='pf'):
     :return:
     """
     global music_queue, next_queue, playing_status, main_last_event, update_gui_queue
-
+    initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
     # noinspection PyTypeChecker
-    paths: tuple = Sg.popup_get_file(gt('Select Music File(s)'), no_window=True, initial_folder=DEFAULT_FOLDER,
+    paths: tuple = Sg.popup_get_file(gt('Select Music File(s)'), no_window=True, initial_folder=initial_folder,
                                      multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
     if paths:
+        settings['last_folder'] = os.path.dirname(paths[-1])
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
         update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
@@ -1496,9 +1493,11 @@ def folder_action(action='Play Folder'):
     :return:
     """
     global music_queue, next_queue, playing_status, main_last_event, update_gui_queue
-    folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=DEFAULT_FOLDER, no_window=True,
+    initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+    folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
                                       icon=WINDOW_ICON)
     if folder_path:
+        settings['last_folder'] = folder_path
         temp_queue = []
         files_to_queue = defaultdict(list)
         for file_path in get_audio_uris(folder_path):
@@ -1515,11 +1514,14 @@ def folder_action(action='Play Folder'):
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
-        if action in {'Play Folder', 'pf'}:
+        if not temp_queue:
+            if settings['notifications']:
+                tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
+        elif action in {'Play Folder', 'pf'}:
             music_queue.clear()
             done_queue.clear()
             music_queue += temp_queue
-            if music_queue: play(music_queue[0])
+            play(music_queue[0])
         elif action in {'Play Folder Next', 'pfn'}:
             if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
             else: next_queue.extend(temp_queue)
@@ -1528,12 +1530,10 @@ def folder_action(action='Play Folder'):
                 playing_status = PlayingStatus.PLAYING
                 next_track()
         elif action == {'Queue Folder', 'qf'}:
-            start_playing = not music_queue
             music_queue.extend(temp_queue)
-            if start_playing and music_queue: play(music_queue[0])
+            if len(temp_queue) == len(music_queue): play(music_queue[0])
         else:
             raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
-        del temp_queue
     else:
         main_last_event = 'folder_action'
 
@@ -1717,7 +1717,7 @@ def background_tasks():
     if not settings.get('DEBUG', DEBUG): send_info()
     create_shortcut()  # threaded
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon = True
-    init_youtube_dl()
+    ydl.add_default_info_extractors()
     while not exit_flag:
         # if settings.json was updated outside of Music Caster, reload settings
         if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
@@ -2388,7 +2388,7 @@ def read_main_window():
     # toggle settings
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
                         'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang',
-                        'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui',
+                        'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui', 'use_last_folder',
                         'show_album_art', 'reversed_play_next', 'scan_folders', 'show_queue_index', 'queue_library'}:
         change_settings(main_event, main_value)
         if main_event == 'run_on_startup':
@@ -2618,10 +2618,12 @@ def read_main_window():
             main_window['pl_move_down'].update(disabled=not pl_files)
             main_window['pl_rm_items'].update(disabled=not pl_files)
     elif main_event == 'pl_add_tracks':
-        file_paths = Sg.popup_get_file('Select Music File(s)', no_window=True, initial_folder=DEFAULT_FOLDER,
+        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+        file_paths = Sg.popup_get_file('Select Music File(s)', no_window=True, initial_folder=initial_folder,
                                        multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
         if file_paths:
             pl_files.extend(get_audio_uris(file_paths))
+            settings['last_folder'] = os.path.dirname(pl_files[-1])
             main_window.TKroot.focus_force()
             main_window.normal()
             formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
@@ -2686,6 +2688,9 @@ def read_main_window():
         else:
             main_window['pl_move_up'].update(disabled=True)
             main_window['pl_move_down'].update(disabled=True)
+    elif main_event == 'pl_locate_track':
+        for i in main_window['pl_tracks'].get_indexes():
+            locate_uri(uri=pl_files[i])
     # other GUI updates
     if time.time() - progress_bar_last_update > 0.5:
         # update progress bar every 0.5 seconds
@@ -2831,15 +2836,6 @@ def send_info():
     with suppress(requests.RequestException):
         mac = hashlib.md5(get_mac().encode()).hexdigest()
         requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION})
-
-
-def init_youtube_dl():  # 1 - 1.4 seconds
-    global ydl
-    ydl = YoutubeDL()
-
-
-def ytdl_extract_info(url):
-    return ydl.extract_info(url, download=False)
 
 
 def handle_action(action):

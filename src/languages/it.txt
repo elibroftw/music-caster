@@ -28,6 +28,7 @@ Inserisci l'URL
 ERRORE
 Esci
 Menu contestuale cartella
+Cartella non contiene file audio
 Cartelle
 Generale
 Ibernazione allo scadere del timer
@@ -86,6 +87,7 @@ Metti in coda File(s)
 Metti in coda Cartella
 Metti in coda URL
 Aggiornare i Dispositivi
+Ricorda ultima cartella
 rimuovere la cartella selezionata
 Rimuovi
 Ripeti

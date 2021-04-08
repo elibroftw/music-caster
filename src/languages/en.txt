@@ -28,6 +28,7 @@ Enter URL
 ERROR
 Exit
 Folder context menu
+Folder does not contain audio files
 Folders
 General
 Hibernate when timer runs out
@@ -86,6 +87,7 @@ Queue File(s)
 Queue Folder
 Queue URL
 Refresh Devices
+Remember last folder
 remove selected folder
 remove
 Repeat
