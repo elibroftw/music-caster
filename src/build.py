@@ -9,10 +9,6 @@ from datetime import datetime
 import argparse
 import glob
 from distutils.dir_util import copy_tree
-import requests
-import win32com.client
-from win32comext.shell import shell, shellcon
-import traceback
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=True')
@@ -25,6 +21,27 @@ parser.add_argument('--skip_build', '-t', default=False, action='store_true',
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of depencencies')
 args = parser.parse_args()
+
+if args.dry: print('Dry Build')
+if not args.skip_build and not args.skip_deps:
+    print('Installing / Updating dependencies...')
+    pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
+    pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
+    py_exe = sys.executable
+    getoutput(f'{py_exe} -m pip install --upgrade -r requirements.txt')
+    for whl in (pyaudio_whl, pyinstaller_whl):
+        try: check_call(f'{py_exe} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
+        except CalledProcessError as e:
+            print(f'ERROR: {whl} could not be installed')
+            raise e
+
+
+# now import third party libraries
+import requests
+import win32com.client
+from win32comext.shell import shell, shellcon
+import traceback
+from git import Repo
 start_time = time.time()
 YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
@@ -138,8 +155,7 @@ if not args.skip_build:
     update_versions()
     print('Updated versions of build files')
 if args.ver_update: sys.exit()
-if args.dry: print('Dry Build')
-else:
+if not args.dry:
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
         os.kill(pid, 9)
@@ -168,15 +184,6 @@ if args.clean:
     for file in glob.iglob('*.log'):
         os.remove(file)
 
-if not args.skip_build and not args.skip_deps:
-    print('Installing / Updating dependencies...')
-    pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-    pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
-    py_exe = sys.executable
-    getoutput(f'{py_exe} -m pip install --upgrade -r requirements.txt')
-    for whl in (pyaudio_whl, pyinstaller_whl):
-        try: check_call(f'{py_exe} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
-        except CalledProcessError: print(f'WARNING: {whl} could not be installed with')
 if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
     py_installer_exe = f'{os.path.dirname(sys.executable)}\\Scripts\\pyinstaller.exe'
@@ -283,6 +290,8 @@ if not args.dry and tests_passed:
 
 
 if args.upload and tests_passed and not args.dry:
+    if any(Repo('../.git').index.diff(None)):
+        input('Changed (not committed) files  detected. Press enter to confirm upload.\n')
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}

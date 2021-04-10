@@ -1,4 +1,5 @@
 beautifulsoup4
+browser_cookie3
 flask~=1.1.2
 mutagen~=1.44
 Pillow~=8.0
@@ -17,7 +18,16 @@ wavinfo==1.6
 youtube_dl
 zeroconf==0.24.5
 werkzeug
-# windows only v
-pywin32
 pyperclip
-youtube-search-python
+git+https://gitlab.com/RemixDev/deezer-py#egg=deezer-py
+git+https://git.freezer.life/RemixDev/deemix-py@refactoring#egg=deemix
+# pyinstaller dependencies
+setuptools<50.0.0   # 50.0.0 breaks a modulegraph regession test
+altgraph
+pyinstaller-hooks-contrib >= 2020.6
+pefile; sys_platform == 'win32'
+pywin32-ctypes; sys_platform == 'win32'
+pypiwin32; sys_platform == 'win32'
+macholib; sys_platform == 'darwin'
+# dev
+GitPython

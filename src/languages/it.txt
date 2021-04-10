@@ -13,7 +13,7 @@ Selezione audio
 Aggiornamento automatico
 Da
 Annulla
-Annulla il timer
+Annulla il Timer
 Cancella la coda
 Controlla
 Impossibile connettersi al dispositivo cast
@@ -42,7 +42,7 @@ Controlli musicali a sinistra
 Libreria
 Indicizzazione della libreria incompleta, sono stati aggiunti solo i file scansionati
 Ascolto
-Audio di sistema dal vivo
+Audio di Sistema
 Dispositivo locale
 individua brano
 Modalità mini in alto
@@ -59,13 +59,14 @@ Non c'è spazio sul dispositivo per l'aggiornamento automatico
 Non c'è spazio sul dispositivo per salvare le impostazioni
 Timer non impostato
 Non collegato a un dispositivo cast
+Non connesso a deezer.com
 Niente in riproduzione
 Notifiche
 Ferma solo la Riproduzione
 Pausa
 Coda persistente
 Riproduci
-Riproduci tutto
+Riproduci Tutto
 Riproduci File(s)
 Riproduci File(s) Dopo
 Riproduci Cartella
@@ -98,7 +99,7 @@ Opzioni di ripetizione
 Ripeti impostato su Tutto
 Ripeti impostato su Off
 Ripeti impostato su Uno
-Scansione della libreria
+Scansione della Libreria
 Scansionando la libreria
 Riprendi
 Inverti modalità riproduzione successiva
@@ -113,8 +114,8 @@ Cerca la musica...
 Seleziona Dispositivo
 Seleziona Cartella
 Seleziona Cartella(e)
-Seleziona file(s)
-Seleziona file(s) musicali
+Seleziona File(s)
+Seleziona File(s) Musicali
 Inviami un'e-mail
 imposta DEBUG = true in `settings.json` per abilitare questa pagina
 Imposta Timer

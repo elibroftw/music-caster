@@ -1,27 +1,33 @@
 from b64_images import *
-from itertools import islice
+import audioop
 from base64 import b64encode, b64decode
+from queue import LifoQueue, Empty
 from bs4 import BeautifulSoup
+import browser_cookie3 as bc3
 from contextlib import suppress
 import ctypes
-import concurrent.futures
 import datetime
 from functools import wraps, lru_cache
 import glob
+import urllib.parse
 import io
 import json
 import locale
 from math import floor, ceil
 import os
+from pathlib import Path
 import platform
 from random import getrandbits
 import re
 import socket
 import time
+from threading import Thread
 from urllib.parse import urlparse, parse_qs
 from uuid import getnode
 import winreg as wr
 # 3rd party imports
+from deemix.__main__ import Deezer
+from deemix.decryption import generateBlowfishKey, generateStreamURL
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -37,7 +43,7 @@ import PySimpleGUI as Sg
 from PIL import Image, ImageFile
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-from youtubesearchpython import VideosSearch
+import pyaudio
 
 # CONSTANTS
 FONT_NORMAL = 'Segoe UI', 11
@@ -63,26 +69,138 @@ class Shared:
     """
     lang = ''
     track_format = '&title - &artist'
+    dz = Deezer()
+    PORT = 2001
 
 
-def timing(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        _start = time.time()
-        result = f(*args, **kwargs)
-        print(f'@timing {f.__name__} ELAPSED TIME:', time.time() - _start)
-        return result
-    return wrapper
+class SystemAudioRecorder:
+
+    __slots__ = 'STREAM_CHUNK', 'BITS_PER_SAMPLE', 'pa', 'sample_rate', 'channels', 'alive', 'data_stream', 'lag'
+
+    def __init__(self):
+        self.STREAM_CHUNK = 1024
+        self.BITS_PER_SAMPLE = 16
+        self.pa = None
+        self.sample_rate = None
+        self.channels = None
+        self.alive = False
+        self.lag = 0.0
+        self.data_stream = LifoQueue()
+
+    def get_audio_data(self):
+        silent_wav = b'\x00' * 4 * self.STREAM_CHUNK
+        yield self.get_wav_header()
+        last_sleep = time.time() + 5
+        while self.alive:
+            if self.lag and time.time() - last_sleep > 1:
+                sleep_for = min(0.25, self.lag)  # sleep for 0.25 seconds at a time
+                self.lag -= sleep_for
+                time.sleep(sleep_for)
+                last_sleep = time.time()
+            try:
+                yield self.data_stream.get(timeout=0.08)
+                self.data_stream.task_done()
+                # discard old data
+                with suppress(Empty):
+                    while True:
+                        self.data_stream.get(False)
+                        self.data_stream.task_done()
+            except Empty:
+                yield silent_wav
+
+    def _start_recording(self):
+        if self.alive: return
+        self.alive = True
+        selected_device = get_default_output_device()
+        stream = self.create_stream(selected_device)
+        for chunk in iter(lambda: audioop.mul(stream.read(self.STREAM_CHUNK), 2, 2) if self.alive else None, None):
+            self.data_stream.put(chunk)
+            default_output = get_default_output_device()  # check if output device has changed
+            if selected_device != default_output:
+                selected_device = default_output
+                stream.close()
+                stream = self.create_stream(selected_device)
+
+    def create_stream(self, output_device):
+        for i in range(self.pa.get_device_count()):
+            device_info = self.pa.get_device_info_by_index(i)
+            host_api_info = self.pa.get_host_api_info_by_index(device_info['hostApi'])
+            if (host_api_info['name'] == 'Windows WASAPI' and device_info['maxOutputChannels'] > 0
+                    and device_info['name'] == output_device):
+                self.channels = min(device_info['maxOutputChannels'], 2)
+                self.sample_rate = int(device_info['defaultSampleRate'])  # e.g. 48,000 bits
+                return self.pa.open(format=pyaudio.paInt16, input=True, as_loopback=True, channels=self.channels,
+                                    input_device_index=device_info['index'], rate=self.sample_rate,
+                                    frames_per_buffer=self.STREAM_CHUNK)
+        raise RuntimeError('Default Output Device Not Found')
+
+    def get_wav_header(self):
+        data_size = 2000 * 10 ** 6
+        o = bytes('RIFF', 'ascii')  # 4 bytes Marks file as RIFF
+        o += (data_size + 36).to_bytes(4, 'little')  # (4 bytes) File size in bytes excluding this and RIFF marker
+        o += bytes('WAVE', 'ascii')  # 4 bytes File type
+        o += bytes('fmt ', 'ascii')  # 4 bytes Format Chunk Marker
+        o += (16).to_bytes(4, 'little')  # 4 bytes Length of above format data
+        o += (1).to_bytes(2, 'little')  # 2 bytes Format type (1 - PCM)
+        o += self.channels.to_bytes(2, 'little')  # 2 bytes
+        o += self.sample_rate.to_bytes(4, 'little')  # 4 bytes
+        o += (self.sample_rate * self.channels * self.BITS_PER_SAMPLE // 8).to_bytes(4, 'little')  # 4 bytes
+        o += (self.channels * self.BITS_PER_SAMPLE // 8).to_bytes(2, 'little')  # 2 bytes
+        o += self.BITS_PER_SAMPLE.to_bytes(2, 'little')  # 2 bytes
+        o += bytes('data', 'ascii')  # 4 bytes Data Chunk Marker
+        o += data_size.to_bytes(4, 'little')  # 4 bytes Data size in bytes
+        return o
+
+    def stop(self):
+        self.alive = False
+
+    def start(self):
+        if not self.alive:
+            if self.pa is None: self.pa = pyaudio.PyAudio()
+            # initialization process takes ~0.2 seconds
+            Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
 
 
 class InvalidAudioFile(Exception): pass
 
 
 class PlayingStatus:
-    NOT_PLAYING = 'NOT PLAYING'
-    PLAYING = 'PLAYING'
-    PAUSED = 'PAUSED'
-    BUSY = {PLAYING, PAUSED}
+    __slots__ = 'NOT_PLAYING', 'PLAYING', 'PAUSED', 'BUSY', 'state'
+
+    def __init__(self):
+        self.NOT_PLAYING = 0
+        self.PLAYING = 1
+        self.PAUSED = 2
+        self.BUSY = {self.PLAYING, self.PAUSED}
+        self.state = self.NOT_PLAYING
+
+    def busy(self):
+        return self.state in self.BUSY
+
+    def stopped(self):
+        return self.state == self.NOT_PLAYING
+
+    def playing(self):
+        return self.state == self.PLAYING
+
+    def paused(self):
+        return self.state == self.PAUSED
+
+    def stop(self):
+        self.state = self.NOT_PLAYING
+
+    def play(self):
+        self.state = self.PLAYING
+
+    def pause(self):
+        self.state = self.PAUSED
+
+    def __repr__(self):
+        return {0: 'NOT PLAYING', 1: 'PLAYING', 2: 'PAUSED'}[self.state]
+
+    def __eq__(self, other):
+        if not isinstance(other, PlayingStatus): return str(other) == str(self)
+        return other.state == self.state
 
 
 class Unknown:
@@ -277,10 +395,13 @@ def better_shuffle(seq, first=0, last=-1):
         return seq
 
 
-def create_qr_code(port, ipv4=None):
-    ipv4 = ipv4 or get_ipv4()
-    qr_code = pyqrcode.create(f'http://{ipv4}:{port}')
-    return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
+def create_qr_code():
+    try:
+        qr_code = pyqrcode.create(f'http://{get_ipv4()}:{Shared.PORT}')
+        return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
+    except OSError:
+        # get_ipv4() failed because no internet for a long time
+        return None
 
 
 def valid_audio_file(uri) -> bool:
@@ -307,17 +428,6 @@ def parse_youtube_id(url):
 
 def is_os_64bit():
     return platform.machine().endswith('64')
-
-
-def get_output_device(pa, look_for):
-    for i in range(pa.get_device_count()):
-        device_info = pa.get_device_info_by_index(i)
-        host_api_info = pa.get_host_api_info_by_index(device_info['hostApi'])
-        if (host_api_info['name'] == 'Windows WASAPI' and device_info['maxOutputChannels'] > 0
-                and device_info['name'] == look_for):
-            channels = min(device_info['maxOutputChannels'], 2)
-            return int(device_info['defaultSampleRate']), channels, device_info['index']
-    raise RuntimeError('No Output Device Found')
 
 
 def delete_sub_key(root, current_key):
@@ -448,6 +558,190 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
     return b64encode(data.getvalue())
 
 
+def export_playlist(playlist_name, uris):
+    # location should be downloads folder
+    playlist_name = re.sub('[^A-Za-z0-9]+', '', playlist_name)
+    playlist_path = f'{Path.home()}/Downloads/{playlist_name}.m3u'
+    with open(playlist_path, 'w') as f:
+        f.write('#EXTM3U\n')
+        for uri in uris: f.write(uri + '\n')
+    return playlist_path
+
+
+def parse_m3u(playlist_file):
+    with open(playlist_file) as f:
+        for line in iter(lambda: f.readline(), ''):
+            if not line.startswith('#'):
+                yield line.lstrip('file:').lstrip('/').rstrip()
+
+
+def get_spotify_headers():
+    r = requests.get('https://open.spotify.com/', headers={'user-agent': 'Firefox/78.0'})
+    soup = BeautifulSoup(r.text, 'html.parser')
+    s = soup.find('script', {'id': 'config'})
+    spotify_config = json.loads(s.string)
+    return {'Authorization': 'Bearer ' + spotify_config['accessToken']}
+
+
+def parse_spotify_track(track_obj) -> dict:
+    """
+    Returns a metadata dict for a given Spotify track
+    """
+    artist = ', '.join((artist['name'] for artist in track_obj['artists'] if artist['type'] == 'artist'))
+    title = track_obj['name']
+    is_explicit = track_obj['explicit']
+    album = track_obj['album']['name']
+    src_url = track_obj['external_urls']['spotify']
+    track_number = str(track_obj['track_number'])
+    sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
+    sort_key = sort_key.replace('&trck', track_number).lower()
+    art = track_obj['album']['images'][0]['url']
+    return {'src': src_url, 'title': title, 'artist': artist, 'album': album, 'art': art,
+            'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
+
+
+def get_spotify_track(url):
+    try:
+        track_id = urlparse(url).path.split('/track/', 1)[1]
+    except IndexError:
+        # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
+        track_id = re.search(r'track:.*', url).group()[6:]
+    track = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers()).json()
+    return {**parse_spotify_track(track), 'src': url}
+
+
+def get_spotify_album(url):
+    album_id = urlparse(url).path.split('/album/', 1)[1]
+    r = requests.get(f'{SPOTIFY_API}/albums/{album_id}', headers=get_spotify_headers()).json()
+    return [parse_spotify_track({**track, 'album': r}) for track in r['tracks']['items']]
+
+
+def get_spotify_playlist(url):
+    playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
+    response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers()).json()
+    results = response['items']
+    while len(results) < response['total']:
+        response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
+                                headers=get_spotify_headers()).json()
+        results.extend(response['items'])
+    return [parse_spotify_track(result['track']) for result in results]
+
+
+@lru_cache
+def get_spotify_tracks(url):
+    """
+    Returns a list of spotify track objects stemming from a Spotify url
+    """
+    if 'track' in url:
+        return [get_spotify_track(url)]
+    if 'album' in url:
+        return get_spotify_album(url)
+    if 'playlist' in url:
+        return get_spotify_playlist(url)
+    return []
+
+
+def get_dz_token():
+    for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
+        with suppress(bc3.BrowserCookieError):
+            cookie_storage = cookie_storage()
+            for cookie in cookie_storage:
+                if cookie.domain.count('.deezer.com'):
+                    if cookie.name == 'arl' and not cookie.is_expired():
+                        return cookie.value
+    return ''
+
+
+@lru_cache
+def parse_deezer_page(url):
+    if 'page.link' in url:
+        r = requests.get(url)
+        url = r.url
+    if '/track/' in url:
+        _type = 'track'
+    elif '/album/' in url:
+        _type = 'album'
+    elif '/playlist/' in url:
+        _type = 'playlist'
+    elif '/user/' in url:
+        _type = 'user'
+    else:
+        raise ValueError('Unknown URL')
+    _id = re.search(r'\d+', urlparse(url).path).group()
+    return {'type': _type, 'sng_id': _id}
+
+
+def parse_deezer_track(track_obj) -> dict:
+    artists = []
+    for artist in track_obj['SNG_CONTRIBUTORS']['main_artist'] + track_obj['SNG_CONTRIBUTORS'].get('featuring', []):
+        include = True
+        for added_artist in artists:
+            if added_artist in artist:
+                include = False
+                break
+        if include: artists.append(artist)
+    artist_str = ', '.join(artists)
+    art = f"https://cdns-images.dzcdn.net/images/cover/{track_obj['ALB_PICTURE']}/1000x1000-000000-80-0-0.jpg"
+    title, album = track_obj['SNG_TITLE'], track_obj['ALB_TITLE']
+    length = int(track_obj['DURATION'])
+    is_explicit = track_obj['EXPLICIT_TRACK_CONTENT']['EXPLICIT_LYRICS_STATUS'] == '1'
+    is_expired = lambda: time.time() > track_obj['TRACK_TOKEN_EXPIRE']
+    md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
+    sng_id = track_obj['SNG_ID']
+    file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], 'MP3_320')
+    bf_key = generateBlowfishKey(sng_id).encode()
+    metadata = {
+        'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str, 'album': album, 'expired': is_expired,
+        'length': length, 'sng_id': sng_id, 'file_url': file_url, 'explicit': is_explicit, 'bf_key': bf_key,
+    }
+    return metadata
+
+
+def get_deezer_track(url):
+    sng_id = parse_deezer_page(url)['sng_id']
+    return {**parse_deezer_track(Shared.dz.gw.get_track(sng_id)), 'src': url,
+            'url': f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": url})}'}
+
+
+def get_deezer_album(url):
+    alb_id = parse_deezer_page(url)['sng_id']
+    tracks = []
+    for track in Shared.dz.gw.get_album_tracks(alb_id):
+        metadata = parse_deezer_track(track)
+        sng_id = metadata['sng_id']
+        src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+        tracks.append(metadata)
+    return tracks
+
+
+def get_deezer_playlist(url):
+    pl_id = parse_deezer_page(url)['sng_id']
+    tracks = []
+    for track in Shared.dz.gw.get_playlist_tracks(pl_id):
+        metadata = parse_deezer_track(track)
+        sng_id = metadata['sng_id']
+        metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+        tracks.append(metadata)
+    return tracks
+
+
+@lru_cache
+def get_deezer_tracks(url):
+    if not Shared.dz.logged_in:
+        if not Shared.dz.login_via_arl(get_dz_token()):
+            raise LookupError('Not logged into deezer.com')
+    dz_type = parse_deezer_page(url)['type']
+    if dz_type == 'track':
+        return [get_deezer_track(url)]
+    elif dz_type == 'album':
+        return get_deezer_album(url)
+    elif dz_type == 'playlist':
+        return get_deezer_playlist(url)
+    return []
+
+
 # GUI LAYOUTS
 def repeat_img_tooltip(repeat_setting):
     if repeat_setting is None: return REPEAT_OFF_IMG, gt('Repeat All')
@@ -455,19 +749,19 @@ def repeat_img_tooltip(repeat_setting):
     else: return REPEAT_ALL_IMG, gt('Repeat One')
 
 
-def get_music_controls(settings, playing_status):
+def get_music_controls(settings, playing_status: PlayingStatus):
     accent_color, bg = settings['theme']['accent'], settings['theme']['background']
     is_muted = settings['muted']
     volume = 0 if is_muted else settings['volume']
     v_slider_img = VOLUME_MUTED_IMG if is_muted else VOLUME_IMG
-    pause_resume_img = PAUSE_BUTTON_IMG if playing_status == 'PLAYING' else PLAY_BUTTON_IMG
+    p_r_img = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
     repeat_img, repeat_tooltip = repeat_img_tooltip(settings['repeat'])
     prev_button = {'pad': ((10, 5), None) if settings['mini_mode'] else None, 'tooltip': gt('previous track')}
     repeat_button = {'button_color': (bg, bg), 'tooltip': repeat_tooltip, 'metadata': settings['repeat']}
     shuffle_button = {'button_color': (bg, bg), 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
     mute_tooltip = gt('unmute') if is_muted else gt('mute')
     return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, button_color=(bg, bg), **prev_button),
-            Sg.Button(key='pause/resume', image_data=pause_resume_img, button_color=(bg, bg), metadata=playing_status),
+            Sg.Button(key='pause/resume', image_data=p_r_img, button_color=(bg, bg), metadata=str(playing_status)),
             Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, button_color=(bg, bg), tooltip=gt('next track')),
             Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
             Sg.Button(key='shuffle', **shuffle_button, tooltip=gt('shuffle'), metadata=settings['shuffle']),
@@ -480,16 +774,20 @@ def get_music_controls(settings, playing_status):
 def create_progress_bar_text(position, length) -> (str, str):  #
     """":return: time_elapsed_text, time_left_text"""
     position = floor(position)
-    time_left = round(length) - position
-    mins_elapsed, mins_left = floor(position / 60), time_left // 60
-    secs_left = time_left % 60
-    secs_elapsed = floor(position % 60)
-    if secs_left < 10: secs_left = f'0{secs_left}'
+    mins_elapsed, secs_elapsed = floor(position / 60), floor(position % 60)
     if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
-    return f'{mins_elapsed}:{secs_elapsed}', f'{mins_left}:{secs_left}'
+    elapsed_text = f'{mins_elapsed}:{secs_elapsed}'
+    try:
+        time_left = round(length) - position
+        mins_left, secs_left = time_left // 60, time_left % 60
+        if secs_left < 10: secs_left = f'0{secs_left}'
+        time_left_text = f'{mins_left}:{secs_left}'
+    except ValueError:
+        time_left_text = '∞'
+    return elapsed_text, time_left_text
 
 
-def get_progress_layout(settings, track_position, track_length, playing_status):
+def get_progress_layout(settings, track_position, track_length, playing_status: PlayingStatus):
     time_elapsed, time_left = create_progress_bar_text(track_position, track_length)
     text_size = (5, 1)
     bot_pad = (settings['vertical_gui'] and not settings['show_album_art']) * 30
@@ -502,7 +800,7 @@ def get_progress_layout(settings, track_position, track_length, playing_status):
                        Sg.Slider(range=(0, track_length), default_value=track_position,
                                  orientation='h', size=(20 if mini_mode else 30, 10), key='progress_bar',
                                  enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
-                                 disable_number_display=True, disabled=playing_status == 'NOT PLAYING',
+                                 disable_number_display=True, disabled=playing_status.stopped(),
                                  tooltip=gt('scroll mousewheel'),
                                  pad=((2, 10), (0, 0)) if mini_mode else ((8, 8), (10, bot_pad))),
                        Sg.Text(time_left, key='time_left', pad=time_left_pad, justification='left',
@@ -535,7 +833,7 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
 
 
 def create_main(tracks, listbox_selected, playing_status, settings, version, timer, sorted_tracks,
-                title=gt('Nothing Playing'), artist='', album='', qr_code=None, album_art_data: str = '',
+                title=gt('Nothing Playing'), artist='', album='', album_art_data: str = '',
                 track_length=0, track_position=0):
     if settings['mini_mode']:
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
@@ -599,7 +897,7 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     url_tab = Sg.Tab(gt('URL'), create_url_tab(), key='tab_url')
     playlists_tab = Sg.Tab(gt('Playlists'), create_playlists_tab(settings), key='tab_playlists')
     timer_tab = Sg.Tab(gt('Timer'), create_timer(settings, timer), key='tab_timer')
-    settings_tab = Sg.Tab(gt('Settings'), create_settings(version, settings, qr_code), key='tab_settings')
+    settings_tab = Sg.Tab(gt('Settings'), create_settings(version, settings), key='tab_settings')
     # library tab will be good to use once I'm using Python 3.10 which will have tk 8.10
     if settings['EXPERIMENTAL']:
         lib_data = [[track['title'], get_first_artist(track['artist']), track['album']] for _, track in sorted_tracks]
@@ -685,7 +983,8 @@ def create_checkbox(name, key, settings, on_right=False):
     return Sg.Checkbox(name, default=settings[key], key=key, tooltip=name, size=size, **checkbox)
 
 
-def create_settings(version, settings, qr_code):
+def create_settings(version, settings):
+    qr_code = create_qr_code()
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     general_tab = Sg.Tab(gt('General'), [
         [create_checkbox(gt('Auto update'), 'auto_update', settings),
@@ -775,163 +1074,11 @@ def steal_focus(window: Sg.Window):
     keybd_event(alt_key, 0, extended_key | key_up, 0)
 
 
-def youtube_search(query):
-    results: list = VideosSearch(query, limit=1).result()['result']
-    return results[0]['link']
-
-
-def get_spotify_headers(url):
-    url = url[:url.find('?')]  # get rid of query parameters
-    r = requests.get(url, headers={'user-agent': 'Firefox/78.0'})
-    soup = BeautifulSoup(r.text, 'html.parser')
-    s = soup.find('script', {'id': 'config'})
-    spotify_config = json.loads(s.string)
-    return {'Authorization': 'Bearer ' + spotify_config['accessToken']}
-
-
-def parse_spotify_track(track_obj) -> dict:
-    """
-    Returns a metadata dict for a given Spotify track
-    """
-    artist = ', '.join((artist['name'] for artist in track_obj['artists'] if artist['type'] == 'artist'))
-    title = track_obj['name']
-    is_explicit = track_obj['explicit']
-    album = track_obj['album']['name']
-    src_url = track_obj['external_urls']['spotify']
-    track_number = str(track_obj['track_number'])
-    sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
-    sort_key = sort_key.replace('&trck', track_number).lower()
-    art = track_obj['album']['images'][0]['url']
-    return {'src': src_url, 'title': title, 'artist': artist, 'album': album, 'art': art,
-            'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
-
-
-def get_spotify_track(url):
-    try:
-        track_id = urlparse(url).path.split('/track/', 1)[1]
-    except IndexError:
-        # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
-        track_id = re.search(r'track:.*', url).group()[6:]
-    track = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
-    return {**parse_spotify_track(track), 'src': url}
-
-
-def get_spotify_album(url):
-    album_id = urlparse(url).path.split('/album/', 1)[1]
-    r = requests.get(f'{SPOTIFY_API}/albums/{album_id}/tracks', headers=get_spotify_headers(url)).json()
-    return [parse_spotify_track(track) for track in r['items']]
-
-
-def get_spotify_playlist(url):
-    playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
-    response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers(url)).json()
-    results = response['items']
-    while len(results) < response['total']:
-        response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
-                                headers=get_spotify_headers(url)).json()
-        results.extend(response['items'])
-    return [parse_spotify_track(result['track']) for result in results]
-
-
-@lru_cache
-def get_spotify_tracks(url):
-    """
-    Returns a list of spotify track objects stemming from a Spotify url
-    """
-    if 'track' in url:
-        return [get_spotify_track(url)]
-    if 'album' in url:
-        return get_spotify_album(url)
-    if 'playlist' in url:
-        return get_spotify_playlist(url)
-    return []
-
-
-def spotify_track_to_youtube(url) -> tuple:
-    try:
-        track_id = urlparse(url).path.split('/track/', 1)[1]
-    except IndexError:
-        # e.g. */album/*?highlight=spotify:track:587w9pOR9UNvFJOwkW7NgD
-        track_id = re.search(r'track:.*', url).group()[6:]
-    track = requests.get(f'{SPOTIFY_API}/tracks/{track_id}', headers=get_spotify_headers(url)).json()
-    track_name = track['name']
-    track_artist = track['artists'][0]['name']
-    search_query = f'{track_artist} - {track_name}'
-    parse_spotify_track(track)
-    result = youtube_search(search_query)
-    return url, result
-
-
-def spotify_album_to_youtube(url):
-    album_id = urlparse(url).path.split('/album/', 1)[1]
-    r = requests.get(f'{SPOTIFY_API}/albums/{album_id}/tracks', headers=get_spotify_headers(url)).json()
-    tracks = [('', '')] * r['total']
-    with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
-        futures = {}
-        for i, track in enumerate(r['items']):
-            parse_spotify_track(track)
-            track_title = track['name']
-            track_artist = track['artists'][0]['name']
-            query = f'{track_artist} - {track_title}'
-            futures[executor.submit(youtube_search, query)] = i
-        for future in concurrent.futures.as_completed(futures):
-            index = futures[future]
-            src_url = r['items'][index]['track']['external_urls']['spotify']
-            tracks[index] = src_url, future.result()
-    return tracks
-
-
-def spotify_playlist_to_youtube(url):
-    playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
-    response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers(url)).json()
-    results = response['items']
-    while len(results) < response['total']:
-        response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
-                                headers=get_spotify_headers(url)).json()
-        results.extend(response['items'])
-    tracks = [('', '')] * response['total']
-    with concurrent.futures.ThreadPoolExecutor(max_workers=35) as executor:
-        futures = {}
-        for i, track in enumerate(islice(results, 0, 36)):
-            track = track['track']
-            track_title = track['name']
-            track_artist = track['artists'][0]['name']
-            query = f'{track_artist} - {track_title}'
-            futures[executor.submit(youtube_search, query)] = i
-        for future in concurrent.futures.as_completed(futures):
-            index = futures[future]
-            src_url = results[index]['track']['external_urls']['spotify']
-            tracks[index] = src_url, future.result()
-    for i, result in enumerate(islice(results, 36, None)):
-        src_url = result['track']['external_urls']['spotify']
-        tracks[i] = src_url, src_url
-    return tracks
-
-
-@lru_cache
-def spotify_to_youtube(url):
-    if 'track' in url:
-        return [spotify_track_to_youtube(url)]
-    if 'album' in url:
-        return spotify_album_to_youtube(url)
-    if 'playlist' in url:
-        return spotify_playlist_to_youtube(url)
-    return []
-
-
-def export_playlist(playlist_name, uris):
-    # location should be downloads folder
-    from pathlib import Path
-    playlist_name = re.sub('[^A-Za-z0-9]+', '', playlist_name)
-    playlist_path = f'{Path.home()}/Downloads/{playlist_name}.m3u'
-    with open(playlist_path, 'w') as f:
-        f.write('#EXTM3U\n')
-        for uri in uris: f.write(uri + '\n')
-    return playlist_path
-
-
-def parse_m3u(playlist_file):
-    with open(playlist_file) as f:
-        for line in iter(lambda: f.readline(), ''):
-            if not line.startswith('#'):
-                yield line.lstrip('file:').lstrip('/').rstrip()
+def timing(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        _start = time.time()
+        result = f(*args, **kwargs)
+        print(f'@timing {f.__name__} ELAPSED TIME:', time.time() - _start)
+        return result
+    return wrapper

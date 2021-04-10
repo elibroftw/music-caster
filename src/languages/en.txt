@@ -42,7 +42,7 @@ Left-side music controls
 Library
 Library indexing incomplete, only scanned files have been added
 Listening
-Live System Audio
+System Audio
 Local device
 locate track
 Mini mode on top
@@ -59,6 +59,7 @@ No space left on device to auto-update
 No space left on device to save settings
 No Timer Set
 Not connected to a cast device
+Not logged into deezer.com
 Nothing Playing
 Notifications
 Only Stop Playback

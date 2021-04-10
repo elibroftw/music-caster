@@ -31,7 +31,11 @@
                 <ul class="list list--buttons">
                     <li><a href="?shuffle" title="{{ gt('shuffle') }}" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
                     <li><a href="?prev" id="prev-btn" title="{{ gt('previous track') }}" class="list__link ctrl-btn"><i class="fa fa-step-backward"></i></a></li>
-                    <li><a href="?{{main_button}}" id="play-pause-btn" class="list__link ctrl-btn"><i class="fa fa-{{main_button}}"></i></a></li>
+                    <li>
+                        <a href="?{{'pause' if playing_status.playing() else 'play'}}" id="play-pause-btn" class="list__link ctrl-btn">
+                            <i class="fa fa-{{'pause' if playing_status.playing() else 'play'}}"></i>
+                        </a>
+                    </li>
                     <li><a href="?next" id="next-btn" title="{{ gt('next track') }}" class="list__link ctrl-btn"><i class="fa fa-step-forward"></i></a></li>
                     <li><a href="?repeat" class="list__link {{repeat_color}}">
                     <span class="red">{{1 if repeat_option else ''}}</span>
@@ -386,7 +390,7 @@
                         response['lang'] !== settingsFromServer.lang ||
                         response['queue_length'] !== queueTracks.length ||
                         Math.round(response['volume']) != Math.round(currentVol) ||
-                        response['status'] !== '{{ playing_status }}') {
+                        response['status'] !== '{{ playing_status.__str__() }}') {
                         // reload window since now playing has changed
                         window.location.reload();
                     }

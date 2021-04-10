@@ -124,7 +124,7 @@ def run_tests(uploading_after=False):
     assert test_better_shuffle[0] == 0
     assert test_better_shuffle[-1] == 9999
 
-    assert isinstance(create_qr_code('2001'), str)
+    assert isinstance(create_qr_code(), str)
     for process in get_running_processes():
         assert len(process) == 5
         assert isinstance(process['pid'], int)
@@ -157,7 +157,12 @@ def run_tests(uploading_after=False):
             print('TEST FAILED', option)
             raise AssertionError
     assert create_progress_bar_text(30, 300) == ('0:30', '4:30')
+
     print('Default Audio Device:', get_default_output_device())
+    sar.start()  # start system audio recording
+    time.sleep(0.5)
+    sar.stop()   # stop system audio recording
+
     for size in ((125, 425), COVER_MINI, COVER_NORMAL):
         base64data = resize_img(DEFAULT_ART, settings['theme']['background'], new_size=size)
         img_data = io.BytesIO(b64decode(base64data))
@@ -168,6 +173,32 @@ def run_tests(uploading_after=False):
     path = export_playlist('test_playlist_support', test_uris)
     assert list(parse_m3u(path)) == test_uris
     os.remove(path)
+
+    # Parsers for Streaming Services
+    for streaming_url in (
+            'https://open.spotify.com/track/0Memc4WL8oO0xUnkXCsNnV?si=Mg58OQxeTj6lTkvNV919wg',   # spotify track
+            'https://open.spotify.com/album/2JSiQ1wnqVEdaf6Y39DsAJ?highlight=spotify:track:0Memc4WL8oO0xUnkXCsNnV',
+            'https://open.spotify.com/album/47MVgO7XNmxzoYSJIvqxAG',                             # spotify album
+            'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',                          # spotify playlist
+            'https://www.deezer.com/track/65404135?utm_campaign=clipboard-generic',              # deezer track
+            'https://deezer.page.link/NTW1c5cRdkzy28P19',
+            'https://www.deezer.com/album/217794942',                                            # deezer album
+            'https://deezer.page.link/XGPUgE6HN5LryeBE7',
+            'https://www.deezer.com/playlist/1963962142',                                        # deezer playlist
+            'https://deezer.page.link/URU2yh1GX1wyaoZy9'
+    ):
+        if 'spotify' in streaming_url:
+            metadata_list = get_spotify_tracks(streaming_url)
+        elif 'deezer' in streaming_url:
+            metadata_list = get_deezer_tracks(streaming_url)
+        else:
+            metadata_list = []
+        for metadata in metadata_list:
+            assert metadata['src']
+            assert 'explicit' in metadata
+            if 'deezer' in streaming_url:
+                assert callable(metadata['expired'])
+                assert metadata['url']
 
     # in case we forgot to update the version
     version = [int(x) for x in VERSION.split('.')]

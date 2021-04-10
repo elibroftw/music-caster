@@ -13,7 +13,7 @@ Selección de audio
 Actualización auto
 Por
 Cancelar
-Cancelar temporizador
+Cancelar Temporizador
 Limpiar la cola
 Controles
 No se pudo conectar al dispositivo de transmisión
@@ -42,7 +42,7 @@ Controles de música en lado izquierdo
 Biblioteca
 Indexación de la biblioteca incompleta, solo se han agregado archivos escaneados
 Escuchando
-Audio del sistema en vivo
+Audio del Sistema
 Dispositivo local
 buscar pista
 Modo Mini en la parte superior
@@ -59,13 +59,14 @@ No queda espacio en el dispositivo para actualizar automáticamente
 No queda espacio en el dispositivo para guardar la configuración
 Sin temporizador configurado
 No conectado a un dispositivo de transmisión
+No ha iniciado sesión en deezer.com
 Nada Reproduciéndose
 Notificaciones
 Detener solo la Reproducción
 Pausa
 Cola persistente
 Reproducir
-Reproducir todo
+Reproducir Todo
 Reproducir archivo(s)
 Reproducir archivo(s) siguiente
 Carpeta de reproducción
@@ -98,7 +99,7 @@ Opciones de repetición
 Repetir configurado en Todo
 Repetir configurado en Desactivado
 Repetir establecido en uno
-Volver a explorar la biblioteca
+Volver a Explorar la Biblioteca
 Explorar comenzó
 Reanudar
 Invertir comportamiento de reproducir siguiente
@@ -110,14 +111,14 @@ Guardar posiciones de ventana
 Escanear carpetas
 Rueda del ratón de desplazamiento
 Buscar música...
-Seleccione el dispositivo
+Seleccione el Dispositivo
 Seleccione la carpeta
-Seleccionar carpeta(s)
-Seleccionar archivo(s)
-Seleccionar archivo(s) de música
+Seleccionar Carpeta(s)
+Seleccionar Archivo(s)
+Seleccionar Archivo(s) de Música
 Envíame un correo electrónico
 establezca DEBUG = true en `settings.json` para habilitar esta página
-Configurar temporizador
+Configurar Temporizador
 Ajusta
 Ajustes
 Mostrar la carátula del álbum
