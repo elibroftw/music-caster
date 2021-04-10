@@ -221,6 +221,9 @@ class Unknown:
     def split(self, *args, **kwargs):
         return str(self).split(*args, **kwargs)
 
+    def __len__(self):
+        return len(str(self))
+
 
 def get_file_name(file_path): return os.path.splitext(os.path.basename(file_path))[0]
 
@@ -384,7 +387,7 @@ def better_shuffle(seq, first=0, last=-1):
     :return:
     """
     n = len(seq)
-    with suppress(IndexError):
+    with suppress(IndexError, ZeroDivisionError):
         first = first % n
         last = last % n
         # use Fisher-Yates shuffle (Durstenfeld method)

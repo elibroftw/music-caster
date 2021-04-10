@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.84.0'
+VERSION = latest_version = '4.84.1'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -1266,7 +1266,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             audio_player.play(url, start_playing=autoplay, start_from=position)
         else:
             cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
-            cast.wait(timeout=WAIT_TIMEOUT)
+            with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
             mc = cast.media_controller
             if mc.status.player_is_playing or mc.status.player_is_paused:
@@ -1539,7 +1539,11 @@ def get_track_position():
 
 
 def pause():
-    """ can be called from a non-main thread """
+    """
+    Returns true if player was playing
+    Returns false if player was not playing
+    can be called from a non-main thread
+    """
     global track_position
     if playing_status.playing():
         try:
@@ -1772,7 +1776,7 @@ def on_press(key):
     if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked:
         daemon_commands.put('__ACTIVATED__')
     if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
-    if key == '<179>' and playing_status.paused(): resume()
+    if key == '<179>' and not pause(): resume()
     elif key == '<176>' and playing_status.busy(): next_track()
     elif key == '<177>' and playing_status.busy(): prev_track()
     elif key == '<178>': stop('keyboard shortcut')

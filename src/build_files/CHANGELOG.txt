@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+4.84.1
+- [Fix] Resume playing with keyboard
+- [Fix] Mini-mode with unknown metadata
+- [Fix] Shuffle
+- [Fix] Playing URL's
+
 4.84.0
 - [Feature] Deezer support
 - [Fix] Spotify album support

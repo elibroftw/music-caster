@@ -22,6 +22,48 @@ parser.add_argument('--dry', default=False, action='store_true', help='skips the
 parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of depencencies')
 args = parser.parse_args()
 
+
+def update_versions():
+    """ Update versions of version file and installer script """
+    version_file = 'build_files/mc_version_info.txt'
+    installer_script = 'build_files/setup_script.iss'
+    with open(version_file, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('    prodvers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    prodvers=({version}, 0),\n'
+            elif line.startswith('    filevers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    filevers=({version}, 0),\n'
+            elif line.startswith("        StringStruct('FileVersion"):
+                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
+            elif line.startswith("        StringStruct('LegalCopyright'"):
+                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
+            elif line.startswith("        StringStruct('ProductVersion"):
+                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+    with open(installer_script, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('#define MyAppVersion'):
+                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
+            elif line.startswith('OutputBaseFilename'):
+                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+
+if not args.skip_build:
+    update_versions()
+    print('Updated versions of build files')
+if args.ver_update: sys.exit()
 if args.dry: print('Dry Build')
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
@@ -104,43 +146,6 @@ def set_spec_debug(debug_option):
         _f.truncate()
 
 
-def update_versions():
-    """ Update versions of version file and installer script """
-    version_file = 'build_files/mc_version_info.txt'
-    installer_script = 'build_files/setup_script.iss'
-    with open(version_file, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('    prodvers'):
-                version = ', '.join(VERSION.split('.'))
-                lines[i] = f'    prodvers=({version}, 0),\n'
-            elif line.startswith('    filevers'):
-                version = ', '.join(VERSION.split('.'))
-                lines[i] = f'    filevers=({version}, 0),\n'
-            elif line.startswith("        StringStruct('FileVersion"):
-                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
-            elif line.startswith("        StringStruct('LegalCopyright'"):
-                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
-            elif line.startswith("        StringStruct('ProductVersion"):
-                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
-                break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
-
-    with open(installer_script, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('#define MyAppVersion'):
-                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
-            elif line.startswith('OutputBaseFilename'):
-                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
-                break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
-
-
 def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
     with zipfile.ZipFile(zip_filename, 'w', compression=compression) as zf:
         for file_to_zip in files_to_zip:
@@ -151,10 +156,6 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
-if not args.skip_build:
-    update_versions()
-    print('Updated versions of build files')
-if args.ver_update: sys.exit()
 if not args.dry:
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
