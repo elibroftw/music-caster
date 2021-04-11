@@ -98,14 +98,17 @@ def get_msbuild():
 
 
 def add_new_changes(prev_changes: str):
-    changes = prev_changes.split('\n')
+    changes = set(prev_changes.split('\n'))
     with open('build_files/CHANGELOG.txt') as f:
         add_changes = False
-        for line in iter(lambda: f.readline().strip(), ''):
+        line = f.readline().strip()
+        while True:
             if line == VERSION:
                 add_changes = True
-            elif add_changes and line not in prev_changes:
-                changes.append(line)
+            elif add_changes:
+                if line == '': break
+                changes.add(line)
+            line = f.readline().strip()
     if not add_changes: raise RuntimeWarning(f'CHANGELOG does not contain changes for {VERSION}')
     return '\n'.join(sorted(changes, key=lambda item: item.lower()))
 
@@ -319,8 +322,6 @@ if not args.dry and tests_passed:
 
 
 if args.upload and tests_passed and not args.dry:
-    if any(Repo('../.git').index.diff(None)):
-        input('Changed (not committed) files  detected. Press enter to confirm upload.\n')
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
@@ -337,9 +338,11 @@ if args.upload and tests_passed and not args.dry:
     except KeyError:
         print('rate limit exceeded, upload manually at https://github.com/elibroftw/music-caster/releases')
         sys.exit()
+    # keep changes of current major version if new version is a minor update
     body = '' if VERSION.endswith('.0') else old_release['body']
     body = add_new_changes(body)
-    #  chain changelog if not a major release
+    if any(Repo('../.git').index.diff(None)):
+        input('Changed (not committed) files  detected. Press enter to confirm upload.\n')
 
     new_release = {
         'tag_name': f'v{VERSION}',
