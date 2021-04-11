@@ -342,7 +342,7 @@ if args.upload and tests_passed and not args.dry:
     body = '' if VERSION.endswith('.0') else old_release['body']
     body = add_new_changes(body)
     if any(Repo('../.git').index.diff(None)):
-        input('Changed (not committed) files  detected. Press enter to confirm upload.\n')
+        input('Changed (not committed) files detected. Press enter to confirm upload.\n')
 
     new_release = {
         'tag_name': f'v{VERSION}',
