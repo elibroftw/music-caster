@@ -3,6 +3,7 @@ from contextlib import suppress
 from datetime import datetime
 from distutils.dir_util import copy_tree
 import glob
+import math
 import os
 import re
 import shutil
@@ -321,6 +322,35 @@ if not args.dry and tests_passed:
     test('Music Caster Should Have Exited', lambda: not is_already_running(), True)
 
 
+class ProgressUpload:
+    def __init__(self, filename, chunk_size=1250):
+        self.filename = filename
+        self.chunk_size = chunk_size
+        self.file_size = os.path.getsize(filename)
+        self.size_read = 0
+        self.divisor = min(math.floor(math.log(self.file_size, 1000)) * 3, 9)  # cap unit at a GB
+        self.unit = {0: 'B', 3: 'KB', 6: 'MB', 9: 'GB'}[self.divisor]
+        self.divisor = 10 ** self.divisor
+
+    def __iter__(self):
+        progress_str = f'0 / {self.file_size / self.divisor:.2f} {self.unit} (0 %)'
+        sys.stderr.write(f'\rUploading {dist_file}: {progress_str}')
+        with open(self.filename, 'rb') as f:
+            for chunk in iter(lambda: f.read(self.chunk_size), b''):
+                self.size_read += len(chunk)
+                yield chunk
+                sys.stderr.write('\b' * len(progress_str))
+                percentage = self.size_read / self.file_size * 100
+                completed_str = f'{self.size_read / self.divisor:.2f}'
+                to_complete_str = f'{self.file_size / self.divisor:.2f} {self.unit}'
+                progress_str = f'{completed_str} / {to_complete_str} ({percentage:.2f} %)'
+                sys.stderr.write(progress_str)
+        sys.stderr.write('\n')
+
+    def __len__(self):
+        return self.file_size
+
+
 if args.upload and tests_passed and not args.dry:
     # upload to GitHub
     github = read_env()['github']
@@ -358,10 +388,8 @@ if args.upload and tests_passed and not args.dry:
     release_id = release['id']
     # upload assets
     for dist_file in dist_files:
-        with open(f'dist/{dist_file}', 'rb') as f:
-            print(f'Uploading {dist_file}...')
-            requests.post(upload_url, data=f, params={'name': dist_file},
-                          headers={**headers, 'Content-Type': 'application/octet-stream'})
+        requests.post(upload_url, data=ProgressUpload(f'dist/{dist_file}'), params={'name': dist_file},
+                      headers={**headers, 'Content-Type': 'application/octet-stream'})
     requests.post(f'{github_api}/repos/{USERNAME}/music-caster/releases/{release_id}',
                   headers=headers, json={'body': body, 'draft': False})
     if not VERSION.endswith('.0'):

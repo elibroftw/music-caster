@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.3.2
+AudioPlayer v2.3.3
 Author: Elijah Lopez
 Make sure VLC .dll files are located in "vlc_lib/"
 """
@@ -92,22 +92,19 @@ class AudioPlayer:
         """ :param db: float [0, 40]"""
         return 0 if db == 0 else round((10 ** (2 * db)) / 120, 2)
 
-    def get_volume_multiple(self):
-        return 150 if self.is_url else 100
-
     def set_volume(self, volume):
         """
         Sets the output volume and not the program volume
         :param volume: float[0, 1]
         """
-        self.player.audio_set_volume(int(volume * self.get_volume_multiple()))
+        self.player.audio_set_volume(int(volume * 100))
 
     def get_volume(self):
         """
         get the volume of the output
         :return float [0, 1]
         """
-        return self.player.audio_get_volume() / self.get_volume_multiple()
+        return self.player.audio_get_volume() / 100
 
     def set_pos(self, position, unit=AudioPlayerUnit.SECOND):
         """position is in seconds from start"""

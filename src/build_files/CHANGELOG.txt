@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.84.3
+- [Fix] Audio Player
+
 4.84.2
 - [Fix] Playlist format
 - [Fix] Folder and file actions
