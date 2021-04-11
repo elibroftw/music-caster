@@ -2,7 +2,6 @@ from b64_images import *
 import audioop
 from base64 import b64encode, b64decode
 from queue import LifoQueue, Empty
-from bs4 import BeautifulSoup
 import browser_cookie3 as bc3
 from contextlib import suppress
 import ctypes
@@ -11,7 +10,6 @@ from functools import wraps, lru_cache
 import glob
 import urllib.parse
 import io
-import json
 import locale
 from math import floor, ceil
 import os
@@ -40,7 +38,7 @@ from mutagen.easymp4 import EasyMP4
 import pyperclip
 import pyqrcode
 import PySimpleGUI as Sg
-from PIL import Image, ImageFile
+from PIL import Image, ImageFile, ImageDraw, ImageFont
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 import pyaudio
@@ -88,17 +86,23 @@ class SystemAudioRecorder:
         self.data_stream = LifoQueue()
 
     def get_audio_data(self):
-        silent_wav = b'\x00' * 4 * self.STREAM_CHUNK
+        if not self.alive: self.start()
+        silent_wav = b'\x00' * self.STREAM_CHUNK
         yield self.get_wav_header()
-        last_sleep = time.time() + 5
+        last_sleep = time.time() + 1
         while self.alive:
             if self.lag and time.time() - last_sleep > 1:
-                sleep_for = min(0.25, self.lag)  # sleep for 0.25 seconds at a time
+                sleep_for = min(0.2, self.lag)  # sleep for max 0.2 seconds at a time
                 self.lag -= sleep_for
                 time.sleep(sleep_for)
                 last_sleep = time.time()
             try:
-                yield self.data_stream.get(timeout=0.08)
+                t1 = time.time()
+                yield self.data_stream.get(timeout=0.09)
+                t2 = time.time() - t1 - 0.05
+                if t2 > 0:
+                    # account for lag if chunk was recorded in late
+                    self.lag = t2
                 self.data_stream.task_done()
                 # discard old data
                 with suppress(Empty):
@@ -226,6 +230,36 @@ class Unknown:
 
 
 def get_file_name(file_path): return os.path.splitext(os.path.basename(file_path))[0]
+
+
+# decorators
+def timing(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        _start = time.time()
+        result = f(*args, **kwargs)
+        print(f'@timing {f.__name__} ELAPSED TIME:', time.time() - _start)
+        return result
+    return wrapper
+
+
+def time_cache(max_age, maxsize=None, typed=False):
+    """Least-recently-used cache decorator with time-based cache invalidation.
+    Args:
+        max_age: Time to live for cached results (in seconds).
+        maxsize: Maximum cache size (see `functools.lru_cache`).
+        typed: Cache on distinct input types (see `functools.lru_cache`).
+    """
+    def _decorator(fn):
+        @lru_cache(maxsize=maxsize, typed=typed)
+        def _new(*args, __time_salt, **kwargs):
+            return fn(*args, **kwargs)
+
+        @wraps(fn)
+        def _wrapped(*args, **kwargs):
+            return _new(*args, **kwargs, __time_salt=int(time.time() / max_age))
+        return _wrapped
+    return _decorator
 
 
 @lru_cache(maxsize=1)
@@ -417,7 +451,7 @@ def valid_audio_file(uri) -> bool:
 
 
 # noinspection PyTypeChecker
-def parse_youtube_id(url):
+def get_yt_id(url):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
     if query.hostname in {'www.youtube.com', 'youtube.com'}:
@@ -426,7 +460,19 @@ def parse_youtube_id(url):
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
         if query.path[:3] == '/v/': return query.path.split('/')[2]
         if query.path[:9] == '/playlist': return parse_qs(query.query)['list'][0]
-    return None  # invalid YouTube url
+    # returns None for invalid YouTube url
+
+
+def get_yt_urls(video_id):
+    """
+    Returns possible youtube URL's for a single video id
+    """
+    yield f'https://youtu.be/{video_id}'
+    for prefix in ('https://', 'https://www.'):
+        yield f'{prefix}youtube.com/watch?v={video_id}'
+        yield f'{prefix}youtube.com/watch/{video_id}'
+        yield f'{prefix}youtube.com/embed/{video_id}'
+        yield f'{prefix}youtube.com/v/{video_id}'
 
 
 def is_os_64bit():
@@ -564,26 +610,32 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
 def export_playlist(playlist_name, uris):
     # location should be downloads folder
     playlist_name = re.sub('[^A-Za-z0-9]+', '', playlist_name)
-    playlist_path = f'{Path.home()}/Downloads/{playlist_name}.m3u'
+    playlist_path = f'{Path.home()}/Downloads/{playlist_name}.m3u'.replace('\\', '/')
     with open(playlist_path, 'w') as f:
         f.write('#EXTM3U\n')
-        for uri in uris: f.write(uri + '\n')
+        for uri in uris:
+            if uri.replace('\\', '/') != playlist_path:
+                f.write(uri + '\n')
     return playlist_path
 
 
 def parse_m3u(playlist_file):
+    playlist_file.replace('\\', '/')
     with open(playlist_file) as f:
         for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
-                yield line.lstrip('file:').lstrip('/').rstrip()
+                line = line.lstrip('file:').lstrip('/').rstrip().replace('\\', '/')
+                # an m3u file cannot contain itself
+                if line != playlist_file: yield line
 
 
+@time_cache(max_age=3500, maxsize=1)
 def get_spotify_headers():
+    # access token key expires in ~1 hour
     r = requests.get('https://open.spotify.com/', headers={'user-agent': 'Firefox/78.0'})
-    soup = BeautifulSoup(r.text, 'html.parser')
-    s = soup.find('script', {'id': 'config'})
-    spotify_config = json.loads(s.string)
-    return {'Authorization': 'Bearer ' + spotify_config['accessToken']}
+    m = re.search('"accessToken":"[^"]*', r.text)
+    access_token = m.group().split(':"')[1]
+    return {'Authorization': f'Bearer {access_token}'}
 
 
 def parse_spotify_track(track_obj) -> dict:
@@ -954,8 +1006,6 @@ def create_playlists_tab(settings):
          Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
-    uris = playlists.get(playlist_name, [])
-    tracks = [f'{i + 1}. {uri if uri.startswith("http") else get_file_name(uri)}' for i, uri in enumerate(uris)]
     url_input = [Sg.Input('', key='pl_url_input', size=(12, 1), font=FONT_NORMAL, enable_events=True, border_width=1)]
     add_url = [Sg.Button(gt('Add URL'), key='pl_add_url', size=(13, 1), disabled=True, **btn_defaults)]
     add_tracks = [Sg.Button(gt('Add tracks'), key='pl_add_tracks', size=(13, 1), **btn_defaults)]
@@ -967,7 +1017,7 @@ def create_playlists_tab(settings):
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S',
                          button_color=(bg, bg), disabled=playlist_name == '')],
               [Sg.Column([url_input, add_url, add_tracks]),
-               Sg.Listbox(tracks, size=(45, lb_height), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
+               Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
                Sg.Column(
                    [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), disabled=True, size=(2, 1))],
@@ -1077,11 +1127,25 @@ def steal_focus(window: Sg.Window):
     keybd_event(alt_key, 0, extended_key | key_up, 0)
 
 
-def timing(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        _start = time.time()
-        result = f(*args, **kwargs)
-        print(f'@timing {f.__name__} ELAPSED TIME:', time.time() - _start)
-        return result
-    return wrapper
+@lru_cache
+def custom_art(text):
+    img_data = io.BytesIO(b64decode(DEFAULT_ART))
+    art_img: Image = Image.open(img_data)
+    size = art_img.size
+    x1 = y1 = size[0] * 0.95
+    x0 = x1 - len(text) * 0.0625 * size[0]
+    y0 = y1 - 0.11 * size[0]
+    d = ImageDraw.Draw(art_img)
+    try:
+        username = os.getenv('USERNAME')
+        fnt = ImageFont.truetype(f"C:/Users/{username}/AppData/Local/Microsoft/Windows/Fonts/MYRIADPRO-BOLD.OTF", 80)
+        shift = 5
+    except OSError:
+        fnt = ImageFont.truetype('gadugib', 80)
+        shift = -5
+    d.rounded_rectangle((x0, y0, x1, y1), fill='#cc1a21', radius=7)
+    d.text(((x0 + x1) / 2, (y0 + y1) / 2 + shift), text, fill='#fff', font=fnt, align='center', anchor='mm')
+    data = io.BytesIO()
+    art_img.save(data, format='png', quality=95)
+    return b64encode(data.getvalue())
+

@@ -62,7 +62,6 @@ EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
 def run_tests(uploading_after=False):
-
     assert list(get_running_processes())
 
     print('DISPLAY LANGUAGE', get_display_lang())
@@ -143,7 +142,7 @@ def run_tests(uploading_after=False):
                          'https://www.youtube.com/v/Dlxu28sQfkE',
                          'https://www.youtube.com/playlist?list=PLRbcUrcJVEmX_eaAsubNOWfE4SlhGqjW4'}:
         try:
-            assert parse_youtube_id(youtube_link)
+            assert get_yt_id(youtube_link)
         except AssertionError:
             print('TEST FAILED', youtube_link)
             raise AssertionError
@@ -171,7 +170,8 @@ def run_tests(uploading_after=False):
 
     test_uris = TEST_MUSIC_FILES + ['https://www.youtube.com/watch?v=_jh9lMUjBLo']
     path = export_playlist('test_playlist_support', test_uris)
-    assert list(parse_m3u(path)) == test_uris
+    for expected_uri, actual_uri in zip(test_uris, parse_m3u(path)):
+        assert Path(expected_uri) == Path(actual_uri)
     os.remove(path)
 
     # Parsers for Streaming Services
@@ -193,13 +193,17 @@ def run_tests(uploading_after=False):
             metadata_list = get_deezer_tracks(streaming_url)
         else:
             metadata_list = []
+        assert metadata_list
         for metadata in metadata_list:
             assert metadata['src']
             assert 'explicit' in metadata
             if 'deezer' in streaming_url:
                 assert callable(metadata['expired'])
                 assert metadata['url']
-
+    ydl.add_default_info_extractors()
+    assert len(url_metadata) == 0
+    get_url_metadata('https://www.youtube.com/watch?v=PNP0hku7hSo')
+    assert len(url_metadata) == 9
     # in case we forgot to update the version
     version = [int(x) for x in VERSION.split('.')]
     compare_ver = get_latest_release(VERSION, True)['version']

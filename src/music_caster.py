@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.84.1'
+VERSION = latest_version = '4.84.2'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -198,7 +198,7 @@ playlists, all_tracks, url_metadata = {}, {}, {}
 all_tracks_sorted_sort_key = []
 tray_playlists, tray_folders = [gt('Playlists Menu')], []
 mouse_hover = pl_name = ''
-pl_files = []  # keep track of paths when editing playlists
+pl_tracks = []  # keep track of paths when editing playlists
 CHECK_MARK = '✓'
 chromecasts, device_names = [], [f'{CHECK_MARK} ' + gt('Local device')]
 music_folders = []
@@ -439,7 +439,7 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
 
 
 def get_current_album_art():
-    if sar.alive: return LIVE_AUDIO_ART
+    if sar.alive: return custom_art('SYS')
     art = None
     if playing_status.busy() and music_queue:
         uri = music_queue[0]
@@ -451,7 +451,7 @@ def get_current_album_art():
                 url_metadata[uri]['art_data'] = art_data = base64.b64encode(requests.get(art_src).content)
                 return art_data
             except KeyError:
-                return DEFAULT_ART
+                return custom_art('URL')
         with suppress(MutagenError):
             art = get_album_art(uri)[1]  # get_album_art(uri)[1] can be None
     return DEFAULT_ART if art is None else art
@@ -498,23 +498,29 @@ def get_current_metadata() -> dict:
     return {'artist': '', 'title': gt('Nothing Playing'), 'album': ''}
 
 
-def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False):
+def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False, parsed_m3us=None):
     """
     :param uris: A list of URIs (urls, folders, m3u files, files)
     :param scan_uris: whether to add to uris_to_scan
     :param ignore_m3u: whether to ignore .m3u(8) files
+    :param parsed_m3us: m3u files that have already been parsed. This is to avoid recursive parsing
     :return: generator of valid audio files
     """
+    if parsed_m3us is None: parsed_m3us = set()
     if isinstance(uris, str): uris = (uris,)
     for uri in uris:
-        if uri in playlists: yield from get_audio_uris(playlists[uri])  # if playlists contain dirs
-        elif os.path.isdir(uri):  # if scanning a folder, ignore playlist files as they can be redundant
-            yield from get_audio_uris(glob.iglob(f'{glob.escape(uri)}/**/*.*', recursive=True), ignore_m3u=True)
+        if uri in playlists:
+            yield from get_audio_uris(playlists[uri], scan_uris=scan_uris, ignore_m3u=ignore_m3u,
+                                      parsed_m3us=parsed_m3us)
+        elif os.path.isdir(uri):  # if scanning a folder, ignore playlist files as they aren't audio files
+            yield from get_audio_uris(glob.iglob(f'{glob.escape(uri)}/**/*.*', recursive=True),
+                                      scan_uris=scan_uris, ignore_m3u=True, parsed_m3us=parsed_m3us)
         elif os.path.isfile(uri):
-            if not ignore_m3u and (uri.endswith('.m3u') or uri.endswith('.m3u8')):
-                yield from get_audio_uris(parse_m3u(uri))
+            uri = uri.replace('\\', '/')
+            if not ignore_m3u and (uri.endswith('.m3u') or uri.endswith('.m3u8')) and uri not in parsed_m3us:
+                parsed_m3us.add(uri)
+                yield from get_audio_uris(parse_m3u(uri), parsed_m3us=parsed_m3us)
             elif valid_audio_file(uri):
-                uri = uri.replace('\\', '/')
                 if scan_uris and uri not in all_tracks: uris_to_scan.put(uri)
                 yield uri
         elif uri.startswith('http'):
@@ -543,12 +549,13 @@ def index_all_tracks(update_global=True, ignore_files: set = None):
         use_temp = len(all_tracks)  # use temp if all_tracks is not empty
         all_tracks_temp = {}
         dict_to_use = all_tracks_temp if use_temp else all_tracks
-        for file_path in get_audio_uris(settings['music_folders'], False):
-            dict_to_use[file_path] = get_metadata_wrapped(file_path)
+        for uri in get_audio_uris(settings['music_folders'], False, True):
+            dict_to_use[uri] = get_metadata_wrapped(uri)
         if use_temp: all_tracks = all_tracks_temp.copy()
-        del all_tracks_temp
-        all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
         update_gui_queue = True
+        # scan playlist items
+        for _ in get_audio_uris(playlists.keys()): pass
+        all_tracks_sorted_sort_key = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
 
     if not update_global:
         temp_tracks = all_tracks.copy()
@@ -911,7 +918,7 @@ def api_system_audio(get_thumb=''):
     send system audio to chromecast
     """
     if get_thumb:
-        return send_file(io.BytesIO(base64.b64decode(LIVE_AUDIO_ART)), attachment_filename=f'thumbnail.png',
+        return send_file(io.BytesIO(base64.b64decode(custom_art('SYS'))), attachment_filename=f'thumbnail.png',
                          mimetype='image/png', as_attachment=True, cache_timeout=360000, conditional=True)
     return Response(sar.get_audio_data())
 
@@ -1144,7 +1151,7 @@ def play_system_audio(switching_device=False):
 
 
 # noinspection PyTypeChecker
-def get_url_metadata(url, fetch_art=True):
+def get_url_metadata(url, fetch_art=True) -> list:
     """
     Tries to parse url and set url_metadata[url] to parsed metadata
     Supports: YouTube, Soundcloud, any url ending with a valid audio extension
@@ -1180,7 +1187,7 @@ def get_url_metadata(url, fetch_art=True):
                                                 'src': url, 'ext': r['ext'], 'expired': is_expired,
                                                 'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                 metadata_list.append(metadata)
-    elif parse_youtube_id(url) is not None or url.startswith('ytsearch:'):
+    elif get_yt_id(url) is not None or url.startswith('ytsearch:'):
         with suppress(StopIteration, DownloadError, KeyError):
             r = ydl.extract_info(url, download=False)
             if 'entries' in r:
@@ -1195,7 +1202,7 @@ def get_url_metadata(url, fetch_art=True):
                                 'album': album, 'length': entry['duration'], 'ext': _f['ext'],
                                 'expired': lambda: time.time() > expiry_time,
                                 'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
-                    url_metadata[entry['webpage_url']] = metadata
+                    for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
                     metadata_list.append(metadata)
             else:
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
@@ -1207,6 +1214,7 @@ def get_url_metadata(url, fetch_art=True):
                             'expired': lambda: time.time() > expiry_time,
                             'album': r.get('album', 'YouTube'), 'length': r['duration'], 'ext': _f['ext'],
                             'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
+                for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
     elif url.startswith('https://open.spotify.com'):
@@ -1315,10 +1323,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         return
     metadata = get_metadata_wrapped(uri)
     # update metadata of track in case something changed
-    try:
-        all_tracks[uri] = metadata
-    except KeyError:
-        all_tracks[uri] = metadata
+    all_tracks[uri] = metadata
     _volume = 0 if settings['muted'] else settings['volume'] / 100
     if cast is None:  # play locally
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
@@ -1443,7 +1448,7 @@ def file_action(action='pf'):
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
         update_gui_queue = True
         main_last_event = Sg.TIMEOUT_KEY
-        if action in {'Play File(s)', 'pf'}:
+        if action in {gt('Play File(s)'), 'pf'}:
             if settings['queue_library']:
                 play_all(starting_files=paths)
             else:
@@ -1451,11 +1456,11 @@ def file_action(action='pf'):
                 done_queue.clear()
                 music_queue.extend(get_audio_uris(paths))
                 if music_queue: play(music_queue[0])
-        elif action in {'Queue File(s)', 'qf'}:
+        elif action in {gt('Queue File(s)'), 'qf'}:
             _start_playing = not music_queue
             music_queue.extend(get_audio_uris(paths))
             if _start_playing and music_queue: play(music_queue[0])
-        elif action in {'Play File(s) Next', 'pfn'}:
+        elif action in {gt('Play File(s) Next'), 'pfn'}:
             if settings['reversed_play_next']:
                 next_queue.extendleft(get_audio_uris(paths))
             else:
@@ -1500,23 +1505,24 @@ def folder_action(action='Play Folder'):
         if not temp_queue:
             if settings['notifications']:
                 tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
-        elif action in {'Play Folder', 'pf'}:
+        elif action in {gt('Play Folder'), 'pf'}:
             music_queue.clear()
             done_queue.clear()
             music_queue += temp_queue
             play(music_queue[0])
-        elif action in {'Play Folder Next', 'pfn'}:
+        elif action in {gt('Play Folder Next'), 'pfn'}:
             if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
             else: next_queue.extend(temp_queue)
             if playing_status.stopped() and not music_queue and next_queue:
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status.play()
                 next_track()
-        elif action == {'Queue Folder', 'qf'}:
+        elif action in {gt('Queue Folder'), 'qf'}:
             music_queue.extend(temp_queue)
-            if len(temp_queue) == len(music_queue): play(music_queue[0])
+            if len(temp_queue) == len(music_queue) and not sar.alive: play(music_queue[0])
         else:
-            raise ValueError('Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder"')
+            error = f'Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder". Got {action}'
+            raise ValueError(error)
     else:
         main_last_event = 'folder_action'
 
@@ -1524,6 +1530,7 @@ def folder_action(action='Play Folder'):
 def get_track_position():
     global track_position
     if cast is not None:
+        if sar.alive: return track_length
         try:
             mc = cast.media_controller
             mc.update_status()
@@ -1750,16 +1757,16 @@ def background_tasks():
             update_last_checked = time.time()
         # scan at most 500 files per loop.
         # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
-        files_scanned = 0
-        while files_scanned < 500 and not uris_to_scan.empty():
+        uris_scanned = 0
+        while uris_scanned < 500 and not uris_to_scan.empty():
             uri = uris_to_scan.get().replace('\\', '/')
             if uri.startswith('http'):
                 get_url_metadata(uri)
             else:
                 all_tracks[uri] = get_metadata_wrapped(uri)
             uris_to_scan.task_done()
-            files_scanned += 1
-        if files_scanned: update_gui_queue = True
+            uris_scanned += 1
+            update_gui_queue = True
         # if no files were scanned, pause for 5 seconds
         else: time.sleep(5)
 
@@ -1788,7 +1795,7 @@ def on_release(key):
 
 
 def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
-    global active_windows, main_window, pl_name, pl_files
+    global active_windows, main_window, pl_name, pl_tracks
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     app_log.info(f'activate_main_window: selected_tab={selected_tab}, already_active={active_windows["main"]}')
     if not active_windows['main']:
@@ -1807,29 +1814,23 @@ def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
         else:
             album_art_data = None
         window_margins = (0, 0) if mini_mode else (0, 0)
-        if playing_status.busy() and (music_queue or sar.alive):
-            if sar.alive:
-                metadata = url_metadata['SYSTEM_AUDIO']
-                position = track_length
-            else:
-                metadata = get_uri_metadata(music_queue[0])
-                position = get_track_position()
-            title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
-                                          all_tracks_sorted_sort_key, title, artist, album, track_length=track_length,
-                                          album_art_data=album_art_data, track_position=position)
-        else:
-            main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
-                                          all_tracks_sorted_sort_key, album_art_data=album_art_data)
+        metadata = get_current_metadata()
+        title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+        position = get_track_position()
+        main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
+                                      all_tracks_sorted_sort_key, title, artist, album, track_length=track_length,
+                                      album_art_data=album_art_data, track_position=position)
         main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
                                 finalize=True, icon=WINDOW_ICON, return_keyboard_events=True, use_default_focus=False,
                                 margins=window_margins, keep_on_top=mini_mode and settings['mini_on_top'],
                                 location=window_location)
-        with suppress(IndexError):
-            pl_name = list(settings['playlists'].keys())[0]
-            pl_files = settings['playlists'][pl_name].copy()
         if not settings['mini_mode']:
             main_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
+            with suppress(IndexError):
+                pl_name = list(settings['playlists'].keys())[0]
+                pl_tracks = settings['playlists'][pl_name].copy()
+            default_pl_tracks = [f'{i + 1}. {format_uri(pl_track)}' for i, pl_track in enumerate(pl_tracks)]
+            main_window['pl_tracks'].update(values=default_pl_tracks)
             gui_lists = ['queue', 'pl_tracks']
             if settings['EXPERIMENTAL']: gui_lists.append('library')
             for gui_list in gui_lists:
@@ -1967,7 +1968,7 @@ def reset_progress():
 def read_main_window():
     global main_last_event, mouse_hover, update_volume_slider, progress_bar_last_update
     global track_position, track_start, track_end, timer, main_window, update_gui_queue
-    global tray_playlists, pl_files, pl_name, playlists, music_queue, done_queue
+    global tray_playlists, pl_tracks, pl_name, playlists, music_queue, done_queue
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=200)
     if (main_event in {None, 'Escape:27'} and
@@ -2014,6 +2015,8 @@ def read_main_window():
         dq_len = len(done_queue)
         lb_tracks = create_track_list()
         main_window['queue'].update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
+        pl_formatted = [f'{i + 1}. {format_uri(pl_track)}' for i, pl_track in enumerate(pl_tracks)]
+        main_window['pl_tracks'].update(values=pl_formatted)
     if update_volume_slider:
         if settings['volume'] and settings['muted']:
             main_window['mute'].update(image_data=VOLUME_IMG)
@@ -2149,7 +2152,7 @@ def read_main_window():
                 main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             elif focused_element == main_window['pl_tracks'] and main_values['pl_tracks']:
                 new_i = main_window['pl_tracks'].get_indexes()[0] + move
-                new_i = min(max(new_i, 0), len(pl_files) - 1)
+                new_i = min(max(new_i, 0), len(pl_tracks) - 1)
                 main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'queue' and main_value:
         with suppress(ValueError):
@@ -2270,11 +2273,12 @@ def read_main_window():
             if not music_queue and settings['repeat'] is False and done_queue:
                 music_queue.extend(done_queue)
                 done_queue.clear()
-            # start playing new track if and only if we were playing before
-            if music_queue and playing_status.busy():
-                play(music_queue[0])
-            else:
-                stop('remove_track')
+            # start playing new track if a track was being played
+            if not sar.alive:
+                if music_queue and playing_status.busy():
+                    play(music_queue[0])
+                else:
+                    stop('remove_track')
         elif index_to_remove <= nq_len + dq_len:
             del next_queue[index_to_remove - dq_len - 1]
         elif index_to_remove < nq_len + mq_len + dq_len:
@@ -2322,19 +2326,19 @@ def read_main_window():
         done_queue.clear()
         save_queues()
     elif main_event == 'save_queue':
-        pl_files = []
-        pl_files.extend(done_queue)
-        if music_queue: pl_files.append(music_queue[0])
-        pl_files.extend(next_queue)
-        pl_files.extend(islice(music_queue, 1, None))
-        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+        pl_tracks = []
+        pl_tracks.extend(done_queue)
+        if music_queue: pl_tracks.append(music_queue[0])
+        pl_tracks.extend(next_queue)
+        pl_tracks.extend(islice(music_queue, 1, None))
+        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         pl_name = ''
         main_window['tab_playlists'].select()
         main_window['playlist_name'].set_focus()
         main_window['playlist_name'].update(value=pl_name)
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
-        main_window['pl_move_up'].update(disabled=not pl_files)
-        main_window['pl_move_down'].update(disabled=not pl_files)
+        main_window['pl_move_up'].update(disabled=not pl_tracks)
+        main_window['pl_move_down'].update(disabled=not pl_tracks)
     # elif main_event == 'library':  # TODO
     elif main_event == 'progress_bar' and not sar.alive:
         if playing_status.stopped():
@@ -2508,19 +2512,19 @@ def read_main_window():
     elif main_event == 'playlist_combo':
         # user selected a playlist from the drop-down
         pl_name = main_value if main_value in playlists else ''
-        pl_files = playlists.get(pl_name, []).copy()
+        pl_tracks = playlists.get(pl_name, []).copy()
         main_window['playlist_name'].update(value=pl_name)
-        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
-        main_window['pl_rm_items'].update(disabled=not pl_files)
-        main_window['pl_move_up'].update(disabled=not pl_files)
-        main_window['pl_move_down'].update(disabled=not pl_files)
+        main_window['pl_rm_items'].update(disabled=not pl_tracks)
+        main_window['pl_move_up'].update(disabled=not pl_tracks)
+        main_window['pl_move_down'].update(disabled=not pl_tracks)
     elif main_event in {'new_pl', 'n:78'}:
-        pl_name, pl_files = '', []
+        pl_name, pl_tracks = '', []
         main_window['playlist_name'].update(value=pl_name)
         main_window['playlist_name'].set_focus()
-        main_window['pl_tracks'].update(values=pl_files, set_to_index=0)
+        main_window['pl_tracks'].update(values=pl_tracks, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
         main_window['playlist_combo'].update(value='')
         main_window['pl_rm_items'].update(disabled=True)
@@ -2537,17 +2541,17 @@ def read_main_window():
         playlist_names = tuple(settings['playlists'].keys())
         pl_name = playlist_names[0] if playlist_names else ''
         main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
-        pl_files = playlists.get(pl_name, []).copy()
-        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+        pl_tracks = playlists.get(pl_name, []).copy()
+        formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         # update playlist editor
         main_window['playlist_name'].update(value=pl_name)
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
         main_window['pl_save'].update(disabled=pl_name == '')
         main_window['play_pl'].update(disabled=pl_name == '')
         main_window['queue_pl'].update(disabled=pl_name == '')
-        main_window['pl_rm_items'].update(disabled=not pl_files)
-        main_window['pl_move_up'].update(disabled=not pl_files)
-        main_window['pl_move_down'].update(disabled=not pl_files)
+        main_window['pl_rm_items'].update(disabled=not pl_tracks)
+        main_window['pl_move_up'].update(disabled=not pl_tracks)
+        main_window['pl_move_down'].update(disabled=not pl_tracks)
         save_settings()
         refresh_tray()
     elif main_event == 'play_pl':
@@ -2568,7 +2572,7 @@ def read_main_window():
                 # if user is renaming a playlist, remove old data
                 if pl_name in playlists: del playlists[pl_name]
                 pl_name = save_name
-            playlists[pl_name] = pl_files
+            playlists[pl_name] = pl_tracks
             # sort playlists alphabetically
             playlists = settings['playlists'] = {k: playlists[k] for k in sorted(playlists.keys())}
             playlist_names = tuple(playlists.keys())
@@ -2586,30 +2590,30 @@ def read_main_window():
             # remove tracks from bottom to top so that we don't have to worry about adjusting other indices
             for item_name in reversed(selected_items):
                 index_removed = int(item_name.split('. ', 1)[0]) - 1
-                if index_removed < len(pl_files):
-                    pl_files.pop(index_removed)
+                if index_removed < len(pl_tracks):
+                    pl_tracks.pop(index_removed)
                     smallest_i = index_removed - 1
-            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
             scroll_to_index = max(smallest_i - 3, 0)
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=smallest_i, scroll_to_index=scroll_to_index)
-            main_window['pl_move_up'].update(disabled=not pl_files)
-            main_window['pl_move_down'].update(disabled=not pl_files)
-            main_window['pl_rm_items'].update(disabled=not pl_files)
+            main_window['pl_move_up'].update(disabled=not pl_tracks)
+            main_window['pl_move_down'].update(disabled=not pl_tracks)
+            main_window['pl_rm_items'].update(disabled=not pl_tracks)
     elif main_event == 'pl_add_tracks':
         initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
         file_paths = Sg.popup_get_file('Select Music File(s)', no_window=True, initial_folder=initial_folder,
                                        multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
         if file_paths:
-            pl_files.extend(get_audio_uris(file_paths))
-            settings['last_folder'] = os.path.dirname(pl_files[-1])
+            pl_tracks.extend(get_audio_uris(file_paths))
+            settings['last_folder'] = os.path.dirname(file_paths[-1])
             main_window.TKroot.focus_force()
             main_window.normal()
-            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             main_window['pl_move_up'].update(disabled=new_i == 0)
             main_window['pl_move_down'].update(disabled=True)
-            main_window['pl_rm_items'].update(disabled=not pl_files)
+            main_window['pl_rm_items'].update(disabled=not pl_tracks)
     elif main_event == 'pl_url_input':
         # disable or enable add URL button if the text in the URL input is almost a valid link
         link = main_values['pl_url_input']
@@ -2618,8 +2622,9 @@ def read_main_window():
     elif main_event == 'pl_add_url':
         link = main_values['pl_url_input']
         if link.startswith('http://') or link.startswith('https://'):
-            pl_files.append(link)
-            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+            uris_to_scan.put(link)
+            pl_tracks.append(link)
+            formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
             new_i = len(formatted_tracks) - 1
             main_window['pl_tracks'].update(formatted_tracks, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
             main_window['pl_rm_items'].update(disabled=False)
@@ -2638,12 +2643,12 @@ def read_main_window():
         main_window['pl_rm_items'].update(disabled=not main_value)
     elif main_event == 'pl_move_up':
         # only allow moving up if 1 item is selected and pl_files is not empty
-        if len(main_values['pl_tracks']) == 1 and pl_files:
+        if len(main_values['pl_tracks']) == 1 and pl_tracks:
             to_move = main_window['pl_tracks'].get_indexes()[0]
             if to_move:
                 new_i = to_move - 1
-                pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+                pl_tracks.insert(new_i, pl_tracks.pop(to_move))
+                formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
                 main_window['pl_move_up'].update(disabled=new_i == 0)
@@ -2653,22 +2658,22 @@ def read_main_window():
             main_window['pl_move_down'].update(disabled=True)
     elif main_event == 'pl_move_down':
         # only allow moving down if 1 item is selected and pl_files is not empty
-        if len(main_values['pl_tracks']) == 1 and pl_files:
+        if len(main_values['pl_tracks']) == 1 and pl_tracks:
             to_move = main_window['pl_tracks'].get_indexes()[0]
-            if to_move < len(pl_files) - 1:
+            if to_move < len(pl_tracks) - 1:
                 new_i = to_move + 1
-                pl_files.insert(new_i, pl_files.pop(to_move))
-                formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_files)]
+                pl_tracks.insert(new_i, pl_tracks.pop(to_move))
+                formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
                 main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=new_i,
                                                 scroll_to_index=max(new_i - 3, 0))
                 main_window['pl_move_up'].update(disabled=False)
-                main_window['pl_move_down'].update(disabled=new_i == len(pl_files) - 1)
+                main_window['pl_move_down'].update(disabled=new_i == len(pl_tracks) - 1)
         else:
             main_window['pl_move_up'].update(disabled=True)
             main_window['pl_move_down'].update(disabled=True)
     elif main_event == 'pl_locate_track':
         for i in main_window['pl_tracks'].get_indexes():
-            locate_uri(uri=pl_files[i])
+            locate_uri(uri=pl_tracks[i])
     # other GUI updates
     if time.time() - progress_bar_last_update > 0.5:
         # update progress bar every 0.5 seconds

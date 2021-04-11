@@ -1,14 +1,28 @@
-import time
-from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
-import os
-import shutil
-import zipfile
-import sys
+import argparse
 from contextlib import suppress
 from datetime import datetime
-import argparse
-import glob
 from distutils.dir_util import copy_tree
+import glob
+import os
+import re
+import shutil
+from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
+import sys
+import time
+import winreg
+import zipfile
+
+
+# CONSTANTS
+SETUP_OUTPUT_NAME = 'Music Caster Setup'
+UPDATER_DIST_PATH = 'Music Caster Updater/bin/x86/Release/netcoreapp3.1'
+VERSION_FILE = 'build_files/mc_version_info.txt'
+INSTALLER_SCRIPT = 'build_files/setup_script.iss'
+PYAUDIO_WHL = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
+PYINSTALLER_WHL = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
+PORTABLE_SPEC = 'build_files/portable.spec'
+ONEDIR_SPEC = 'build_files/onedir.spec'
+UPDATER_SPEC_FILE = 'build_files/updater.spec'
 
 parser = argparse.ArgumentParser(description='Music Caster Build Script')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='build as console app + debug=True')
@@ -21,64 +35,18 @@ parser.add_argument('--skip_build', '-t', default=False, action='store_true',
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of depencencies')
 args = parser.parse_args()
-
-
-def update_versions():
-    """ Update versions of version file and installer script """
-    version_file = 'build_files/mc_version_info.txt'
-    installer_script = 'build_files/setup_script.iss'
-    with open(version_file, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('    prodvers'):
-                version = ', '.join(VERSION.split('.'))
-                lines[i] = f'    prodvers=({version}, 0),\n'
-            elif line.startswith('    filevers'):
-                version = ', '.join(VERSION.split('.'))
-                lines[i] = f'    filevers=({version}, 0),\n'
-            elif line.startswith("        StringStruct('FileVersion"):
-                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
-            elif line.startswith("        StringStruct('LegalCopyright'"):
-                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
-            elif line.startswith("        StringStruct('ProductVersion"):
-                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
-                break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
-
-    with open(installer_script, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('#define MyAppVersion'):
-                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
-            elif line.startswith('OutputBaseFilename'):
-                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
-                break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
-
-
-if not args.skip_build:
-    update_versions()
-    print('Updated versions of build files')
-if args.ver_update: sys.exit()
 if args.dry: print('Dry Build')
-if not args.skip_build and not args.skip_deps:
+if not args.skip_build and not args.skip_deps and not args.ver_update:
     print('Installing / Updating dependencies...')
-    pyaudio_whl = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-    pyinstaller_whl = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
-    py_exe = sys.executable
-    getoutput(f'{py_exe} -m pip install --upgrade -r requirements.txt')
-    for whl in (pyaudio_whl, pyinstaller_whl):
-        try: check_call(f'{py_exe} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
+    getoutput(f'{sys.executable} -m pip install --upgrade -r requirements.txt')
+    for whl in (PYAUDIO_WHL, PYINSTALLER_WHL):
+        try: check_call(f'{sys.executable} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
         except CalledProcessError as e:
             print(f'ERROR: {whl} could not be installed')
             raise e
 
 
-# now import third party libraries
+# import third party libraries
 import requests
 import win32com.client
 from win32comext.shell import shell, shellcon
@@ -86,14 +54,9 @@ import traceback
 from git import Repo
 start_time = time.time()
 YEAR = datetime.today().year
-SETUP_OUTPUT_NAME = 'Music Caster Setup'
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
-MSBuild = r'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe'
-PORTABLE_SPEC_FILE = 'build_files/portable.spec'
-ONEDIR_SPEC_FILE = 'build_files/onedir.spec'
-UPDATER_SPEC_FILE = 'build_files/updater.spec'
-UPDATER_DIST_PATH = r'Music Caster Updater\bin\x86\Release\netcoreapp3.1'
+
 sys.argv = sys.argv[:1]
 from music_caster import is_already_running, get_running_processes, VERSION
 
@@ -108,31 +71,53 @@ def read_env(env_file='.env'):
     return os.environ
 
 
-def add_new_changes(prev_changes):
-    new_changes = ''
+def get_msbuild():
+    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+    root_key = winreg.OpenKey(reg, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+                              0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
+    num_sub_keys = winreg.QueryInfoKey(root_key)[0]
+    vs = {}
+    for i in range(num_sub_keys):
+        with suppress(EnvironmentError):
+            software: dict = {}
+            software_key = winreg.EnumKey(root_key, i)
+            software_key = winreg.OpenKey(root_key, software_key)
+            info_key = winreg.QueryInfoKey(software_key)
+            for value in range(info_key[1]):
+                value = winreg.EnumValue(software_key, value)
+                software[value[0]] = value[1]
+            display_name = software.get('DisplayName', '')
+            if re.search(r'Visual Studio (Community|Professional|Enterprise)', display_name):
+                software['ver'] = int(software['DisplayName'].rsplit(maxsplit=1)[1])
+                vs_ver = vs.get('ver', 0)
+                if software['ver'] > vs_ver:
+                    vs = software
+    if vs is None: raise RuntimeWarning('No installation of Visual Studio could be found')
+    ms_build_path = vs['InstallLocation'] + r'\MSBuild\Current\Bin\MSBuild.exe'
+    return ms_build_path
+
+
+def add_new_changes(prev_changes: str):
+    changes = prev_changes.split('\n')
     with open('build_files/CHANGELOG.txt') as f:
-        line = f.readline().strip()
-        break_at_newline = False
-        while True:
+        add_changes = False
+        for line in iter(lambda: f.readline().strip(), ''):
             if line == VERSION:
-                break_at_newline = True
-            elif break_at_newline:
-                if line == '':
-                    break
-                elif line not in prev_changes:
-                    new_changes += f'\n{line}'
-            line = f.readline().strip()
-    return prev_changes + new_changes
+                add_changes = True
+            elif add_changes and line not in prev_changes:
+                changes.append(line)
+    if not add_changes: raise RuntimeWarning(f'CHANGELOG does not contain changes for {VERSION}')
+    return '\n'.join(sorted(changes, key=lambda item: item.lower()))
 
 
 def set_spec_debug(debug_option):
-    with open(PORTABLE_SPEC_FILE, 'r+') as _f:
+    with open(PORTABLE_SPEC, 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
         _f.write(new_spec)
         _f.truncate()
-    with open(ONEDIR_SPEC_FILE, 'r+') as _f:
+    with open(ONEDIR_SPEC, 'r+') as _f:
         new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
         new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
         _f.seek(0)
@@ -156,6 +141,45 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
+def update_versions():
+    """ Update versions of version file and installer script """
+    with open(VERSION_FILE, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('    prodvers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    prodvers=({version}, 0),\n'
+            elif line.startswith('    filevers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    filevers=({version}, 0),\n'
+            elif line.startswith("        StringStruct('FileVersion"):
+                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
+            elif line.startswith("        StringStruct('LegalCopyright'"):
+                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
+            elif line.startswith("        StringStruct('ProductVersion"):
+                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+    with open(INSTALLER_SCRIPT, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('#define MyAppVersion'):
+                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
+            elif line.startswith('OutputBaseFilename'):
+                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+
+if not args.skip_build:
+    update_versions()
+    print('Updated versions of build files')
+if args.ver_update: sys.exit()
 if not args.dry:
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
@@ -188,14 +212,18 @@ if args.clean:
 if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
     py_installer_exe = f'{os.path.dirname(sys.executable)}\\Scripts\\pyinstaller.exe'
-    try: s1 = Popen(f'pyinstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC_FILE}')
-    except FileNotFoundError: s1 = Popen(f'"{py_installer_exe}" {PORTABLE_SPEC_FILE}')
-    check_call(f'{MSBuild} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln"'
-               f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
+    try: s1 = Popen(f'pyinstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
+    except FileNotFoundError: s1 = Popen(f'"{py_installer_exe}" {PORTABLE_SPEC}')
+    try:
+        ms_build = get_msbuild()
+        check_call(f'{ms_build} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln"'
+                   f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
+    except RuntimeWarning as e:
+        print(f'WARNING: {e}')
     # try: s2 = subprocess.Popen('pyinstaller {UPDATER_SPEC_FILE}')
     # except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" {UPDATER_SPEC_FILE}')
-    try: check_call(f'pyinstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC_FILE}')
-    except FileNotFoundError: check_call(f'"{py_installer_exe}" {ONEDIR_SPEC_FILE}')
+    try: check_call(f'pyinstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
+    except FileNotFoundError: check_call(f'"{py_installer_exe}" {ONEDIR_SPEC}')
     # s2.wait()
     try: s4 = Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError: s4 = None

@@ -1,4 +1,3 @@
-beautifulsoup4
 browser_cookie3
 flask~=1.1.2
 mutagen~=1.44
