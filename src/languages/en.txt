@@ -17,7 +17,7 @@ Cancel Timer
 Clear the queue
 Controls
 Could not connect to cast device
-Could not play URL
+Could not play $URL
 Could not populate queue because library scan is disabled
 Could not set timer
 Discord presence
@@ -157,3 +157,6 @@ Unknown Title
 Unknown Artist
 Unknown Album
 Always queue library
+Play with Music Caster
+Queue in Music Caster
+Play next in Music Caster

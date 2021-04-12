@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.84.3'
+VERSION = latest_version = '4.85.0'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -19,7 +19,9 @@ from subprocess import Popen, PIPE, DEVNULL
 
 parser = argparse.ArgumentParser(description='Music Caster')
 parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
-parser.add_argument('--queue', '-q', default=False, action='store_true', help='supplied paths are queued')
+parser.add_argument('--queue', '-q', default=False, action='store_true', help='paths are queued')
+parser.add_argument('--playnext', '-n', default=False, action='store_true', help='paths are added to next up')
+parser.add_argument('--urlprotocol', '-p', default=False, action='store_true', help='launched using uri protocol')
 parser.add_argument('--update', '-u', default=False, action='store_true', help='allow updating')
 parser.add_argument('--exit', '-x', default=False, action='store_true',
                     help='exits any existing instance (including self)')
@@ -29,6 +31,11 @@ parser.add_argument('--multiprocessing-fork', default=False, action='store_true'
 # the following option is used in the build script since MC doesn't run as a CLI
 parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
 args = parser.parse_args()
+# if from url protocol, re-parse arguments
+if args.urlprotocol:
+    new_args = args.uris[0].replace('music-caster://', '', 1).replace('music-caster:', '')
+    if new_args: new_args = new_args.split(';')
+    args = parser.parse_args(new_args)
 if args.version:
     print(VERSION)
     sys.exit()
@@ -98,7 +105,8 @@ def activate_instance(port):
             if args.exit:  # --exit argument
                 r_text = requests.post(f'{endpoint}/exit/').text
             elif args.uris:  # MC was supplied at least one path to a folder/file
-                r_text = requests.post(f'{endpoint}/play/', data={'uris': args.uris, 'queue': args.queue}).text
+                data = {'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext}
+                r_text = requests.post(f'{endpoint}/play/', data=data).text
             else:  # neither --exit nor paths was supplied
                 r_text = requests.post(f'{endpoint}/').text
         port += 1
@@ -728,14 +736,14 @@ def api_play():
     global last_play_command
     from_explorer = time.time() - last_play_command < 0.5
     queue_only = request.values.get('queue', 'false').lower() == 'true' or from_explorer
+    play_next = request.values.get('play_next', 'false').lower() == 'true'
     # < 0.5 because that's how fast Windows would open each instance of MC
     last_play_command = time.time()
     if 'uris' in request.values:
-        play_uris(request.values.getlist('uris'), queue_only=queue_only,
+        play_uris(request.values.getlist('uris'), queue_uris=queue_only, play_next=play_next,
                   from_explorer=from_explorer)
     elif 'uri' in request.values:
-        play_uris([request.values['uri']], queue_only=queue_only,
-                  from_explorer=from_explorer)
+        play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, from_explorer=from_explorer)
         # Since its the web GUI, we can queue all as well
         already_queueing = False
         for thread in threading.enumerate():
@@ -1296,7 +1304,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         playing_url = True
         after_play(title, artist, autoplay, switching_device)
         return True
-    tray_notify(gt('ERROR') + ': ' + gt('Could not play URL'))
+    tray_notify(gt('ERROR') + ': ' + gt('Could not play $URL').replace('$URL', url))
     return False
 
 
@@ -1400,7 +1408,7 @@ def play_all(starting_files: tuple = None, queue_only=False):
             next_track()
 
 
-def play_uris(uris: list, queue_only=False, from_explorer=False):
+def play_uris(uris: list, queue_uris=False, play_next=False, from_explorer=False):
     global update_gui_queue
     """
     Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
@@ -1408,23 +1416,28 @@ def play_uris(uris: list, queue_only=False, from_explorer=False):
         Note: file/folder paths take precedence over playlist names
     If queue_only is false, the music queue and done queue are cleared,
         before files are added to the music_queue
+    If queue_uris and play_next, play_next is used
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
         except for the track that is currently playing
     """
-    if not queue_only:
+    if not queue_uris and not play_next:
         music_queue.clear()
         done_queue.clear()
-    app_log.info(f'play_paths: len(paths) = {len(uris)}, queue_only = {queue_only}')
     temp_queue = list(get_audio_uris(uris))
+    if play_next:
+        if settings['shuffle']: better_shuffle(temp_queue)
+        if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
+        else: next_queue.extend(temp_queue)
+        return
     update_gui_queue = True
-    if settings['shuffle']:
+    if settings['shuffle'] * from_explorer:
         # if from_explorer make temp_queue should also include files in the queue
-        temp_queue.extend(islice(music_queue * from_explorer, 1, None))
+        temp_queue.extend(islice(music_queue, 1, None))
         shuffle(temp_queue)
         # remove all but first track if from_explorer
-        for _ in range(len(music_queue) * from_explorer - 1): music_queue.pop()
+        for _ in range(len(music_queue) - 1): music_queue.pop()
     music_queue.extend(temp_queue)
-    if not queue_only:
+    if not queue_uris and not play_next:
         if music_queue:
             play(music_queue[0])
         elif next_queue:
@@ -1709,7 +1722,7 @@ def background_tasks():
     if not settings.get('DEBUG', DEBUG): send_info()
     create_shortcut()  # threaded
     pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon = True
-    ydl.add_default_info_extractors()
+    if not args.uris: ydl.add_default_info_extractors()
     while not exit_flag:
         # if settings.json was updated outside of Music Caster, reload settings
         if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
@@ -2906,8 +2919,9 @@ if __name__ == '__main__':
         audio_player = AudioPlayer()
         if args.uris:
             # wait until previous device has been found or if it hasn't been found
+            ydl.add_default_info_extractors()
             while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
-            play_uris(args.uris, queue_only=args.queue)
+            play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
         elif settings['persistent_queue']:
             # load saved queues from settings.json
             for queue_name in ('done', 'music', 'next'):

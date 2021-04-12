@@ -17,7 +17,7 @@ Annulla il Timer
 Cancella la coda
 Controlla
 Impossibile connettersi al dispositivo cast
-Impossibile riprodurre l'URL
+Impossibile riprodurre $URL
 Impossibile popolare la coda perché la scansione della libreria è disabilitata
 Impossibile impostare il timer
 Presenza su Discord
@@ -157,3 +157,6 @@ Brano Sconosciuto
 Artista Sconosciuto
 Album Sconosciuto
 Metti sempre in coda la libreria
+Gioca con Music Caster
+Coda in Music Caster
+Riproduci successivo in Music Caster

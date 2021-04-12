@@ -17,7 +17,7 @@ Cancelar Temporizador
 Limpiar la cola
 Controles
 No se pudo conectar al dispositivo de transmisión
-No se pudo reproducir la URL
+No se pudo reproducir $URL
 No se pudo completar la cola porque el escaneo de la biblioteca está deshabilitado
 No se pudo configurar el temporizador
 Discord activo
@@ -157,3 +157,6 @@ Título Desconocido
 Artista Desconocido
 Álbum Desconocido
 Biblioteca de cola siempre
+Jugar con Music Caster
+Cola en Music Caster
+Reproducir a continuación en Music Caster

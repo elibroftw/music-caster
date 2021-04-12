@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.85.0
+- [Fix] Registry
+- [Feature] URL Protocol music-caster
+
 4.84.3
 - [Fix] Audio Player
 

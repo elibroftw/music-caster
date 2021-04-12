@@ -415,10 +415,6 @@ def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for e
 def better_shuffle(seq, first=0, last=-1):
     """
     Shuffles based on indices
-    :param seq:
-    :param first:
-    :param last:
-    :return:
     """
     n = len(seq)
     with suppress(IndexError, ZeroDivisionError):
@@ -499,31 +495,51 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
     mc_file = 'MusicCaster_file'
     write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
+    num_arguments = ' '.join((f'"%{i}"' for i in range(1, 300)))  # handle multiple arguments
 
-    # create file type
+    # create URL protocol handler
+    url_protocol = f'{classes_path}music-caster'
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'URL:music-caster Protocol')
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
+        wr.SetValueEx(key, 'URL Protocol', 0, wr.REG_SZ, '')
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{url_protocol}\DefaultIcon', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}"')
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{url_protocol}\shell\open\command', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --urlprotocol "%1"')
+
+    # create Audio File type
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Audio File')
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\DefaultIcon', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, path_to_exe)  # define icon location
 
-    # create open handler
+    # create play context | open handler
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\open', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Play')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play with Music Caster'))
         wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-
+        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\open\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" {num_arguments}')
 
-    # create queue handler
+    # create queue context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\queue', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'Queue in Music Caster')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Queue in Music Caster'))
         wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-        # wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-
+        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\queue\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q {num_arguments}')
+
+    # create play next context
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\play_next', 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play next in Music Caster'))
+        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
+        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
+    command_path = f'{classes_path}{mc_file}\\shell\\play_next\\command'
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n {num_arguments}')
 
     # set file handlers
     for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
@@ -534,7 +550,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
             # create key for extension if it does not exist with MC as the default program
             with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:
                 # set as default program unless .mp4 because that's a video format
-                if ext != 'mp4': wr.SetValueEx(key, None, 0, wr.REG_SZ, 'MusicCaster_file')
+                wr.SetValueEx(key, None, 0, wr.REG_SZ, mc_file)
         # add to Open With (prompts user to set default program when they try playing a file)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
             # noinspection PyTypeChecker
@@ -542,24 +558,31 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
 
     play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
     queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'
+    play_next_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayNextFolder'
     if add_folder_context:
         # set "open folder in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Play with Music Caster')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play with Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" {num_arguments}')
         # set "queue folder in Music Caster" command
-
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Queue in Music Caster')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Queue in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q {num_arguments}')
+        # set "play folder next in Music Caster" command
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_next_folder_key_path, 0, write_access) as key:
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play next in Music Caster'))
+            wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_next_folder_key_path}\\command', 0, write_access) as key:
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n {num_arguments}')
     else:
         # remove commands for folders
         delete_sub_key(wr.HKEY_CURRENT_USER, play_folder_key_path)
         delete_sub_key(wr.HKEY_CURRENT_USER, queue_folder_key_path)
+        delete_sub_key(wr.HKEY_CURRENT_USER, play_next_folder_key_path)
 
 
 def get_default_output_device():
@@ -752,48 +775,55 @@ def parse_deezer_track(track_obj) -> dict:
     return metadata
 
 
-def get_deezer_track(url):
+def get_deezer_track(url, alt=False):
     sng_id = parse_deezer_page(url)['sng_id']
     return {**parse_deezer_track(Shared.dz.gw.get_track(sng_id)), 'src': url,
             'url': f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": url})}'}
 
 
-def get_deezer_album(url):
+def get_deezer_album(url, alt=False):
     alb_id = parse_deezer_page(url)['sng_id']
     tracks = []
-    for track in Shared.dz.gw.get_album_tracks(alb_id):
-        metadata = parse_deezer_track(track)
-        sng_id = metadata['sng_id']
-        src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
-        tracks.append(metadata)
+    if alt:
+        pass
+    else:
+        for track in Shared.dz.gw.get_album_tracks(alb_id):
+            metadata = parse_deezer_track(track)
+            sng_id = metadata['sng_id']
+            src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
+            metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+            tracks.append(metadata)
     return tracks
 
 
-def get_deezer_playlist(url):
+def get_deezer_playlist(url, alt=False):
     pl_id = parse_deezer_page(url)['sng_id']
     tracks = []
-    for track in Shared.dz.gw.get_playlist_tracks(pl_id):
-        metadata = parse_deezer_track(track)
-        sng_id = metadata['sng_id']
-        metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
-        tracks.append(metadata)
+    if alt:
+        pass
+    else:
+        for track in Shared.dz.gw.get_playlist_tracks(pl_id):
+            metadata = parse_deezer_track(track)
+            sng_id = metadata['sng_id']
+            metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
+            metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+            tracks.append(metadata)
     return tracks
 
 
 @lru_cache
-def get_deezer_tracks(url):
-    if not Shared.dz.logged_in:
-        if not Shared.dz.login_via_arl(get_dz_token()):
-            raise LookupError('Not logged into deezer.com')
+def get_deezer_tracks(url, alt=False):
+    if not alt:
+        if not Shared.dz.logged_in:
+            if not Shared.dz.login_via_arl(get_dz_token()):
+                raise LookupError('Not logged into deezer.com')
     dz_type = parse_deezer_page(url)['type']
     if dz_type == 'track':
-        return [get_deezer_track(url)]
+        return [get_deezer_track(url, alt)]
     elif dz_type == 'album':
-        return get_deezer_album(url)
+        return get_deezer_album(url, alt)
     elif dz_type == 'playlist':
-        return get_deezer_playlist(url)
+        return get_deezer_playlist(url, alt)
     return []
 
 

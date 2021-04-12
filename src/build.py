@@ -397,7 +397,7 @@ if args.upload and tests_passed and not args.dry:
         requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
-if tests_passed and not args.dry:
+if tests_passed and not args.dry and not args.debug:
     print('Installing Music Caster [Will Launch After]')
     startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
     shortcut_path = startup_dir + '\\Music Caster.lnk'
