@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.85.1
+- [Fix] Deezer support
+
 4.85.0
 - [Fix] Registry
 - [Feature] URL Protocol music-caster

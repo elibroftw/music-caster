@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.85.0'
+VERSION = latest_version = '4.85.1'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -211,7 +211,7 @@ CHECK_MARK = '✓'
 chromecasts, device_names = [], [f'{CHECK_MARK} ' + gt('Local device')]
 music_folders = []
 music_queue, done_queue, next_queue = deque(), deque(), deque()
-update_devices = exit_flag = False
+deezer_opened = update_devices = exit_flag = False
 playing_url = update_gui_queue = update_volume_slider = False
 # live_lag = 0.0
 # seconds but using time()
@@ -1164,6 +1164,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
     Tries to parse url and set url_metadata[url] to parsed metadata
     Supports: YouTube, Soundcloud, any url ending with a valid audio extension
     """
+    global deezer_opened
     metadata_list = []
     if url in url_metadata and not url_metadata[url].get('expired', lambda: True)(): return [url_metadata[url]]
     if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
@@ -1253,9 +1254,34 @@ def get_url_metadata(url, fetch_art=True) -> list:
             for metadata in get_deezer_tracks(url):
                 url_metadata[metadata['src']] = metadata
                 metadata_list.append(metadata)
-        except LookupError:  # login cookie not found
-            Thread(target=webbrowser.open, daemon=True, args=['https://www.deezer.com/login']).start()
-            tray_notify(gt('ERROR') + ': ' + gt('Not logged into deezer.com'))
+        except LookupError:
+            # login cookie not found
+            # first time open the browser
+            if not deezer_opened:
+                Thread(target=webbrowser.open, daemon=True, args=['https://www.deezer.com/login']).start()
+                tray_notify(gt('ERROR') + ': ' + gt('Not logged into deezer.com'))
+                deezer_opened = True
+            # fallback to deezer -> youtube
+            if url in url_metadata:
+                metadata = url_metadata[url]
+                query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
+                youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                metadata = {**youtube_metadata, **metadata}
+                url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
+                metadata_list.append(metadata)
+            else:
+                deezer_tracks = get_deezer_tracks(url, login=False)
+                if deezer_tracks:
+                    metadata = deezer_tracks[0]
+                    query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
+                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                    metadata = {**youtube_metadata, **metadata}
+                    url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
+                    metadata_list.append(metadata)
+                    for deezer_track in islice(deezer_tracks, 1, None):
+                        url_metadata[deezer_track['src']] = deezer_track
+                        uris_to_scan.put(deezer_track['src'])
+                        metadata_list.append(deezer_track)
     if metadata_list and fetch_art:
         # fetch and cache album art for first url
         metadata = metadata_list[0]

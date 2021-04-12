@@ -764,66 +764,64 @@ def parse_deezer_track(track_obj) -> dict:
     length = int(track_obj['DURATION'])
     is_explicit = track_obj['EXPLICIT_TRACK_CONTENT']['EXPLICIT_LYRICS_STATUS'] == '1'
     is_expired = lambda: time.time() > track_obj['TRACK_TOKEN_EXPIRE']
-    md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
     sng_id = track_obj['SNG_ID']
-    file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], 'MP3_320')
-    bf_key = generateBlowfishKey(sng_id).encode()
     metadata = {
-        'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str, 'album': album, 'expired': is_expired,
-        'length': length, 'sng_id': sng_id, 'file_url': file_url, 'explicit': is_explicit, 'bf_key': bf_key,
+        'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str, 'album': album,
+        'length': length, 'sng_id': sng_id, 'explicit': is_explicit
     }
+    with suppress(KeyError):
+        md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
+        file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], 'MP3_320')
+        bf_key = generateBlowfishKey(sng_id).encode()
+        metadata['file_url'] = file_url
+        metadata['bf_key'] = bf_key
+        metadata['expired'] = is_expired
     return metadata
 
 
-def get_deezer_track(url, alt=False):
+def get_deezer_track(url):
     sng_id = parse_deezer_page(url)['sng_id']
     return {**parse_deezer_track(Shared.dz.gw.get_track(sng_id)), 'src': url,
             'url': f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": url})}'}
 
 
-def get_deezer_album(url, alt=False):
+def get_deezer_album(url):
     alb_id = parse_deezer_page(url)['sng_id']
     tracks = []
-    if alt:
-        pass
-    else:
-        for track in Shared.dz.gw.get_album_tracks(alb_id):
-            metadata = parse_deezer_track(track)
-            sng_id = metadata['sng_id']
-            src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
-            metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
-            tracks.append(metadata)
+    for track in Shared.dz.gw.get_album_tracks(alb_id):
+        metadata = parse_deezer_track(track)
+        sng_id = metadata['sng_id']
+        src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+        tracks.append(metadata)
     return tracks
 
 
-def get_deezer_playlist(url, alt=False):
+def get_deezer_playlist(url):
     pl_id = parse_deezer_page(url)['sng_id']
     tracks = []
-    if alt:
-        pass
-    else:
-        for track in Shared.dz.gw.get_playlist_tracks(pl_id):
-            metadata = parse_deezer_track(track)
-            sng_id = metadata['sng_id']
-            metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
-            metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
-            tracks.append(metadata)
+    for track in Shared.dz.gw.get_playlist_tracks(pl_id):
+        metadata = parse_deezer_track(track)
+        sng_id = metadata['sng_id']
+        metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+        tracks.append(metadata)
     return tracks
 
 
 @lru_cache
-def get_deezer_tracks(url, alt=False):
-    if not alt:
+def get_deezer_tracks(url, login=True):
+    if login:
         if not Shared.dz.logged_in:
             if not Shared.dz.login_via_arl(get_dz_token()):
                 raise LookupError('Not logged into deezer.com')
     dz_type = parse_deezer_page(url)['type']
     if dz_type == 'track':
-        return [get_deezer_track(url, alt)]
+        return [get_deezer_track(url)]
     elif dz_type == 'album':
-        return get_deezer_album(url, alt)
+        return get_deezer_album(url)
     elif dz_type == 'playlist':
-        return get_deezer_playlist(url, alt)
+        return get_deezer_playlist(url)
     return []
 
 
