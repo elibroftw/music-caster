@@ -1176,4 +1176,3 @@ def custom_art(text):
     data = io.BytesIO()
     art_img.save(data, format='png', quality=95)
     return b64encode(data.getvalue())
-
