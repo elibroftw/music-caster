@@ -71,26 +71,25 @@ Aside from the global media hot-keys, Music Caster has its own shortcuts as seen
 ## Data Collection / Privacy Policy
 What is sent to me when an error is encountered?
 ```python
-# As seen in the function handle_exception,
+# in handle_exception,
 {
-  'VERSION': VERSION,
   'EXCEPTION TYPE': exc_type.__name__,                  # error name
   'LINE': exc_tb.tb_lineno,                             # error location/line
   'TRACEBACK': trace_back_msg,                          # error message
-  'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   # error unqiueness, hashed mac to preserve anonymity
-  'LOG': log_lines,                                     # last 5 lines of the log file so I have more context
+  'MAC': hashlib.md5(get_mac().encode()).hexdigest(),   # error unqiueness
+  'LOG': log_lines,                                     # last 5 lines of log for context
   'FATAL': restart_program,                             # if the error crashed the program
+  'CASTING': cast is not None,                          # was user was casting to a chromecast
+  'MQ': len(music_queue),                               # queue lengths
+  'PLAYING_TYPE': play_uri,                             # what uri type if any was user playing
+  'VERSION': VERSION,
+  'NQ': len(next_queue),
+  'DQ': len(done_queue),
   'OS': platform.platform(),
-  'TIME': current_time
+  'TIME': current_time,
 }
 ```
 In addition, I collect (MD5 hashed) MAC and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
 - Hashed MAC so that I know how many users (1900+), without knowing the actual MAC addresses
 - IP because I can do something [cool](https://github.com/elibroftw/music-caster/wiki)
-
-## Credits
-- default album art made by [ivke32](https://pixabay.com/users/ivke32-2526695/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583) from [Pixabay](https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1413583)
-- speaker icon in main window made by [Naomi Atkinson](https://thenounproject.com/naomiatkinson/) from [The Noun Project](https://thenounproject.com/term/speaker/5609/) and modified by me
-- repeat icon in main window made by [Brandy Bora](https://thenounproject.com/brandy.bora) from [The Noun Project](https://thenounproject.com/search/?q=repeat&i=1555394) and modified by me
-- shufflle icon in main window made by [David](https://thenounproject.com/kaxgyatso/) from [The Noun Project](https://thenounproject.com/search/?q=shuffle&i=486680) and modified by me

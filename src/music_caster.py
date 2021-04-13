@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.85.1'
+VERSION = latest_version = '4.85.2'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -714,9 +714,7 @@ def web_index():  # web GUI
     else:
         sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
     for filename, data in sorted_tracks:
-        href = '/play?' + urllib.parse.urlencode({'uri': filename})
-        src_href = '/file?' + urllib.parse.urlencode({'path': filename})
-        list_of_tracks.append({'text': format_uri(filename), 'title': filename, 'src': src_href, 'href': href})
+        list_of_tracks.append({'text': format_uri(filename), 'filename': filename})
     _queue = create_track_list()
     device_index = 0
     for i, device_name in enumerate(device_names):
@@ -1996,18 +1994,17 @@ def reset_mouse_hover():
     mouse_hover = ''
 
 
-def reset_progress():
-    # NOTE: needs to be in main thread
-    main_window['progress_bar'].update(value=0)
-    main_window['time_elapsed'].update('0:00')
-    main_window['time_left'].update('0:00')
-    main_window.refresh()
-
-
 def read_main_window():
     global main_last_event, mouse_hover, update_volume_slider, progress_bar_last_update
     global track_position, track_start, track_end, timer, main_window, update_gui_queue
     global tray_playlists, pl_tracks, pl_name, playlists, music_queue, done_queue
+
+    def reset_progress():
+        main_window['progress_bar'].update(value=0)
+        main_window['time_elapsed'].update('0:00')
+        main_window['time_left'].update('0:00')
+        main_window.refresh()
+
     # make if statements into dict mapping
     main_event, main_values = main_window.read(timeout=200)
     if (main_event in {None, 'Escape:27'} and
@@ -2254,7 +2251,7 @@ def read_main_window():
                 done_queue.append(track)
         elif next_queue and dq_len < index_to_move <= nq_len + dq_len:  # within next_queue
             nq_i = new_i - dq_len - 1
-            # swap places, NOTE: could be more efficient using a custom deque with O(n) swaps instead of O(2n)
+            # swap places, could be more efficient using a custom deque with O(n) swaps instead of O(2n)
             next_queue[nq_i], next_queue[nq_i + 1] = next_queue[nq_i + 1], next_queue[nq_i]
         elif next_queue and index_to_move == dq_len + nq_len + 1:  # moving into next queue
             track = music_queue[1]
@@ -2555,7 +2552,6 @@ def read_main_window():
         main_window['playlist_name'].update(value=pl_name)
         formatted_tracks = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
-        main_window['pl_save'].update(disabled=pl_name == '')
         main_window['pl_rm_items'].update(disabled=not pl_tracks)
         main_window['pl_move_up'].update(disabled=not pl_tracks)
         main_window['pl_move_down'].update(disabled=not pl_tracks)
@@ -2564,7 +2560,6 @@ def read_main_window():
         main_window['playlist_name'].update(value=pl_name)
         main_window['playlist_name'].set_focus()
         main_window['pl_tracks'].update(values=pl_tracks, set_to_index=0)
-        main_window['pl_save'].update(disabled=pl_name == '')
         main_window['playlist_combo'].update(value='')
         main_window['pl_rm_items'].update(disabled=True)
         main_window['pl_move_up'].update(disabled=True)
@@ -2585,9 +2580,6 @@ def read_main_window():
         # update playlist editor
         main_window['playlist_name'].update(value=pl_name)
         main_window['pl_tracks'].update(values=formatted_tracks, set_to_index=0)
-        main_window['pl_save'].update(disabled=pl_name == '')
-        main_window['play_pl'].update(disabled=pl_name == '')
-        main_window['queue_pl'].update(disabled=pl_name == '')
         main_window['pl_rm_items'].update(disabled=not pl_tracks)
         main_window['pl_move_up'].update(disabled=not pl_tracks)
         main_window['pl_move_down'].update(disabled=not pl_tracks)
@@ -2616,12 +2608,8 @@ def read_main_window():
             playlists = settings['playlists'] = {k: playlists[k] for k in sorted(playlists.keys())}
             playlist_names = tuple(playlists.keys())
             main_window['playlist_combo'].update(value=pl_name, values=playlist_names, visible=True)
-            main_window['play_pl'].update(disabled=False)
-            main_window['queue_pl'].update(disabled=False)
         save_settings()
         refresh_tray()
-    elif main_event == 'playlist_name':
-        main_window['pl_save'].update(disabled=main_values['playlist_name'] == '')
     elif main_event in {'pl_rm_items', 'r:82'}:  # remove item from playlist
         if main_values['pl_tracks']:
             selected_items = main_values['pl_tracks']
@@ -2653,11 +2641,6 @@ def read_main_window():
             main_window['pl_move_up'].update(disabled=new_i == 0)
             main_window['pl_move_down'].update(disabled=True)
             main_window['pl_rm_items'].update(disabled=not pl_tracks)
-    elif main_event == 'pl_url_input':
-        # disable or enable add URL button if the text in the URL input is almost a valid link
-        link = main_values['pl_url_input']
-        valid_link = link.count('.') and (link.startswith('http://') or link.startswith('https://'))
-        main_window['pl_add_url'].update(disabled=not valid_link)
     elif main_event == 'pl_add_url':
         link = main_values['pl_url_input']
         if link.startswith('http://') or link.startswith('https://'):
@@ -2671,7 +2654,6 @@ def read_main_window():
             main_window['pl_move_down'].update(disabled=True)
             # empty the input field
             main_window['pl_url_input'].update(value='')
-            main_window['pl_add_url'].update(disabled=True)
             main_window['pl_url_input'].set_focus()
         else:
             tray_notify(gt('ERROR') + ': ' + gt("Invalid URL. URL's need to start with http:// or https://"))

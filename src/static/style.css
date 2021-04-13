@@ -14,7 +14,16 @@ a {
 
 .playLink {
     display: inline-block;
+    width: 85%;
+}
+
+.playPlaylist {
+    display: inline-block;
     width: 95%;
+}
+
+.playNext {
+    margin: 1px 5px 0 5px;
 }
 
 button {
@@ -294,7 +303,7 @@ h2 {
     background-color: #0006;
 }
 
-.track {
+.track, .trackRow {
     width: 100%;
     width: -moz-available;
     /* For Mozzila */
@@ -312,8 +321,12 @@ h2 {
     font-size: large;
 }
 
-.track:hover, .modalRow:hover, .cyan {
+.track:hover, .trackRow a:first-child:hover, .modalRow:hover, .cyan, .queueTrack:hover, .downloadTrack:hover {
     color: cyan;
+}
+
+.playNext:hover svg {
+    fill: cyan;
 }
 
 .modalRow {
@@ -492,7 +505,7 @@ input:checked+.slider:before {
         margin-top: 10%;
     }
 
-    .playLink {
+    .playLink, .playPlaylist {
         width: 90%;
     }
 }
