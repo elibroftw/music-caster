@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.86.0
+- [UI] Added library tab
+- [UI] Improve multi-selections
+
 4.85.2
 - [UI] Better (rounded) buttons
 - [UI] Web GUI playlist options

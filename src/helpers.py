@@ -206,14 +206,31 @@ class PlayingStatus:
         return other.state == self.state
 
 
-class Unknown:
+class Unknown(str):
     __slots__ = 'property'
 
-    def __init__(self, _property):
-        self.property = _property
+    def __new__(cls, _property):
+        obj = super(Unknown, cls).__new__(cls)
+        obj.property = _property
+        return obj
 
     def __repr__(self):
         return gt(f'Unknown {self.property}')
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __lt__(self, other):
+        return str(self).__lt__(other)
+
+    def __le__(self, other):
+        return str(self).__le__(other)
+
+    def __gt__(self, other):
+        return str(self).__gt__(other)
+
+    def __ge__(self, other):
+        return str(self).__ge__(other)
 
     def __eq__(self, other):
         return str(other) == str(self)
@@ -852,7 +869,7 @@ def round_btn(button_text, fill, text_color, tooltip=None, key=None,
               pad=None, bind_return_key=False, button_width=None):
     multi = 4
     btn_w = ((len(button_text) if button_width is None else button_width) * 5 + 20) * multi
-    height = 20 * multi
+    height = 18 * multi
     btn_img = Image.new('RGBA', (btn_w, height), (0, 0, 0, 0))
     d = ImageDraw.Draw(btn_img)
     x0 = y0 = 0
@@ -958,7 +975,7 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
     return [[album_art, right_side] if settings['show_album_art'] else [right_side]]
 
 
-def create_main(tracks, listbox_selected, playing_status, settings, version, timer, sorted_tracks,
+def create_main(queue, listbox_selected, playing_status, settings, version, timer, music_lib,
                 title=gt('Nothing Playing'), artist='', album='', album_art_data: str = '',
                 track_length=0, track_position=0):
     if settings['mini_mode']:
@@ -994,8 +1011,10 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
                              font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)), readonly=True)],
                    [Sg.Combo(folder_opts, default_value=folder_opts[0], key='folder_option', size=(combo_w, None),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)), readonly=True)]]),
-        Sg.Column([[round_btn(file_options[0], accent_color, bg, key='file_action', button_width=biggest_word)],
-                   [round_btn(folder_opts[0], accent_color, bg, key='folder_action', button_width=biggest_word)]]),
+        Sg.Column([[round_btn(file_options[0], accent_color, bg, key='file_action',
+                              button_width=biggest_word, pad=(5, (7, 5)))],
+                   [round_btn(folder_opts[0], accent_color, bg, key='folder_action',
+                              button_width=biggest_word)]]),
     ]
     move_to_next_up = {'image_data': MOVE_TO_NEXT_QUEUE, 'button_color': (bg, bg), 'tooltip': gt('Move to next up')}
     listbox_controls = [
@@ -1011,33 +1030,29 @@ def create_main(tracks, listbox_selected, playing_status, settings, version, tim
     ]
     listbox_height = 18 - 5 * settings['vertical_gui']
     queue_tab_layout = [queue_controls, [
-        Sg.Listbox(tracks, default_values=listbox_selected, size=(64, listbox_height),
-                   select_mode=Sg.SELECT_MODE_SINGLE,
+        Sg.Listbox(queue, default_values=listbox_selected, size=(64, listbox_height),
+                   select_mode=Sg.SELECT_MODE_EXTENDED,
                    text_color=fg, key='queue', font=FONT_NORMAL,
                    bind_return_key=True),
         Sg.Column(listbox_controls, pad=(0, 0))]]
     queue_tab = Sg.Tab(gt('Queue'), queue_tab_layout, key='tab_queue')
     url_tab = Sg.Tab(gt('URL'), create_url_tab(accent_color, bg), key='tab_url')
+    # library tab will be good to use once I'm using Python 3.10 which will have tk 8.10
+    lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
+                music_lib.items()]
+    lib_headings = ['title', 'artist', 'album']
+    library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30,
+                                col_widths=[25, 15, 15], bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
+                                justification='right', num_rows=14 - 3 * settings['vertical_gui'],
+                                right_click_menu=['', ['Play::library', 'Play Next::library',
+                                                       'Queue::library', 'Locate::library']],
+                                header_text_color=fg, header_background_color=bg,
+                                alternating_row_color=alternate_bg, key='library')]]
+    library_tab = Sg.Tab(gt('Library'), library_layout, key='tab_library')
     playlists_tab = Sg.Tab(gt('Playlists'), create_playlists_tab(settings), key='tab_playlists')
     timer_tab = Sg.Tab(gt('Timer'), create_timer(settings, timer), key='tab_timer')
     settings_tab = Sg.Tab(gt('Settings'), create_settings(version, settings), key='tab_settings')
-    # library tab will be good to use once I'm using Python 3.10 which will have tk 8.10
-    if settings['EXPERIMENTAL']:
-        lib_data = [[track['title'], get_first_artist(track['artist']), track['album']] for _, track in sorted_tracks]
-        if not lib_data: lib_data = [['', '', '']]
-        lib_headings = ['title', 'artist', 'album']
-        library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, max_col_width=25,
-                                    # background_color='light blue',
-                                    auto_size_columns=False, display_row_numbers=False,
-                                    def_col_width=20, bind_return_key=True,
-                                    select_mode=Sg.TABLE_SELECT_MODE_BROWSE,
-                                    justification='right', num_rows=10, row_height=30,
-                                    right_click_menu=['', ['Play::library', 'Play Next::library', 'Queue::library']],
-                                    header_text_color=fg, header_background_color=bg,
-                                    alternating_row_color=alternate_bg, key='library')]]
-        library_tab = Sg.Tab(gt('Library'), library_layout, key='tab_library')
-        tab_group = [[queue_tab, library_tab, url_tab, playlists_tab, timer_tab, settings_tab]]
-    else: tab_group = [[queue_tab, url_tab, playlists_tab, timer_tab, settings_tab]]
+    tab_group = [[queue_tab, url_tab, library_tab, playlists_tab, timer_tab, settings_tab]]
     tabs_part = Sg.TabGroup(tab_group, font=FONT_TAB, border_width=0, title_color=fg, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)
@@ -1073,7 +1088,7 @@ def create_playlists_tab(settings):
          Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
-    url_input = [Sg.Input('', key='pl_url_input', size=(13, 1), font=FONT_NORMAL, border_width=1)]
+    url_input = [Sg.Input('', key='pl_url_input', size=(14, 1), font=FONT_NORMAL, border_width=1)]
     add_url = [round_btn(gt('Add URL'), accent, bg, key='pl_add_url', button_width=13)]
     add_tracks = [round_btn(gt('Add tracks'), accent, bg, key='pl_add_tracks', button_width=13)]
     lb_height = 14 - 3 * settings['vertical_gui']
@@ -1085,12 +1100,12 @@ def create_playlists_tab(settings):
                         pad=((22, 5), (5, 10)), border_width=1),
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S', button_color=(bg, bg))],
               [Sg.Column([url_input, add_url, add_tracks]),
-               Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_MULTIPLE, text_color=fg,
+               Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
                Sg.Column(
-                   [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), disabled=True, size=(2, 1))],
-                    [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), disabled=True, size=(2, 1))],
-                    [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), disabled=True, size=(2, 1))],
+                   [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), size=(2, 1))],
+                    [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), size=(2, 1))],
+                    [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), size=(2, 1))],
                     [Sg.Button(image_data=LOCATE_FILE, key='pl_locate_track', button_color=(bg, bg),
                                tooltip=gt('locate track'), size=(2, 1))]],
                    background_color=bg)]]

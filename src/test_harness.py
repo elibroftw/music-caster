@@ -68,9 +68,16 @@ def run_tests(uploading_after=False):
     for code in ('en', 'es'):
         assert get_lang_pack(code)
 
-    for line in get_lang_pack('en'):
-        for code in ('en', 'es', 'de'):
+    for code in ('es', 'de', 'en'):
+        Shared.lang = code
+        for line in get_lang_pack('en'):
             get_translation(line, code)
+        unknown_title = Unknown('Title')
+        assert isinstance(unknown_title > 'unknown title', bool)
+        assert isinstance(unknown_title < 'unknown title', bool)
+        assert isinstance(unknown_title <= 'unknown title', bool)
+        assert isinstance(unknown_title >= 'unknown title', bool)
+
     # test get length
     for file in TEST_MUSIC_FILES:
         try:
