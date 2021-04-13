@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.86.2
+- [Fix] Web GUI search
+
 4.86.1
 - [Optimization] Library table
 

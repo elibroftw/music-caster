@@ -279,8 +279,9 @@
 
     function filterTracks() {
         const filter = searchBar.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const aTags = document.getElementById('tracks-list').getElementsByClassName('track');
-        for (const a of aTags) {
+        const trackRows = document.getElementById('tracks-list').getElementsByClassName('trackRow');
+        for (const trackRow of trackRows) {
+            a = trackRow.firstElementChild;
             const txtValue = (a.textContent || a.innerText).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (txtValue.indexOf(filter) > -1) {
                 a.style.display = '';
