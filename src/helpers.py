@@ -1041,7 +1041,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
                 music_lib.items()]
     lib_headings = ['title', 'artist', 'album']
-    library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30,
+    library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
                                 col_widths=[25, 15, 15], bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
                                 justification='right', num_rows=14 - 3 * settings['vertical_gui'],
                                 right_click_menu=['', ['Play::library', 'Play Next::library',
