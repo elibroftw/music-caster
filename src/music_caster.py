@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.86.2'
+VERSION = latest_version = '4.86.3'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -2403,7 +2403,7 @@ def read_main_window():
                 library_metadata['sort_by'] = col_index
                 reverse = library_metadata['ascending'] = True
             library_items = main_window['library'].Values
-            library_items.sort(key=lambda row: row[col_index - 1].lower(), reverse=reverse)
+            library_items.sort(key=lambda row: row[col_index - 1].lower(), reverse=not reverse)
             main_window['library'].update(library_items)
         elif main_event == 'Locate::library':
             for index in main_values['library']:
