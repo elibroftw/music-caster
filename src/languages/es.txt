@@ -160,3 +160,5 @@ Biblioteca de cola siempre
 Jugar con Music Caster
 Cola en Music Caster
 Reproducir a continuación en Music Caster
+Hacer Cola
+Cola inteligente

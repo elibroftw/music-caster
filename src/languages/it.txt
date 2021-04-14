@@ -160,3 +160,5 @@ Metti sempre in coda la libreria
 Gioca con Music Caster
 Coda in Music Caster
 Riproduci successivo in Music Caster
+Fare la Fila
+Coda intelligente

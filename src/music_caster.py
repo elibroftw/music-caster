@@ -1,7 +1,6 @@
-VERSION = latest_version = '4.86.6'
+VERSION = latest_version = '4.87.0'
 UPDATE_MESSAGE = """
-[Feature] Locate tracks in playlists
-[Feature] Added option to remember selected folder
+[Feature] Smart queue (auto skip)
 [HELP] Could use some translators
 """.strip()
 import argparse
@@ -218,7 +217,7 @@ progress_bar_last_update = track_position = timer = track_end = track_length = t
 DEFAULT_FOLDER = home_music_folder = f'{Path.home()}/Music'.replace('\\', '/')
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
-    'previous_device': None, 'window_locations': {}, 'update_message': '',
+    'previous_device': None, 'window_locations': {}, 'update_message': '', 'smart_queue': False, 'skips': {},
     'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': False, 'repeat': None,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'persistent_queue': False,
     'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
@@ -253,7 +252,7 @@ def save_settings():
     with settings_file_lock:
         try:
             with open(SETTINGS_FILE, 'w') as outfile:
-                json.dump(settings, outfile, indent=4)
+                json.dump(settings, outfile, indent=2)
             settings_last_modified = os.path.getmtime(SETTINGS_FILE)
         except OSError as _e:
             if _e.errno == errno.ENOSPC:
@@ -420,14 +419,15 @@ def handle_exception(exception, restart_program=False):
     if restart_program:
         with suppress(Exception): stop('error handling')
         tray_notify(gt('An error occurred, restarting now'))
+        tray_process_queue.put({'method': 'hide'})
         time.sleep(2)
-        tray_process_queue.put({'method': 'close'})
+        tray_process.terminate()
         if IS_FROZEN: os.startfile('Music Caster.exe')
         else: raise exception  # raise exception if running in script rather than executable
         sys.exit()
 
 
-def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, None)
+def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
     with suppress(MutagenError):
         folder = os.path.dirname(file_path)
         if settings['folder_cover_override']:
@@ -435,33 +435,28 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str / (None, Non
                 folder_cover = os.path.join(folder, f'cover.{ext}')
                 if os.path.exists(folder_cover):
                     with open(folder_cover, 'rb') as f:
-                        data = base64.b64encode(f.read())
-                    return ext, data
+                        return ext, base64.b64encode(f.read())
         tags = mutagen.File(file_path)
         if tags is not None:
             for tag in tags.keys():
                 if 'APIC' in tag:
                     return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
-    return None, None
+    return 'image/png', DEFAULT_ART
 
 
-def get_current_album_art():
+def get_current_art():
     if sar.alive: return custom_art('SYS')
-    art = None
     if playing_status.busy() and music_queue:
         uri = music_queue[0]
         if uri.startswith('http'):
-            try:
-                # use 'art_data' else download 'art' link and cache to 'art_data'
-                if 'art_data' in url_metadata[uri]: return url_metadata[uri]['art_data']
-                art_src = url_metadata[uri]['art']  # 'art' is a key to a value of a link
-                url_metadata[uri]['art_data'] = art_data = base64.b64encode(requests.get(art_src).content)
-                return art_data
-            except KeyError:
-                return custom_art('URL')
+            if 'art' not in url_metadata.get(uri, {}): return custom_art('URL')
+            if 'art_data' in url_metadata[uri]: return url_metadata[uri]['art_data']
+            # use 'art_data' else download 'art' link and cache to 'art_data'
+            url_metadata[uri]['art_data'] = base64.b64encode(requests.get(url_metadata[uri]['art']).content)
+            return url_metadata[uri]['art_data']
         with suppress(MutagenError):
-            art = get_album_art(uri)[1]  # get_album_art(uri)[1] can be None
-    return DEFAULT_ART if art is None else art
+            return get_album_art(uri)[1]
+    return DEFAULT_ART
 
 
 def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
@@ -686,7 +681,7 @@ def web_index():  # web GUI
             return api_msg
         return redirect('/')
     metadata = get_current_metadata()
-    art = get_current_album_art()
+    art = get_current_art()
     if type(art) == bytes: art = art.decode()
     art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
@@ -851,12 +846,9 @@ def api_get_file():
         if os.path.isfile(file_path) and valid_audio_file(file_path) or file_path == 'DEFAULT_ART':
             if request.args.get('thumbnail_only', False) or file_path == 'DEFAULT_ART':
                 mime_type, img_data = get_album_art(file_path)
-                if mime_type is None:
-                    mime_type, img_data = 'image/png', DEFAULT_ART
-                else:
-                    img_data = base64.b64decode(img_data)
+                img_data = base64.b64decode(img_data)
                 try:
-                    ext = mime_type.split('/')[1]
+                    ext = mime_type.rsplit('/', 1)[1]
                 except IndexError:
                     ext = 'png'
                 return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
@@ -1266,7 +1258,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                         uris_to_scan.put(deezer_track['src'])
                         metadata_list.append(deezer_track)
     if metadata_list and fetch_art:
-        # fetch and cache album art for first url
+        # fetch and cache artwork for first url
         metadata = metadata_list[0]
         if 'art' in metadata and 'art_data' not in metadata:
             url_metadata[metadata['src']]['art_data'] = base64.b64encode(requests.get(metadata['art']).content)
@@ -1679,6 +1671,10 @@ def next_track(from_timeout=False, times=1, forced=False):
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
         playing_status.stop()
     elif (forced or playing_status.busy() and not sar.alive) and (next_queue or music_queue):
+        # keep track of skips (used by smart queue feature)
+        if music_queue and track_position < 5 and not from_timeout and playing_status.busy():
+            settings['skips'][music_queue[0]] = settings['skips'].get(music_queue[0], 0) + 1
+            save_settings()
         # if repeat all or repeat is off or empty queue or manual next
         if not settings['repeat'] or not music_queue or not from_timeout:
             if settings['repeat']: change_settings('repeat', False)
@@ -1689,8 +1685,23 @@ def next_track(from_timeout=False, times=1, forced=False):
                 if not music_queue and settings['repeat'] is False and done_queue:
                     music_queue.extend(done_queue)
                     done_queue.clear()
-        try: play(music_queue[0])
-        except IndexError: stop('next track')  # repeat is off / no tracks in queue
+        if music_queue:
+            if settings['smart_queue'] and from_timeout:
+                # auto skip tracks that are likely to be skipped.
+                # instead of using an arbitrary number, compare to median skips
+                while settings['skips'].get(music_queue[0], 0) > 3:
+                    if music_queue: done_queue.append(music_queue.popleft())
+                    if next_queue: music_queue.insert(0, next_queue.popleft())
+                    # if queue is empty but repeat is all AND there are tracks in the done_queue
+                    if not music_queue and settings['repeat'] is False and done_queue:
+                        music_queue.extend(done_queue)
+                        done_queue.clear()
+            elif times > 1:  # explicitly selected
+                settings['skips'].get(music_queue[0])  # reset skip counter
+                save_settings()
+            play(music_queue[0])
+        else:
+            stop('next track')  # repeat is off / no tracks in queue
 
 
 def prev_track(times=1, forced=False):
@@ -1724,7 +1735,7 @@ def background_tasks():
     global update_last_checked, latest_version, exit_flag, update_volume_slider, update_gui_queue
     if not settings.get('DEBUG', DEBUG): send_info()
     create_shortcut()  # threaded
-    pynput.keyboard.Listener(on_press=on_press, on_release=on_release).start()  # daemon = True
+    pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key))).start()
     if not args.uris: ydl.add_default_info_extractors()
     while not exit_flag:
         # if settings.json was updated outside of Music Caster, reload settings
@@ -1806,10 +1817,6 @@ def on_press(key):
     last_press = time.time()
 
 
-def on_release(key):
-    with suppress(KeyError): PRESSED_KEYS.remove(str(key))
-
-
 def get_window_location():
     if not settings['save_window_positions']: return None, None
     if settings['mini_mode']: return settings['window_locations'].get('main_mini_mode', (None, None))
@@ -1850,7 +1857,7 @@ def set_callbacks():
     main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
 
 
-def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
+def activate_main_window(selected_tab=None, url_option='url_play'):
     global active_windows, main_window, pl_name, pl_tracks
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     app_log.info(f'activate_main_window: selected_tab={selected_tab}, already_active={active_windows["main"]}')
@@ -1863,7 +1870,7 @@ def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
         if settings['show_album_art']:
             size = COVER_MINI if mini_mode else COVER_NORMAL
             try:
-                album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+                album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
             except (UnidentifiedImageError, OSError):
                 album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
         else:
@@ -1898,8 +1905,7 @@ def activate_main_window(selected_tab=None, url_option='url_play_immediately'):
         main_window[selected_tab].select()
         if selected_tab == 'tab_timer': main_window['timer_input'].set_focus()
         if selected_tab == 'tab_url':
-            with suppress(KeyError):
-                main_window[url_option].update(True)
+            main_window[url_option].update(True)
             main_window['url_input'].set_focus()
             default_text: str = pyperclip.paste()
             if default_text.startswith('http'):
@@ -2044,10 +2050,10 @@ def read_main_window():
         if settings['show_album_art']:
             size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
             try:
-                album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+                album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
             except (UnidentifiedImageError, OSError):
                 album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
-            main_window['album_art'].update(data=album_art_data)
+            main_window['artwork'].update(data=album_art_data)
         update_gui_queue = True
     # update timer text if timer is old
     if not settings['mini_mode'] and timer == 0 and main_window['timer_text'].metadata:
@@ -2445,7 +2451,7 @@ def read_main_window():
         Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{Shared.PORT}']).start()
     # toggle settings
     elif main_event in {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
-                        'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang',
+                        'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang', 'smart_queue',
                         'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui', 'use_last_folder',
                         'show_album_art', 'reversed_play_next', 'scan_folders', 'show_queue_index', 'queue_library'}:
         change_settings(main_event, main_value)
@@ -2482,10 +2488,10 @@ def read_main_window():
         elif main_event == 'folder_cover_override':
             size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
             try:
-                album_art_data = resize_img(get_current_album_art(), settings['theme']['background'], size).decode()
+                album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
             except (UnidentifiedImageError, OSError):
                 album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
-            main_window['album_art'].update(data=album_art_data)
+            main_window['artwork'].update(data=album_art_data)
         elif main_event == 'lang':
             Shared.lang = main_value
             active_windows['main'] = False
@@ -2610,8 +2616,7 @@ def read_main_window():
             locate_uri(uri=playlist_path)
     elif main_event == 'del_pl':
         pl_name = main_values.get('playlist_combo', '')
-        if pl_name in playlists:
-            del playlists[pl_name]
+        playlists.pop(pl_name, None)
         playlist_names = tuple(settings['playlists'].keys())
         pl_name = playlist_names[0] if playlist_names else ''
         main_window['playlist_combo'].update(value=pl_name, values=playlist_names)

@@ -160,3 +160,5 @@ Always queue library
 Play with Music Caster
 Queue in Music Caster
 Play next in Music Caster
+Queueing
+Smart queue

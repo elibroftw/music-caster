@@ -963,7 +963,7 @@ def truncate_title(title):
 
 def create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position):
     # album_art_data is 125 x 125
-    album_art = Sg.Column([[Sg.Image(data=album_art_data, key='album_art', pad=(0, 0))]],
+    album_art = Sg.Column([[Sg.Image(data=album_art_data, key='artwork', pad=(0, 0))]],
                           element_justification='left', pad=(0, 0))
     music_controls = get_music_controls(settings, playing_status)
     progress_bar_layout = get_progress_layout(settings, track_position, track_length, playing_status)
@@ -992,7 +992,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     # 10 or 30
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
-        [Sg.Image(data=album_art_data, pad=(0, 0), size=COVER_NORMAL, key='album_art')] if album_art_data else [],
+        [Sg.Image(data=album_art_data, pad=(0, 0), size=COVER_NORMAL, key='artwork')] if album_art_data else [],
         [Sg.Text(album, font=FONT_MID, key='album', pad=((0, 0), (info_top_pad, 0)), enable_events=True,
                  size=(30, 2), justification='center')],
         [Sg.Text(title, font=FONT_TITLE, key='title', pad=((0, 0), 4), enable_events=True,
@@ -1129,15 +1129,18 @@ def create_settings(version, settings):
          create_checkbox(gt('Run on startup'), 'run_on_startup', settings, True)],
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
-        [create_checkbox(gt('Populate queue on startup'), 'populate_queue_startup', settings),
-         create_checkbox(gt('Persistent queue'), 'persistent_queue', settings, True)],
-        [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
-         create_checkbox(gt('Always queue library'), 'queue_library', settings, True)],
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
          Sg.Text('🌐'),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
                   enable_events=True)]
-    ], key='settings_tab_general', background_color=bg)
+    ], background_color=bg)
+    queuing_tab = Sg.Tab(gt('Queueing'), [
+        [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
+         create_checkbox(gt('Always queue library'), 'queue_library', settings, True)],
+        [create_checkbox(gt('Populate queue on startup'), 'populate_queue_startup', settings),
+         create_checkbox(gt('Persistent queue'), 'persistent_queue', settings, True)],
+        [create_checkbox(gt('Smart queue'), 'smart_queue', settings)]
+    ])
     ui_tab = Sg.Tab(gt('UI'), [
         [create_checkbox(gt('Save window positions'), 'save_window_positions', settings),
          create_checkbox(gt('Show track number'), 'show_track_number', settings, True)],
@@ -1147,9 +1150,9 @@ def create_settings(version, settings):
          create_checkbox(gt('Mini mode on top'), 'mini_on_top', settings, True)],
         [create_checkbox(gt('Use cover.* for album art'), 'folder_cover_override', settings),
          create_checkbox(gt('Show index in queue'), 'show_queue_index', settings, True)]
-    ], key='settings_tab_ui', background_color=bg)
-    settings_tab_group = Sg.TabGroup([[general_tab, ui_tab]], title_color=fg, key='tab_group_settings', border_width=0,
-                                     selected_background_color=accent_color, enable_events=True, font=FONT_TAB,
+    ], background_color=bg)
+    settings_tab_group = Sg.TabGroup([[general_tab, queuing_tab, ui_tab]], title_color=fg,
+                                     border_width=0, selected_background_color=accent_color, font=FONT_TAB,
                                      tab_background_color=bg, selected_title_color=bg, background_color=bg)
     checkbox_col = Sg.Column([[settings_tab_group]], pad=((0, 0), (5, 0)))
     qr_code_params = {'tooltip': gt('Web GUI QR Code (click or scan)'), 'button_color': (bg, bg)}

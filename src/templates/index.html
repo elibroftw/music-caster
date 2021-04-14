@@ -20,7 +20,7 @@
     <div class="player__container">
         <div class="player__body">
             <div class="body__cover">
-                <img src="{{art|safe}}" alt="Album Art" style="text-align: center" />
+                <img src="{{art|safe}}" alt="Artwork" style="text-align: center" />
             </div>
             <div class="body__info">
                 <div id="info__album">{{metadata['album'] if metadata['album'] else '<br>'|safe}}</div>
@@ -156,7 +156,8 @@
                 ('scan_folders', gt('Scan folders'), gt('Scan folders')),
                 ('show_queue_index', gt('Show index in queue')),
                 ('queue_library', gt('Always queue library')),
-                ('use_last_folder', gt('Remember last folder'))
+                ('use_last_folder', gt('Remember last folder')),
+                ('smart_queue', gt('Smart queue'))
             ) %}
             {% for setting_toggle in setting_toggles %}
             <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">

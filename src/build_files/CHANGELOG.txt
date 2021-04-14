@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.87.0
+- [Feature] Smart queue (auto skip)
+
 4.86.6
 - [Fix] Mini-mode
 
