@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.86.3'
+VERSION = latest_version = '4.86.4'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder

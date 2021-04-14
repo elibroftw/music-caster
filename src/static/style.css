@@ -506,7 +506,7 @@ input:checked+.slider:before {
     }
 
     .playLink, .playPlaylist {
-        width: 90%;
+        width: 80%;
     }
 }
 
