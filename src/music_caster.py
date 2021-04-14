@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.86.5'
+VERSION = latest_version = '4.86.6'
 UPDATE_MESSAGE = """
 [Feature] Locate tracks in playlists
 [Feature] Added option to remember selected folder
@@ -1819,7 +1819,6 @@ def get_window_location():
 
 def set_callbacks():
     """ Set callbacks for the main window """
-    library_tree_view = main_window['library'].TKTreeview
 
     def save_window_position(event):
         if event.widget is main_window.TKroot:
@@ -1829,14 +1828,15 @@ def set_callbacks():
             save_settings()
 
     def library_events(event):
+        library_tree_view = main_window['library'].TKTreeview
         region = library_tree_view.identify('region', event.x, event.y)
         column_index = library_tree_view.identify_column(event.x).replace('#', '')
         main_window.metadata['library']['region'] = region
         main_window.metadata['library']['column'] = int(column_index)
 
     if not settings['mini_mode']:
-        library_tree_view.bind('<Button-1>', library_events, add='+')
-        library_tree_view.bind('<Double-Button-1>', library_events, add='+')
+        main_window['library'].TKTreeview.bind('<Button-1>', library_events, add='+')
+        main_window['library'].TKTreeview.bind('<Double-Button-1>', library_events, add='+')
         scroll_areas = ['queue', 'pl_tracks', 'library']
         for scroll_area in scroll_areas:
             main_window[scroll_area].bind('<Enter>', '_mouse_enter')

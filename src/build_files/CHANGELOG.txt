@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.86.6
+- [Fix] Mini-mode
+
 4.86.5
 - [Fix] Library tab
 
