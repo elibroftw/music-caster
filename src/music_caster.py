@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.87.0'
+VERSION = latest_version = '4.87.1'
 UPDATE_MESSAGE = """
 [Feature] Smart queue (auto skip)
 [HELP] Could use some translators
@@ -346,7 +346,8 @@ def save_queues():
 
 def update_volume(new_vol):
     """new_vol: float[0, 100]"""
-    if active_windows['main']: main_window['volume_slider'].update(value=new_vol)
+    global update_volume_slider
+    if active_windows['main']: update_volume_slider = True
     new_vol = new_vol / 100
     audio_player.set_volume(new_vol)
     if cast is not None:
@@ -1561,6 +1562,7 @@ def pause():
     """
     global track_position
     if playing_status.playing():
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         try:
             if cast is None:
                 track_position = time.time() - track_start
@@ -2528,17 +2530,19 @@ def read_main_window():
     # url tab
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
           and main_values.get('tab_group', None) == 'tab_url' and main_values['url_input']):
-        url_to_insert = main_values['url_input']
+        urls_to_insert = main_values['url_input']
+        if '\n' in urls_to_insert: urls_to_insert = urls_to_insert.split('\n')
+        else: urls_to_insert = urls_to_insert.split(';')
         if main_values['url_play'] or not music_queue:
-            music_queue.insert(0, url_to_insert)
-            play(url_to_insert)
+            music_queue.extendleft(reversed(urls_to_insert))
+            play(music_queue[0])
+            urls_to_insert.pop(0)
         elif main_values['url_queue']:
-            music_queue.append(url_to_insert)
-            uris_to_scan.put(url_to_insert)
+            music_queue.extend(urls_to_insert)
         else:  # add to next queue
-            if settings['reversed_play_next']: next_queue.insert(0, url_to_insert)
-            else: next_queue.append(url_to_insert)
-            uris_to_scan.put(url_to_insert)
+            if settings['reversed_play_next']: next_queue.extendleft(reversed(urls_to_insert))
+            else: next_queue.extend(urls_to_insert)
+        for inserted_url in urls_to_insert: uris_to_scan.put(inserted_url)
         main_window['url_input'].update(value='')
         main_window['url_input'].set_focus()
         update_gui_queue = True
@@ -2677,18 +2681,21 @@ def read_main_window():
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event == 'pl_add_url':
-        link = main_values['pl_url_input']
-        if link.startswith('http://') or link.startswith('https://'):
-            uris_to_scan.put(link)
-            pl_tracks.append(link)
-            new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
-            new_i = len(new_values) - 1
-            main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-            # empty the input field
-            main_window['pl_url_input'].update(value='')
-            main_window['pl_url_input'].set_focus()
-        else:
-            tray_notify(gt('ERROR') + ': ' + gt("Invalid URL. URL's need to start with http:// or https://"))
+        links = main_values['pl_url_input']
+        if '\n' in links: links = links.split('\n')
+        else: links = links.split(';')
+        for link in links:
+            if link.startswith('http://') or link.startswith('https://'):
+                uris_to_scan.put(link)
+                pl_tracks.append(link)
+                new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
+                new_i = len(new_values) - 1
+                main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+                # empty the input field
+                main_window['pl_url_input'].update(value='')
+                main_window['pl_url_input'].set_focus()
+            else:
+                tray_notify(gt('ERROR') + ': ' + gt("Invalid URL. URL's need to start with http:// or https://"))
     elif main_event == 'pl_move_up':
         # only allow moving up if 1 item is selected and pl_files is not empty
         for i, to_move in enumerate(main_window['pl_tracks'].get_indexes(), 1):

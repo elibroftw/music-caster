@@ -334,7 +334,7 @@ class ProgressUpload:
 
     def __iter__(self):
         progress_str = f'0 / {self.file_size / self.divisor:.2f} {self.unit} (0 %)'
-        sys.stderr.write(f'\rUploading {dist_file}: {progress_str}')
+        sys.stderr.write(f'\rUploading {self.filename}: {progress_str}')
         with open(self.filename, 'rb') as f:
             for chunk in iter(lambda: f.read(self.chunk_size), b''):
                 self.size_read += len(chunk)
@@ -346,6 +346,7 @@ class ProgressUpload:
                 progress_str = f'{completed_str} / {to_complete_str} ({percentage:.2f} %)'
                 sys.stderr.write(progress_str)
         sys.stderr.write('\n')
+        sys.stderr.flush()
 
     def __len__(self):
         return self.file_size

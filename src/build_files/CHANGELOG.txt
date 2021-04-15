@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.87.1
+- [Fix] Multiple URL input support
+
 4.87.0
 - [Feature] Smart queue (auto skip)
 
