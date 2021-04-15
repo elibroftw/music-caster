@@ -345,8 +345,8 @@ class ProgressUpload:
                 to_complete_str = f'{self.file_size / self.divisor:.2f} {self.unit}'
                 progress_str = f'{completed_str} / {to_complete_str} ({percentage:.2f} %)'
                 sys.stderr.write(progress_str)
+                sys.stderr.flush()
         sys.stderr.write('\n')
-        sys.stderr.flush()
 
     def __len__(self):
         return self.file_size
