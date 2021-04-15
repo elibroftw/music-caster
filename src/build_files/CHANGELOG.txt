@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.87.2
+- [Fix] Volume slider
+- [Fix] URL resumption after long time
+- [Fix] Prevent sleep after resuming playback
+
 4.87.1
 - [Fix] Multiple URL input support
 
