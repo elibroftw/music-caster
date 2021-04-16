@@ -1103,7 +1103,7 @@ def create_playlists_tab(settings):
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S', button_color=(bg, bg))],
               [Sg.Column([url_input, add_url, add_tracks]),
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
-                          key='pl_tracks', background_color=bg, font=FONT_NORMAL, enable_events=True),
+                          key='pl_tracks', background_color=bg, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(
                    [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), size=(2, 1))],
                     [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), size=(2, 1))],

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.87.5
+- [Fix] Playlists tab
+
 4.87.4
 - [Feature] Twitch support
 

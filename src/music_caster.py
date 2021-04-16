@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.87.4'
+VERSION = latest_version = '4.87.5'
 UPDATE_MESSAGE = """
 [Feature] Smart queue (auto skip)
 [HELP] Could use some translators
