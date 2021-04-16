@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.87.5'
+VERSION = latest_version = '4.87.6'
 UPDATE_MESSAGE = """
 [Feature] Smart queue (auto skip)
 [HELP] Could use some translators
@@ -2650,7 +2650,8 @@ def read_main_window():
         for link in links:
             if link.startswith('http://') or link.startswith('https://'):
                 uris_to_scan.put(link)
-                pl_tracks = main_window.metadata['pl_tracks'].append(link)
+                pl_tracks = main_window.metadata['pl_tracks']
+                pl_tracks.append(link)
                 new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
                 new_i = len(new_values) - 1
                 main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
