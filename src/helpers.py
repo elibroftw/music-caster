@@ -925,7 +925,7 @@ def create_progress_bar_text(position, length) -> (str, str):  #
         mins_left, secs_left = time_left // 60, time_left % 60
         if secs_left < 10: secs_left = f'0{secs_left}'
         time_left_text = f'{mins_left}:{secs_left}'
-    except ValueError:
+    except TypeError:
         time_left_text = '∞'
     return elapsed_text, time_left_text
 
@@ -940,10 +940,11 @@ def get_progress_layout(settings, track_position, track_length, playing_status: 
     time_left_pad = ((0, 0), (0, 0)) if mini_mode else ((5, 0), (10, bot_pad))
     progress_layout = [Sg.Text(time_elapsed, key='time_elapsed', pad=time_elapsed_pad, justification='center',
                                size=text_size, font=FONT_NORMAL),
-                       Sg.Slider(range=(0, track_length), default_value=track_position,
+                       Sg.Slider(range=(0, 1 if track_length is None else track_length),
+                                 default_value=1 if track_length is None else track_position,
                                  orientation='h', size=(20 if mini_mode else 30, 10), key='progress_bar',
                                  enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
-                                 disable_number_display=True, disabled=playing_status.stopped(),
+                                 disable_number_display=True, disabled=playing_status.stopped() or track_length is None,
                                  tooltip=gt('scroll mousewheel'),
                                  pad=((2, 10), (0, 0)) if mini_mode else ((8, 8), (10, bot_pad))),
                        Sg.Text(time_left, key='time_left', pad=time_left_pad, justification='left',

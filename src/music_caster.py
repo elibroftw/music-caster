@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.87.3'
+VERSION = latest_version = '4.87.4'
 UPDATE_MESSAGE = """
 [Feature] Smart queue (auto skip)
 [HELP] Could use some translators
@@ -1116,10 +1116,9 @@ def play_system_audio(switching_device=False):
             while not mc.status.player_is_playing: time.sleep(0.01)
             mc.play()
             sar.lag = time.time() - start_time  # ~1 second
-            track_length = 60 * 60 * 3  # 3 hour default
+            track_length = None
             track_position = 0
             track_start = time.time() - track_position
-            track_end = track_start = track_length
             after_play(title, artist, True, switching_device)
             return True
         except NotConnected:
@@ -1140,11 +1139,20 @@ def get_url_metadata(url, fetch_art=True) -> list:
         ext = url[::-1].split('.', 1)[0][::-1]
         url_frags = urlsplit(url)
         title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
-        url_metadata[url] = metadata = {'title': title, 'artist': artist, 'length': 108000, 'album': album,
+        url_metadata[url] = metadata = {'title': title, 'artist': artist, 'length': None, 'album': album,
                                         'src': url, 'url': url, 'ext': ext, 'expired': lambda: False}
         metadata_list.append(metadata)
+    elif 'twitch.tv' in url:
+        with suppress(StopIteration, DownloadError):
+            r = ydl.extract_info(url, download=False)
+            audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
+            metadata = {'title': r['description'], 'artist': r['uploader'], 'ext': r['ext'],
+                        'expired': lambda: False, 'album': 'Twitch', 'length': None,
+                        'art': r['thumbnail'], 'url': r['url'], 'audio_url': audio_url, 'src': url}
+            url_metadata[url] = metadata
+            metadata_list.append(metadata)
     elif 'soundcloud.com' in url:
-        with suppress(StopIteration, DownloadError, KeyError):
+        with suppress(StopIteration, DownloadError):
             r = ydl.extract_info(url, download=False)
             if 'entries' in r:
                 for entry in r['entries']:
@@ -1166,14 +1174,13 @@ def get_url_metadata(url, fetch_art=True) -> list:
                                                 'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                 metadata_list.append(metadata)
     elif get_yt_id(url) is not None or url.startswith('ytsearch:'):
-        with suppress(StopIteration, DownloadError, KeyError):
+        with suppress(DownloadError):
             r = ydl.extract_info(url, download=False)
             if 'entries' in r:
                 for entry in r['entries']:
                     audio_url = max(entry['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                    formats.sort(key=lambda _f: _f['width'])
-                    _f = formats[0]
+                    _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
                     expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
                     album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
@@ -1185,12 +1192,16 @@ def get_url_metadata(url, fetch_art=True) -> list:
             else:
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                formats.sort(key=lambda _f: _f['width'])
-                _f = formats[0]
-                expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
+                _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
+                try:
+                    expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
+                except KeyError:
+                    expiry_time = int(re.search(r'expire/\d+', _f['url']).group().split('/', 1)[1])
+                is_expired = lambda: time.time() > expiry_time
+                length = r['duration'] if r['duration'] != 0 else None
                 metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                            'expired': lambda: time.time() > expiry_time,
-                            'album': r.get('album', 'YouTube'), 'length': r['duration'], 'ext': _f['ext'],
+                            'expired': is_expired,
+                            'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
                             'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
                 for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
                 url_metadata[url] = metadata
@@ -1273,6 +1284,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         ext = metadata['ext']
         url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
         thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART'
+        track_length = metadata['length']
         if cast is None:
             audio_player.play(url, start_playing=autoplay, start_from=position)
         else:
@@ -1284,17 +1296,19 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                 mc.stop()
                 mc.block_until_active(WAIT_TIMEOUT)
             _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            stream_type = 'LIVE' if track_length is None else 'BUFFERED'
             mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
-                          current_time=position, autoplay=autoplay)
+                          current_time=position, autoplay=autoplay, stream_type=stream_type)
             mc.block_until_active(WAIT_TIMEOUT)
             start_time = time.time()
             while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
                 time.sleep(0.2)
-                if time.time() - start_time > 5: break  # show error?
+                if time.time() - start_time > 5: break
+            if track_length is None: mc.play()
         track_position = position
-        track_length = metadata['length']
         track_start = time.time() - track_position
-        track_end = track_start + track_length
+        if track_length is not None:
+            track_end = track_start + track_length
         playing_url = True
         after_play(title, artist, autoplay, switching_device)
         return True
@@ -1527,7 +1541,6 @@ def folder_action(action='Play Folder'):
 def get_track_position():
     global track_position
     if cast is not None:
-        if sar.alive: return track_length
         try:
             mc = cast.media_controller
             mc.update_status()
@@ -1597,7 +1610,8 @@ def resume():
                 while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
                 track_position = mc.status.adjusted_current_time
             track_start = time.time() - track_position
-            track_end = track_start + track_length
+            if track_length is not None:
+                track_end = track_start + track_length
             playing_status.play()
             metadata = get_current_metadata()
             title, artist = metadata['title'], get_first_artist(metadata['artist'])
@@ -1744,12 +1758,13 @@ def background_tasks():
                         if abs(mc.status.adjusted_current_time - track_position) > 0.5:
                             track_position = mc.status.adjusted_current_time
                             track_start = time.time() - track_position
-                            track_end = track_start + track_length
+                            if track_length is not None:
+                                track_end = track_start + track_length
                     if is_paused:
                         pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing:
                         resume()
-                    elif is_stopped and playing_status.busy() and (track_end is None or time.time() - track_end > 1):
+                    elif is_stopped and playing_status.busy() and track_length is not None and time.time() - track_end > 1:
                         # if cast says nothing is playing, only stop if we are not at the end of the track
                         #  this will prevent false positives
                         stop('background tasks', False)
@@ -1979,7 +1994,7 @@ def other_tray_actions(_tray_item):
         else:
             Thread(target=play_uris, name='PlayFolder', daemon=True,
                    args=[[music_folders[tray_folders.index(_tray_item) - 1]]]).start()
-    elif playing_status.playing() and not sar.alive and time.time() > track_end:
+    elif playing_status.playing() and track_length is not None and time.time() > track_end:
         next_track(from_timeout=time.time() > track_end)
     elif timer and time.time() > timer:
         stop('timer')
@@ -2057,7 +2072,7 @@ def read_main_window():
         main_event = main_event.split(':', 1)[1]
         delta = {'Up': 5, 'Down': -5}.get(main_event, 0)
         if main_window.metadata['mouse_hover'] == 'progress_bar':
-            if playing_status.busy():
+            if playing_status.busy() and track_length is not None:
                 get_track_position()
                 new_position = min(max(track_position + delta, 0), track_length)
                 main_window['progress_bar'].update(value=new_position)
@@ -2072,7 +2087,7 @@ def read_main_window():
     # needs to be in its own if statement because it tell the progress bar to update later on
     if main_event in {'j', 'l'} and (settings['mini_mode'] or
                                      main_values['tab_group'] not in {'tab_timer', 'tab_playlists'}):
-        if playing_status.busy():
+        if playing_status.busy() and track_length is not None:
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             get_track_position()
             new_position = min(max(track_position + delta, 0), track_length)
@@ -2375,7 +2390,7 @@ def read_main_window():
             else:
                 # play_next has priority over queue_uris
                 play_uris(paths_to_play, queue_uris=True, play_next=main_event == 'Play Next::library')
-    elif main_event == 'progress_bar' and not sar.alive:
+    elif main_event == 'progress_bar' and track_length is not None:
         if playing_status.stopped():
             main_window['progress_bar'].update(disabled=True, value=0)
             return
@@ -2694,7 +2709,7 @@ def read_main_window():
         progress_bar.update(0, disabled=True)
     elif music_queue:
         progress_bar.update(floor(track_position), range=(0, track_length), disabled=False)
-    elif not sar.alive:
+    elif track_length is not None:
         playing_status.stop()
 
     # update pause resume button

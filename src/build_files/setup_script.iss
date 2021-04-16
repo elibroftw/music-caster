@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "4.87.3"
+#define MyAppVersion "4.87.4"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.herokuapp.com/software#music-caster"
 #define MyAppExeName "Music Caster.exe"
