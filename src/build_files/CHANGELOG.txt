@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.87.3
+- [Fix] Playlists tab
+- [Fix] Move to next queue
+
 4.87.2
 - [Fix] Volume slider
 - [Fix] URL resumption after long time

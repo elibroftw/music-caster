@@ -162,3 +162,4 @@ Queue in Music Caster
 Play next in Music Caster
 Queueing
 Smart queue
+add to next up

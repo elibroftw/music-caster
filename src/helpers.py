@@ -1016,7 +1016,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
                    [round_btn(folder_opts[0], accent_color, bg, key='folder_action',
                               button_width=biggest_word)]]),
     ]
-    move_to_next_up = {'image_data': MOVE_TO_NEXT_QUEUE, 'button_color': (bg, bg), 'tooltip': gt('Move to next up')}
+    move_to_next_up = {'image_data': PLAY_NEXT_ICON, 'button_color': (bg, bg), 'tooltip': gt('Move to next up')}
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, button_color=(bg, bg), tooltip=gt('Launch mini mode'))],
         [Sg.Button(key='queue_all', image_data=QUEUE_ICON, button_color=(bg, bg), tooltip=gt('queue all'))],
@@ -1085,6 +1085,7 @@ def create_playlists_tab(settings):
          Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'),
                    pad=((12, 5), 5), button_color=(bg, bg)),
          Sg.Button(image_data=QUEUE_ICON, key='queue_pl', tooltip=gt('queue playlist'), button_color=(bg, bg)),
+         Sg.Button(image_data=PLAY_NEXT_ICON, key='add_next_pl', tooltip=gt('add to next up'), button_color=(bg, bg)),
          Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''

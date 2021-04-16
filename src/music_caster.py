@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.87.2'
+VERSION = latest_version = '4.87.3'
 UPDATE_MESSAGE = """
 [Feature] Smart queue (auto skip)
 [HELP] Could use some translators
@@ -2182,7 +2182,7 @@ def read_main_window():
             for index in main_window['queue'].get_indexes(): locate_uri(index - len(done_queue))
         else: locate_uri()
     elif main_event == 'move_to_next_up':
-        for i, index_to_move in enumerate(main_window['queue'].get_indexes()):
+        for i, index_to_move in enumerate(main_window['queue'].get_indexes(), 1):
             dq_len = len(done_queue)
             nq_len = len(next_queue)
             if index_to_move < dq_len:
@@ -2587,6 +2587,9 @@ def read_main_window():
     elif main_event == 'queue_pl':
         playlist_action(main_values['playlist_combo'], 'queue')
         main_window.metadata['update_listboxes'] = True
+    elif main_event == 'add_next_pl':
+        playlist_action(main_values['playlist_combo'], 'next')
+        main_window.metadata['update_listboxes'] = True
     elif main_event in {'pl_save', 's:83'}:  # save playlist
         if main_values['playlist_name']:
             pl_name = main_window.metadata['pl_name']
@@ -2661,7 +2664,7 @@ def read_main_window():
                 if i == len(main_values['pl_tracks']):  # update gui after the last swap
                     new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
                     main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif main_event == 'pl_locate_track':
+    elif main_event in {'pl_locate_track', 'pl_tracks'}:
         for i in main_window['pl_tracks'].get_indexes(): locate_uri(uri=main_window.metadata['pl_tracks'][i])
     # other GUI updates
     if main_window.metadata['update_listboxes'] and not settings['mini_mode']:
