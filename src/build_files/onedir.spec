@@ -12,9 +12,10 @@ CONF['distpath'] = './dist'
 block_cipher = None
 vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('vlc_lib/**/*.*', recursive=True)]
 lang_packs = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('languages/*.txt')]
+tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
 data_files = [('Music Caster.VisualElementsManifest.xml', '.'),
               (os.path.abspath('templates/index.html'), 'templates'),
-              (os.path.abspath('static/style.css'), 'static')] + vlc_files + lang_packs
+              (os.path.abspath('static/style.css'), 'static')] + vlc_files + lang_packs + tkdnd
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],

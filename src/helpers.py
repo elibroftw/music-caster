@@ -1334,7 +1334,7 @@ def create_settings(version, settings):
         [Sg.Text(f'Music Caster v{version} by Elijah Lopez', font=FONT_NORMAL),
          Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
         [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
-        [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_SINGLE, text_color=fg,
+        [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                     key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True,
                     no_scrollbar=True),
          Sg.Column([
@@ -1400,3 +1400,26 @@ def steal_focus(window: Sg.Window):
     keybd_event(alt_key, 0, extended_key | 0, 0)
     ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
     keybd_event(alt_key, 0, extended_key | key_up, 0)
+
+
+# TKDnD
+# noinspection PyProtectedMember
+def drop_target_register(widget, *dndtypes):
+    widget.tk.call('tkdnd::drop_target', 'register', widget._w, dndtypes)
+
+
+# noinspection PyProtectedMember
+def dnd_bind(widget, sequence=None, func=None, add=None, need_cleanup=True):
+    """Internal function."""
+    what = ('bind', widget._w)
+    if isinstance(func, str):
+        widget.tk.call(what + (sequence, func))
+    elif func:
+        func_id = widget._register(func, widget._substitute_dnd, need_cleanup)
+        cmd = '%s%s %s' % (add and '+' or '', func_id, widget._subst_format_str_dnd)
+        widget.tk.call(what + (sequence, cmd))
+        return func_id
+    elif sequence:
+        return widget.tk.call(what + (sequence,))
+    else:
+        return widget.tk.splitlist(widget.tk.call(what))

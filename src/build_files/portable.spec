@@ -6,13 +6,15 @@ from PyInstaller.building.api import PYZ, EXE
 from PyInstaller.building.build_main import Analysis
 # noinspection PyPackageRequirements
 from PyInstaller.config import CONF
+from glob import iglob
 
 CONF['distpath'] = './dist'
+tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
 block_cipher = None
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
-             datas=[],
+             datas=tkdnd,
              hiddenimports=['pkg_resources.py2_warn'],
              hookspath=[],
              runtime_hooks=[],

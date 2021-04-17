@@ -39,6 +39,9 @@ args = parser.parse_args()
 if args.dry: print('Dry Build')
 if not args.skip_build and not args.skip_deps and not args.ver_update:
     print('Installing / Updating dependencies...')
+    # install tkdnd
+    copy_tree('build_files/tkdnd2.9.2', os.path.dirname(sys.executable) + '/tcl/tkdnd2.9.2')
+    copy_tree('build_files/TkinterDnD2', os.path.dirname(sys.executable) + '/Lib/site-packages/TkinterDnD2')
     getoutput(f'{sys.executable} -m pip install --upgrade -r requirements.txt')
     for whl in (PYAUDIO_WHL, PYINSTALLER_WHL):
         try: check_call(f'{sys.executable} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
@@ -256,10 +259,7 @@ if not args.dry and not args.skip_build:
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
-    create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py', 'b64_images.py',
-                                                   'requirements.txt', 'settings.json',
-                                                   ('../resources/Music Caster Icon.ico', 'icon.ico')
-                                                   ] + res_files + lang_packs)
+    create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py'])
     if s4 is not None: s4.wait()  # Wait for inno script to finish
     else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')

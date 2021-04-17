@@ -1,6 +1,6 @@
-VERSION = latest_version = '4.89.0'
+VERSION = latest_version = '4.90.0'
 UPDATE_MESSAGE = """
-[Feature] Metadata setter (BETA?)
+[Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
 [HELP] Could use some translators
 """.strip()
@@ -175,6 +175,7 @@ import pypresence
 import threading
 import pythoncom
 from PIL import UnidentifiedImageError
+from TkinterDnD2 import DND_FILES
 from urllib3.exceptions import ProtocolError
 import win32com.client
 from win32comext.shell import shell, shellcon
@@ -1447,12 +1448,13 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
         main_window.metadata['update_listboxes'] = True
         return
     main_window.metadata['update_listboxes'] = True
-    if settings['shuffle'] * from_explorer:
-        # if from_explorer make temp_queue should also include files in the queue
-        temp_queue.extend(islice(music_queue, 1, None))
+    if settings['shuffle']:
+        if from_explorer:
+            # if from_explorer make temp_queue should also include files in the queue
+            temp_queue.extend(islice(music_queue, 1, None))
+            # remove all but first track if from_explorer
+            for _ in range(len(music_queue) - 1): music_queue.pop()
         shuffle(temp_queue)
-        # remove all but first track if from_explorer
-        for _ in range(len(music_queue) - 1): music_queue.pop()
     music_queue.extend(temp_queue)
     if not queue_uris and not play_next:
         if music_queue:
@@ -1873,6 +1875,36 @@ def get_window_location():
     return settings['window_locations'].get(key, (None, None))
 
 
+def metadata_process_file(file):
+    if os.path.isfile(file):
+        main_window['metadata_file'].update(value=file)
+        main_window['metadata_file'].set_tooltip(file)
+        file_metadata = get_metadata_wrapped(file)
+        main_window['metadata_title'].update(value=file_metadata['title'])
+        main_window['metadata_artist'].update(value=file_metadata['artist'])
+        main_window['metadata_album'].update(value=file_metadata['album'])
+        main_window['metadata_track_num'].update(value=file_metadata['track_number'])
+        main_window['metadata_explicit'].update(value=file_metadata['explicit'])
+        mime, artwork = get_album_art(file)
+        _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
+        if display_art is not None:
+            display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
+        main_window['metadata_art'].update(data=display_art)
+
+
+def add_music_folder(folders):
+    added_folders = set(settings['music_folders'])
+    for folder in folders:
+        folder = folder.replace('\\', '/')
+        if os.path.isdir(folder) and folder not in added_folders:
+            settings['music_folders'].append(folder)
+            added_folders.add(folder)
+    main_window['music_folders'].update(settings['music_folders'])
+    refresh_tray()
+    save_settings()
+    if settings['scan_folders']: index_all_tracks()
+
+
 def set_callbacks():
     """ Set callbacks for the main window """
 
@@ -1890,6 +1922,15 @@ def set_callbacks():
         main_window.metadata['library']['region'] = region
         main_window.metadata['library']['column'] = int(column_index)
 
+    def dnd_pl_tracks(event):
+        file_paths = main_window.TKroot.tk.splitlist(event.data)
+        pl_tracks = main_window.metadata['pl_tracks']
+        pl_tracks.extend(get_audio_uris(file_paths))
+        settings['last_folder'] = os.path.dirname(file_paths[-1])
+        new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
+        new_i = len(new_values) - 1
+        main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+
     if not settings['mini_mode']:
         main_window['library'].TKTreeview.bind('<Button-1>', library_events, add='+')
         main_window['library'].TKTreeview.bind('<Double-Button-1>', library_events, add='+')
@@ -1899,6 +1940,28 @@ def set_callbacks():
             main_window[scroll_area].bind('<Leave>', '_mouse_leave')
         for input_key in ('url_input', 'pl_url_input', 'timer_input'):
             main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
+        # drag and drop callbacks
+        main_window.TKroot.tk.call('package', 'require', 'tkdnd')
+        tk_lb = main_window['queue'].TKListbox
+        drop_target_register(tk_lb, DND_FILES)
+        dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
+
+        tk_lb = main_window['pl_tracks'].TKListbox
+        drop_target_register(tk_lb, DND_FILES)
+        dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
+
+        tk_frame = main_window['tab_metadata'].TKFrame
+        drop_target_register(tk_frame, DND_FILES)
+        dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0]))
+
+        tk_lb = main_window['music_folders'].TKListbox
+        drop_target_register(tk_lb, DND_FILES)
+        dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
+    else:
+        root = main_window.TKroot
+        drop_target_register(root, DND_FILES)
+        dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
+
     main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
     main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
     main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
@@ -2498,21 +2561,15 @@ def read_main_window():
             activate_main_window('tab_settings')
             refresh_tray()
     elif main_event == 'remove_music_folder' and main_values['music_folders']:
-        selected_item = main_values['music_folders'][0]
         with suppress(ValueError):
-            settings['music_folders'].remove(selected_item)
+            for selected_item in main_values['music_folders']:
+                settings['music_folders'].remove(selected_item)
             main_window['music_folders'].update(settings['music_folders'])
             refresh_tray()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
-        main_value = main_value.replace('\\', '/')  # sanitize
-        if main_value not in music_folders and os.path.exists(main_value):
-            settings['music_folders'].append(main_value)
-            main_window['music_folders'].update(settings['music_folders'])
-            refresh_tray()
-            save_settings()
-            if settings['scan_folders']: index_all_tracks()
+        add_music_folder([main_value])
     elif main_event in {'settings_file', 'o:79'}:
         try:
             os.startfile(SETTINGS_FILE)
@@ -2720,20 +2777,7 @@ def read_main_window():
         initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
         selected_file = Sg.popup_get_file('Select audio file', initial_folder=initial_folder, no_window=True,
                                           file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
-        if os.path.isfile(selected_file):
-            main_window['metadata_file'].update(value=selected_file)
-            main_window['metadata_file'].set_tooltip(selected_file)
-            file_metadata = get_metadata_wrapped(selected_file)
-            main_window['metadata_title'].update(value=file_metadata['title'])
-            main_window['metadata_artist'].update(value=file_metadata['artist'])
-            main_window['metadata_album'].update(value=file_metadata['album'])
-            main_window['metadata_track_num'].update(value=file_metadata['track_number'])
-            main_window['metadata_explicit'].update(value=file_metadata['explicit'])
-            mime, artwork = get_album_art(selected_file)
-            _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
-            if display_art is not None:
-                display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
-            main_window['metadata_art'].update(data=display_art)
+        metadata_process_file(selected_file)
     elif main_event == 'metadata_select_art' and main_window['metadata_file'].get():
         selected_file = Sg.popup_get_file('Select image/audio file', no_window=True,
                                           file_types=IMG_FILE_TYPES, icon=WINDOW_ICON)
