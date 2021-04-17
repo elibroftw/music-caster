@@ -1234,7 +1234,8 @@ def create_url_tab(accent_color, bg):
                Sg.Radio(gt('Queue'), 'url_option', key='url_queue'),
                Sg.Radio(gt('Play Next'), 'url_option', key='url_play_next')],
               [Sg.Input(key='url_input', font=FONT_NORMAL, default_text=default_text, border_width=1),
-               round_btn(gt('Submit'), accent_color, bg, key='url_submit', bind_return_key=True)]]
+               round_btn(gt('Submit'), accent_color, bg, key='url_submit', bind_return_key=True)],
+              [Sg.Text('', key='url_msg', size=(20, 1))]]
     return Sg.Tab(gt('URL'), [[Sg.Column(layout, pad=(5, 20))]], key='tab_url')
 
 

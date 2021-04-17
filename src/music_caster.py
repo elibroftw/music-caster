@@ -1195,7 +1195,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
                     expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
                     album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
-                    length = r['duration'] if r['duration'] != 0 else None
+                    length = entry['duration'] if entry['duration'] != 0 else None
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
                                 'album': album, 'length': length, 'ext': _f['ext'],
                                 'expired': lambda: time.time() > expiry_time,
@@ -2589,7 +2589,10 @@ def read_main_window():
         else: urls_to_insert = urls_to_insert.split(';')
         if main_values['url_play'] or not music_queue:
             music_queue.extendleft(reversed(urls_to_insert))
+            main_window['url_msg'].update(gt('Loading URL(s)'), text_color='yellow')
+            main_window.read(1)
             play(music_queue[0])
+            main_window['url_msg'].update('')
             urls_to_insert.pop(0)
         elif main_values['url_queue']:
             music_queue.extend(urls_to_insert)
