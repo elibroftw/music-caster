@@ -105,14 +105,15 @@ def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
     with open('build_files/CHANGELOG.txt') as f:
         add_changes = False
-        line = f.readline().strip()
-        while True:
+        line = f.readline()
+        while line:
+            line = line.strip()
             if line == VERSION:
                 add_changes = True
             elif add_changes:
                 if line == '': break
                 changes.add(line)
-            line = f.readline().strip()
+            line = f.readline()
     if not add_changes: raise RuntimeWarning(f'CHANGELOG does not contain changes for {VERSION}')
     return '\n'.join(sorted(changes, key=lambda item: item.lower()))
 
