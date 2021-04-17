@@ -8,8 +8,8 @@ import ctypes
 import datetime
 from functools import wraps, lru_cache
 import glob
-import urllib.parse
 import io
+import json
 import locale
 from math import floor, ceil
 import os
@@ -20,7 +20,7 @@ import re
 import socket
 import time
 from threading import Thread
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
 import winreg as wr
 # 3rd party imports
@@ -876,7 +876,7 @@ def parse_deezer_track(track_obj) -> dict:
 def get_deezer_track(url):
     sng_id = parse_deezer_page(url)['sng_id']
     return {**parse_deezer_track(Shared.dz.gw.get_track(sng_id)), 'src': url,
-            'url': f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": url})}'}
+            'url': f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": url})}'}
 
 
 def get_deezer_album(url):
@@ -886,7 +886,7 @@ def get_deezer_album(url):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
         src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src})}'
         tracks.append(metadata)
     return tracks
 
@@ -898,7 +898,7 @@ def get_deezer_playlist(url):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
         metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urllib.parse.urlencode({"url": src})}'
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src})}'
         tracks.append(metadata)
     return tracks
 
@@ -940,6 +940,92 @@ def custom_art(text):
     data = io.BytesIO()
     art_img.save(data, format='png', quality=95)
     return b64encode(data.getvalue())
+
+
+def search_dict(partial: [dict, list], key):
+    """ Searches for `key` in a dict/list `partial` """
+    if isinstance(partial, dict):
+        for k, v in partial.items():
+            if k == key: yield v
+            else: yield from search_dict(v, key)
+    elif isinstance(partial, list):
+        for item in partial: yield from search_dict(item, key)
+
+
+def get_youtube_comments(url, limit=-1):
+    """
+    raises ValueError if comments are disabled
+    """
+    session = requests.Session()
+    res = session.get(url)
+    token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
+    session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
+    match = re.search(r'var ytInitialData = (.*);</script>', res.text)
+    data_str = match.groups()[0]
+    data = json.loads(data_str)
+    ncd = None
+    for renderer in search_dict(data, 'itemSectionRenderer'):
+        ncd = next(search_dict(renderer, 'nextContinuationData'), None)
+        if ncd: break
+    if not ncd:
+        raise ValueError('Comments are disabled')
+    continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
+    while continuations:
+        continuation, itct, action = continuations.pop()
+        params = {action: 1, 'pbj': 1, 'ctoken': continuation, 'continuation': continuation, 'itct': itct}
+        data = {'session_token': session_token}
+        headers = {'X-YouTube-Client-Name': '1', 'X-YouTube-Client-Version': '2.20201202.06.01'}
+        response = {}
+        for _ in range(5):
+            youtube_comments_ajax_url = 'https://www.youtube.com/comment_service_ajax'
+            response = session.post(youtube_comments_ajax_url, params=params, data=data, headers=headers)
+            if response.status_code == 200:
+                response = response.json()
+                break
+            elif response.status_code in {403, 413}:
+                response = {}
+                break
+            else: time.sleep(20)
+        if not response: break
+        if list(search_dict(response, 'externalErrorMessage')):
+            raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
+
+        if action == 'action_get_comments':
+            section = next(search_dict(response, 'itemSectionContinuation'), {})
+            for continuation in section.get('continuations', []):
+                ncd = continuation['nextContinuationData']
+                continuations.append((ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments'))
+            for item in section.get('contents', []):
+                continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
+                                      for ncd in search_dict(item, 'nextContinuationData')])
+
+        elif action == 'action_get_comment_replies':
+            continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
+                                  for ncd in search_dict(response, 'nextContinuationData')])
+
+        for comment in search_dict(response, 'commentRenderer'):
+            yield {'cid': comment['commentId'],
+                   'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
+                   'time': comment['publishedTimeText']['runs'][0]['text'],
+                   'author': comment.get('authorText', {}).get('simpleText', ''),
+                   'channel': comment['authorEndpoint']['browseEndpoint']['browseId'],
+                   'votes': comment.get('voteCount', {}).get('simpleText', '0'),
+                   'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
+                   'heart': next(search_dict(comment, 'isHearted'), False)}
+            limit -= 1
+            if limit == 0:
+                continuations.clear()
+                break
+        time.sleep(0.1)
+
+
+def get_video_timestamps(url):
+    for count, comment in enumerate(get_youtube_comments(url, limit=10)):
+        comment = comment['text']
+        times = re.findall(r'\d+:(?:\d+:)*\d+', comment)
+        times = sorted({sum(int(x) * 60 ** i for i, x in enumerate(reversed(_time.split(':')))) for _time in times})
+        if len(times) > 2: return times
+    return []
 
 
 # GUI Methods

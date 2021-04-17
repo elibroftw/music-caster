@@ -1,6 +1,7 @@
-VERSION = latest_version = '4.88.0'
+VERSION = latest_version = '4.89.0'
 UPDATE_MESSAGE = """
 [Feature] Metadata setter (BETA?)
+[Feature] Smart URL F-FWD and RWD
 [HELP] Could use some translators
 """.strip()
 import argparse
@@ -1193,10 +1194,13 @@ def get_url_metadata(url, fetch_art=True) -> list:
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
                     expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0])
                     album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
+                    length = r['duration'] if r['duration'] != 0 else None
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
-                                'album': album, 'length': entry['duration'], 'ext': _f['ext'],
+                                'album': album, 'length': length, 'ext': _f['ext'],
                                 'expired': lambda: time.time() > expiry_time,
                                 'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
+                    # if duration > 10 minutes, try to parse out timestamps for track from comment section
+                    if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry['webpage_url'])
                     for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
                     metadata_list.append(metadata)
             else:
@@ -1213,6 +1217,8 @@ def get_url_metadata(url, fetch_art=True) -> list:
                             'expired': is_expired,
                             'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
                             'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
+                # if duration > 10 minutes, try to parse out timestamps for track from comment section
+                if r['duration'] > 600: metadata['timestamps'] = get_video_timestamps(r['webpage_url'])
                 for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
@@ -1675,6 +1681,21 @@ def stop(stopped_from: str, stop_cast=True):
     if not exit_flag: refresh_tray()
 
 
+def set_pos(new_position):
+    if cast is not None:
+        try:
+            cast.media_controller.update_status()
+        except UnsupportedNamespace:
+            cast.wait()
+        if cast.is_idle and music_queue:
+            play(music_queue[0], position=new_position)
+        else:
+            cast.media_controller.seek(new_position)
+            playing_status.play()
+    else:
+        audio_player.set_pos(new_position)
+
+
 def next_track(from_timeout=False, times=1, forced=False):
     """
     :param from_timeout: whether next track is due to track ending
@@ -1686,6 +1707,12 @@ def next_track(from_timeout=False, times=1, forced=False):
     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
         playing_status.stop()
     elif (forced or playing_status.busy() and not sar.alive) and (next_queue or music_queue):
+        with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
+            if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps'):
+                # smart next track if playing a long URL with multiple tracks
+                timestamps = url_metadata[music_queue[0]]['timestamps']
+                new_position = next(filter(lambda seconds: seconds > get_track_position(), timestamps), 0)
+                if new_position: return set_pos(new_position)
         # keep track of skips (used by smart queue feature)
         if music_queue and track_position < 5 and not from_timeout and playing_status.busy():
             settings['skips'][music_queue[0]] = settings['skips'].get(music_queue[0], 0) + 1
@@ -1724,6 +1751,12 @@ def prev_track(times=1, forced=False):
     if not forced and cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
         playing_status.stop()
     elif forced or playing_status.busy() and not sar.alive:
+        with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
+            if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps'):
+                # smart next track if playing a long URL with multiple tracks
+                timestamps = url_metadata[music_queue[0]]['timestamps']
+                new_position = next(filter(lambda seconds: seconds < get_track_position(), timestamps), -1)
+                if new_position != -1: return set_pos(new_position)
         if done_queue:
             for _ in range(times):
                 if settings['repeat']: change_settings('repeat', False)
@@ -2406,20 +2439,8 @@ def read_main_window():
             main_window['progress_bar'].update(disabled=True, value=0)
             return
         else:
-            new_position = main_values['progress_bar']
-            track_position = new_position
-            if cast is not None:
-                try:
-                    cast.media_controller.update_status()
-                except UnsupportedNamespace:
-                    cast.wait()
-                if cast.is_idle and music_queue:
-                    play(music_queue[0], position=new_position)
-                else:
-                    cast.media_controller.seek(new_position)
-                    playing_status.play()
-            else:
-                audio_player.set_pos(new_position)
+            track_position = main_values['progress_bar']
+            set_pos(track_position)
             track_start = time.time() - track_position
             track_end = track_start + track_length
     # main window settings tab

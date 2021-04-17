@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.89.0
+- [Feature] Smart URL F-FWD and RWD
+
 4.88.0
 - [Feature] Metadata setter
 
