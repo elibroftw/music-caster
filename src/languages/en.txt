@@ -115,6 +115,7 @@ Select Device
 Select Folder
 Select Folder(s)
 Select File(s)
+Select File
 Select Music File(s)
 Send me an email
 set DEBUG = true in `settings.json` to enable this page
@@ -163,3 +164,18 @@ Play next in Music Caster
 Queueing
 Smart queue
 add to next up
+Metadata
+Saving metadata
+Metadata saved
+Save
+Title
+Artist
+Album
+Track Number
+Explicit
+Select artwork
+Search artwork
+Remove artwork
+Artwork found
+No artwork found
+Searching for artwork...

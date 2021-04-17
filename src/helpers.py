@@ -29,10 +29,12 @@ from deemix.decryption import generateBlowfishKey, generateStreamURL
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
+import mutagen.flac
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
 from mutagen.mp3 import HeaderNotFoundError
+import mutagen.mp4
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 import pyperclip
@@ -366,6 +368,78 @@ def valid_color_code(code):
     return match
 
 
+def set_metadata(file_path: str, metadata: dict):
+    ext = os.path.splitext(file_path)[1].lower()
+    audio = mutagen.File(file_path)
+    title = metadata['title']
+    artists = metadata['artist'].split(', ') if ', ' in metadata['artist'] else metadata['artist'].split(',')
+    album = metadata['album']
+    track_place = metadata['track_number']      # X/Y
+    track_number = track_place.split('/')[0]    # X
+    rating = '1' if metadata['explicit'] else '0'
+    if '/' not in track_place:
+        tracks = max(1, int(track_place))
+        track_place = f'{track_place}/{tracks}'
+    if ext in {'.mp3', '.wav'}:
+        if title:
+            audio['TIT2'] = mutagen.id3.TIT2(text=metadata['title'])
+        if artists:
+            audio['TPE1'] = mutagen.id3.TPE1(text=artists)
+            audio['TPE2'] = mutagen.id3.TPE1(text=artists[0])  # album artist
+        audio['TCMP'] = mutagen.id3.TCMP(text=track_number)
+        audio['TRCK'] = mutagen.id3.TRCK(text=track_place)
+        audio['TPOS'] = mutagen.id3.TPOS(text=track_place)
+        if album:
+            audio['TALB'] = mutagen.id3.TALB(text=album)
+        # audio['TDRC'] = mutagen.id3.TDRC(text=metadata['year'])
+        # audio['TCON'] = mutagen.id3.TCON(text=metadata['genre'])
+        # audio['TPUB'] = mutagen.id3.TPUB(text=metadata['publisher'])
+        audio['TXXX:RATING'] = mutagen.id3.TXXX(text=rating)
+        audio['TXXX:ITUNESADVISORY'] = mutagen.id3.TXXX(text=rating)
+        if metadata['art'] is not None:
+            audio['APIC:'] = mutagen.id3.APIC(encoding=0, mime=metadata['mime'], type=3, data=metadata['art'])
+        else:  # remove all album art
+            for k in tuple(audio.keys()):
+                if 'APIC:' in k: audio.pop(k)
+    elif ext in {'.mp4', '.mp4', '.aac'}:
+        if title: audio['@nam'] = [title]
+        if artists: audio['@ART'] = artists
+        if album: audio['@alb'] = [album]
+        audio['trkn'] = tuple((int(x) for x in track_place.split('/')))
+        audio['rtng'] = [rating]
+        if metadata['art'] is not None:
+            image_format = 14 if metadata['mime'].endswith('png') else 13
+            audio['covr'] = [mutagen.mp4.MP4Cover(data=metadata['art'], imageformat=image_format)]
+        elif 'covr' in audio:
+            del audio['covr']
+    else:  # FLAC?
+        if title: audio['TITLE'] = title
+        if artists: audio['ARTIST'] = artists
+        if album: audio['ALBUM'] = album
+        audio['TRACKNUMBER'] = track_number
+        audio['TRACKTOTAL'] = track_place.split('/')[1]
+        audio['ITUNESADVISORY'] = rating
+        if metadata['art']:
+            if ext == '.flac':
+                pic = mutagen.flac.Picture(data=metadata['art'])
+                pic.mime = metadata['mime']
+                pic.type = 3
+                # noinspection PyUnresolvedReferences
+                audio.add_picture(pic)
+            else:
+                audio['APIC:'] = metadata['art']
+                audio['mime'] = metadata['mime']
+        else:
+            if ext == '.flac':
+                # noinspection PyUnresolvedReferences
+                audio.clear_pictures()
+            else:
+                # remove all album art
+                for k in tuple(audio.keys()):
+                    if 'APIC:' in k: audio.pop(k)
+    audio.save()
+
+
 def get_metadata(file_path: str):
     file_path = file_path.lower()
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
@@ -377,26 +451,30 @@ def get_metadata(file_path: str):
             audio['rating'] = str(_audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', '0')))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
             audio = EasyMP4(file_path)
+            _audio = mutagen.File(file_path)
+            audio['rating'] = str(_audio.get('rtng', ['0'])[0])
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
-        elif file_path.endswith('.wma'):
-            audio = {'title': [title], 'artist': [artist], 'album': [album]}
         else:
-            audio = mutagen.File(file_path)
+            audio = dict(mutagen.File(file_path))
+            audio = {k.lower(): audio[k] for k in audio}
+            if file_path.endswith('.wma'):
+                audio = {k: [audio[k][0].value] for k in audio}
     except (ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         audio = {}
     title = audio.get('title', [title])[0]
     album = audio.get('album', [album])[0]
-    is_explicit = audio.get('rating', ['0'])[0] not in {'C', 'T', '0', 0}
+    is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
     track_number = str(audio['tracknumber'][0]).split('/', 1)[0] if 'tracknumber' in audio else None
     with suppress(KeyError, TypeError):
         if len(audio['artist']) == 1:
             # in case the sep char is a slash
             audio['artist'] = audio['artist'][0].split('/')
         artist = ', '.join(audio['artist'])
-    if title is None: title = unknown_title
-    if artist is None: artist = unknown_artist
+    if not title: title = unknown_title
+    if not artist: artist = unknown_artist
+    if not album: album = unknown_album
     if title == unknown_title or artist == unknown_artist:
         # if title or artist are unknown, use the basename of the URI (excluding extension)
         sort_key = get_file_name(file_path)
@@ -404,8 +482,8 @@ def get_metadata(file_path: str):
         sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist)
         sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
-    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower()}
-    if track_number is not None: metadata['track_number'] = track_number
+    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower(),
+                'track_number': '0' if track_number is None else track_number}
     return metadata
 
 
@@ -1037,7 +1115,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
                    bind_return_key=True),
         Sg.Column(listbox_controls, pad=(0, 0))]]
     queue_tab = Sg.Tab(gt('Queue'), queue_tab_layout, key='tab_queue')
-    url_tab = Sg.Tab(gt('URL'), create_url_tab(accent_color, bg), key='tab_url')
+    url_tab = create_url_tab(accent_color, bg)
     # library tab will be good to use once I'm using Python 3.10 which will have tk 8.10
     lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
                 music_lib.items()]
@@ -1050,10 +1128,11 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
                                 header_text_color=fg, header_background_color=bg,
                                 alternating_row_color=alternate_bg, key='library')]]
     library_tab = Sg.Tab(gt('Library'), library_layout, key='tab_library')
-    playlists_tab = Sg.Tab(gt('Playlists'), create_playlists_tab(settings), key='tab_playlists')
-    timer_tab = Sg.Tab(gt('Timer'), create_timer(settings, timer), key='tab_timer')
-    settings_tab = Sg.Tab(gt('Settings'), create_settings(version, settings), key='tab_settings')
-    tab_group = [[queue_tab, url_tab, library_tab, playlists_tab, timer_tab, settings_tab]]
+    playlists_tab = create_playlists_tab(settings)
+    timer_tab = create_timer(settings, timer)
+    metadata_tab = create_metadata_tab(settings)
+    settings_tab = create_settings(version, settings)
+    tab_group = [[queue_tab, url_tab, library_tab, playlists_tab, timer_tab, metadata_tab, settings_tab]]
     tabs_part = Sg.TabGroup(tab_group, font=FONT_TAB, border_width=0, title_color=fg, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=bg, selected_title_color=bg, background_color=bg)
@@ -1070,7 +1149,7 @@ def create_url_tab(accent_color, bg):
                Sg.Radio(gt('Play Next'), 'url_option', key='url_play_next')],
               [Sg.Input(key='url_input', font=FONT_NORMAL, default_text=default_text, border_width=1),
                round_btn(gt('Submit'), accent_color, bg, key='url_submit', bind_return_key=True)]]
-    return [[Sg.Column(layout, pad=(5, 20))]]
+    return Sg.Tab(gt('URL'), [[Sg.Column(layout, pad=(5, 20))]], key='tab_url')
 
 
 def create_playlists_tab(settings):
@@ -1111,7 +1190,7 @@ def create_playlists_tab(settings):
                     [Sg.Button(image_data=LOCATE_FILE, key='pl_locate_track', button_color=(bg, bg),
                                tooltip=gt('locate track'), size=(2, 1))]],
                    background_color=bg)]]
-    return layout
+    return Sg.Tab(gt('Playlists'), layout, key='tab_playlists')
 
 
 def create_checkbox(name, key, settings, on_right=False):
@@ -1175,7 +1254,7 @@ def create_settings(version, settings):
          Sg.Column([
              [Sg.Button('❌', key='remove_music_folder', tooltip=gt('remove selected folder'), **folder_btn)],
              [Sg.FolderBrowse('➕', key='add_music_folder', tooltip=gt('add folder'), **folder_btn)]])]]
-    return layout
+    return Sg.Tab(gt('Settings'), layout, key='tab_settings')
 
 
 def create_timer(settings, timer):
@@ -1206,7 +1285,28 @@ def create_timer(settings, timer):
         [Sg.Text(gt('Invalid Input (enter minutes or HH:MM)'), font=FONT_NORMAL, visible=False, key='timer_error')],
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer != 0), cancel_button]
     ]
-    return [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]]
+    return Sg.Tab(gt('Timer'), [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]], key='tab_timer')
+
+
+def create_metadata_tab(settings):
+    accent, bg = settings['theme']['accent'], settings['theme']['background']
+    layout = [
+        [Sg.Text('', size=(40, 1), key='metadata_file'),
+         round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
+         round_btn(gt('Save'), accent, bg, key='metadata_save')],
+        [Sg.Text(gt('Title'), size=(20, 1)), Sg.Input(key='metadata_title', border_width=1)],
+        [Sg.Text(gt('Artist'), size=(20, 1)), Sg.Input(key='metadata_artist', border_width=1)],
+        [Sg.Text(gt('Album'), size=(20, 1)), Sg.Input(key='metadata_album', border_width=1)],
+        [Sg.Text(gt('Track Number'), size=(20, 1)), Sg.Input(key='metadata_track_num', border_width=1)],
+        [Sg.Checkbox(gt('Explicit'), key='metadata_explicit', enable_events=True)],
+        [Sg.Column([[round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10))],
+                    [round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10))],
+                    [round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))]],
+                   pad=((0, 20), 5)),
+         Sg.Image(key='metadata_art')],
+        [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]
+    ]
+    return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
 
 
 def steal_focus(window: Sg.Window):

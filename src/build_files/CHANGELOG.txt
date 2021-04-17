@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.88.0
+- [Feature] Metadata setter
+
 4.87.6
 - [Fix] Playlists tab
 

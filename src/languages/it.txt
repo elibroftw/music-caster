@@ -115,6 +115,7 @@ Seleziona Dispositivo
 Seleziona Cartella
 Seleziona Cartella(e)
 Seleziona File(s)
+Seleziona File
 Seleziona File(s) Musicali
 Inviami un'e-mail
 imposta DEBUG = true in `settings.json` per abilitare questa pagina
@@ -163,3 +164,18 @@ Riproduci successivo in Music Caster
 Fare la Fila
 Coda intelligente
 aggiungere al prossimo
+Metadati
+Salvataggio dei metadati
+Metadati salvati
+Salva
+Brano
+Artista
+Album
+Il Numero del Brano
+Esplicito
+Seleziona la grafica
+Cerca opere d'arte
+Rimuovi la grafica
+Opera trovata
+Nessuna opera d'arte trovata
+Ricerca di opere d'arte...

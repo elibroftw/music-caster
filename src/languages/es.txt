@@ -115,6 +115,7 @@ Seleccione el Dispositivo
 Seleccione la carpeta
 Seleccionar Carpeta(s)
 Seleccionar Archivo(s)
+Seleccionar Archivo
 Seleccionar Archivo(s) de Música
 Envíame un correo electrónico
 establezca DEBUG = true en `settings.json` para habilitar esta página
@@ -163,3 +164,18 @@ Reproducir a continuación en Music Caster
 Hacer Cola
 Cola inteligente
 agregar al siguiente
+Metadatos
+Guardar metadatos
+Metadatos guardados
+Guardar
+Título
+Artista
+Álbum
+Número de Pista
+Explícito
+Seleccionar obra de arte
+Buscar obra de arte
+Quitar obra de arte
+Obra de arte encontrada
+No se encontraron obras de arte
+Buscando obras de arte...

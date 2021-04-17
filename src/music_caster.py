@@ -1,6 +1,6 @@
-VERSION = latest_version = '4.87.6'
+VERSION = latest_version = '4.88.0'
 UPDATE_MESSAGE = """
-[Feature] Smart queue (auto skip)
+[Feature] Metadata setter (BETA?)
 [HELP] Could use some translators
 """.strip()
 import argparse
@@ -190,6 +190,7 @@ MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 EMAIL = 'elijahllopezz@gmail.com'
 AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
 AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
+IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
 SETTINGS_FILE = 'settings.json'
 PRESSED_KEYS = set()
 settings_file_lock = threading.Lock()
@@ -434,7 +435,15 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
         if tags is not None:
             for tag in tags.keys():
                 if 'APIC' in tag:
-                    return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+                    try:
+                        return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+                    except AttributeError:
+                        data = tags[tag][0].value
+                        try: mime = tags['mime'][0].value
+                        except KeyError: mime = 'image/jpeg'
+                        if isinstance(data, bytes):
+                            data = data.decode()
+                        return mime, data
     return 'image/png', DEFAULT_ART
 
 
@@ -462,8 +471,8 @@ def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album,
             metadata = all_tracks[file_path]
             return metadata
         except KeyError:
-            return {'title': Unknown('Title'), 'artist': Unknown('Artist'),
-                    'album': Unknown('Title'), 'sort_key': get_file_name(file_path)}
+            return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
+                    'album': Unknown('Title'), 'sort_key': get_file_name(file_path), 'track_number': '0'}
 
 
 def get_uri_metadata(uri, read_file=True):
@@ -627,6 +636,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
                        button_color=(bg, accent), element_background_color=bg, scrollbar_color=bg,
                        text_element_background_color=bg, background_color=bg,
                        input_elements_background_color=bg, progress_meter_color=accent,
+                       # progress_meter_style=
                        border_width=0, slider_border_width=1, progress_meter_border_depth=0, font=FONT_NORMAL)
     if _save_settings: save_settings()
     settings_last_modified = os.path.getmtime(SETTINGS_FILE)
@@ -1753,18 +1763,18 @@ def background_tasks():
                     mc.update_status()
                     is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
                     is_stopped = mc.status.player_is_idle
+                    is_live = track_length is None
                     if not is_stopped:
                         # handle scrubbing of music from the home app / out of date time position
                         if abs(mc.status.adjusted_current_time - track_position) > 0.5:
                             track_position = mc.status.adjusted_current_time
                             track_start = time.time() - track_position
-                            if track_length is not None:
-                                track_end = track_start + track_length
+                            if not is_live: track_end = track_start + track_length
                     if is_paused:
                         pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing:
                         resume()
-                    elif is_stopped and playing_status.busy() and track_length is not None and time.time() - track_end > 1:
+                    elif is_stopped and playing_status.busy() and not is_live and time.time() - track_end > 1:
                         # if cast says nothing is playing, only stop if we are not at the end of the track
                         #  this will prevent false positives
                         stop('background tasks', False)
@@ -2015,7 +2025,7 @@ def read_main_window():
     global music_queue, done_queue
 
     def reset_progress():
-        main_window['progress_bar'].update(value=0)
+        main_window['progress_bar'].update(0)
         main_window['time_elapsed'].update('0:00')
         main_window['time_left'].update('0:00')
         main_window.refresh()
@@ -2075,7 +2085,7 @@ def read_main_window():
             if playing_status.busy() and track_length is not None:
                 get_track_position()
                 new_position = min(max(track_position + delta, 0), track_length)
-                main_window['progress_bar'].update(value=new_position)
+                main_window['progress_bar'].update(new_position)
                 main_values['progress_bar'] = new_position
                 main_event = 'progress_bar'
         elif main_window.metadata['mouse_hover'] in {'', 'volume_slider'}:  # not in another tab
@@ -2085,13 +2095,12 @@ def read_main_window():
             update_volume(new_volume)
         main_window.refresh()
     # needs to be in its own if statement because it tell the progress bar to update later on
-    if main_event in {'j', 'l'} and (settings['mini_mode'] or
-                                     main_values['tab_group'] not in {'tab_timer', 'tab_playlists'}):
+    if main_event in {'j', 'l'} and (main_values.get('tab_group', 'tab_queue') == 'tab_queue'):
         if playing_status.busy() and track_length is not None:
             delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
             get_track_position()
             new_position = min(max(track_position + delta, 0), track_length)
-            main_window['progress_bar'].update(value=new_position)
+            main_window['progress_bar'].update(new_position)
             main_values['progress_bar'] = new_position
             main_event = 'progress_bar'
             main_window.refresh()
@@ -2100,7 +2109,7 @@ def read_main_window():
     if main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
         main_window['tab_queue'].select()
     elif (main_event == '2:50' and not settings['mini_mode'] or  # URL tab [Ctrl + 2]
-          main_event == 'tab_group' and main_values['tab_group'] == 'tab_url'):
+          main_event == 'tab_group' and main_values.get('tab_group') == 'tab_url'):
         main_window['tab_url'].select()
         main_window['url_input'].set_focus()
         default_text: str = pyperclip.paste()
@@ -2117,7 +2126,10 @@ def read_main_window():
           main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):
         main_window['tab_timer'].select()
         main_window['timer_input'].set_focus()
-    elif main_event == '6:54' and not settings['mini_mode']:  # Settings tab [Ctrl + 6]
+    elif main_event == '6:54' and not settings['mini_mode']:  # Metadata tab [Ctrl + 7]
+        main_window['tab_metadata'].select()
+        main_window['metadata_file'].set_focus()
+    elif main_event == '7:55' and not settings['mini_mode']:  # Settings tab [Ctrl + 7]
         main_window['tab_settings'].select()
     elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
                         'volume_slider_mouse_enter', 'library_mouse_enter'}:
@@ -2129,8 +2141,7 @@ def read_main_window():
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()
         if main_event != 'volume_slider_mouse_leave': main_window.metadata['mouse_hover'] = ''
-    elif (main_event == 'pause/resume' or main_event == 'k' and
-          main_values.get('tab_group') not in {'tab_timer', 'tab_playlists'}):
+    elif main_event in {'pause/resume', 'k'} and main_values.get('tab_group') in {'tab_queue', None}:
         if playing_status.paused(): resume()
         elif playing_status.playing(): pause()
         elif music_queue: play(music_queue[0])
@@ -2151,7 +2162,7 @@ def read_main_window():
     elif main_event in {'repeat', 'r:82'}:
         cycle_repeat(True)
     elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
-          and (settings['mini_mode'] or main_values['tab_group'] not in {'tab_timer', 'tab_playlists'}))):
+                                            and (main_values.get('tab_group') in {'tab_queue', None}))):
         # User scrubbed volume bar or pressed (while on Tab 1 or in mini mode)
         delta = 0
         if main_event.isdigit():
@@ -2494,7 +2505,7 @@ def read_main_window():
             Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')
     # url tab
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
-          and main_values.get('tab_group', None) == 'tab_url' and main_values['url_input']):
+          and main_values.get('tab_group') == 'tab_url' and main_values['url_input']):
         urls_to_insert = main_values['url_input']
         if '\n' in urls_to_insert: urls_to_insert = urls_to_insert.split('\n')
         else: urls_to_insert = urls_to_insert.split(';')
@@ -2519,7 +2530,7 @@ def read_main_window():
         main_window['cancel_timer'].update(visible=False)
     # handle enter/submit event
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
-          and main_values.get('tab_group', None) == 'tab_timer'):
+          and main_values.get('tab_group') == 'tab_timer'):
         try:
             timer_value: str = main_values['timer_input']
             if timer_value.isdigit():
@@ -2559,7 +2570,7 @@ def read_main_window():
         change_settings('timer_hibernate', main_values['hibernate'])
         change_settings('timer_sleep', main_values['sleep'])
         change_settings('timer_shut_down', main_values['shut_down'])
-    # playlist tab
+    # playlists tab
     elif main_event == 'playlist_combo':
         # user selected a playlist from the drop-down
         pl_name = main_window.metadata['pl_name'] = main_value if main_value in settings['playlists'] else ''
@@ -2605,7 +2616,8 @@ def read_main_window():
     elif main_event == 'add_next_pl':
         playlist_action(main_values['playlist_combo'], 'next')
         main_window.metadata['update_listboxes'] = True
-    elif main_event in {'pl_save', 's:83'}:  # save playlist
+    elif main_event in {'pl_save', 's:83'} and main_values.get('tab_group') == 'tab_playlists':
+        # save playlist
         if main_values['playlist_name']:
             pl_name = main_window.metadata['pl_name']
             save_name = main_values['playlist_name']
@@ -2682,6 +2694,78 @@ def read_main_window():
                     main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
     elif main_event in {'pl_locate_track', 'pl_tracks'}:
         for i in main_window['pl_tracks'].get_indexes(): locate_uri(uri=main_window.metadata['pl_tracks'][i])
+    # metadata tab
+    elif main_event in {'metadata_browse', 'metadata_file'}:
+        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+        selected_file = Sg.popup_get_file('Select audio file', initial_folder=initial_folder, no_window=True,
+                                          file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
+        if os.path.isfile(selected_file):
+            main_window['metadata_file'].update(value=selected_file)
+            main_window['metadata_file'].set_tooltip(selected_file)
+            file_metadata = get_metadata_wrapped(selected_file)
+            main_window['metadata_title'].update(value=file_metadata['title'])
+            main_window['metadata_artist'].update(value=file_metadata['artist'])
+            main_window['metadata_album'].update(value=file_metadata['album'])
+            main_window['metadata_track_num'].update(value=file_metadata['track_number'])
+            main_window['metadata_explicit'].update(value=file_metadata['explicit'])
+            mime, artwork = get_album_art(selected_file)
+            _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
+            if display_art is not None:
+                display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
+            main_window['metadata_art'].update(data=display_art)
+    elif main_event == 'metadata_select_art' and main_window['metadata_file'].get():
+        selected_file = Sg.popup_get_file('Select image/audio file', no_window=True,
+                                          file_types=IMG_FILE_TYPES, icon=WINDOW_ICON)
+        if selected_file:
+            if os.path.splitext(selected_file)[1][1:].lower() in AUDIO_EXTS:
+                mime, artwork = get_album_art(selected_file)
+            else:
+                img = Image.open(selected_file)
+                data = io.BytesIO()
+                img.save(data, format='jpeg', quality=95)
+                mime, artwork = 'image/jpeg', b64encode(data.getvalue())
+            _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
+            if display_art is not None:
+                display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
+            main_window['metadata_art'].update(data=display_art)
+    elif main_event == 'metadata_search_art' and main_window['metadata_file'].get():
+        # search for artwork using spotify API
+        main_window['metadata_msg'].update(value=gt('Searching for artwork...'), text_color='yellow')
+        found_artwork = False
+        for mkt in ('MX', 'CA', 'US', 'UK', 'HK'):
+            title = main_values['metadata_title']
+            artist = main_values['metadata_artist']
+            url = f'https://api.spotify.com/v1/search?q={title}'
+            if artist: url += f'+artist:{artist}'
+            url += f'&type=track&market={mkt}'
+            r = requests.get(url, headers=get_spotify_headers()).json()
+            if 'tracks' in r:
+                for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
+                    display_art = base64.b64encode(requests.get(art_link).content)
+                    main_window['metadata_art'].metadata = ('image/jpeg', display_art)
+                    display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
+                    main_window['metadata_art'].update(data=display_art)
+                    found_artwork = True
+                    break
+        if found_artwork:
+            main_window['metadata_msg'].update(value=gt('Artwork found'), text_color='green')
+            main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
+        else:
+            main_window['metadata_msg'].update(value=gt('No artwork found'), text_color='red')
+            main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
+    elif main_event == 'metadata_remove_art':
+        main_window['metadata_art'].metadata = (None, None)
+        main_window['metadata_art'].update(data=None)
+    elif main_event in {'metadata_save', 's:83'} and main_values.get('tab_group') == 'tab_metadata':
+        if main_window['metadata_file'].get():
+            mime, art = main_window['metadata_art'].metadata
+            new_metadata = {'title': main_values['metadata_title'], 'artist': main_values['metadata_artist'],
+                            'album': main_values['metadata_artist'], 'track_number': main_values['metadata_track_num'],
+                            'explicit': main_values['metadata_explicit'], 'mime': mime, 'art': art}
+            main_window['metadata_msg'].update(value=gt('Saving metadata'), text_color='yellow')
+            set_metadata(main_window['metadata_file'].get(), new_metadata)
+            main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
+            main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
     # other GUI updates
     if main_window.metadata['update_listboxes'] and not settings['mini_mode']:
         main_window.metadata['update_listboxes'] = False
