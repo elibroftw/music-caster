@@ -545,11 +545,12 @@ def get_yt_id(url):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
     if query.hostname in {'www.youtube.com', 'youtube.com'}:
+        with suppress(KeyError):
+            return parse_qs(query.query)['list'][0]
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
         if query.path[:7] == '/watch/': return query.path.split('/')[1]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
         if query.path[:3] == '/v/': return query.path.split('/')[2]
-        if query.path[:9] == '/playlist': return parse_qs(query.query)['list'][0]
     # returns None for invalid YouTube url
 
 
