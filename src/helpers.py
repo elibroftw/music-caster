@@ -326,6 +326,14 @@ def gt(string, as_title=False):
     return get_translation(string, lang=Shared.lang, as_title=as_title)
 
 
+@lru_cache(maxsize=1)
+def get_proxies():
+    r = requests.get('https://www.proxynova.com/proxy-server-list/')
+    matches = re.findall(r'<td.*(\d+.\d+.\d+.\d+)<td align="left"> *(\d+)</td>', r.text)
+    print(matches[0])
+
+
+
 def get_length(file_path) -> int:
     """
     throws InvalidAudioFile if file is invalid

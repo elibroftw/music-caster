@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.1'
+VERSION = latest_version = '4.90.2'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -2845,7 +2845,7 @@ def read_main_window():
         main_window['pl_tracks'].update(values=pl_formatted)
         if len(all_tracks) != len(main_window['library'].Values):
             lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
-                        all_tracks.items()]
+                        index_all_tracks(False).items()]
             main_window['library'].update(values=lib_data)
     if main_window.metadata['update_volume_slider']:
         main_window['mute'].update(image_data=VOLUME_MUTED_IMG if settings['muted'] else VOLUME_IMG)

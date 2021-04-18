@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.2
+- [Fix] Library tab
+
 4.90.1
 - [Fix] YouTube playlists
 
