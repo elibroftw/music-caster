@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.2'
+VERSION = latest_version = '4.90.3'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -2237,7 +2237,7 @@ def read_main_window():
         if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
             main_window.grab_any_where_on()
         if main_event != 'volume_slider_mouse_leave': main_window.metadata['mouse_hover'] = ''
-    elif main_event in {'pause/resume', 'k'} and main_values.get('tab_group') in {'tab_queue', None}:
+    elif main_event == 'pause/resume' or main_event == 'k' and main_values.get('tab_group') in {'tab_queue', None}:
         if playing_status.paused(): resume()
         elif playing_status.playing(): pause()
         elif music_queue: play(music_queue[0])
