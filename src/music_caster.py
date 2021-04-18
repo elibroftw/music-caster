@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.3'
+VERSION = latest_version = '4.90.4'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1125,7 +1125,8 @@ def play_system_audio(switching_device=False):
             mc.play_media(url, 'audio/wav', metadata=metadata, thumb=f'{url}/thumb', stream_type='LIVE')
             mc.block_until_active(WAIT_TIMEOUT)
             start_time = time.time()
-            while not mc.status.player_is_playing: time.sleep(0.01)
+            block_until = time.time() + WAIT_TIMEOUT
+            while not mc.status.player_is_playing and time.time() < block_until: time.sleep(0.01)
             mc.play()
             sar.lag = time.time() - start_time  # ~1 second
             track_length = None
@@ -1317,10 +1318,9 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                           current_time=position, autoplay=autoplay, stream_type=stream_type)
             mc.block_until_active(WAIT_TIMEOUT)
-            start_time = time.time()
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+            block_until = time.time() + 5
+            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.time() < block_until:
                 time.sleep(0.2)
-                if time.time() - start_time > 5: break
             if track_length is None: mc.play()
         track_position = position
         track_start = time.time() - track_position
@@ -1338,10 +1338,8 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     while not os.path.exists(uri):
         if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
         music_queue.remove(uri)
-        if music_queue:
-            uri = music_queue[0]
-        else:
-            return
+        if not music_queue: return
+        uri = music_queue[0]
         position = 0
     uri = uri.replace('\\', '/')
     playing_url = sar.alive = False
@@ -1373,14 +1371,12 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
-            block_time = time.time()
+            wait_until = time.time() + WAIT_TIMEOUT
             mc.block_until_active(WAIT_TIMEOUT + 1)
-            if time.time() - block_time > WAIT_TIMEOUT:
-                app_log.info('play: FAILED TO BLOCK UNTIL ACTIVE')
-            start_time = time.time()
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'}:
+            if time.time() > wait_until: app_log.info('play: FAILED TO BLOCK UNTIL ACTIVE')
+            block_until = time.time() + 5
+            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.time() < block_until:
                 time.sleep(0.2)
-                if time.time() - start_time > WAIT_TIMEOUT: break
             app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
         except (UnsupportedNamespace, NotConnected, OSError):
             tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
@@ -1593,7 +1589,8 @@ def pause():
                 mc = cast.media_controller
                 mc.update_status()
                 mc.pause()
-                while not mc.status.player_is_paused: time.sleep(0.1)
+                block_until = time.time() + 5
+                while not mc.status.player_is_paused and time.time() < block_until: time.sleep(0.1)
                 track_position = mc.status.adjusted_current_time
                 app_log.info('paused cast device')
             playing_status.pause()
@@ -1625,7 +1622,8 @@ def resume():
                 mc.update_status()
                 mc.play()
                 mc.block_until_active(WAIT_TIMEOUT)
-                while not mc.status.player_state == 'PLAYING': time.sleep(0.1)
+                block_until = time.time() + 5
+                while not mc.status.player_state == 'PLAYING' and time.time() < block_until: time.sleep(0.1)
                 track_position = mc.status.adjusted_current_time
             track_start = time.time() - track_position
             if track_length is not None:
@@ -1664,10 +1662,10 @@ def stop(stopped_from: str, stop_cast=True):
             mc = cast.media_controller
             if stop_cast:
                 mc.stop()
-                until_time = time.time() + 5  # 5 seconds
+                block_until = time.time() + 5  # 5 seconds
                 status = mc.status
                 while ((status.player_is_playing or status.player_is_paused)
-                       and time.time() > until_time): time.sleep(0.1)
+                       and time.time() > block_until): time.sleep(0.1)
                 if status.player_is_playing or status.player_is_paused: cast.quit_app()
             else:  # only when background tasks calls stop()
                 # check if background tasks is wrong
@@ -1733,15 +1731,17 @@ def next_track(from_timeout=False, times=1, forced=False):
             if settings['smart_queue'] and from_timeout:
                 # auto skip tracks that are likely to be skipped.
                 # instead of using an arbitrary number, compare to median skips
-                while settings['skips'].get(music_queue[0], 0) > 3:
+                max_skips = len(music_queue) + len(next_queue) + len(done_queue)
+                while settings['skips'].get(music_queue[0], 0) > 3 and max_skips > 0:
                     if music_queue: done_queue.append(music_queue.popleft())
                     if next_queue: music_queue.insert(0, next_queue.popleft())
                     # if queue is empty but repeat is all AND there are tracks in the done_queue
                     if not music_queue and settings['repeat'] is False and done_queue:
                         music_queue.extend(done_queue)
                         done_queue.clear()
+                    max_skips -= 1
             elif times > 1:  # explicitly selected
-                settings['skips'].get(music_queue[0])  # reset skip counter
+                settings['skips'].pop(music_queue[0], None)  # reset skip counter
                 save_settings()
             play(music_queue[0])
         else:
@@ -2259,7 +2259,7 @@ def read_main_window():
         cycle_repeat(True)
     elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
                                             and (main_values.get('tab_group') in {'tab_queue', None}))):
-        # User scrubbed volume bar or pressed (while on Tab 1 or in mini mode)
+        # User scrubbed volume bar or pressed a, d, #
         delta = 0
         if main_event.isdigit():
             new_volume = int(main_event) * 10

@@ -1,9 +1,9 @@
 """
-AudioPlayer v2.3.3
+AudioPlayer v2.3.4
 Author: Elijah Lopez
 Make sure VLC .dll files are located in "vlc_lib/"
 """
-
+import time
 from enum import IntEnum
 import math
 import os
@@ -44,7 +44,8 @@ class AudioPlayer:
         self.player.set_mrl(media_path)
         self.player.play()
         if volume is not None: self.set_volume(volume)
-        while not self.player.is_playing(): pass
+        block_until = time.time() + 1
+        while not self.player.is_playing() and time.time() < block_until: pass
         self.set_pos(start_from)
         if not start_playing: self.pause()
 
@@ -54,7 +55,8 @@ class AudioPlayer:
     def pause(self):
         if self.is_playing():
             self.player.pause()
-            while self.player.is_playing(): pass
+            block_until = time.time() + 1
+            while self.player.is_playing() and time.time() < block_until: pass
             return True
         return False
 
@@ -64,10 +66,12 @@ class AudioPlayer:
         Also used to start playing audio after load was used
         """
         if not self.is_playing() and self.has_media():
-            self.player.audio_set_volume(self.player.audio_get_volume())
-            self.player.pause()
-            while not self.player.is_playing(): pass
-            return True
+            if self.player.get_length() - self.player.get_time() > 0.5:
+                self.player.audio_set_volume(self.player.audio_get_volume())
+                self.player.pause()
+                block_until = time.time() + 1
+                while not self.player.is_playing() and time.time() < block_until: pass
+                return True
         return False
 
     def stop(self):

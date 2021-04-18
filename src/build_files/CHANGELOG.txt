@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.4
+- [Fix] Removed blocking logic
+
 4.90.3
 - [Fix] Main GUI
 
