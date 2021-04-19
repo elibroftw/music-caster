@@ -244,7 +244,7 @@ def tray_notify(message, title='Music Caster', context=''):
 
 
 def save_settings():
-    global settings, settings_last_modified
+    global settings_last_modified
     with settings_file_lock:
         try:
             with open(SETTINGS_FILE, 'w') as outfile:
@@ -312,7 +312,6 @@ def refresh_tray():
 
 def change_settings(settings_key, new_value):
     """ can be called from non-main thread """
-    global settings
     if settings[settings_key] != new_value:
         settings[settings_key] = new_value
         save_settings()
@@ -557,7 +556,7 @@ def index_all_tracks(update_global=True, ignore_files: set = None):
         dict_to_use = all_tracks_temp if use_temp else all_tracks
         for uri in get_audio_uris(settings['music_folders'], False, True):
             dict_to_use[uri] = get_metadata_wrapped(uri)
-        if use_temp: all_tracks = all_tracks_temp.copy()
+        if use_temp: all_tracks = all_tracks_temp
         main_window.metadata['update_listboxes'] = True
         # scan playlist items
         for _ in get_audio_uris(settings['playlists']): pass
@@ -1396,31 +1395,6 @@ def queue_all():
     main_window.metadata['update_listboxes'] = True
 
 
-def play_all(starting_files: Iterable = None, play_after=True):
-    """
-    Clears done queue, music queue,
-    Adds starting files to music queue,
-    [shuffle] queues files in the "library" with index_all_tracks (ignores starting_files)
-    """
-    global indexing_tracks_thread, music_queue
-    music_queue.clear()
-    done_queue.clear()
-    if starting_files is None: starting_files = []
-    starting_files = list(get_audio_uris(starting_files))
-    play_uris(starting_files, queue_uris=True)
-    if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
-        info = gt('INFO')
-        tray_notify(f'{info}: ' + gt('Library indexing incomplete, only scanned files have been added'))
-    temp_list = list(index_all_tracks(False, set(starting_files)).keys())
-    shuffle(temp_list)
-    music_queue.extend(temp_list)
-    if play_after:
-        if music_queue:
-            play(music_queue[0])
-        elif next_queue:
-            next_track(forced=True)
-
-
 def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=False):
     """
     Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
@@ -1459,13 +1433,37 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
             next_track()
 
 
+def play_all(starting_files: Iterable = None, play_after=True):
+    """
+    Clears done queue, music queue,
+    Adds starting files to music queue,
+    [shuffle] queues files in the "library" with index_all_tracks (ignores starting_files)
+    """
+    global indexing_tracks_thread, music_queue
+    music_queue.clear()
+    done_queue.clear()
+    if starting_files is None: starting_files = []
+    starting_files = list(get_audio_uris(starting_files))
+    play_uris(starting_files, queue_uris=True)
+    if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
+        info = gt('INFO')
+        tray_notify(f'{info}: ' + gt('Library indexing incomplete, only scanned files have been added'))
+    temp_list = list(index_all_tracks(False, set(starting_files)).keys())
+    shuffle(temp_list)
+    music_queue.extend(temp_list)
+    if play_after:
+        if music_queue:
+            play(music_queue[0])
+        elif next_queue:
+            next_track(forced=True)
+
+
 def file_action(action='pf'):
     """
     action = {'pf': 'Play File(s)', 'pfn': 'Play File(s) Next', 'qf': 'Queue File(s)'}
     :param action: one of {'pf': 'Play File(s)', 'pfn': 'Play File(s) Next', 'qf': 'Queue File(s)'}
     :return:
     """
-    global music_queue, next_queue
     initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
     # noinspection PyTypeChecker
     paths: tuple = Sg.popup_get_file(gt('Select Music File(s)'), no_window=True, initial_folder=initial_folder,
@@ -1892,13 +1890,13 @@ def metadata_process_file(file):
 
 
 def add_music_folder(folders):
-    added_folders = set(settings['music_folders'])
+    added_folders = set(music_folders)
     for folder in folders:
         folder = folder.replace('\\', '/')
         if os.path.isdir(folder) and folder not in added_folders:
-            settings['music_folders'].append(folder)
+            music_folders.append(folder)
             added_folders.add(folder)
-    main_window['music_folders'].update(settings['music_folders'])
+    main_window['music_folders'].update(music_folders)
     refresh_tray()
     save_settings()
     if settings['scan_folders']: index_all_tracks()
@@ -2562,8 +2560,8 @@ def read_main_window():
     elif main_event == 'remove_music_folder' and main_values['music_folders']:
         with suppress(ValueError):
             for selected_item in main_values['music_folders']:
-                settings['music_folders'].remove(selected_item)
-            main_window['music_folders'].update(settings['music_folders'])
+                music_folders.remove(selected_item)
+            main_window['music_folders'].update(music_folders)
             refresh_tray()
             save_settings()
             if settings['scan_folders']: index_all_tracks()
@@ -3111,5 +3109,5 @@ if __name__ == '__main__':
                 time.sleep(0.2)
     except Exception as e:
         # try to auto-update before exiting
-        auto_update()
+        if not settings.get('DEBUG', False): auto_update()
         handle_exception(e, True)
