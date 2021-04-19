@@ -191,6 +191,7 @@ def run_tests(uploading_after=False):
             'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',                          # spotify playlist
             'https://www.deezer.com/track/65404135?utm_campaign=clipboard-generic',              # deezer track
             'https://deezer.page.link/NTW1c5cRdkzy28P19',
+            'https://deezer.page.link/Prw6jnAYCNe8VrV17',
             'https://www.deezer.com/album/217794942',                                            # deezer album
             'https://deezer.page.link/XGPUgE6HN5LryeBE7',
             'https://www.deezer.com/playlist/1963962142',                                        # deezer playlist

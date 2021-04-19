@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.10
+- [Fix] Deezer support
+
 4.90.9
 - [Fix] URL added feedback - Italian translation
 
