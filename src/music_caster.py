@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.4'
+VERSION = latest_version = '4.90.5'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -196,8 +196,7 @@ IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AU
 SETTINGS_FILE = 'settings.json'
 PRESSED_KEYS = set()
 settings_file_lock = threading.Lock()
-last_play_command = 0  # last call to /play/
-settings_last_modified, last_press = 0, time.time() + 5
+last_play_command = settings_last_modified = last_press = 0
 update_last_checked = time.time()  # check every hour
 active_windows = {'main': False}
 # noinspection PyTypeChecker
@@ -313,7 +312,7 @@ def refresh_tray():
 
 def change_settings(settings_key, new_value):
     """ can be called from non-main thread """
-    global settings, active_windows
+    global settings
     if settings[settings_key] != new_value:
         settings[settings_key] = new_value
         save_settings()
@@ -1092,7 +1091,7 @@ def after_play(title, artists: str, autoplay, switching_device):
             tray_notify(gt('Playing') + f': {get_first_artist(artists)} - {title}')
     playing_status.play()
     refresh_tray()
-    cast_last_checked = time.time()
+    cast_last_checked = time.monotonic()
     save_queues()
     if settings['discord_rpc']:
         with suppress(Exception):
@@ -1124,14 +1123,14 @@ def play_system_audio(switching_device=False):
             url = f'http://{get_ipv4()}:{Shared.PORT}/system-audio/'
             mc.play_media(url, 'audio/wav', metadata=metadata, thumb=f'{url}/thumb', stream_type='LIVE')
             mc.block_until_active(WAIT_TIMEOUT)
-            start_time = time.time()
-            block_until = time.time() + WAIT_TIMEOUT
-            while not mc.status.player_is_playing and time.time() < block_until: time.sleep(0.01)
+            start_time = time.monotonic()
+            block_until = time.monotonic() + WAIT_TIMEOUT
+            while not mc.status.player_is_playing and time.monotonic() < block_until: time.sleep(0.01)
             mc.play()
-            sar.lag = time.time() - start_time  # ~1 second
+            sar.lag = time.monotonic() - start_time  # ~1 second
             track_length = None
             track_position = 0
-            track_start = time.time() - track_position
+            track_start = time.monotonic() - track_position
             after_play(title, artist, True, switching_device)
             return True
         except NotConnected:
@@ -1306,7 +1305,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         if cast is None:
             audio_player.play(url, start_playing=autoplay, start_from=position)
         else:
-            cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
+            cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere
             with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
             cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
             mc = cast.media_controller
@@ -1318,12 +1317,12 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                           current_time=position, autoplay=autoplay, stream_type=stream_type)
             mc.block_until_active(WAIT_TIMEOUT)
-            block_until = time.time() + 5
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.time() < block_until:
+            block_until = time.monotonic() + 5
+            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                 time.sleep(0.2)
             if track_length is None: mc.play()
         track_position = position
-        track_start = time.time() - track_position
+        track_start = time.monotonic() - track_position
         if track_length is not None:
             track_end = track_start + track_length
         playing_url = True
@@ -1359,7 +1358,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
     else:
         try:
-            cast_last_checked = time.time() + 60  # make sure background_tasks doesn't interfere
+            cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{Shared.PORT}/file?{url_args}'
             with suppress(RuntimeError):
@@ -1371,11 +1370,11 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             ext = uri.split('.')[-1]
             mc.play_media(url, f'audio/{ext}', current_time=position,
                           metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
-            wait_until = time.time() + WAIT_TIMEOUT
+            wait_until = time.monotonic() + WAIT_TIMEOUT
             mc.block_until_active(WAIT_TIMEOUT + 1)
-            if time.time() > wait_until: app_log.info('play: FAILED TO BLOCK UNTIL ACTIVE')
-            block_until = time.time() + 5
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.time() < block_until:
+            if time.monotonic() > wait_until: app_log.info('play: FAILED TO BLOCK UNTIL ACTIVE')
+            block_until = time.monotonic() + 5
+            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                 time.sleep(0.2)
             app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
         except (UnsupportedNamespace, NotConnected, OSError):
@@ -1384,7 +1383,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
                 stop('play')
             return
     track_position = position
-    track_start = time.time() - track_position
+    track_start = time.monotonic() - track_position
     track_end = track_start + track_length
     after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
@@ -1559,10 +1558,10 @@ def get_track_position():
             mc = cast.media_controller
             mc.update_status()
             if not mc.status.player_is_idle:
-                track_position = mc.status.adjusted_current_time or (time.time() - track_start)
+                track_position = mc.status.adjusted_current_time or (time.monotonic() - track_start)
         except (UnsupportedNamespace, NotConnected, TypeError):
             if playing_status.playing():
-                track_position = time.time() - track_start
+                track_position = time.monotonic() - track_start
             # don't calculate if playing status is NOT PLAYING or PAUSED
     elif playing_status.busy():
         track_position = audio_player.get_pos()
@@ -1580,7 +1579,7 @@ def pause():
         ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         try:
             if cast is None:
-                track_position = time.time() - track_start
+                track_position = time.monotonic() - track_start
                 if audio_player.pause():
                     app_log.info('paused local audio player')
                 else:
@@ -1589,8 +1588,8 @@ def pause():
                 mc = cast.media_controller
                 mc.update_status()
                 mc.pause()
-                block_until = time.time() + 5
-                while not mc.status.player_is_paused and time.time() < block_until: time.sleep(0.1)
+                block_until = time.monotonic() + 5
+                while not mc.status.player_is_paused and time.monotonic() < block_until: time.sleep(0.1)
                 track_position = mc.status.adjusted_current_time
                 app_log.info('paused cast device')
             playing_status.pause()
@@ -1622,10 +1621,10 @@ def resume():
                 mc.update_status()
                 mc.play()
                 mc.block_until_active(WAIT_TIMEOUT)
-                block_until = time.time() + 5
-                while not mc.status.player_state == 'PLAYING' and time.time() < block_until: time.sleep(0.1)
+                block_until = time.monotonic() + 5
+                while not mc.status.player_state == 'PLAYING' and time.monotonic() < block_until: time.sleep(0.1)
                 track_position = mc.status.adjusted_current_time
-            track_start = time.time() - track_position
+            track_start = time.monotonic() - track_position
             if track_length is not None:
                 track_end = track_start + track_length
             playing_status.play()
@@ -1662,10 +1661,10 @@ def stop(stopped_from: str, stop_cast=True):
             mc = cast.media_controller
             if stop_cast:
                 mc.stop()
-                block_until = time.time() + 5  # 5 seconds
+                block_until = time.monotonic() + 5  # 5 seconds
                 status = mc.status
                 while ((status.player_is_playing or status.player_is_paused)
-                       and time.time() > block_until): time.sleep(0.1)
+                       and time.monotonic() > block_until): time.sleep(0.1)
                 if status.player_is_playing or status.player_is_paused: cast.quit_app()
             else:  # only when background tasks calls stop()
                 # check if background tasks is wrong
@@ -1791,7 +1790,7 @@ def background_tasks():
         # if settings.json was updated outside of Music Caster, reload settings
         if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
         # Check cast every 5 seconds
-        if cast is not None and time.time() - cast_last_checked > 5:
+        if cast is not None and time.monotonic() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast.app_id == APP_MEDIA_RECEIVER:
                     mc = cast.media_controller
@@ -1803,13 +1802,13 @@ def background_tasks():
                         # handle scrubbing of music from the home app / out of date time position
                         if abs(mc.status.adjusted_current_time - track_position) > 0.5:
                             track_position = mc.status.adjusted_current_time
-                            track_start = time.time() - track_position
+                            track_start = time.monotonic() - track_position
                             if not is_live: track_end = track_start + track_length
                     if is_paused:
                         pause()  # pause() checks if playing status equals 'PLAYING'
                     elif is_playing:
                         resume()
-                    elif is_stopped and playing_status.busy() and not is_live and time.time() - track_end > 1:
+                    elif is_stopped and playing_status.busy() and not is_live and time.monotonic() - track_end > 1:
                         # if cast says nothing is playing, only stop if we are not at the end of the track
                         #  this will prevent false positives
                         stop('background tasks', False)
@@ -1823,7 +1822,7 @@ def background_tasks():
                             main_window.metadata['update_volume_slider'] = True
                 elif playing_status.playing():
                     stop('background tasks; app not running')
-            cast_last_checked = time.time()
+            cast_last_checked = time.monotonic()
             # don't check cast around the time the next track will start playing
             if track_end is not None and track_end - cast_last_checked < 10: cast_last_checked += 5
         if time.time() - update_last_checked > 216000:
@@ -1931,6 +1930,8 @@ def set_callbacks():
         new_i = len(new_values) - 1
         main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
+    # drag and drop callbacks
+    main_window.TKroot.tk.call('package', 'require', 'tkdnd')
     if not settings['mini_mode']:
         main_window['library'].TKTreeview.bind('<Button-1>', library_events, add='+')
         main_window['library'].TKTreeview.bind('<Double-Button-1>', library_events, add='+')
@@ -1940,8 +1941,6 @@ def set_callbacks():
             main_window[scroll_area].bind('<Leave>', '_mouse_leave')
         for input_key in ('url_input', 'pl_url_input', 'timer_input'):
             main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
-        # drag and drop callbacks
-        main_window.TKroot.tk.call('package', 'require', 'tkdnd')
         tk_lb = main_window['queue'].TKListbox
         drop_target_register(tk_lb, DND_FILES)
         dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
@@ -2100,8 +2099,8 @@ def other_tray_actions(_tray_item):
         else:
             Thread(target=play_uris, name='PlayFolder', daemon=True,
                    args=[[music_folders[tray_folders.index(_tray_item) - 1]]]).start()
-    elif playing_status.playing() and track_length is not None and time.time() > track_end:
-        next_track(from_timeout=time.time() > track_end)
+    elif playing_status.playing() and track_length is not None and time.monotonic() > track_end:
+        next_track(from_timeout=time.monotonic() > track_end)
     elif timer and time.time() > timer:
         stop('timer')
         timer = 0
@@ -2504,7 +2503,7 @@ def read_main_window():
         else:
             track_position = main_values['progress_bar']
             set_pos(track_position)
-            track_start = time.time() - track_position
+            track_start = time.monotonic() - track_position
             track_end = track_start + track_length
     # main window settings tab
     elif main_event == 'email':
@@ -3075,7 +3074,7 @@ if __name__ == '__main__':
             change_settings('timer_sleep', False)
         if settings['persistent_queue'] and settings['populate_queue_startup']:  # mutually exclusive
             change_settings('populate_queue_startup', False)
-        cast_last_checked = time.time()
+        cast_last_checked = time.monotonic()
         Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
         start_chromecast_discovery(start_thread=True)
         audio_player = AudioPlayer()

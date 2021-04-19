@@ -254,9 +254,9 @@ def get_file_name(file_path): return os.path.splitext(os.path.basename(file_path
 def timing(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        _start = time.time()
+        _start = time.monotonic()
         result = f(*args, **kwargs)
-        print(f'@timing {f.__name__} ELAPSED TIME:', time.time() - _start)
+        print(f'@timing {f.__name__} ELAPSED TIME:', time.monotonic() - _start)
         return result
     return wrapper
 
@@ -331,7 +331,6 @@ def get_proxies():
     r = requests.get('https://www.proxynova.com/proxy-server-list/')
     matches = re.findall(r'<td.*(\d+.\d+.\d+.\d+)<td align="left"> *(\d+)</td>', r.text)
     print(matches[0])
-
 
 
 def get_length(file_path) -> int:
@@ -598,7 +597,6 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
     mc_file = 'MusicCaster_file'
     write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
-    num_arguments = ' '.join((f'"%{i}"' for i in range(1, 300)))  # handle multiple arguments
 
     # create URL protocol handler
     url_protocol = f'{classes_path}music-caster'
@@ -624,7 +622,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\open\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" {num_arguments}')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
 
     # create queue context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\queue', 0, write_access) as key:
@@ -633,7 +631,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\queue\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q {num_arguments}')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
 
     # create play next context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\play_next', 0, write_access) as key:
@@ -642,7 +640,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\play_next\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n {num_arguments}')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n "%1"')
 
     # set file handlers
     for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
@@ -668,19 +666,19 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play with Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" {num_arguments}')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
         # set "queue folder in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Queue in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q {num_arguments}')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
         # set "play folder next in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_next_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play next in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_next_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n {num_arguments}')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n "%1"')
     else:
         # remove commands for folders
         delete_sub_key(wr.HKEY_CURRENT_USER, play_folder_key_path)
