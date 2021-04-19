@@ -89,7 +89,7 @@ class SystemAudioRecorder:
         self.data_stream = LifoQueue()
 
     def get_audio_data(self):
-        if not self.alive: self.start()
+        if not self.alive: return  # ensure that start() was called
         silent_wav = b'\x00' * self.STREAM_CHUNK
         yield self.get_wav_header()
         last_sleep = time.time() + 1

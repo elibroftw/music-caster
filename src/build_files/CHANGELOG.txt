@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.7
+- [Fix] System audio streaming related
+
 4.90.6
 - [Fix] YouTube comment parsing
 - [Fix] Dynamic artwork
