@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.11
+- [Fix] Persistent queue
+
 4.90.10
 - [Fix] Deezer support
 

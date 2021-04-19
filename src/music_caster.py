@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.10'
+VERSION = latest_version = '4.90.11'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1427,10 +1427,11 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
     music_queue.extend(temp_queue)
     if not queue_uris and not play_next:
         if music_queue:
-            play(music_queue[0])
+            return play(music_queue[0])
         elif next_queue:
             playing_status.play()
-            next_track()
+            return next_track()
+    save_queues()
 
 
 def play_all(starting_files: Iterable = None, play_after=True):
@@ -1491,8 +1492,8 @@ def file_action(action='pf'):
                 if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                 playing_status.play()
                 next_track()
-        else:
-            raise ValueError('Expected one of: "Play File(s)", "Play File(s) Next", or "Queue File(s)"')
+        else: raise ValueError(f'file_action expected something else. Got {action}')
+        save_queues()
     else:
         main_window.metadata['main_last_event'] = 'file_action'
 
@@ -1507,6 +1508,7 @@ def folder_action(action='Play Folder'):
     folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
                                       icon=WINDOW_ICON)
     if folder_path:
+        main_window.metadata['main_last_event'] = Sg.TIMEOUT_KEY
         settings['last_folder'] = folder_path
         temp_queue = []
         files_to_queue = defaultdict(list)
@@ -1522,8 +1524,6 @@ def folder_action(action='Play Folder'):
                 files = sorted([os.path.join(parent, file_path) for file_path in files], key=natural_key_file)
                 temp_queue.extend(files)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
-        main_window.metadata['update_listboxes'] = True
-        main_window.metadata['main_last_event'] = Sg.TIMEOUT_KEY
         if not temp_queue:
             if settings['notifications']:
                 tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
@@ -1542,9 +1542,9 @@ def folder_action(action='Play Folder'):
         elif action in {gt('Queue Folder'), 'qf'}:
             music_queue.extend(temp_queue)
             if len(temp_queue) == len(music_queue) and not sar.alive: play(music_queue[0])
-        else:
-            error = f'Expected one of: "Play Folder", "Play Folder Next", or "Queue Folder". Got {action}'
-            raise ValueError(error)
+        else: raise ValueError(f'folder_action expected something else. Got {action}')
+        main_window.metadata['update_listboxes'] = True
+        save_queues()
     else:
         main_window.metadata['main_last_event'] = 'folder_action'
 
@@ -2295,7 +2295,7 @@ def read_main_window():
             dq_len = len(done_queue)
             main_window['queue'].update(values=values, set_to_index=dq_len, scroll_to_index=dq_len)
             reset_progress()
-    elif main_event in {'album', 'title'} and playing_status.busy(): locate_uri()
+    elif main_event == 'album' and playing_status.busy(): locate_uri()
     elif main_event in {'locate_uri', 'e:69'}:
         if not settings['mini_mode'] and main_values['queue']:
             for index in main_window['queue'].get_indexes(): locate_uri(index - len(done_queue))
