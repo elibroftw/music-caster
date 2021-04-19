@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.8'
+VERSION = latest_version = '4.90.9'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
