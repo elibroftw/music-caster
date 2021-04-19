@@ -866,9 +866,11 @@ def parse_deezer_page(url):
 
 def parse_deezer_track(track_obj) -> dict:
     artists = []
-    sng_contribs = track_obj['SNG_CONTRIBUTORS']
-    sng_artists = sng_contribs.get('main_artist', sng_contribs['mainartist']) + sng_contribs.get('featuring', [])
-    for artist in sng_artists:
+    try:
+        main_artists = track_obj['SNG_CONTRIBUTORS']['main_artist']
+    except KeyError:
+        main_artists = track_obj['SNG_CONTRIBUTORS']['mainartist']
+    for artist in main_artists + track_obj['SNG_CONTRIBUTORS'].get('featuring', []):
         include = True
         for added_artist in artists:
             if added_artist in artist:
