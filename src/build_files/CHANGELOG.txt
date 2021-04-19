@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.6
+- [Fix] YouTube comment parsing
+- [Fix] Dynamic artwork
+
 4.90.5
 - [Fix] Better internal clocks
 - [Fix] Mini-mode

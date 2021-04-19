@@ -9,6 +9,7 @@ import datetime
 from functools import wraps, lru_cache
 import glob
 import io
+from itertools import cycle
 import json
 import locale
 from math import floor, ceil
@@ -26,6 +27,7 @@ import winreg as wr
 # 3rd party imports
 from deemix.__main__ import Deezer
 from deemix.decryption import generateBlowfishKey, generateStreamURL
+import lxml.html
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -324,13 +326,6 @@ def get_translation(string, lang='', as_title=False):
 
 def gt(string, as_title=False):
     return get_translation(string, lang=Shared.lang, as_title=as_title)
-
-
-@lru_cache(maxsize=1)
-def get_proxies():
-    r = requests.get('https://www.proxynova.com/proxy-server-list/')
-    matches = re.findall(r'<td.*(\d+.\d+.\d+.\d+)<td align="left"> *(\d+)</td>', r.text)
-    print(matches[0])
 
 
 def get_length(file_path) -> int:
@@ -753,6 +748,25 @@ def parse_m3u(playlist_file):
                 if line != playlist_file: yield line
 
 
+@time_cache(600, maxsize=1)
+def get_proxies():
+    url = 'https://free-proxy-list.net/'
+    response = requests.get(url)
+    parser = lxml.html.fromstring(response.text)
+    proxies = set()
+    for i in parser.xpath('//tbody/tr')[:10]:
+        if i.xpath('.//td[7][contains(text(),"yes")]'):
+            # Grabbing IP and corresponding PORT
+            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+            proxies.add(proxy)
+    return cycle(proxies)
+
+
+def get_proxy():
+    proxy = next(get_proxies())
+    return {'http': proxy, 'https': proxy}
+
+
 @time_cache(max_age=3500, maxsize=1)
 def get_spotify_headers():
     # access token key expires in ~1 hour
@@ -940,8 +954,12 @@ def custom_art(text):
         fnt = ImageFont.truetype(f"C:/Users/{username}/AppData/Local/Microsoft/Windows/Fonts/MYRIADPRO-BOLD.OTF", 80)
         shift = 5
     except OSError:
-        fnt = ImageFont.truetype('gadugib', 80)
-        shift = -5
+        try:
+            fnt = ImageFont.truetype('gadugib.ttf', 80)
+            shift = -5
+        except OSError:
+            fnt = ImageFont.truetype('arial.ttf', 80)
+            shift = 0
     d.rounded_rectangle((x0, y0, x1, y1), fill='#cc1a21', radius=7)
     d.text(((x0 + x1) / 2, (y0 + y1) / 2 + shift), text, fill='#fff', font=fnt, align='center', anchor='mm')
     data = io.BytesIO()
@@ -964,7 +982,8 @@ def get_youtube_comments(url, limit=-1):
     raises ValueError if comments are disabled
     """
     session = requests.Session()
-    res = session.get(url)
+    proxies = get_proxy()
+    res = session.get(url, proxies=proxies)
     token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
     session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
     match = re.search(r'var ytInitialData = (.*);</script>', res.text)
@@ -984,8 +1003,8 @@ def get_youtube_comments(url, limit=-1):
         headers = {'X-YouTube-Client-Name': '1', 'X-YouTube-Client-Version': '2.20201202.06.01'}
         response = {}
         for _ in range(5):
-            youtube_comments_ajax_url = 'https://www.youtube.com/comment_service_ajax'
-            response = session.post(youtube_comments_ajax_url, params=params, data=data, headers=headers)
+            ajax_url = 'https://www.youtube.com/comment_service_ajax'
+            response = session.post(ajax_url, params=params, proxies=proxies, data=data, headers=headers)
             if response.status_code == 200:
                 response = response.json()
                 break

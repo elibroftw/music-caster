@@ -154,6 +154,8 @@ def run_tests(uploading_after=False):
             print('TEST FAILED', youtube_link)
             raise AssertionError
 
+    assert custom_art('SYS')
+
     for option, expected in {None: (REPEAT_OFF_IMG, gt('Repeat All')),
                              True: (REPEAT_ONE_IMG, gt('Repeat Off')),
                              False: (REPEAT_ALL_IMG, gt('Repeat One'))}.items():
