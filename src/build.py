@@ -19,8 +19,6 @@ SETUP_OUTPUT_NAME = 'Music Caster Setup'
 UPDATER_DIST_PATH = 'Music Caster Updater/bin/x86/Release/netcoreapp3.1'
 VERSION_FILE = 'build_files/mc_version_info.txt'
 INSTALLER_SCRIPT = 'build_files/setup_script.iss'
-PYAUDIO_WHL = 'PyAudio-0.2.11-cp38-cp38-win32.whl'
-PYINSTALLER_WHL = 'pyinstaller-4.0+19fb799a11-py3-none-any.whl'
 PORTABLE_SPEC = 'build_files/portable.spec'
 ONEDIR_SPEC = 'build_files/onedir.spec'
 UPDATER_SPEC_FILE = 'build_files/updater.spec'
@@ -43,11 +41,6 @@ if not args.skip_build and not args.skip_deps and not args.ver_update:
     copy_tree('build_files/tkdnd2.9.2', os.path.dirname(sys.executable) + '/tcl/tkdnd2.9.2')
     copy_tree('build_files/TkinterDnD2', os.path.dirname(sys.executable) + '/Lib/site-packages/TkinterDnD2')
     getoutput(f'{sys.executable} -m pip install --upgrade -r requirements.txt')
-    for whl in (PYAUDIO_WHL, PYINSTALLER_WHL):
-        try: check_call(f'{sys.executable} -m pip install build_files\\{whl}'.split(), stdout=DEVNULL)
-        except CalledProcessError as e:
-            print(f'ERROR: {whl} could not be installed')
-            raise e
 
 
 # import third party libraries
