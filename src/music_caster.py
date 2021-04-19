@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.7'
+VERSION = latest_version = '4.90.8'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -2584,6 +2584,7 @@ def read_main_window():
         urls_to_insert = main_values['url_input']
         if '\n' in urls_to_insert: urls_to_insert = urls_to_insert.split('\n')
         else: urls_to_insert = urls_to_insert.split(';')
+        main_window['url_input'].update(value='')
         if main_values['url_play'] or not music_queue:
             music_queue.extendleft(reversed(urls_to_insert))
             main_window['url_msg'].update(gt('Loading URL(s)'), text_color='yellow')
@@ -2593,11 +2594,14 @@ def read_main_window():
             urls_to_insert.pop(0)
         elif main_values['url_queue']:
             music_queue.extend(urls_to_insert)
+            main_window['url_msg'].update(gt('Added URL(s)'), text_color='green')
+            main_window.TKroot.after(2000, lambda: main_window['url_msg'].update(value=''))
         else:  # add to next queue
             if settings['reversed_play_next']: next_queue.extendleft(reversed(urls_to_insert))
             else: next_queue.extend(urls_to_insert)
+            main_window['url_msg'].update(gt('Added URL(s)'), text_color='green')
+            main_window.TKroot.after(2000, lambda: main_window['url_msg'].update(value=''))
         for inserted_url in urls_to_insert: uris_to_scan.put(inserted_url)
-        main_window['url_input'].update(value='')
         main_window['url_input'].set_focus()
         main_window.metadata['update_listboxes'] = True
     # timer tab
