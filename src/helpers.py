@@ -9,7 +9,7 @@ import datetime
 from functools import wraps, lru_cache
 import glob
 import io
-from itertools import cycle
+from itertools import cycle, repeat
 import json
 import locale
 from math import floor, ceil
@@ -753,21 +753,20 @@ def get_proxies():
     url = 'https://free-proxy-list.net/'
     response = requests.get(url)
     parser = lxml.html.fromstring(response.text)
-    proxies = set()
+    scraped_proxies = set()
     for i in parser.xpath('//tbody/tr')[:10]:
         if i.xpath('.//td[7][contains(text(),"yes")]'):
             # Grabbing IP and corresponding PORT
-            proxy = ":".join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
-            proxies.add(proxy)
+            proxy = ':'.join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
+            scraped_proxies.add(proxy)
+    proxies = [None, None, None, None, None]
+    for proxy in scraped_proxies: proxies.extend(repeat(proxy, 3))
     return cycle(proxies)
 
 
 def get_proxy():
-    try:
-        proxy = next(get_proxies())
-        return {'http': proxy, 'https': proxy}
-    except StopIteration:
-        return None
+    proxy = next(get_proxies())
+    return {'http': proxy, 'https': proxy}
 
 
 @time_cache(max_age=3500, maxsize=1)
@@ -1000,13 +999,13 @@ def get_youtube_comments(url, limit=-1):
     for renderer in search_dict(data, 'itemSectionRenderer'):
         ncd = next(search_dict(renderer, 'nextContinuationData'), None)
         if ncd: break
+    data = {'session_token': session_token}
     if not ncd:
         raise ValueError('Comments are disabled')
     continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
     while continuations:
         continuation, itct, action = continuations.pop()
         params = {action: 1, 'pbj': 1, 'ctoken': continuation, 'continuation': continuation, 'itct': itct}
-        data = {'session_token': session_token}
         headers = {'X-YouTube-Client-Name': '1', 'X-YouTube-Client-Version': '2.20201202.06.01'}
         response = {}
         for _ in range(5):
@@ -1021,7 +1020,7 @@ def get_youtube_comments(url, limit=-1):
                     break
                 else: time.sleep(20)
             except requests.exceptions.ProxyError:
-                proxies = next(get_proxies())
+                proxies = get_proxy()
         if not response: break
         if list(search_dict(response, 'externalErrorMessage')):
             raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
@@ -1055,11 +1054,28 @@ def get_youtube_comments(url, limit=-1):
         time.sleep(0.1)
 
 
-def get_video_timestamps(url):
+def parse_timestamps(text):
+    times = re.findall(r'\d+:(?:\d+:)*\d+', text)
+    times = sorted({sum(int(x) * 60 ** i for i, x in enumerate(reversed(_time.split(':')))) for _time in times})
+    return times
+
+
+def get_video_timestamps(video_info):
+    # try parsing chapters
+    with suppress(KeyError):
+        chapters = video_info['chapters']
+        times = set()
+        for chapter in chapters:
+            times.add(chapter['start_time'])
+            times.add(chapter['end_time'])
+        return sorted(times)
+    # try parsing description
+    description_timestamps = parse_timestamps(video_info['description'])
+    if len(description_timestamps) > 1: return description_timestamps
+    # try parsing comments
+    url = video_info['webpage_url']
     for count, comment in enumerate(get_youtube_comments(url, limit=10)):
-        comment = comment['text']
-        times = re.findall(r'\d+:(?:\d+:)*\d+', comment)
-        times = sorted({sum(int(x) * 60 ** i for i, x in enumerate(reversed(_time.split(':')))) for _time in times})
+        times = parse_timestamps(comment['text'])
         if len(times) > 2: return times
     return []
 

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.13
+- [Fix] Improve chapter parsing
+
 4.90.12
 - [Fix] Proxy errors
 

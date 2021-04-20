@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.12'
+VERSION = latest_version = '4.90.13'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1200,7 +1200,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                                 'expired': lambda: time.time() > expiry_time,
                                 'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
                     # if duration > 10 minutes, try to parse out timestamps for track from comment section
-                    if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry['webpage_url'])
+                    if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry)
                     for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
                     metadata_list.append(metadata)
             else:
@@ -1218,7 +1218,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                             'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
                             'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
                 # if duration > 10 minutes, try to parse out timestamps for track from comment section
-                if r['duration'] > 600: metadata['timestamps'] = get_video_timestamps(r['webpage_url'])
+                if r['duration'] > 600: metadata['timestamps'] = get_video_timestamps(r)
                 for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
