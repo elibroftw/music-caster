@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.12
+- [Fix] Proxy errors
+
 4.90.11
 - [Fix] Persistent queue
 

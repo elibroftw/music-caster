@@ -763,8 +763,11 @@ def get_proxies():
 
 
 def get_proxy():
-    proxy = next(get_proxies())
-    return {'http': proxy, 'https': proxy}
+    try:
+        proxy = next(get_proxies())
+        return {'http': proxy, 'https': proxy}
+    except StopIteration:
+        return None
 
 
 @time_cache(max_age=3500, maxsize=1)
@@ -987,7 +990,7 @@ def get_youtube_comments(url, limit=-1):
     """
     session = requests.Session()
     proxies = get_proxy()
-    res = session.get(url, proxies=proxies)
+    res = session.get(url, headers={'user-agent': 'Firefox/78.0'})
     token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
     session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
     match = re.search(r'var ytInitialData = (.*);</script>', res.text)
@@ -1008,14 +1011,17 @@ def get_youtube_comments(url, limit=-1):
         response = {}
         for _ in range(5):
             ajax_url = 'https://www.youtube.com/comment_service_ajax'
-            response = session.post(ajax_url, params=params, proxies=proxies, data=data, headers=headers)
-            if response.status_code == 200:
-                response = response.json()
-                break
-            elif response.status_code in {403, 413}:
-                response = {}
-                break
-            else: time.sleep(20)
+            try:
+                response = session.post(ajax_url, params=params, proxies=proxies, data=data, headers=headers)
+                if response.status_code == 200:
+                    response = response.json()
+                    break
+                elif response.status_code in {403, 413}:
+                    response = {}
+                    break
+                else: time.sleep(20)
+            except requests.exceptions.ProxyError:
+                proxies = next(get_proxies())
         if not response: break
         if list(search_dict(response, 'externalErrorMessage')):
             raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
