@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.13'
+VERSION = latest_version = '4.90.14'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -726,13 +726,8 @@ def api_play():
                   from_explorer=from_explorer)
     elif 'uri' in request.values:
         play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, from_explorer=from_explorer)
-        # Since its the web GUI, we can queue all as well
-        already_queueing = False
-        for thread in threading.enumerate():
-            if thread.name in {'QueueAll', 'PlayAll'} and thread.is_alive():
-                already_queueing = True
-                break
-        if not already_queueing: Thread(target=queue_all, name='QueueAll', daemon=True).start()
+        if settings['queue_library'] and not any(filter(lambda t: t.name == 'PlayAll', threading.enumerate())):
+            Thread(target=play_all, kwargs={'clear_queues': False}, daemon=True, name='PlayAll').start()
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -1240,6 +1235,8 @@ def get_url_metadata(url, fetch_art=True) -> list:
                 youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
                 metadata = {**youtube_metadata, **metadata}
                 url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
+                # if url is a spotify track, set its metadata
+                if len(spotify_tracks) == 1: url_metadata[url] = metadata
                 metadata_list.append(metadata)
                 for spotify_track in islice(spotify_tracks, 1, None):
                     url_metadata[spotify_track['src']] = spotify_track
@@ -1387,14 +1384,6 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-def queue_all():
-    ignore_set = set(music_queue).union(next_queue).union(done_queue)
-    temp_lst = list(index_all_tracks(update_global=False, ignore_files=ignore_set).keys())
-    shuffle(temp_lst)
-    music_queue.extend(temp_lst)
-    main_window.metadata['update_listboxes'] = True
-
-
 def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=False):
     """
     Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
@@ -1406,10 +1395,11 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
         except for the track that is currently playing
     """
-    if not queue_uris and not play_next:
+    if not queue_uris and not play_next and not from_explorer:
         music_queue.clear()
         done_queue.clear()
     temp_queue = list(get_audio_uris(uris))
+    if not settings['shuffle']: temp_queue.sort(key=natural_key_file)
     if play_next:
         if settings['shuffle']: better_shuffle(temp_queue)
         if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
@@ -1434,29 +1424,29 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
     save_queues()
 
 
-def play_all(starting_files: Iterable = None, play_after=True):
+def play_all(starting_files: Iterable = None, auto_play=True, clear_queues=True):
     """
-    Clears done queue, music queue,
-    Adds starting files to music queue,
-    [shuffle] queues files in the "library" with index_all_tracks (ignores starting_files)
+    Clears done queue, music queue, adds starting files to music queue.
+    Shuffles and queues files in the library without duplication
     """
-    global indexing_tracks_thread, music_queue
-    music_queue.clear()
-    done_queue.clear()
     if starting_files is None: starting_files = []
-    starting_files = list(get_audio_uris(starting_files))
-    play_uris(starting_files, queue_uris=True)
+    if clear_queues:
+        music_queue.clear()
+        done_queue.clear()
+    music_queue.extend(starting_files)
+    ignore_files = set(starting_files).union(music_queue).union(done_queue).union(next_queue)
     if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
         info = gt('INFO')
         tray_notify(f'{info}: ' + gt('Library indexing incomplete, only scanned files have been added'))
-    temp_list = list(index_all_tracks(False, set(starting_files)).keys())
-    shuffle(temp_list)
-    music_queue.extend(temp_list)
-    if play_after:
+    start_shuffle_from = len(music_queue)
+    music_queue.extend(index_all_tracks(False, ignore_files).keys())
+    better_shuffle(music_queue, start_shuffle_from)
+    if auto_play:
         if music_queue:
             play(music_queue[0])
         elif next_queue:
             next_track(forced=True)
+    main_window.metadata['update_listboxes'] = True
 
 
 def file_action(action='pf'):
@@ -1472,30 +1462,17 @@ def file_action(action='pf'):
     if paths:
         settings['last_folder'] = os.path.dirname(paths[-1])
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
-        main_window.metadata['update_listboxes'] = True
-        main_window.metadata['main_last_event'] = Sg.TIMEOUT_KEY
         if action in {gt('Play File(s)'), 'pf'}:
             if settings['queue_library']:
                 play_all(starting_files=paths)
             else:
                 play_uris(paths)
         elif action in {gt('Queue File(s)'), 'qf'}:
-            _start_playing = not music_queue
-            music_queue.extend(get_audio_uris(paths))
-            if _start_playing and music_queue: play(music_queue[0])
+            play_uris(paths, queue_uris=True)
         elif action in {gt('Play File(s) Next'), 'pfn'}:
-            if settings['reversed_play_next']:
-                next_queue.extendleft(get_audio_uris(paths))
-            else:
-                next_queue.extend(get_audio_uris(paths))
-            if playing_status.stopped() and not music_queue and next_queue:
-                if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
-                playing_status.play()
-                next_track()
+            play_uris(paths, play_next=True)
         else: raise ValueError(f'file_action expected something else. Got {action}')
-        save_queues()
-    else:
-        main_window.metadata['main_last_event'] = 'file_action'
+    else: main_window.metadata['main_last_event'] = 'file_action'
 
 
 def folder_action(action='Play Folder'):
@@ -1511,17 +1488,18 @@ def folder_action(action='Play Folder'):
         main_window.metadata['main_last_event'] = Sg.TIMEOUT_KEY
         settings['last_folder'] = folder_path
         temp_queue = []
+        # keep track of paths by (sub) folder
         files_to_queue = defaultdict(list)
         for file_path in get_audio_uris(folder_path):
             path = Path(file_path)
-            files_to_queue[path.parent.as_posix()].append(path.name)
+            files_to_queue[path.parent.as_posix()].append(path.as_posix())
         if settings['shuffle']:
-            for parent, files in files_to_queue.items():
-                temp_queue.extend([os.path.join(parent, file_path) for file_path in files])
+            for files in files_to_queue.values(): temp_queue.extend(files)
             shuffle(temp_queue)
         else:
-            for parent, files in files_to_queue.items():
-                files = sorted([os.path.join(parent, file_path) for file_path in files], key=natural_key_file)
+            # extend files from each (sub) folder path to maintain sort order
+            for files in files_to_queue.values():
+                files.sort(key=natural_key_file)
                 temp_queue.extend(files)
         app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
         if not temp_queue:
@@ -1545,8 +1523,7 @@ def folder_action(action='Play Folder'):
         else: raise ValueError(f'folder_action expected something else. Got {action}')
         main_window.metadata['update_listboxes'] = True
         save_queues()
-    else:
-        main_window.metadata['main_last_event'] = 'folder_action'
+    else: main_window.metadata['main_last_event'] = 'folder_action'
 
 
 def get_track_position():
@@ -1711,7 +1688,7 @@ def next_track(from_timeout=False, times=1, forced=False):
                 new_position = next(filter(lambda seconds: seconds > get_track_position(), timestamps), 0)
                 if new_position: return set_pos(new_position)
         # keep track of skips (used by smart queue feature)
-        if music_queue and track_position < 5 and not from_timeout and playing_status.busy():
+        if music_queue and track_position < 5 and not from_timeout and playing_status.busy() and not forced:
             settings['skips'][music_queue[0]] = settings['skips'].get(music_queue[0], 0) + 1
             save_settings()
         # if repeat all or repeat is off or empty queue or manual next
@@ -1762,6 +1739,7 @@ def prev_track(times=1, forced=False):
                 track = done_queue.pop()
                 music_queue.insert(0, track)
         with suppress(IndexError):
+            settings['skips'].pop(music_queue[0], None)  # reset skip counter
             play(music_queue[0])
 
 
@@ -2433,19 +2411,11 @@ def read_main_window():
     elif main_event == 'playlist_action':
         playlist_action(main_values['playlists'])
     elif main_event == 'play_all':
-        already_queueing = False
-        for thread in threading.enumerate():
-            if thread.name in {'QueueAll', 'PlayAll'} and thread.is_alive():
-                already_queueing = True
-                break
-        if not already_queueing: Thread(target=play_all, name='PlayAll', daemon=True).start()
+        if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
+            Thread(target=play_all, name='PlayAll', daemon=True).start()
     elif main_event == 'queue_all':
-        already_queueing = False
-        for thread in threading.enumerate():
-            if thread.name in {'QueueAll', 'PlayAll'} and thread.is_alive():
-                already_queueing = True
-                break
-        if not already_queueing: Thread(target=queue_all, name='QueueAll', daemon=True).start()
+        if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
+            Thread(target=play_all, kwargs={'clear_queues': False}, name='PlayAll', daemon=True).start()
     elif main_event == 'mini_mode':
         change_settings('mini_mode', not settings['mini_mode'])
         active_windows['main'] = False
@@ -3096,7 +3066,7 @@ if __name__ == '__main__':
         elif settings['populate_queue_startup']:
             try:
                 indexing_tracks_thread.join()
-                play_all(play_after=False)
+                play_all(auto_play=False)
             except AttributeError:
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
         while True:

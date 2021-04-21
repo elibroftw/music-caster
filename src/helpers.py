@@ -21,6 +21,7 @@ import re
 import socket
 import time
 from threading import Thread
+import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
 import winreg as wr
@@ -356,13 +357,11 @@ def get_length(file_path) -> int:
         raise InvalidAudioFile(f'{file_path} is an invalid audio file')
 
 
-def natural_key(string):
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string)]
-
-
 def natural_key_file(file_name):
-    file_name = get_file_name(file_name)
-    return natural_key(file_name.lower())
+    file_name = get_file_name(file_name).lower()
+    file_name = unicodedata.normalize('NFKD', file_name)
+    file_name = u''.join([c for c in file_name if not unicodedata.combining(c)])
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', file_name)]
 
 
 def valid_color_code(code):

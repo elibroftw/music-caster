@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.14
+- [Fix] Sorting (DND) files
+- [Fix] Spotify tracks
+
 4.90.13
 - [Fix] Improve chapter parsing
 
