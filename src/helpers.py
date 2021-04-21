@@ -1315,7 +1315,7 @@ def create_playlists_tab(settings):
     name_text_w = max(13, len(pl_name_text))
     layout = [[Sg.Column(playlist_selector, pad=(5, 20))],
               [Sg.Text(pl_name_text, font=FONT_NORMAL, size=(name_text_w, 1), justification='center', pad=(4, (5, 10))),
-               Sg.Input(playlist_name, key='playlist_name', size=(60 - name_text_w, 1), font=FONT_NORMAL,
+               Sg.Input(playlist_name, key='pl_name', size=(60 - name_text_w, 1), font=FONT_NORMAL,
                         pad=((22, 5), (5, 10)), border_width=1),
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S', button_color=(bg, bg))],
               [Sg.Column([url_input, add_url, add_tracks]),

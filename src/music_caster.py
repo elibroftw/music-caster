@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.15'
+VERSION = latest_version = '4.90.16'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1919,7 +1919,7 @@ def set_callbacks():
         for scroll_area in scroll_areas:
             main_window[scroll_area].bind('<Enter>', '_mouse_enter')
             main_window[scroll_area].bind('<Leave>', '_mouse_leave')
-        for input_key in ('url_input', 'pl_url_input', 'timer_input'):
+        for input_key in ('url_input', 'pl_url_input', 'pl_name', 'timer_input'):
             main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
         tk_lb = main_window['queue'].TKListbox
         drop_target_register(tk_lb, DND_FILES)
@@ -2442,8 +2442,8 @@ def read_main_window():
         new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         main_window.metadata['pl_name'] = ''
         main_window['tab_playlists'].select()
-        main_window['playlist_name'].set_focus()
-        main_window['playlist_name'].update(value=main_window.metadata['pl_name'])
+        main_window['pl_name'].set_focus()
+        main_window['pl_name'].update(value=main_window.metadata['pl_name'])
         main_window['pl_tracks'].update(values=new_values, set_to_index=0)
     elif main_event in {'library', 'Play::library', 'Play Next::library', 'Queue::library', 'Locate::library'}:
         library_metadata = main_window.metadata['library']
@@ -2631,14 +2631,14 @@ def read_main_window():
         # user selected a playlist from the drop-down
         pl_name = main_window.metadata['pl_name'] = main_value if main_value in settings['playlists'] else ''
         pl_tracks = main_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
-        main_window['playlist_name'].update(value=pl_name)
+        main_window['pl_name'].update(value=pl_name)
         new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         main_window['pl_tracks'].update(values=new_values, set_to_index=0)
     elif main_event in {'new_pl', 'n:78'}:
         main_window.metadata['pl_name'] = ''
         main_window.metadata['pl_tracks'] = []
-        main_window['playlist_name'].update(value='')
-        main_window['playlist_name'].set_focus()
+        main_window['pl_name'].update(value='')
+        main_window['pl_name'].set_focus()
         main_window['pl_tracks'].update(values=[])
         main_window['playlist_combo'].update(value='')
     elif main_event == 'export_pl':
@@ -2654,7 +2654,7 @@ def read_main_window():
         pl_tracks = main_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
         new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         # update playlist editor
-        main_window['playlist_name'].update(value=pl_name)
+        main_window['pl_name'].update(value=pl_name)
         main_window['pl_tracks'].update(values=new_values, set_to_index=0)
         save_settings()
         refresh_tray()
@@ -2674,9 +2674,9 @@ def read_main_window():
         main_window.metadata['update_listboxes'] = True
     elif main_event in {'pl_save', 's:83'} and main_values.get('tab_group') == 'tab_playlists':
         # save playlist
-        if main_values['playlist_name']:
+        if main_values['pl_name']:
             pl_name = main_window.metadata['pl_name']
-            save_name = main_values['playlist_name']
+            save_name = main_values['pl_name']
             if pl_name != save_name:
                 # if user is renaming a playlist, remove old data
                 settings['playlists'].pop(pl_name, '')
