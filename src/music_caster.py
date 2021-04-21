@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.14'
+VERSION = latest_version = '4.90.15'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1062,16 +1062,20 @@ def create_track_list():
     i = -len(done_queue)
     tracks = []
     # format: Index | Artists - Title
-    for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
-        for uri in items:
-            formatted_track = format_uri(uri)
-            if settings['show_queue_index']:
-                if i < 0: pre = f'\u2012{abs(i)} '.center(max_digits, '\u2000')
-                else: pre = f'{i} '.center(max_digits, '\u2000')
-                formatted_track = f'\u2004{pre}|\u2000{formatted_track}'
-                i += 1
-            tracks.append(formatted_track)
-    return tracks
+    try:
+        for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
+            for uri in items:
+                formatted_track = format_uri(uri)
+                if settings['show_queue_index']:
+                    if i < 0: pre = f'\u2012{abs(i)} '.center(max_digits, '\u2000')
+                    else: pre = f'{i} '.center(max_digits, '\u2000')
+                    formatted_track = f'\u2004{pre}|\u2000{formatted_track}'
+                    i += 1
+                tracks.append(formatted_track)
+        return tracks
+    except RuntimeError:
+        # deque mutated during iteration
+        return create_track_list()
 
 
 def after_play(title, artists: str, autoplay, switching_device):
@@ -1406,7 +1410,6 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
         else: next_queue.extend(temp_queue)
         main_window.metadata['update_listboxes'] = True
         return
-    main_window.metadata['update_listboxes'] = True
     if settings['shuffle']:
         if from_explorer:
             # if from_explorer make temp_queue should also include files in the queue
@@ -1421,6 +1424,7 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
         elif next_queue:
             playing_status.play()
             return next_track()
+    main_window.metadata['update_listboxes'] = True
     save_queues()
 
 
