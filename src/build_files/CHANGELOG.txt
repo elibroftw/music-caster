@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.17
+- [Fix] Deleted video handler
+
 4.90.16
 - [Fix] Playlist name input
 

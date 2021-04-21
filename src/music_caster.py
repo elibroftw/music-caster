@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.16'
+VERSION = latest_version = '4.90.17'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1184,7 +1184,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                                                 'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                 metadata_list.append(metadata)
     elif get_yt_id(url) is not None or url.startswith('ytsearch:'):
-        with suppress(DownloadError):
+        with suppress(DownloadError, TypeError):  # type error in case video was deleted
             r = ydl.extract_info(url, download=False)
             if 'entries' in r:
                 for entry in r['entries']:
