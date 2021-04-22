@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.17'
+VERSION = latest_version = '4.90.18'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -3024,7 +3024,8 @@ if __name__ == '__main__':
         if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
         # set file handlers only if installed from the setup (Not a portable installation)
         if os.path.exists(UNINSTALLER):
-            add_reg_handlers(f'{working_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
+            with suppress(PermissionError):
+                add_reg_handlers(f'{working_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
 
         with suppress(FileNotFoundError, OSError): os.remove('mc_installer.exe')
         rmtree('Update', ignore_errors=True)

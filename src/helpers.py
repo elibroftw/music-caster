@@ -999,8 +999,7 @@ def get_youtube_comments(url, limit=-1):
         ncd = next(search_dict(renderer, 'nextContinuationData'), None)
         if ncd: break
     data = {'session_token': session_token}
-    if not ncd:
-        raise ValueError('Comments are disabled')
+    if not ncd: return  # Comments are disabled?
     continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
     while continuations:
         continuation, itct, action = continuations.pop()

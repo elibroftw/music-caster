@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.18
+- [Fix] Registry errors
+- [Fix] YouTube comment parsing
+
 4.90.17
 - [Fix] Deleted video handler
 
