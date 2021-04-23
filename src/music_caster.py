@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.19'
+VERSION = latest_version = '4.90.20'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -1995,12 +1995,16 @@ def activate_main_window(selected_tab=None, url_option='url_play'):
     if not settings['mini_mode'] and selected_tab is not None:
         main_window[selected_tab].select()
         if selected_tab == 'tab_timer': main_window['timer_input'].set_focus()
-        if selected_tab == 'tab_url':
+        elif selected_tab == 'tab_url':
             main_window[url_option].update(True)
             main_window['url_input'].set_focus()
             default_text: str = pyperclip.paste()
             if default_text.startswith('http'):
                 main_window['url_input'].update(value=default_text)
+        elif selected_tab == 'tab_playlists':
+            default_text: str = pyperclip.paste()
+            if default_text.startswith('http'):
+                main_window['pl_url_input'].update(value=default_text)
     steal_focus(main_window)
     main_window.normal()
     main_window.force_focus()
@@ -2195,6 +2199,9 @@ def read_main_window():
         main_window['tab_library'].select()
     elif (main_event == '4:52' and not settings['mini_mode'] or  # Playlists tab [Ctrl + 4]:
           main_event == 'tab_group' and main_values['tab_group'] == 'tab_playlists'):
+        default_text: str = pyperclip.paste()
+        if default_text.startswith('http'):
+            main_window['pl_url_input'].update(value=default_text)
         main_window['tab_playlists'].select()
         main_window['playlist_combo'].set_focus()
     elif (main_event == '5:53' and not settings['mini_mode'] or  # Timer Tab [Ctrl + 5]

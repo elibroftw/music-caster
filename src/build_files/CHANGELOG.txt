@@ -3,6 +3,7 @@ Music Caster by Elijah Lopez Changelog
 4.90.19
 - [Fix] YouTube comment parsing
 - [Fix] Up and Down change volume
+- [Fix] Default URL input for playlists tab
 
 4.90.18
 - [Fix] Registry errors
