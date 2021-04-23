@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.18'
+VERSION = latest_version = '4.90.19'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -2254,18 +2254,26 @@ def read_main_window():
         update_volume(new_volume)
     elif main_event in {'mute', 'm:77'}:  # toggle mute
         update_volume(0 if change_settings('muted', not settings['muted']) else settings['volume'])
-    elif main_event in {'Up:38', 'Down:40', 'Prior:33', 'Next:34'}:
-        if not settings['mini_mode']:
-            focused_element = main_window.FindElementWithFocus()
-            move = {'Up:38': -1, 'Down:40': 1, 'Prior:33': -3, 'Next:34': 3}[main_event]
-            if focused_element == main_window['queue'] and main_values['queue']:
-                new_i = main_window['queue'].get_indexes()[0] + move
-                new_i = min(max(new_i, 0), len(music_queue) - 1)
-                main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-            elif focused_element == main_window['pl_tracks'] and main_values['pl_tracks']:
-                new_i = main_window['pl_tracks'].get_indexes()[0] + move
-                new_i = min(max(new_i, 0), len(main_window.metadata['pl_tracks']) - 1)
-                main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+    elif main_event in {'Prior:33', 'Next:34'}:  # page up, page down
+        focused_element = main_window.FindElementWithFocus()
+        move = {'Prior:33': -3, 'Next:34': 3}[main_event]
+        if focused_element == main_window['queue'] and main_values['queue']:
+            new_i = main_window['queue'].get_indexes()[0] + move
+            new_i = min(max(new_i, 0), len(main_window['queue'].Values) - 1)
+            main_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+        elif focused_element == main_window['pl_tracks'] and main_values['pl_tracks']:
+            new_i = main_window['pl_tracks'].get_indexes()[0] + move
+            new_i = min(max(new_i, 0), len(main_window.metadata['pl_tracks']) - 1)
+            main_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+    elif main_event in {'Up:38', 'Down:40'}:
+        focused_element = main_window.FindElementWithFocus()
+        if focused_element not in {main_window['queue'], main_window['pl_tracks'], main_window['music_folders']}:
+            delta = 5 if main_event == 'Up:38' else -5
+            new_volume = main_values['volume_slider'] + delta
+            change_settings('volume', new_volume)
+            # un-mute if volume slider was moved
+            change_settings('muted', False)
+            update_volume(new_volume)
     elif main_event == 'queue' and main_value:
         with suppress(ValueError):
             selected_uri_index = main_window['queue'].get_indexes()[0]

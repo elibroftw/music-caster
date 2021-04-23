@@ -987,10 +987,15 @@ def get_youtube_comments(url, limit=-1):
     raises ValueError if comments are disabled
     """
     session = requests.Session()
-    proxies = get_proxy()
-    res = session.get(url, headers={'user-agent': 'Firefox/78.0'})
-    token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
-    session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
+    session_token = ''
+    for _ in range(5):
+        proxies = get_proxy()
+        res = session.get(url, headers={'user-agent': 'Firefox/78.0'})
+        token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
+        with suppress(AttributeError):
+            session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
+        if session_token: break
+    if not session_token: return
     match = re.search(r'var ytInitialData = (.*);</script>', res.text)
     data_str = match.groups()[0]
     data = json.loads(data_str)
