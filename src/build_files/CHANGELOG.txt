@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.20
+- [Fix] Queue prev/next track
+
 4.90.19
 - [Fix] YouTube comment parsing
 - [Fix] Up and Down change volume

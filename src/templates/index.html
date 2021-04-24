@@ -87,8 +87,8 @@
         <h2 class="modal-title">{{ gt('Queue') }}</h2>
         {% for track in queue %}
             <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
-               href="{{'?prev&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
-                       '?next&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
+               href="{{'?prev&ignore_timestamps&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
+                       '?next&ignore_timestamps&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
         {% endfor %}
     </div>
 </div>

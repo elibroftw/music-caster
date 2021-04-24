@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.19'
+VERSION = latest_version = '4.90.20'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -108,7 +108,7 @@ def activate_instance(port):
                 data = {'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext}
                 r_text = requests.post(f'{endpoint}/play/', data=data).text
             else:  # neither --exit nor paths was supplied
-                r_text = requests.post(f'{endpoint}/').text
+                r_text = requests.post(f'{endpoint}?activate').text
         port += 1
     return not not r_text
 
@@ -649,12 +649,8 @@ def page_not_found(_):
 
 @app.route('/', methods=['GET', 'POST'])
 def web_index():  # web GUI
-    if request.method == 'POST':
-        daemon_commands.put('__ACTIVATED__')  # tells main loop to bring to front all GUI's
-        return 'true' if any(active_windows.values()) else 'Music Caster'
-    if request.args:
-        api_msg = 'Invalid Command'
-        if 'play' in request.args:
+    if request.values:
+        if 'play' in request.values:
             if resume():
                 api_msg = 'resumed playback'
             else:
@@ -664,26 +660,29 @@ def web_index():  # web GUI
                 else:
                     play_all()
                     api_msg = 'shuffled all and started playing'
-        elif 'pause' in request.args:
+        elif 'pause' in request.values:
             pause()  # resume == play
             api_msg = 'pause called'
-        elif 'next' in request.args:
-            next_track(times=int(request.args.get('times', 1)), forced=True)
+        elif 'next' in request.values:
+            ignore_timestamps = 'ignore_timestamps' in request.values
+            next_track(times=int(request.values.get('times', 1)), forced=True, ignore_timestamps=ignore_timestamps)
             api_msg = 'next track called'
-        elif 'prev' in request.args:
-            prev_track(times=int(request.args.get('times', 1)), forced=True)
+        elif 'prev' in request.values:
+            prev_track(times=int(request.values.get('times', 1)), forced=True)
             api_msg = 'prev track called'
-        elif 'repeat' in request.args:
+        elif 'repeat' in request.values:
             cycle_repeat()
             api_msg = 'cycled repeat to ' + {None: 'off', True: 'one', False: 'all'}[settings['repeat']]
-        elif 'shuffle' in request.args:
+        elif 'shuffle' in request.values:
             shuffle_option = change_settings('shuffle', not settings['shuffle'])
             api_msg = f'shuffle set to {shuffle_option}'
             if shuffle_option: shuffle_queue()
             else: un_shuffle_queue()
-        if 'is_api' in request.args:
-            return api_msg
-        return redirect('/')
+        elif 'activate' in request.values:
+            daemon_commands.put('__ACTIVATED__')  # tells main loop to bring to front all GUI's
+            api_msg = 'activated main window'
+        else: api_msg = 'invalid command'
+        return api_msg if ('is_api' in request.args or request.method == 'POST') else redirect('/')
     metadata = get_current_metadata()
     art = get_current_art()
     if type(art) == bytes: art = art.decode()
@@ -1674,11 +1673,12 @@ def set_pos(new_position):
         audio_player.set_pos(new_position)
 
 
-def next_track(from_timeout=False, times=1, forced=False):
+def next_track(from_timeout=False, times=1, forced=False, ignore_timestamps=False):
     """
     :param from_timeout: whether next track is due to track ending
     :param times: number of times to go to next track
     :param forced: whether to ignore current playing status
+    :param ignore_timestamps: whether to ignore timestamps for a track
     :return:
     """
     app_log.info(f'next_track(from_timeout={from_timeout})')
@@ -1686,7 +1686,7 @@ def next_track(from_timeout=False, times=1, forced=False):
         playing_status.stop()
     elif (forced or playing_status.busy() and not sar.alive) and (next_queue or music_queue):
         with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
-            if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps'):
+            if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps') and not ignore_timestamps:
                 # smart next track if playing a long URL with multiple tracks
                 timestamps = url_metadata[music_queue[0]]['timestamps']
                 new_position = next(filter(lambda seconds: seconds > get_track_position(), timestamps), 0)
