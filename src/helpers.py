@@ -1086,7 +1086,7 @@ def get_video_timestamps(video_info):
 
 
 # GUI Methods
-def round_btn(button_text, fill, text_color, tooltip=None, key=None,
+def round_btn(button_text, fill, text_color, tooltip=None, key=None, visible=True,
               pad=None, bind_return_key=False, button_width=None):
     multi = 4
     btn_w = ((len(button_text) if button_width is None else button_width) * 5 + 20) * multi
@@ -1104,7 +1104,7 @@ def round_btn(button_text, fill, text_color, tooltip=None, key=None,
     btn_img = b64encode(data.getvalue())
     return Sg.Button(button_text=button_text, image_data=btn_img, button_color=(text_color, text_color),
                      tooltip=tooltip, key=key, pad=pad, enable_events=False, size=(button_width, 1),
-                     bind_return_key=bind_return_key, font=FONT_NORMAL)
+                     bind_return_key=bind_return_key, font=FONT_NORMAL, visible=visible)
 
 
 def repeat_img_tooltip(repeat_setting):
@@ -1416,7 +1416,7 @@ def create_timer(settings, timer):
     else:
         timer_text = gt('No Timer Set')
     # wait for last track to finish setting
-    cancel_button = Sg.Button(gt('Cancel Timer'), key='cancel_timer', visible=timer != 0)
+    cancel_button = round_btn(gt('Cancel Timer'), accent, bg, key='cancel_timer', visible=timer != 0)
     defaults = {'text_color': fg, 'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True}
     layout = [
         [Sg.Radio(gt('Shut down when timer runs out'), 'TIMER', default=shut_down, key='shut_down', **defaults)],
@@ -1427,7 +1427,7 @@ def create_timer(settings, timer):
          Sg.Input(key='timer_input', font=FONT_NORMAL, size=(11, 1), border_width=1),
          round_btn(gt('Submit'), accent, bg, key='timer_submit')],
         [Sg.Text(gt('Invalid Input (enter minutes or HH:MM)'), font=FONT_NORMAL, visible=False, key='timer_error')],
-        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(18, 1), metadata=timer != 0), cancel_button]
+        [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(20, 1), metadata=timer != 0), cancel_button]
     ]
     return Sg.Tab(gt('Timer'), [[Sg.Column(layout, pad=(0, (50, 0)), justification='center')]], key='tab_timer')
 

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.22
+- [Fix] Timer button
+
 4.90.21
 - [Fix] Cookie parsing
 
