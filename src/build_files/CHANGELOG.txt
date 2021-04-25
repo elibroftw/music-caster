@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.21
+- [Fix] Cookie parsing
+
 4.90.20
 - [Fix] Queue prev/next track
 

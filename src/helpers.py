@@ -1,3 +1,5 @@
+import sqlite3
+
 from b64_images import *
 import audioop
 from base64 import b64encode, b64decode
@@ -837,7 +839,7 @@ def get_spotify_tracks(url):
 
 def get_dz_token():
     for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
-        with suppress(bc3.BrowserCookieError):
+        with suppress(bc3.BrowserCookieError, sqlite3.OperationalError):
             cookie_storage = cookie_storage()
             for cookie in cookie_storage:
                 if cookie.domain.count('.deezer.com'):
