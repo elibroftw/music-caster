@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.22'
+VERSION = latest_version = '4.90.23'
 UPDATE_MESSAGE = """
 [Feature] Drag and Drop
 [Feature] Smart URL F-FWD and RWD
@@ -175,7 +175,7 @@ import pypresence
 import threading
 import pythoncom
 from PIL import UnidentifiedImageError
-from TkinterDnD2 import DND_FILES
+from TkinterDnD2 import DND_FILES, DND_ALL
 from urllib3.exceptions import ProtocolError
 import win32com.client
 from win32comext.shell import shell, shellcon
@@ -1922,11 +1922,11 @@ def set_callbacks():
         for input_key in ('url_input', 'pl_url_input', 'pl_name', 'timer_input'):
             main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
         tk_lb = main_window['queue'].TKListbox
-        drop_target_register(tk_lb, DND_FILES)
+        drop_target_register(tk_lb, DND_ALL)
         dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
 
         tk_lb = main_window['pl_tracks'].TKListbox
-        drop_target_register(tk_lb, DND_FILES)
+        drop_target_register(tk_lb, DND_ALL)
         dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
 
         tk_frame = main_window['tab_metadata'].TKFrame

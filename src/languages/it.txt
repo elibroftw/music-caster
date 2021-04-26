@@ -128,22 +128,22 @@ Mostra l'indice nella coda
 Mostra il numero del brano
 Mostra il numero del brano in coda
 Random
-Spegnere PC alla fine del timer
-Spegnere il computer
-Mettere in Sleep il PC alla fine del timer
-Mettere in Sleep il computer
+Spegni PC alla fine del timer
+Spegni il computer
+Metti in Sleep il PC alla fine del timer
+Metti in Sleep il computer
 Stop
 Invia
 Grazie per aver installato Music Caster.
 Timer
 Timer cancellato
 Timer impostato per $TIME
-Inserisci artista/tracce
+Inserisci artista/brani
 UI
 togli il mute
 Aggiornamento $VER disponibile
 URL
-Usa cover.* per la cover dell'album
+Usa cover.* per cover album
 Usa cover.* invece della cover inclusa nel file
 il file cover.* sovrascrive la cover inclusa nel file
 GUI verticale
@@ -157,12 +157,12 @@ playlist in coda
 Brano Sconosciuto
 Artista Sconosciuto
 Album Sconosciuto
-Metti sempre in coda la libreria
+Metti sempre in coda libreria
 Gioca con Music Caster
 Coda in Music Caster
 Riproduci successivo in Music Caster
-Fare la Fila
-Coda intelligente
+Coda
+Coda smart
 aggiungere al prossimo
 Metadati
 Salvataggio dei metadati
@@ -171,13 +171,13 @@ Salva
 Brano
 Artista
 Album
-Il Numero del Brano
+Numero Brano
 Esplicito
-Seleziona la grafica
-Cerca opere d'arte
-Rimuovi la grafica
-Opera trovata
-Nessuna opera d'arte trovata
-Ricerca di opere d'arte...
-Caricamento URL
-URL aggiunti
+Seleziona immagine
+Cerca immagine
+Rimuovi immagine
+Immagine trovata
+Nessuna immagine trovata
+Ricerca immagini...
+Caricamento URL(s)
+URL(s) aggiunti/e

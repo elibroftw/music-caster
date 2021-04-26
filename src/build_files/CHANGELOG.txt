@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.23
+- [Fix] Italian translation
+- [Fix] DND URL support
+
 4.90.22
 - [Fix] Timer button
 
