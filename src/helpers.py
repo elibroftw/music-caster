@@ -1,5 +1,3 @@
-import sqlite3
-
 from b64_images import *
 import audioop
 from base64 import b64encode, b64decode
@@ -21,6 +19,7 @@ import platform
 from random import getrandbits
 import re
 import socket
+import sqlite3
 import time
 from threading import Thread
 import unicodedata
@@ -783,7 +782,10 @@ def parse_spotify_track(track_obj) -> dict:
     """
     Returns a metadata dict for a given Spotify track
     """
-    artist = ', '.join((artist['name'] for artist in track_obj['artists'] if artist['type'] == 'artist'))
+    try:
+        artist = ', '.join((artist['name'] for artist in track_obj['artists'] if artist['type'] == 'artist'))
+    except KeyError:
+        artist = Unknown('Artist')
     title = track_obj['name']
     is_explicit = track_obj['explicit']
     album = track_obj['album']['name']
@@ -989,24 +991,22 @@ def get_youtube_comments(url, limit=-1):
     raises ValueError if comments are disabled
     """
     session = requests.Session()
-    session_token = ''
+    session_token, ncd = '', None
     for _ in range(5):
         proxies = get_proxy()
         res = session.get(url, headers={'user-agent': 'Firefox/78.0'})
         token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
         with suppress(AttributeError):
             session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
-        if session_token: break
-    if not session_token: return
-    match = re.search(r'var ytInitialData = (.*);</script>', res.text)
-    data_str = match.groups()[0]
-    data = json.loads(data_str)
-    ncd = None
-    for renderer in search_dict(data, 'itemSectionRenderer'):
-        ncd = next(search_dict(renderer, 'nextContinuationData'), None)
-        if ncd: break
+        if session_token:
+            match = re.search(r'var ytInitialData = (.*);</script>', res.text)
+            data_str = match.groups()[0]
+            data = json.loads(data_str)
+            for renderer in search_dict(data, 'itemSectionRenderer'):
+                ncd = next(search_dict(renderer, 'nextContinuationData'), None)
+                if ncd: break
+    if not session_token or not ncd: return  # Comments are disabled?
     data = {'session_token': session_token}
-    if not ncd: return  # Comments are disabled?
     continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
     while continuations:
         continuation, itct, action = continuations.pop()
@@ -1016,6 +1016,7 @@ def get_youtube_comments(url, limit=-1):
         for _ in range(5):
             ajax_url = 'https://www.youtube.com/comment_service_ajax'
             try:
+                # noinspection PyUnboundLocalVariable
                 response = session.post(ajax_url, params=params, proxies=proxies, data=data, headers=headers)
                 if response.status_code == 200:
                     response = response.json()

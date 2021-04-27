@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.24
+- [Fix] Spotify
+
 4.90.23
 - [Fix] Italian translation
 - [Fix] DND URL support
