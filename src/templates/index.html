@@ -285,9 +285,9 @@
             a = trackRow.firstElementChild;
             const txtValue = (a.textContent || a.innerText).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (txtValue.indexOf(filter) > -1) {
-                a.style.display = '';
+                trackRow.style.display = '';
             } else {
-                a.style.display = 'none';
+                trackRow.style.display = 'none';
             }
         }
     }
