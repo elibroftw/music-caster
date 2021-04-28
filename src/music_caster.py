@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.25'
+VERSION = latest_version = '4.90.26'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -720,8 +720,7 @@ def api_play():
                   from_explorer=from_explorer)
     elif 'uri' in request.values:
         play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, from_explorer=from_explorer)
-        if settings['queue_library'] and not any(filter(lambda t: t.name == 'PlayAll', threading.enumerate())):
-            Thread(target=play_all, kwargs={'clear_queues': False}, daemon=True, name='PlayAll').start()
+        if settings['queue_library']: queue_all()
     return redirect('/') if request.method == 'GET' else 'true'
 
 
@@ -1422,13 +1421,13 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
     save_queues()
 
 
-def play_all(starting_files: Iterable = None, auto_play=True, clear_queues=True):
+def play_all(starting_files: Iterable = None, queue_only=False):
     """
     Clears done queue, music queue, adds starting files to music queue.
     Shuffles and queues files in the library without duplication
     """
     if starting_files is None: starting_files = []
-    if clear_queues:
+    if not queue_only:
         music_queue.clear()
         done_queue.clear()
     music_queue.extend(starting_files)
@@ -1439,12 +1438,17 @@ def play_all(starting_files: Iterable = None, auto_play=True, clear_queues=True)
     start_shuffle_from = len(music_queue)
     music_queue.extend(index_all_tracks(False, ignore_files).keys())
     better_shuffle(music_queue, start_shuffle_from)
-    if auto_play:
+    if not queue_only:
         if music_queue:
             play(music_queue[0])
         elif next_queue:
             next_track(forced=True)
     main_window.metadata['update_listboxes'] = True
+
+
+def queue_all():
+    if not any(filter(lambda t: t.name == 'PlayAll', threading.enumerate())):
+        Thread(target=play_all, kwargs={'queue_only': True}, daemon=True, name='PlayAll').start()
 
 
 def file_action(action='pf'):
@@ -2428,9 +2432,7 @@ def read_main_window():
     elif main_event == 'play_all':
         if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
             Thread(target=play_all, name='PlayAll', daemon=True).start()
-    elif main_event == 'queue_all':
-        if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
-            Thread(target=play_all, kwargs={'clear_queues': False}, name='PlayAll', daemon=True).start()
+    elif main_event == 'queue_all': queue_all()
     elif main_event == 'mini_mode':
         change_settings('mini_mode', not settings['mini_mode'])
         active_windows['main'] = False
@@ -3082,7 +3084,7 @@ if __name__ == '__main__':
         elif settings['populate_queue_startup']:
             try:
                 indexing_tracks_thread.join()
-                play_all(auto_play=False)
+                play_all(queue_only=True)
             except RuntimeError:
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
         while True:

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.26
+- [Fix] Queue all
+
 4.90.25
 - [Feature] Add Mini-mode shortcut
 - [Fix] Album art setting
