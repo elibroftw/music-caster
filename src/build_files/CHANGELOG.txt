@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 4.90.29
-- [Fix] GUI
+- [Fix] Metadata setting
 
 4.90.28
 - [Fix] Switching devices

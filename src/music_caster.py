@@ -2820,7 +2820,7 @@ def read_main_window():
         if main_window['metadata_file'].get():
             mime, art = main_window['metadata_art'].metadata
             new_metadata = {'title': main_values['metadata_title'], 'artist': main_values['metadata_artist'],
-                            'album': main_values['metadata_artist'], 'track_number': main_values['metadata_track_num'],
+                            'album': main_values['metadata_album'], 'track_number': main_values['metadata_track_num'],
                             'explicit': main_values['metadata_explicit'], 'mime': mime, 'art': art}
             main_window['metadata_msg'].update(value=gt('Saving metadata'), text_color='yellow')
             set_metadata(main_window['metadata_file'].get(), new_metadata)
