@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.25
+- [Feature] Add Mini-mode shortcut
+
 4.90.24
 - [Fix] Spotify
 

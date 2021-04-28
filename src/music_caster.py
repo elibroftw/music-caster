@@ -1,7 +1,6 @@
-VERSION = latest_version = '4.90.24'
+VERSION = latest_version = '4.90.25'
 UPDATE_MESSAGE = """
-[Feature] Drag and Drop
-[Feature] Smart URL F-FWD and RWD
+[Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
 """.strip()
 import argparse
@@ -1946,6 +1945,8 @@ def set_callbacks():
     main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
     main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
     main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
+    main_window.bind('<Control-}>', 'mini_mode')
+    main_window.bind('<Control-r>', 'repeat')
 
 
 def activate_main_window(selected_tab=None, url_option='url_play'):
@@ -2048,7 +2049,7 @@ def exit_program():
     if settings['persistent_queue']:
         save_queues()
         save_queue_thread.join()
-    if settings['auto_update']: auto_update(False)
+    if settings['auto_update'] and IS_FROZEN: auto_update(False)
     tray_process.terminate()
     sys.exit()  # since auto_update might not sys.exit()
 
@@ -2183,7 +2184,6 @@ def read_main_window():
             main_values['progress_bar'] = new_position
             main_event = 'progress_bar'
             main_window.refresh()
-    if main_event == Sg.TIMEOUT_KEY: pass
     # change/select tabs
     if main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
         main_window['tab_queue'].select()
@@ -2208,7 +2208,7 @@ def read_main_window():
           main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):
         main_window['tab_timer'].select()
         main_window['timer_input'].set_focus()
-    elif main_event == '6:54' and not settings['mini_mode']:  # Metadata tab [Ctrl + 7]
+    elif main_event == '6:54' and not settings['mini_mode']:  # Metadata tab [Ctrl + 6]
         main_window['tab_metadata'].select()
         main_window['metadata_file'].set_focus()
     elif main_event == '7:55' and not settings['mini_mode']:  # Settings tab [Ctrl + 7]
@@ -2241,7 +2241,7 @@ def read_main_window():
         main_window['shuffle'].metadata = shuffle_option
         if shuffle_option: shuffle_queue()
         else: un_shuffle_queue()
-    elif main_event in {'repeat', 'r:82'}:
+    elif main_event == 'repeat':
         cycle_repeat(True)
     elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
                                             and (main_values.get('tab_group') in {'tab_queue', None}))):
@@ -2703,7 +2703,7 @@ def read_main_window():
             main_window['playlist_combo'].update(value=pl_name, values=playlist_names, visible=True)
         save_settings()
         refresh_tray()
-    elif main_event in {'pl_rm_items', 'r:82'} and main_values['pl_tracks']:
+    elif main_event in {'pl_rm_items', 'q:81'} and main_values['pl_tracks']:
         # remove items from playlist
         # remove bottom to top to avoid dynamic indices
         pl_tracks = main_window.metadata['pl_tracks']
