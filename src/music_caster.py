@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.27'
+VERSION = latest_version = '4.90.28'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1080,7 +1080,9 @@ def after_play(title, artists: str, autoplay, switching_device):
         if settings['notifications'] and not switching_device and not active_windows['main']:
             # artists is comma separated string
             tray_notify(gt('Playing') + f': {get_first_artist(artists)} - {title}')
-    playing_status.play()
+        playing_status.play()
+    else:
+        playing_status.pause()
     refresh_tray()
     cast_last_checked = time.monotonic()
     save_queues()
@@ -1657,17 +1659,19 @@ def stop(stopped_from: str, stop_cast=True):
     if not exit_flag: refresh_tray()
 
 
-def set_pos(new_position):
+def set_pos(new_position, in_thread=False):
     if cast is not None:
         try:
             cast.media_controller.update_status()
         except UnsupportedNamespace:
             cast.wait()
         if cast.is_idle and music_queue:
-            play(music_queue[0], position=new_position)
-        else:
+            play(music_queue[0], position=new_position, autoplay=playing_status.playing())
+        elif in_thread:
             cast.media_controller.seek(new_position)
-            playing_status.play()
+            if playing_status.paused(): cast.media_controller.pause()
+        else:
+            threading.Thread(target=set_pos, args=[new_position], kwargs={'in_thread': True}).start()
     else:
         audio_player.set_pos(new_position)
 

@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.28
+- [Fix] Switching devices
+- [Fix] Seeking
+
 4.90.27
 - [Fix] Web GUI
 
