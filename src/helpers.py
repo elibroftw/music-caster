@@ -399,7 +399,8 @@ def set_metadata(file_path: str, metadata: dict):
         audio['TXXX:RATING'] = mutagen.id3.TXXX(text=rating)
         audio['TXXX:ITUNESADVISORY'] = mutagen.id3.TXXX(text=rating)
         if metadata['art'] is not None:
-            audio['APIC:'] = mutagen.id3.APIC(encoding=0, mime=metadata['mime'], type=3, data=metadata['art'])
+            img_data = b64decode(metadata['art'])
+            audio['APIC:'] = mutagen.id3.APIC(encoding=0, mime=metadata['mime'], type=3, data=img_data)
         else:  # remove all album art
             for k in tuple(audio.keys()):
                 if 'APIC:' in k: audio.pop(k)
@@ -411,7 +412,8 @@ def set_metadata(file_path: str, metadata: dict):
         audio['rtng'] = [rating]
         if metadata['art'] is not None:
             image_format = 14 if metadata['mime'].endswith('png') else 13
-            audio['covr'] = [mutagen.mp4.MP4Cover(data=metadata['art'], imageformat=image_format)]
+            img_data = b64decode(metadata['art'])
+            audio['covr'] = [mutagen.mp4.MP4Cover(data=img_data, imageformat=image_format)]
         elif 'covr' in audio:
             del audio['covr']
     else:  # FLAC?
@@ -421,15 +423,17 @@ def set_metadata(file_path: str, metadata: dict):
         audio['TRACKNUMBER'] = track_number
         audio['TRACKTOTAL'] = track_place.split('/')[1]
         audio['ITUNESADVISORY'] = rating
-        if metadata['art']:
+        if metadata['art'] is not None:
             if ext == '.flac':
-                pic = mutagen.flac.Picture(data=metadata['art'])
+                img_data = b64decode(metadata['art'])
+                pic = mutagen.flac.Picture(data=img_data)
                 pic.mime = metadata['mime']
                 pic.type = 3
                 # noinspection PyUnresolvedReferences
                 audio.add_picture(pic)
             else:
-                audio['APIC:'] = metadata['art']
+                img_data = b64decode(metadata['art'])
+                audio['APIC:'] = img_data
                 audio['mime'] = metadata['mime']
         else:
             if ext == '.flac':

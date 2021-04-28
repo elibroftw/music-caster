@@ -437,12 +437,8 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
                     try:
                         return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
                     except AttributeError:
-                        data = tags[tag][0].value
-                        try: mime = tags['mime'][0].value
-                        except KeyError: mime = 'image/jpeg'
-                        if isinstance(data, bytes):
-                            data = data.decode()
-                        return mime, data
+                        mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
+                        return mime, base64.b64encode(tags[tag][0].value).decode()
     return 'image/png', DEFAULT_ART
 
 
@@ -3087,7 +3083,7 @@ if __name__ == '__main__':
             try:
                 indexing_tracks_thread.join()
                 play_all(auto_play=False)
-            except AttributeError:
+            except RuntimeError:
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
         while True:
             while not daemon_commands.empty():
