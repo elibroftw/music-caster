@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.30'
+VERSION = latest_version = '4.90.31'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1639,12 +1639,13 @@ def stop(stopped_from: str, stop_cast=True):
         if cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
             if stop_cast:
-                mc.stop()
-                block_until = time.monotonic() + 5  # 5 seconds
-                status = mc.status
-                while ((status.player_is_playing or status.player_is_paused)
-                       and time.monotonic() > block_until): time.sleep(0.1)
-                if status.player_is_playing or status.player_is_paused: cast.quit_app()
+                with suppress(NotConnected):
+                    mc.stop()
+                    block_until = time.monotonic() + 5  # 5 seconds
+                    status = mc.status
+                    while ((status.player_is_playing or status.player_is_paused)
+                           and time.monotonic() > block_until): time.sleep(0.1)
+                    if status.player_is_playing or status.player_is_paused: cast.quit_app()
             else:  # only when background tasks calls stop()
                 # check if background tasks is wrong
                 mc.update_status()

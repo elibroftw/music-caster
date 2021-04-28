@@ -1265,8 +1265,11 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     queue_tab = Sg.Tab(gt('Queue'), queue_tab_layout, key='tab_queue')
     url_tab = create_url_tab(accent_color, bg)
     # library tab will be good to use once I'm using Python 3.10 which will have tk 8.10
-    lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
-                music_lib.items()]
+    try:
+        lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
+                    music_lib.items()]
+    except RuntimeError:
+        lib_data = []
     lib_headings = ['title', 'artist', 'album']
     library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
                                 col_widths=[25, 15, 15], bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
