@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.28'
+VERSION = latest_version = '4.90.29'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2826,6 +2826,7 @@ def read_main_window():
             set_metadata(main_window['metadata_file'].get(), new_metadata)
             main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
             main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
+            main_window['title'].update(' ' + main_window['title'].DisplayText + ' ')  # try updating now playing
     # other GUI updates
     if main_window.metadata['update_listboxes'] and not settings['mini_mode']:
         main_window.metadata['update_listboxes'] = False
