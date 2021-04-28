@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.30
+- [Optimization] Memory
+
 4.90.29
 - [Fix] Metadata setting
 

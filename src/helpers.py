@@ -726,7 +726,7 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
         img = Image.new('RGB', new_size, color=bg)
         img.paste(art_img, (paste_width, paste_height))
     data = io.BytesIO()
-    img.save(data, format='png', quality=95)
+    img.save(data, format='png')
     return b64encode(data.getvalue())
 
 

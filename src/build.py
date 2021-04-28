@@ -195,7 +195,7 @@ if not args.skip_build:
         with suppress(FileNotFoundError):
             shutil.rmtree('dist/Music Caster', False)
     except PermissionError:
-        print('files in dist/Music caster are in use somehow')
+        print('Files in dist/Music caster are in use somehow')
         sys.exit()
     for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
         with suppress(FileNotFoundError):
@@ -212,22 +212,19 @@ if args.clean:
 
 if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
-    py_installer_exe = f'{os.path.dirname(sys.executable)}\\Scripts\\pyinstaller.exe'
-    try: s1 = Popen(f'pyinstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
-    except FileNotFoundError: s1 = Popen(f'"{py_installer_exe}" {PORTABLE_SPEC}')
+    s1 = Popen(f'{sys.executable} -OO -m PyInstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
     try:
         ms_build = get_msbuild()
         check_call(f'{ms_build} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln"'
                    f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
-    # try: s2 = subprocess.Popen('pyinstaller {UPDATER_SPEC_FILE}')
-    # except FileNotFoundError: s2 = subprocess.Popen(f'"{py_installer_exe}" {UPDATER_SPEC_FILE}')
-    try: check_call(f'pyinstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
-    except FileNotFoundError: check_call(f'"{py_installer_exe}" {ONEDIR_SPEC}')
-    # s2.wait()
-    try: s4 = Popen('iscc build_files/setup_script.iss')
-    except FileNotFoundError: s4 = None
+    check_call(f'{sys.executable} -OO -m PyInstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
+    try:
+        s4 = Popen('iscc build_files/setup_script.iss')
+    except FileNotFoundError:
+        s4 = None
+        print('WARNING: could not create an installer because iscc is not installed or is not on PATH')
     portable_failed = s1.wait()
     if args.debug: set_spec_debug(False)
     if portable_failed:
@@ -254,8 +251,7 @@ if not args.dry and not args.skip_build:
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py'])
-    if s4 is not None: s4.wait()  # Wait for inno script to finish
-    else: print('WARNING: could not create an installer: iscc is not installed or is not on path')
+    with suppress(AttributeError): s4.wait()  # Wait for inno script to finish
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit id: ' + getoutput('git log --format="%H" -n 1'))
 

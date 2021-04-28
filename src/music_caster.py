@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.29'
+VERSION = latest_version = '4.90.30'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -439,7 +439,7 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
                     except AttributeError:
                         mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
                         return mime, base64.b64encode(tags[tag][0].value).decode()
-    return 'image/png', DEFAULT_ART
+    return 'image/jpeg', DEFAULT_ART
 
 
 def get_current_art():
