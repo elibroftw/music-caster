@@ -396,8 +396,8 @@ def set_metadata(file_path: str, metadata: dict):
         # audio['TDRC'] = mutagen.id3.TDRC(text=metadata['year'])
         # audio['TCON'] = mutagen.id3.TCON(text=metadata['genre'])
         # audio['TPUB'] = mutagen.id3.TPUB(text=metadata['publisher'])
-        audio['TXXX:RATING'] = mutagen.id3.TXXX(text=rating)
-        audio['TXXX:ITUNESADVISORY'] = mutagen.id3.TXXX(text=rating)
+        audio['TXXX:RATING'] = mutagen.id3.TXXX(text=rating, desc='RATING')
+        audio['TXXX:ITUNESADVISORY'] = mutagen.id3.TXXX(text=rating, desc='ITUNESADVISORY')
         if metadata['art'] is not None:
             img_data = b64decode(metadata['art'])
             audio['APIC:'] = mutagen.id3.APIC(encoding=0, mime=metadata['mime'], type=3, data=img_data)
