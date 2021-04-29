@@ -34,16 +34,16 @@ Clicking the image below takes you to my demo video on YouTube.
 - Web GUI (QR code in Settings window)
 - [Command Line Arguments](https://github.com/elibroftw/music-caster/wiki/Command-Line-Arguments)
 
-I love keyboard shortcuts, they make us more productive.
-Aside from the global media hot-keys, Music Caster has its own shortcuts as seen below.
+Aside from the global media hot-keys, Music Caster has its own keyboard shortcuts as seen below.
 
 | **Shortcut** | **Window** | **Behaviour**
 | ------------ |----------- | -------------
 | Ctrl + Shift + Alt + M | Global | Activate Main Window
-| Esc | ALL | Close Window |
+| Ctrl + (Shift) + } | Main | Toggle mini-mode
+| Esc | Main | Close Window |
 | Scroll | Main | Volume and Progress Bar
-| A | Main | Decrease Volume by 5%
-| D | Main | Increase Volume by 5%
+| ⬆/A | Main | Decrease Volume by 5%
+| ⬇/D | Main | Increase Volume by 5%
 | # | Main | Set Volume to # * 10%
 | K | Main | Pause / Resume / Start Playing
 | J | Main | Rewind 5 seconds
@@ -51,13 +51,15 @@ Aside from the global media hot-keys, Music Caster has its own shortcuts as seen
 | Ctrl + R | Main | Cycle Repeat
 | Ctrl + M | Main | Mute
 | Ctrl + 1 | Main | Go to Tab 1 (Queue)
-| Ctrl + 2 | Main | Go to Tab 2 (Playlists)
-| Ctrl + 3 | Main | Go to Tab 3 (Timer)
-| Ctrl + 4 | Main | Go to Tab 4 (Settings)
+| Ctrl + 2 | Main | Go to Tab 2 (URL)
+| Ctrl + 3 | Main | Go to Tab 3 (Library)
+| Ctrl + 4 | Main | Go to Tab 4 (Playlists)
+| Ctrl + 5 | Main | Go to Tab 5 (Timer)
+| Ctrl + 6 | Main | Go to Tab 6 (Metadata)
+| Ctrl + 7 | Main | Go to Tab 7 (Settings)
 
 **Editing settings.json**
 - Music Caster will detect changes within 10 seconds of editing `settings.json`
-  - Caveat: any color code changes requires a restart
 - The music directories is a list of valid directory paths
   - The first path is the default directory MC opens when you click "Play File"
 - The playlist setting follows the convention `{'PLAYLIST NAME': ['list of paths to files']}`
