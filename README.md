@@ -22,7 +22,7 @@ If you are able and willing to translate to other languages, click [here](https:
 - [Screenshots](https://elijahlopez.herokuapp.com/music-caster/)
 
 ## Demo
-The image below directs to my demo video on YouTube.
+Clicking the image below takes you to my demo video on YouTube.
 
 <a href=https://youtu.be/5xwHkLPgvtQ>
   <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="demo YouTube video thumbnail" align="center"/>
