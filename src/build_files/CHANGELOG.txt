@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.32
+- [Fix] Cut/Copy url inputs
+
 4.90.31
 - [Fix] GUI
 - [Fix] Stop

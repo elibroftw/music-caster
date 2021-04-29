@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.31'
+VERSION = latest_version = '4.90.32'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -175,6 +175,7 @@ import threading
 import pythoncom
 from PIL import UnidentifiedImageError
 from TkinterDnD2 import DND_FILES, DND_ALL
+import tkinter
 from urllib3.exceptions import ProtocolError
 import win32com.client
 from win32comext.shell import shell, shellcon
@@ -1917,6 +1918,10 @@ def set_callbacks():
     # drag and drop callbacks
     main_window.TKroot.tk.call('package', 'require', 'tkdnd')
     if not settings['mini_mode']:
+        main_window['url_input'].bind('<<Cut>>', '_cut')
+        main_window['url_input'].bind('<<Copy>>', '_copy')
+        main_window['pl_url_input'].bind('<<Cut>>', '_cut')
+        main_window['pl_url_input'].bind('<<Copy>>', '_copy')
         main_window['library'].TKTreeview.bind('<Button-1>', library_events, add='+')
         main_window['library'].TKTreeview.bind('<Double-Button-1>', library_events, add='+')
         scroll_areas = ['queue', 'pl_tracks', 'library']
@@ -1981,7 +1986,7 @@ def activate_main_window(selected_tab=None, url_option='url_play'):
                                       album_art_data=album_art_data, track_position=position)
         window_metadata: dict = {'main_last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
                                  'library': {'sort_by': 0, 'ascending': True, 'region': 'cell', 'column': 1},
-                                 'mouse_hover': ''}
+                                 'mouse_hover': '', 'url_input': '', 'pl_url_input': ''}
         pl_name = window_metadata['pl_name'] = next(iter(settings['playlists']), '')
         pl_tracks = window_metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
         main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
@@ -2006,11 +2011,13 @@ def activate_main_window(selected_tab=None, url_option='url_play'):
             main_window['url_input'].set_focus()
             default_text: str = pyperclip.paste()
             if default_text.startswith('http'):
-                main_window['url_input'].update(value=default_text)
+                main_window['url_input'].update(default_text)
+                main_window.metadata['url_input'] = default_text
         elif selected_tab == 'tab_playlists':
             default_text: str = pyperclip.paste()
             if default_text.startswith('http'):
-                main_window['pl_url_input'].update(value=default_text)
+                main_window['pl_url_input'].update(default_text)
+                main_window.metadata['pl_url_input'] = default_text
     steal_focus(main_window)
     main_window.normal()
     main_window.force_focus()
@@ -2571,6 +2578,16 @@ def read_main_window():
         with suppress(IndexError):
             Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')
     # url tab
+    elif main_event == 'url_input':
+        main_window.metadata['url_input'] = main_value
+    elif main_event == 'url_input_cut':
+        cut_text = get_cut_text(main_window, 'url_input')
+        if cut_text:
+            pyperclip.copy(cut_text)
+            main_window.metadata['url_input'] = main_window['url_input'].get()
+    elif main_event == 'url_input_copy':
+        with suppress(tkinter.TclError):
+            pyperclip.copy(main_window['url_input'].Widget.selection_get())
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
           and main_values.get('tab_group') == 'tab_url' and main_values['url_input']):
         urls_to_insert = main_values['url_input']
@@ -2729,6 +2746,16 @@ def read_main_window():
             new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+    elif main_event == 'pl_url_input':
+        main_window.metadata['pl_url_input'] = main_value
+    elif main_event == 'pl_url_input_cut':
+        cut_text = get_cut_text(main_window, 'pl_url_input')
+        if cut_text:
+            pyperclip.copy(cut_text)
+            main_window.metadata['pl_url_input'] = main_window['pl_url_input'].get()
+    elif main_event == 'pl_url_input_copy':
+        with suppress(tkinter.TclError):
+            pyperclip.copy(main_window['pl_url_input'].Widget.selection_get())
     elif main_event == 'pl_add_url':
         links = main_values['pl_url_input']
         if '\n' in links: links = links.split('\n')

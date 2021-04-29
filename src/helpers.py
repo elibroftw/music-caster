@@ -1292,13 +1292,11 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
 
 
 def create_url_tab(accent_color, bg):
-    default_text: str = pyperclip.paste()
-    if not default_text.startswith('http'): default_text = ''
     layout = [[Sg.Text(gt('Enter URL'), font=FONT_NORMAL)],
               [Sg.Radio(gt('Play Immediately'), 'url_option', key='url_play', default=True),
                Sg.Radio(gt('Queue'), 'url_option', key='url_queue'),
                Sg.Radio(gt('Play Next'), 'url_option', key='url_play_next')],
-              [Sg.Input(key='url_input', font=FONT_NORMAL, default_text=default_text, border_width=1),
+              [Sg.Input(key='url_input', font=FONT_NORMAL, enable_events=True, border_width=1),
                round_btn(gt('Submit'), accent_color, bg, key='url_submit', bind_return_key=True)],
               [Sg.Text('', key='url_msg', size=(20, 1))]]
     return Sg.Tab(gt('URL'), [[Sg.Column(layout, pad=(5, 20))]], key='tab_url')
@@ -1321,7 +1319,7 @@ def create_playlists_tab(settings):
          Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
-    url_input = [Sg.Input('', key='pl_url_input', size=(14, 1), font=FONT_NORMAL, border_width=1)]
+    url_input = [Sg.Input('', key='pl_url_input', size=(14, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
     add_url = [round_btn(gt('Add URL'), accent, bg, key='pl_add_url', button_width=13)]
     add_tracks = [round_btn(gt('Add tracks'), accent, bg, key='pl_add_tracks', button_width=13)]
     lb_height = 14 - 3 * settings['vertical_gui']
@@ -1489,3 +1487,15 @@ def dnd_bind(widget, sequence=None, func=None, add=None, need_cleanup=True):
         return widget.tk.call(what + (sequence,))
     else:
         return widget.tk.splitlist(widget.tk.call(what))
+
+
+def get_cut_text(window, key):
+    # fix for weird GUI cut/copy behaviour
+    cut_text = ''
+    new_text = window[key].get()
+    if not new_text: return window.metadata[key]
+    i = 0
+    for v in window.metadata[key]:
+        if i >= len(new_text) or v != new_text[i]: cut_text += v
+        else: i += 1
+    return cut_text
