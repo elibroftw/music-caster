@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.33
+- [Fix] Expired URLs
+
 4.90.32
 - [Fix] Cut/Copy url inputs
 
