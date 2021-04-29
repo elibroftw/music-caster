@@ -5,10 +5,11 @@ Music Caster</h1>
 [![GitHub Releases](https://img.shields.io/github/downloads/elibroftw/music-caster/latest/total?color=blue&label=github%20downloads%40latest&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases/latest)
 [![Source Forge](https://img.shields.io/sourceforge/dt/music-caster?color=orange&label=SourceForge%20downloads&style=for-the-badge)](https://sourceforge.net/projects/music-caster/)
 
-Music Caster is a modern music player that lets you cast local music files to a Google Cast Device (Chromecast, Home, etc.).
+Music Caster is a modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
 
-If you enjoyed this product a lot feel free to donate (ironic) to
-monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj or https://www.paypal.me/elibroftw.
+Donate
+- monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj
+- https://www.paypal.me/elibroftw.
 
 **Important information**
 
@@ -22,11 +23,10 @@ If you are able and willing to translate to other languages, click [here](https:
 - [Screenshots](https://elijahlopez.herokuapp.com/music-caster/)
 
 ## Demo
-The image below directs to my demo video on YouTube. Note that it is outdated by 6+ months, and does not represent
-the current state of Music Caster.
+Clicking the image below takes you to my demo video on YouTube.
 
-<a href=https://youtu.be/MtkhqV1w3WE>
-  <img width=75% src="https://img.youtube.com/vi/MtkhqV1w3WE/maxresdefault.jpg" alt="Demo on Youtube" align="center"/>
+<a href=https://youtu.be/5xwHkLPgvtQ>
+  <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="demo YouTube video thumbnail" align="center"/>
 </a>
 
 ## Power User Features
@@ -34,16 +34,16 @@ the current state of Music Caster.
 - Web GUI (QR code in Settings window)
 - [Command Line Arguments](https://github.com/elibroftw/music-caster/wiki/Command-Line-Arguments)
 
-I love keyboard shortcuts, they make us more productive.
-Aside from the global media hot-keys, Music Caster has its own shortcuts as seen below.
+Aside from the global media hot-keys, Music Caster has its own keyboard shortcuts as seen below.
 
 | **Shortcut** | **Window** | **Behaviour**
 | ------------ |----------- | -------------
 | Ctrl + Shift + Alt + M | Global | Activate Main Window
-| Esc | ALL | Close Window |
+| Ctrl + (Shift) + } | Main | Toggle mini-mode
+| Esc | Main | Close Window |
 | Scroll | Main | Volume and Progress Bar
-| A | Main | Decrease Volume by 5%
-| D | Main | Increase Volume by 5%
+| ⬆/A | Main | Decrease Volume by 5%
+| ⬇/D | Main | Increase Volume by 5%
 | # | Main | Set Volume to # * 10%
 | K | Main | Pause / Resume / Start Playing
 | J | Main | Rewind 5 seconds
@@ -51,13 +51,15 @@ Aside from the global media hot-keys, Music Caster has its own shortcuts as seen
 | Ctrl + R | Main | Cycle Repeat
 | Ctrl + M | Main | Mute
 | Ctrl + 1 | Main | Go to Tab 1 (Queue)
-| Ctrl + 2 | Main | Go to Tab 2 (Playlists)
-| Ctrl + 3 | Main | Go to Tab 3 (Timer)
-| Ctrl + 4 | Main | Go to Tab 4 (Settings)
+| Ctrl + 2 | Main | Go to Tab 2 (URL)
+| Ctrl + 3 | Main | Go to Tab 3 (Library)
+| Ctrl + 4 | Main | Go to Tab 4 (Playlists)
+| Ctrl + 5 | Main | Go to Tab 5 (Timer)
+| Ctrl + 6 | Main | Go to Tab 6 (Metadata)
+| Ctrl + 7 | Main | Go to Tab 7 (Settings)
 
 **Editing settings.json**
 - Music Caster will detect changes within 10 seconds of editing `settings.json`
-  - Caveat: any color code changes requires a restart
 - The music directories is a list of valid directory paths
   - The first path is the default directory MC opens when you click "Play File"
 - The playlist setting follows the convention `{'PLAYLIST NAME': ['list of paths to files']}`
