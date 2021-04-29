@@ -22,11 +22,10 @@ If you are able and willing to translate to other languages, click [here](https:
 - [Screenshots](https://elijahlopez.herokuapp.com/music-caster/)
 
 ## Demo
-The image below directs to my demo video on YouTube. Note that it is outdated by 6+ months, and does not represent
-the current state of Music Caster.
+The image below directs to my demo video on YouTube.
 
-<a href=https://youtu.be/MtkhqV1w3WE>
-  <img width=75% src="https://img.youtube.com/vi/MtkhqV1w3WE/maxresdefault.jpg" alt="Demo on Youtube" align="center"/>
+<a href=https://youtu.be/5xwHkLPgvtQ>
+  <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="demo YouTube video thumbnail" align="center"/>
 </a>
 
 ## Power User Features
