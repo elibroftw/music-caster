@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.34
+- [Optimization] Smaller executable
+
 4.90.33
 - [Fix] Expired URLs
 

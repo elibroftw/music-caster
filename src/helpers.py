@@ -1,6 +1,5 @@
 from b64_images import *
 import audioop
-from base64 import b64encode, b64decode
 from queue import LifoQueue, Empty
 import browser_cookie3 as bc3
 from contextlib import suppress
@@ -41,7 +40,6 @@ from mutagen.mp3 import HeaderNotFoundError
 import mutagen.mp4
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
-import pyperclip
 import pyqrcode
 import PySimpleGUI as Sg
 from PIL import Image, ImageFile, ImageDraw, ImageFont

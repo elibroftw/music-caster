@@ -11,7 +11,7 @@ pypng~=0.0.20
 pypresence~=4.0.0
 pyqrcode~=1.2.1
 PySimpleGUI~=4.34.0
-PySimpleGUIWx
+pystray
 python-vlc
 requests~=2.22
 urllib3~=1.25

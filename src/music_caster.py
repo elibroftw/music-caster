@@ -1,10 +1,13 @@
-VERSION = latest_version = '4.90.33'
+VERSION = latest_version = '4.90.34'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
 """.strip()
 import argparse
 from contextlib import suppress
+from itertools import islice
+# noinspection PyUnresolvedReferences
+import io
 import multiprocessing as mp
 import os
 from queue import Queue
@@ -13,6 +16,7 @@ import re
 # noinspection PyUnresolvedReferences
 import requests
 import sys
+import threading
 from subprocess import Popen, PIPE, DEVNULL
 
 
@@ -64,36 +68,54 @@ def is_already_running(look_for='Music Caster.exe', threshold=1):
 
 
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
-    """
-    To be called from the first process.
-    This process will take care of reading the tray
-    """
-    import PySimpleGUIWx as SgWx
-    from b64_images import UNFILLED_ICON
-    _tray = SgWx.SystemTray(menu=['', []], data_base64=UNFILLED_ICON, tooltip='Music Caster [LOADING]')
-    _tray_item = ''
-    exit_key = 'Exit'
-    while _tray_item is not {None, exit_key}:
-        _tray_item = _tray.Read(timeout=200)
-        main_queue.put(_tray_item)
-        with suppress(IndexError):
-            exit_key = _tray.Menu[-1][-1]
-        if _tray_item == exit_key:
-            _tray.hide()
-            _tray.close()
-        while not child_queue.empty():
-            tray_command = child_queue.get()
-            tray_method = tray_command['method']
-            method_args = tray_command.get('args', [])
-            method_kwargs = tray_command.get('kwargs', {})
-            if tray_method == 'update': _tray.update(**method_kwargs)
-            elif tray_method in {'notification', 'show_message', 'notify'}:
-                _tray.show_message(*method_args, **method_kwargs)
-            elif tray_method == 'hide': _tray.hide()
-            # elif tray_method == 'unhide': _tray.un_hide()
-            elif tray_method == 'close':
-                _tray.close()
-                _tray_item = None
+    from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
+    from PIL import Image
+    import pystray
+    import time
+    filled_icon = Image.open(io.BytesIO(b64decode(FILLED_ICON)))
+    unfilled_icon = Image.open(io.BytesIO(b64decode(UNFILLED_ICON)))
+
+    def create_menu(lst, root=True):
+        # ['Item 1', ('Item 2 Display', 'item_2_key'), ['Sub Menu Title', ('Sub Menu Item 1 Display', 'KEY')]]
+        # TODO: checked/radio
+        items = []
+        if root: items.append(pystray.MenuItem('', on_tray_click('__ACTIVATED__'), default=True, visible=False))
+        for element in lst:
+            if type(element) == list:
+                items.append(pystray.MenuItem(element[0], create_menu(islice(element, 1, None), root=False)))
+            elif type(element) == tuple and len(element) == 2:
+                element, key = element
+                items.append(pystray.MenuItem(element, on_tray_click(element, key)))
+            else:
+                items.append(pystray.MenuItem(element, on_tray_click(element)))
+        return pystray.Menu(*items)
+
+    def on_tray_click(string, key=''):
+        return lambda: (main_queue.put(key) if key else main_queue.put(string))
+
+    def background():
+        while True:
+            while not child_queue.empty():
+                for parent_cmd, arguments in child_queue.get().items():
+                    if parent_cmd == 'tooltip':
+                        tray.title = arguments
+                    elif parent_cmd == 'menu':  # set icon to unfilled
+                        tray.menu = create_menu(arguments)
+                        tray.update_menu()
+                    elif parent_cmd == 'filled':  # set icon to filled
+                        tray.icon = filled_icon
+                    elif parent_cmd == 'unfilled':  # set icon to unfilled
+                        tray.icon = unfilled_icon
+                    elif parent_cmd == 'notify':
+                        tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
+                    elif parent_cmd == 'hide':
+                        tray.visible = False
+                    elif parent_cmd == 'close':
+                        tray.stop()
+            time.sleep(0.1)
+    tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
+    threading.Thread(target=background, daemon=True).start()
+    tray.run()
 
 
 def activate_instance(port):
@@ -134,7 +156,6 @@ from helpers import *
 from audio_player import AudioPlayer
 import base64
 from contextlib import suppress
-from itertools import islice
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from copy import deepcopy
@@ -145,7 +166,6 @@ import encodings.idna  # DO NOT REMOVE
 from functools import cmp_to_key
 import glob
 import hashlib
-import io
 import json
 import logging
 from logging.handlers import RotatingFileHandler
@@ -154,7 +174,6 @@ from pathlib import Path
 import pprint
 from random import shuffle
 from shutil import copyfileobj, rmtree
-from threading import Thread
 from win32com.universal import com_error
 import traceback
 import urllib.parse
@@ -170,8 +189,8 @@ from pychromecast.error import UnsupportedNamespace, NotConnected
 from pychromecast.config import APP_MEDIA_RECEIVER
 from pychromecast import Chromecast
 import pynput.keyboard
+import pyperclip
 import pypresence
-import threading
 import pythoncom
 from PIL import UnidentifiedImageError
 from TkinterDnD2 import DND_FILES, DND_ALL
@@ -202,12 +221,11 @@ active_windows = {'main': False}
 # noinspection PyTypeChecker
 cast: Chromecast = None
 all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
-tray_playlists, tray_folders = [gt('Playlists Menu')], []
+tray_playlists = [gt('Playlists Menu')]
 CHECK_MARK = '✓'
-music_folders, chromecasts, device_names = [], [], [f'{CHECK_MARK} ' + gt('Local device')]
+music_folders, chromecasts, device_names = [], [], [(f'{CHECK_MARK} ' + gt('Local device'), 'device:0')]
 music_queue, done_queue, next_queue = deque(), deque(), deque()
 playing_url = deezer_opened = update_devices = exit_flag = False
-# live_lag = 0.0
 # seconds but using time()
 track_position = timer = track_end = track_length = track_start = 0
 DEFAULT_FOLDER = home_music_folder = f'{Path.home()}/Music'.replace('\\', '/')
@@ -240,7 +258,7 @@ def tray_notify(message, title='Music Caster', context=''):
     if message == 'update_available':
         message = gt('Update $VER is available').replace('$VER', f'v{context}')
     # wrapper for tray_process_queue
-    tray_process_queue.put({'method': 'notify', 'args': (title, message)})
+    tray_process_queue.put({'notify': {'message': message, 'title': title}})
 
 
 def save_settings():
@@ -258,47 +276,47 @@ def save_settings():
 
 
 def refresh_tray():
+    tray_folders = [gt('Select Folder(s)')]
+    for i, folder in enumerate(settings['music_folders']):
+        folder = folder.replace('\\', '/').split('/')
+        folder = f'../{"/".join(folder[-2:])}' if len(folder) > 2 else ('/'.join(folder))
+        tray_folders.append((folder, f'PF:{i}'))
     repeat_menu = [gt('Repeat All') + f' {CHECK_MARK}' * (settings['repeat'] is False),
                    gt('Repeat One') + f' {CHECK_MARK}' * (settings['repeat'] is True),
                    gt('Repeat Off') + f' {CHECK_MARK}' * (settings['repeat'] is None)]
-    tray_menu_default = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
-                              device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Play'),
-                              [gt('System Audio'),
-                               gt('URL'), [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
-                               gt('Folders'), tray_folders, gt('Playlists'), tray_playlists,
-                               gt('Select File(s)'),
-                               [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')], gt('Play All')],
-                              gt('Exit')]]
-    tray_menu_playing = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
-                              device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Controls'),
-                              [gt('locate track', 1), gt('Repeat Options'), repeat_menu, gt('Stop'),
-                               gt('previous track', 1), gt('next track', 1), gt('Pause')], gt('Play'),
-                              [gt('System Audio'),
-                               gt('URL'), [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
-                               gt('Folders'), tray_folders, gt('Playlists'), tray_playlists, gt('Select File(s)'),
-                               [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')], gt('Play All')],
-                              gt('Exit')]]
-    tray_menu_paused = ['', [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'), gt('Select Device'),
-                             device_names, gt('Timer'), [gt('Set Timer'), gt('Cancel Timer')], gt('Controls'),
-                             [gt('locate track', 1), gt('Repeat Options'), repeat_menu, gt('Stop'),
-                              gt('previous track', 1), gt('next track', 1), gt('Resume')], gt('Play'),
-                             [gt('System Audio'), gt('URL'),
-                              [gt('Play URL'), gt('Queue URL'), gt('Play URL Next')], gt('Folders'), tray_folders,
-                              gt('Playlists'), tray_playlists, gt('Select File(s)'),
-                              [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')], gt('Play All')],
-                             gt('Exit')]]
-    tray_folders.clear()
-    tray_folders.append(f'{gt("Select Folder(s)")}::PF')
-    for folder in settings['music_folders']:
-        folder = folder.replace('\\', '/').split('/')
-        folder = f'../{"/".join(folder[-2:])}::PF' if len(folder) > 2 else ('/'.join(folder) + '::PF')
-        tray_folders.append(folder)
+    tray_menu_default = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
+                         [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
+                         [gt('Play'), gt('System Audio'),
+                          [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
+                          [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
+                          [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
+                          gt('Play All')], gt('Exit')]
+    tray_menu_playing = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
+                         [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
+                         [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
+                          gt('previous track', 1), gt('next track', 1), gt('Pause')],
+                         [gt('Play'), gt('System Audio'),
+                          [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
+                          [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
+                          [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
+                          gt('Play All')], gt('Exit')]
+    tray_menu_paused = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
+                        [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
+                        [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
+                         gt('previous track', 1), gt('next track', 1), gt('Resume')],
+                        [gt('Play'), gt('System Audio'),
+                         [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
+                         [gt('Folders'), *tray_folders],
+                         [gt('Playlists'), *tray_playlists],
+                         [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
+                         gt('Play All')], gt('Exit')]
     # refresh playlists
     tray_playlists.clear()
     tray_playlists.append(gt('Playlists Menu'))
-    tray_playlists.extend([f'{pl}::PL'.replace('&', '&&&') for pl in settings['playlists'].keys()])
+    tray_playlists.extend([(f'{pl}'.replace('&', '&&&'), f'PL:{pl}') for pl in settings['playlists']])
     # tell tray process to update
-    icon = FILLED_ICON if playing_status.playing() else UNFILLED_ICON
+    # icon = FILLED_ICON if playing_status.playing() else UNFILLED_ICON
+    icon = {'filled': None} if playing_status.playing() else {'unfilled': None}
     if playing_status.busy():
         menu = tray_menu_playing if playing_status.playing() else tray_menu_paused
         metadata = get_current_metadata()
@@ -307,7 +325,7 @@ def refresh_tray():
     else:
         menu, _tooltip = tray_menu_default, 'Music Caster'
     if settings.get('DEBUG', DEBUG): _tooltip += ' [DEBUG]'
-    tray_process_queue.put({'method': 'update', 'kwargs': {'menu': menu, 'data_base64': icon, 'tooltip': _tooltip}})
+    tray_process_queue.put({'menu': menu, 'tooltip': _tooltip, **icon})
 
 
 def change_settings(settings_key, new_value):
@@ -414,9 +432,9 @@ def handle_exception(exception, restart_program=False):
     if restart_program:
         with suppress(Exception): stop('error handling')
         tray_notify(gt('An error occurred, restarting now'))
-        tray_process_queue.put({'method': 'hide'})
+        tray_process_queue.put({'close': None})
         time.sleep(2)
-        tray_process.terminate()
+        tray_process.join()
         if IS_FROZEN: os.startfile('Music Caster.exe')
         else: raise exception  # raise exception if running in script rather than executable
         sys.exit()
@@ -696,8 +714,8 @@ def web_index():  # web GUI
         list_of_tracks.append({'text': format_uri(filename), 'filename': filename})
     _queue = create_track_list()
     device_index = 0
-    for i, device_name in enumerate(device_names):
-        if device_name.startswith(CHECK_MARK):
+    for i, devices in enumerate(device_names):
+        if devices[0].startswith(CHECK_MARK):
             device_index = i
             break
     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
@@ -925,9 +943,11 @@ def chromecast_callback(chromecast):
             _cc: Chromecast
             device_name = _cc if _i == 0 else _cc.name
             if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
-                device_names.append(f'{CHECK_MARK} {device_name}::device')
+                # device_names.append(f'{CHECK_MARK} {device_name}::device')
+                device_names.append((f'{CHECK_MARK} {device_name}', f'device:{_i}'))
             else:
-                device_names.append(f'    {device_name}::device')
+                # device_names.append(f'    {device_name}::device')
+                device_names.append((f'    {device_name}', f'device:{_i}'))
         refresh_tray()
 
 
@@ -942,7 +962,7 @@ def start_chromecast_discovery(start_thread=False):
     stop_discovery()
     stop_discovery = None
     if not device_names:
-        device_names.append(f'{CHECK_MARK} Local device')
+        device_names.append((f'{CHECK_MARK} Local device', 'device:0'))
         refresh_tray()
 
 
@@ -955,8 +975,8 @@ def change_device(new_idx):
         device_names.clear()
         for idx, cc in enumerate(['Local device'] + chromecasts):
             cc: Chromecast = cc if idx == 0 else cc.name
-            tray_device_name = f'{CHECK_MARK} {cc}::device' if idx == new_idx else f'    {cc}::device'
-            device_names.append(tray_device_name)
+            tray_device_name = f'{CHECK_MARK} {cc}' if idx == new_idx else f'    {cc}'
+            device_names.append((tray_device_name, f'device:{idx}'))
         refresh_tray()
 
         current_pos = 0
@@ -1672,7 +1692,7 @@ def set_pos(new_position, in_thread=False):
             cast.media_controller.seek(new_position)
             if playing_status.paused(): cast.media_controller.pause()
         else:
-            threading.Thread(target=set_pos, args=[new_position], kwargs={'in_thread': True}).start()
+            Thread(target=set_pos, args=[new_position], kwargs={'in_thread': True}).start()
     else:
         audio_player.set_pos(new_position)
 
@@ -2049,7 +2069,7 @@ def exit_program():
     global exit_flag
     exit_flag = True
     main_window.close()
-    tray_process_queue.put({'method': 'hide'})
+    tray_process_queue.put({'close': None})
     with suppress(UnsupportedNamespace, NotConnected):
         if cast is None:
             stop('exit program')
@@ -2061,7 +2081,7 @@ def exit_program():
         save_queues()
         save_queue_thread.join()
     if settings['auto_update'] and IS_FROZEN: auto_update(False)
-    tray_process.terminate()
+    tray_process.join()
     sys.exit()  # since auto_update might not sys.exit()
 
 
@@ -2084,17 +2104,16 @@ def other_tray_actions(_tray_item):
     # this code checks if its time to go to the next track
     # this code checks if its time to stop playing music if a timer was set
     # if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
-    if _tray_item.endswith('::device') and not _tray_item.startswith(CHECK_MARK):
-        with suppress(ValueError):
-            change_device(device_names.index(_tray_item))
-    elif _tray_item.endswith('::PL'):  # playlist
-        playlist_action(_tray_item[:-4].replace('&&', '&'))
-    elif _tray_item.endswith('::PF'):  # play folder
-        if _tray_item == gt('Select Folder(s)') + '::PF':
-            folder_action()
-        else:
-            Thread(target=play_uris, name='PlayFolder', daemon=True,
-                   args=[[music_folders[tray_folders.index(_tray_item) - 1]]]).start()
+    if _tray_item.startswith('device:'):
+        device_index = int(re.search(r'\d+', _tray_item).group())
+        with suppress(ValueError): change_device(device_index)
+    elif _tray_item.startswith('PL:'):  # playlist
+        playlist_action(_tray_item[3:])
+    elif _tray_item == gt('Select Folder(s)'):
+        folder_action()
+    elif _tray_item.startswith('PF:'):  # play folder
+        folder_index = int(re.search(r'\d+', _tray_item).group())
+        Thread(target=play_uris, name='PlayFolder', daemon=True, args=[[music_folders[folder_index]]]).start()
     elif playing_status.playing() and track_length is not None and time.monotonic() > track_end:
         next_track(from_timeout=time.monotonic() > track_end)
     elif timer and time.time() > timer:
@@ -2978,12 +2997,12 @@ def auto_update(auto_start=True):
                         download_update = gt('Downloading update $VER').replace('$VER', latest_ver)
                         tray_notify(download_update)
                         tray_tooltip = download_update
-                        tray_process_queue.put({'method': 'update', 'kwargs': {'tooltip': tray_tooltip}})
+                        tray_process_queue.put({'tooltip': tray_tooltip})
                     try:
                         # download setup, close tray, run setup, and exit
                         download(setup_dl_link, 'mc_installer.exe')
                         if auto_start:
-                            tray_process_queue.put({'method': 'close'})
+                            tray_process_queue.put({'close': None})
                         Popen(cmd, shell=True)
                         sys.exit()
                     except OSError as _e:
