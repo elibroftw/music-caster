@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.35
+- [Fix] Auto next track
+
 4.90.34
 - [Optimization] Smaller executable
 

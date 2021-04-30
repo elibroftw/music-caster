@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.34'
+VERSION = latest_version = '4.90.35'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2114,20 +2114,6 @@ def other_tray_actions(_tray_item):
     elif _tray_item.startswith('PF:'):  # play folder
         folder_index = int(re.search(r'\d+', _tray_item).group())
         Thread(target=play_uris, name='PlayFolder', daemon=True, args=[[music_folders[folder_index]]]).start()
-    elif playing_status.playing() and track_length is not None and time.monotonic() > track_end:
-        next_track(from_timeout=time.monotonic() > track_end)
-    elif timer and time.time() > timer:
-        stop('timer')
-        timer = 0
-        if settings['timer_shut_down']:
-            if platform.system() == 'Windows':
-                os.system('shutdown /p /f')
-            else:
-                os.system('shutdown -h now')
-        elif settings['timer_hibernate']:
-            if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-        elif settings['timer_sleep']:
-            if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
 
 
 def read_main_window():
@@ -3150,6 +3136,20 @@ if __name__ == '__main__':
                 read_main_window()
             else:
                 time.sleep(0.2)
+            if playing_status.playing() and track_length is not None and time.monotonic() > track_end:
+                next_track(from_timeout=time.monotonic() > track_end)
+            elif timer and time.time() > timer:
+                stop('timer')
+                timer = 0
+                if settings['timer_shut_down']:
+                    if platform.system() == 'Windows':
+                        os.system('shutdown /p /f')
+                    else:
+                        os.system('shutdown -h now')
+                elif settings['timer_hibernate']:
+                    if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
+                elif settings['timer_sleep']:
+                    if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
     except Exception as e:
         # try to auto-update before exiting
         if not settings.get('DEBUG', False): auto_update()
