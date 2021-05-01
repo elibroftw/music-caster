@@ -2137,10 +2137,9 @@ def read_main_window():
     main_value = main_values.get(main_event)
     if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
         main_window.metadata['main_last_event'] = main_event
-    title, artist, album = gt('Nothing Playing'), '', ''
-    if playing_status.busy() and (sar.alive or music_queue):
-        metadata = get_current_metadata()
-        title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+    metadata = get_current_metadata()
+    title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+    if playing_status.busy() and music_queue and not sar.alive:
         if settings['show_track_number']:
             with suppress(KeyError):
                 track_number = metadata['track_number']
