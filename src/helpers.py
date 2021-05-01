@@ -8,7 +8,7 @@ import datetime
 from functools import wraps, lru_cache
 import glob
 import io
-from itertools import cycle, repeat
+from itertools import cycle, repeat, chain
 import json
 import locale
 from math import floor, ceil
@@ -40,12 +40,14 @@ from mutagen.mp3 import HeaderNotFoundError
 import mutagen.mp4
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
+import pyaudio
 import pyqrcode
 import PySimpleGUI as Sg
 from PIL import Image, ImageFile, ImageDraw, ImageFont
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-import pyaudio
+from youtube_dl import YoutubeDL
+
 
 # CONSTANTS
 FONT_NORMAL = 'Segoe UI', 11
@@ -249,7 +251,7 @@ class Unknown(str):
         return len(str(self))
 
 
-def get_file_name(file_path): return os.path.splitext(os.path.basename(file_path))[0]
+def get_file_name(file_path): return Path(file_path).stem
 
 
 # decorators
@@ -258,7 +260,7 @@ def timing(f):
     def wrapper(*args, **kwargs):
         _start = time.monotonic()
         result = f(*args, **kwargs)
-        print(f'@timing {f.__name__} ELAPSED TIME:', time.monotonic() - _start)
+        print(f'@timing {f.__name__} = {result} ELAPSED TIME:', time.monotonic() - _start)
         return result
     return wrapper
 
@@ -284,7 +286,7 @@ def time_cache(max_age, maxsize=None, typed=False):
 
 @lru_cache(maxsize=1)
 def get_languages():
-    return [''] + [get_file_name(lang) for lang in glob.iglob('languages/*.txt')]
+    return list(chain([''], (get_file_name(lang) for lang in glob.iglob('languages/*.txt'))))
 
 
 @lru_cache(maxsize=3)
@@ -491,12 +493,10 @@ def get_metadata(file_path: str):
     return metadata
 
 
-def fix_path(path, by_os=True):
-    return path.replace('/', '\\') if by_os and platform.system() == 'Windows' else path.replace('\\', '/')
+def fix_path(path, by_os=True): return str(Path(path)) if by_os else Path(path).as_posix()
 
 
-def get_first_artist(artists: str) -> str:
-    return artists.split(', ', 1)[0]
+def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
 
 
 def get_ipv4() -> str:
@@ -544,6 +544,10 @@ def valid_audio_file(uri) -> bool:
     return ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
 
 
+@lru_cache(maxsize=1)
+def ydl(): return YoutubeDL()
+
+
 # noinspection PyTypeChecker
 def get_yt_id(url):
     query = urlparse(url)
@@ -555,7 +559,6 @@ def get_yt_id(url):
         if query.path[:7] == '/watch/': return query.path.split('/')[1]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
         if query.path[:3] == '/v/': return query.path.split('/')[2]
-    # returns None for invalid YouTube url
 
 
 def get_yt_urls(video_id):
@@ -570,8 +573,7 @@ def get_yt_urls(video_id):
         yield f'{prefix}youtube.com/v/{video_id}'
 
 
-def is_os_64bit():
-    return platform.machine().endswith('64')
+def is_os_64bit(): return platform.machine().endswith('64')
 
 
 def delete_sub_key(root, current_key):
@@ -1165,7 +1167,7 @@ def get_progress_layout(settings, track_position, track_length, playing_status: 
     progress_layout = [Sg.Text(time_elapsed, key='time_elapsed', pad=time_elapsed_pad, justification='center',
                                size=text_size, font=FONT_NORMAL),
                        Sg.Slider(range=(0, 1 if track_length is None else track_length),
-                                 default_value=1 if track_length is None else track_position,
+                                 default_value=1 if track_length is None else floor(track_position),
                                  orientation='h', size=(20 if mini_mode else 30, 10), key='progress_bar',
                                  enable_events=True, relief=Sg.RELIEF_FLAT, background_color=accent_color,
                                  disable_number_display=True, disabled=playing_status.stopped() or track_length is None,

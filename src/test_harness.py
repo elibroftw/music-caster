@@ -2,7 +2,6 @@ from music_caster import *
 from helpers import *
 from helpers import get_metadata
 
-
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
 TEST_MUSIC_FILES = [
     r'C:\Users\maste\OneDrive\Music\deadmau5 - My Pet Coelacanth.mp3',
@@ -43,11 +42,11 @@ NAT_SORTED_LIST_2 = ['C:/Users/maste/OneDrive/Music/1. Hello World', 'C:/Users/m
                      'C:/Users/maste/OneDrive/Music/12. Hello World']
 
 GET_METADATA_FROM = [
-        r'C:\Users\maste\OneDrive\Music\$teven Cannon - Inxanity.mp3',
-        r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3',
-        r'C:\Users\maste\OneDrive\Music\88GLAM, Lil Yachty - Lil Boat.mp3',
-        r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3'
-    ]
+    r'C:\Users\maste\OneDrive\Music\$teven Cannon - Inxanity.mp3',
+    r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3',
+    r'C:\Users\maste\OneDrive\Music\88GLAM, Lil Yachty - Lil Boat.mp3',
+    r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3'
+]
 EXPECTED_METADATA = [
     {'album': 'Inxanity', 'artist': '$teven Cannon', 'explicit': True, 'sort_key': 'inxanity - $teven cannon',
      'title': 'Inxanity', 'track_number': '1'},
@@ -64,7 +63,20 @@ EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 def run_tests(uploading_after=False):
     assert list(get_running_processes())
 
+    for file_path, name in [
+        (r'C:\Users\maste\OneDrive\Music\Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
+        ('C:/Users/maste/OneDrive/Music/Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
+        (r'Music\Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef'),
+        ('Music/Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef')]:
+        try:
+            assert get_file_name(file_path) == name
+        except AssertionError as e:
+            print(f'FAILED: get_file_name("{file_path}"). {get_file_name(file_path)} != {name}')
+            raise e
+
     print('DISPLAY LANGUAGE', get_display_lang())
+    print('LANGUAGES (combo):', get_languages())
+    time.sleep(0.5)
     for code in ('en', 'es'):
         assert get_lang_pack(code)
 
@@ -104,9 +116,9 @@ def run_tests(uploading_after=False):
     for ext, expected_metadata in zip(GET_METADATA_FROM, EXPECTED_METADATA):
         try:
             assert get_metadata(ext) == expected_metadata
-        except AssertionError as _e:
+        except AssertionError as e:
             print('TEST FAILED:', ext, get_metadata(ext), 'vs.', expected_metadata)
-            raise _e
+            raise e
 
     if platform.system() == 'Windows':
         assert fix_path('C:/Users/maste/OneDrive') == r'C:\Users\maste\OneDrive'
@@ -169,7 +181,7 @@ def run_tests(uploading_after=False):
     print('Default Audio Device:', get_default_output_device())
     sar.start()  # start system audio recording
     time.sleep(0.5)
-    sar.stop()   # stop system audio recording
+    sar.stop()  # stop system audio recording
 
     for size in ((125, 425), COVER_MINI, COVER_NORMAL):
         base64data = resize_img(DEFAULT_ART, settings['theme']['background'], new_size=size)
@@ -185,16 +197,16 @@ def run_tests(uploading_after=False):
 
     # Parsers for Streaming Services
     for streaming_url in (
-            'https://open.spotify.com/track/0Memc4WL8oO0xUnkXCsNnV?si=Mg58OQxeTj6lTkvNV919wg',   # spotify track
+            'https://open.spotify.com/track/0Memc4WL8oO0xUnkXCsNnV?si=Mg58OQxeTj6lTkvNV919wg',  # spotify track
             'https://open.spotify.com/album/2JSiQ1wnqVEdaf6Y39DsAJ?highlight=spotify:track:0Memc4WL8oO0xUnkXCsNnV',
-            'https://open.spotify.com/album/47MVgO7XNmxzoYSJIvqxAG',                             # spotify album
-            'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',                          # spotify playlist
-            'https://www.deezer.com/track/65404135?utm_campaign=clipboard-generic',              # deezer track
+            'https://open.spotify.com/album/47MVgO7XNmxzoYSJIvqxAG',  # spotify album
+            'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',  # spotify playlist
+            'https://www.deezer.com/track/65404135?utm_campaign=clipboard-generic',  # deezer track
             'https://deezer.page.link/NTW1c5cRdkzy28P19',
             'https://deezer.page.link/Prw6jnAYCNe8VrV17',
-            'https://www.deezer.com/album/217794942',                                            # deezer album
+            'https://www.deezer.com/album/217794942',  # deezer album
             'https://deezer.page.link/XGPUgE6HN5LryeBE7',
-            'https://www.deezer.com/playlist/1963962142',                                        # deezer playlist
+            'https://www.deezer.com/playlist/1963962142',  # deezer playlist
             'https://deezer.page.link/URU2yh1GX1wyaoZy9'
     ):
         if 'spotify' in streaming_url:
@@ -210,7 +222,6 @@ def run_tests(uploading_after=False):
             if 'deezer' in streaming_url:
                 assert callable(metadata['expired'])
                 assert metadata['url']
-    ydl.add_default_info_extractors()
     assert len(url_metadata) == 0
     get_url_metadata('https://www.youtube.com/watch?v=PNP0hku7hSo')
     assert len(url_metadata) == 9
@@ -218,8 +229,10 @@ def run_tests(uploading_after=False):
     version = [int(x) for x in VERSION.split('.')]
     compare_ver = get_latest_release(VERSION, True)['version']
     compare_ver = [int(x) for x in compare_ver.split('.')]
-    if uploading_after: assert compare_ver < version
-    else: assert compare_ver <= version
+    if uploading_after:
+        assert compare_ver < version
+    else:
+        assert compare_ver <= version
 
 
 if __name__ == '__main__':
