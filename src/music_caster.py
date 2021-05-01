@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.35'
+VERSION = latest_version = '4.90.36'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2137,7 +2137,6 @@ def read_main_window():
     main_value = main_values.get(main_event)
     if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
         main_window.metadata['main_last_event'] = main_event
-    gui_title = main_window['title'].DisplayText
     title, artist, album = gt('Nothing Playing'), '', ''
     if playing_status.busy() and (sar.alive or music_queue):
         metadata = get_current_metadata()
@@ -2147,7 +2146,8 @@ def read_main_window():
                 track_number = metadata['track_number']
                 title = f'{track_number}. {title}'
     # usually if music stops playing or another track starts playing
-    if gui_title != title:
+    gui_title = main_window['title'].DisplayText
+    if gui_title != title and (not settings['mini_mode'] or gui_title != truncate_title(title)):
         if settings['mini_mode']: title = truncate_title(title)
         main_window['title'].update(title)
         main_window['artist'].update(artist)
