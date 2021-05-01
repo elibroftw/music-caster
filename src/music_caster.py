@@ -2145,14 +2145,14 @@ def read_main_window():
             with suppress(KeyError):
                 track_number = metadata['track_number']
                 title = f'{track_number}. {title}'
-    # usually if music stops playing or another track starts playing
     gui_title = main_window['title'].DisplayText
     if gui_title != title and (not settings['mini_mode'] or gui_title != truncate_title(title)):
+        # usually if music stops playing or another track starts playing
         if settings['mini_mode']: title = truncate_title(title)
+        else: main_window['album'].update(album)
         main_window['title'].update(title)
         main_window['artist'].update(artist)
         # update album title if not in mini-mode
-        if not settings['mini_mode']: main_window['album'].update(album)
         if settings['show_album_art']:
             size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
             try:
@@ -2201,7 +2201,8 @@ def read_main_window():
             main_event = 'progress_bar'
             main_window.refresh()
     # change/select tabs
-    if main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
+    if main_event == '__TIMEOUT__': pass  # avoids checking multiple if statements
+    elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
         main_window['tab_queue'].select()
     elif (main_event == '2:50' and not settings['mini_mode'] or  # URL tab [Ctrl + 2]
           main_event == 'tab_group' and main_values.get('tab_group') == 'tab_url'):
@@ -2898,8 +2899,6 @@ def read_main_window():
         p_r_button.update(image_data=PLAY_BUTTON_IMG)
     elif playing_status.stopped() and p_r_button.metadata != playing_status:
         p_r_button.update(image_data=PLAY_BUTTON_IMG)
-        main_window['time_elapsed'].update('0:00')
-        main_window['time_left'].update('0:00')
     p_r_button.metadata = str(playing_status)
     return True
 
