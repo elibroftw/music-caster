@@ -10,7 +10,7 @@ pynput~=1.4.5
 pypng~=0.0.20
 pypresence~=4.0.0
 pyqrcode~=1.2.1
-PySimpleGUI~=4.34.0
+PySimpleGUI~=4.40
 pystray
 python-vlc
 requests~=2.22
