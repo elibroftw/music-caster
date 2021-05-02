@@ -15,7 +15,6 @@ pystray
 python-vlc
 requests~=2.22
 urllib3~=1.25
-wxpython~=4.1
 wavinfo==1.6
 youtube_dl
 zeroconf==0.24.5
