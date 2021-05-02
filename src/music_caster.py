@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.36'
+VERSION = latest_version = '4.90.37'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2252,7 +2252,8 @@ def read_main_window():
         update_volume(new_volume)
     elif main_event in {'Up:38', 'Down:40'}:
         focused_element = main_window.FindElementWithFocus()
-        if focused_element not in {main_window['queue'], main_window['pl_tracks'], main_window['music_folders']}:
+        if settings['mini_mode'] or focused_element not in {main_window['queue'], main_window['pl_tracks'],
+                                                            main_window['music_folders']}:
             delta = settings['volume_delta'] if main_event == 'Up:38' else -settings['volume_delta']
             new_volume = main_values['volume_slider'] + delta
             change_settings('volume', new_volume)
@@ -2261,7 +2262,7 @@ def read_main_window():
             update_volume(new_volume)
     elif main_event in {'mute', 'm:77'}:  # toggle mute
         update_volume(0 if change_settings('muted', not settings['muted']) else settings['volume'])
-    elif main_event in {'Prior:33', 'Next:34'}:  # page up, page down
+    elif main_event in {'Prior:33', 'Next:34'} and settings['mini_mode']:  # page up, page down
         focused_element = main_window.FindElementWithFocus()
         move = {'Prior:33': -3, 'Next:34': 3}[main_event]
         if focused_element == main_window['queue'] and main_values['queue']:
