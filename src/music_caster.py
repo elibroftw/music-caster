@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.37'
+VERSION = latest_version = '4.90.38'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1342,7 +1342,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         playing_url = True
         after_play(title, artist, autoplay, switching_device)
         return True
-    tray_notify(gt('ERROR') + ': ' + gt('Could not play $URL').replace('$URL', url))
+    if settings['notifications']: tray_notify(gt('ERROR') + ': ' + gt('Could not play $URL').replace('$URL', url))
     return False
 
 

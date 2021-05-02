@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.38
+- [Fix] Notifications and upgrade Python
+
 4.90.37
 - [Fix] Mini-mode
 
