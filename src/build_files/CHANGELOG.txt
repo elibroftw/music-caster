@@ -1,6 +1,6 @@
 Music Caster by Elijah Lopez Changelog
 
-4.90.39
+4.90.40
 - [Fix] Metadata tab
 
 4.90.39
