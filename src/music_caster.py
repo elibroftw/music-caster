@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.41'
+VERSION = latest_version = '4.90.42'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
