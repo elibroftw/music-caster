@@ -7,7 +7,7 @@ import math
 import os
 import re
 import shutil
-from subprocess import DEVNULL, check_call, Popen, CalledProcessError, getoutput
+from subprocess import check_call, Popen, getoutput
 import sys
 import time
 import winreg

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.38'
+VERSION = latest_version = '4.90.39'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -31,7 +31,6 @@ parser.add_argument('--exit', '-x', default=False, action='store_true',
 parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
 # freeze_support() adds the following
 parser.add_argument('--multiprocessing-fork', default=False, action='store_true')
-# the following option is used in the build script since MC doesn't run as a CLI
 parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
 args = parser.parse_args()
 # if from url protocol, re-parse arguments
@@ -76,7 +75,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     unfilled_icon = Image.open(io.BytesIO(b64decode(UNFILLED_ICON)))
 
     def create_menu(lst, root=True):
-        # ['Item 1', ('Item 2 Display', 'item_2_key'), ['Sub Menu Title', ('Sub Menu Item 1 Display', 'KEY')]]
+        # e.g. ['Item 1', ('Item 2 Display', 'item_2_key'), ['Sub Menu Title', ('Sub Menu Item 1 Display', 'KEY')]]
         # TODO: checked/radio
         items = []
         if root: items.append(pystray.MenuItem('', on_tray_click('__ACTIVATED__'), default=True, visible=False))
@@ -275,7 +274,7 @@ def save_settings():
 
 def refresh_tray():
     tray_folders = [gt('Select Folder(s)')]
-    for i, folder in enumerate(settings['music_folders']):
+    for i, folder in enumerate(music_folders):
         folder = Path(folder)
         folder = ('../' + '/'.join(folder.parts[-2:])) if len(folder.parts) > 2 else folder.as_posix()
         tray_folders.append((folder, f'PF:{i}'))
@@ -332,12 +331,18 @@ def change_settings(settings_key, new_value):
         settings[settings_key] = new_value
         save_settings()
         if settings_key == 'repeat':
+            main_window.TKroot.after(0, update_repeat_button)
             refresh_tray()
             if settings['notifications']:
                 msg = {None: lambda: gt('Repeat set to Off'),
                        True: lambda: gt('Repeat set to One'),
                        False: lambda: gt('Repeat set to All')}[new_value]()
                 tray_notify(msg)
+        elif settings_key == 'shuffle':
+            if not main_window.was_closed():
+                shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
+                main_window.TKroot.after(0, lambda: main_window['shuffle'].update(image_data=shuffle_image_data))
+            shuffle_queue() if new_value else un_shuffle_queue()
     return new_value
 
 
@@ -366,21 +371,18 @@ def update_volume(new_vol):
 
 def update_repeat_button():
     """ updates repeat button of main window """
-    repeat_button: Sg.Button = main_window['repeat']
-    repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
-    repeat_button.metadata = settings['repeat']
-    repeat_button.update(image_data=repeat_img)
-    repeat_button.set_tooltip(new_tooltip)
+    if not main_window.was_closed():
+        repeat_button: Sg.Button = main_window['repeat']
+        repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
+        repeat_button.metadata = settings['repeat']
+        repeat_button.update(image_data=repeat_img)
+        repeat_button.set_tooltip(new_tooltip)
 
 
-def cycle_repeat(update_main=False):
-    """
-    :param update_main: Only set to True on main Thread
-    :return: new repeat value
-    """
+def cycle_repeat():
+    """ :return: new repeat value """
     # Repeat Off (None) becomes All (False) becomes One (True) becomes Off
     new_repeat_setting = {None: False, True: None, False: True}[settings['repeat']]
-    if update_main and not main_window.was_closed(): update_repeat_button()  # update main window if it is active
     return change_settings('repeat', new_repeat_setting)
 
 
@@ -486,11 +488,6 @@ def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album,
 
 
 def get_uri_metadata(uri, read_file=True):
-    """
-    get metadata from all_track and resort to url_metadata if not found in all_tracks
-      if file/url is not in all_track. e.g. links
-    if read_file is False, raise a KeyError instead of reading metadata from file.
-    """
     uri = uri.replace('\\', '/')
     try:
         return all_tracks[uri]
@@ -556,15 +553,15 @@ def index_all_tracks(update_global=True, ignore_files: set = None):
     except TypeError: ignore_files = set()
 
     def _index_library():
-        global all_tracks, all_tracks_sorted
         """
         Scans folders provided in settings and adds them to a dictionary
         Does not ignore the files that in ignore_files by design
         """
+        global all_tracks, all_tracks_sorted
         use_temp = len(all_tracks)  # use temp if all_tracks is not empty
         all_tracks_temp = {}
         dict_to_use = all_tracks_temp if use_temp else all_tracks
-        for uri in get_audio_uris(settings['music_folders'], False, True):
+        for uri in get_audio_uris(music_folders, False, True):
             dict_to_use[uri] = get_metadata_wrapped(uri)
         if use_temp: all_tracks = all_tracks_temp
         main_window.metadata['update_listboxes'] = True
@@ -686,8 +683,6 @@ def web_index():  # web GUI
         elif 'shuffle' in request.values:
             shuffle_option = change_settings('shuffle', not settings['shuffle'])
             api_msg = f'shuffle set to {shuffle_option}'
-            if shuffle_option: shuffle_queue()
-            else: un_shuffle_queue()
         elif 'activate' in request.values:
             daemon_commands.put('__ACTIVATED__')  # tells main loop to bring to front all GUI's
             api_msg = 'activated main window'
@@ -702,12 +697,9 @@ def web_index():  # web GUI
     shuffle_option = 'red' if settings['shuffle'] else ''
     # sort by the formatted title
     list_of_tracks = []
-    if all_tracks_sorted:
-        sorted_tracks = all_tracks_sorted
-    else:
-        sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
-    for filename, data in sorted_tracks:
-        list_of_tracks.append({'text': format_uri(filename), 'filename': filename})
+    if all_tracks_sorted: sorted_tracks = all_tracks_sorted
+    else: sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
+    for filename, data in sorted_tracks: list_of_tracks.append({'text': format_uri(filename), 'filename': filename})
     _queue = create_track_list()
     device_index = 0
     for i, devices in enumerate(device_names):
@@ -1088,6 +1080,34 @@ def create_track_list():
         return create_track_list()
 
 
+def _update_gui():
+    if playing_status.stopped():
+        main_window['progress_bar'].update(0, disabled=True)
+    else:
+        value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
+        main_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
+    metadata = get_current_metadata()
+    title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+    if playing_status.busy() and music_queue and not sar.alive:
+        if settings['show_track_number']:
+            with suppress(KeyError):
+                track_number = metadata['track_number']
+                title = f'{track_number}. {title}'
+    if settings['mini_mode']: title = truncate_title(title)
+    else: main_window['album'].update(album)
+    main_window['title'].update(title)
+    main_window['artist'].update(artist)
+    image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
+    main_window['pause/resume'].update(image_data=image_data)
+    if settings['show_album_art']:
+        size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
+        try:
+            album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
+        except (UnidentifiedImageError, OSError):
+            album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+        main_window['artwork'].update(data=album_art_data)
+
+
 def after_play(title, artists: str, autoplay, switching_device):
     global cast_last_checked
     app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
@@ -1109,9 +1129,7 @@ def after_play(title, artists: str, autoplay, switching_device):
                                  large_text=gt('Listening'), small_image='logo', small_text='Music Caster')
     if not main_window.was_closed():
         main_window.metadata['update_listboxes'] = True
-        progress_bar = main_window['progress_bar']
-        value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
-        main_window.TKroot.after(0, lambda: progress_bar.update(value, range=(0, range_max), disabled=False))
+        main_window.TKroot.after(0, _update_gui)
 
 
 def play_system_audio(switching_device=False):
@@ -1592,6 +1610,7 @@ def pause():
                                          small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             stop('pause')
+        if not main_window.was_closed(): main_window.TKroot.after(0, _update_gui)
         refresh_tray()
         return True
     return False
@@ -1625,10 +1644,11 @@ def resume():
                     rich_presence.update(state=gt('By') + f': {artist}', details=title,
                                          large_image='default', large_text=gt('Listening'),
                                          small_image='logo', small_text='Music Caster')
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+            if not main_window.was_closed(): main_window.TKroot.after(0, _update_gui)
             refresh_tray()
         except (UnsupportedNamespace, NotConnected):
-            if music_queue: play(music_queue[0], position=track_position)
-        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+            if music_queue: return play(music_queue[0], position=track_position)
         return True
     return False
 
@@ -1638,13 +1658,11 @@ def stop(stopped_from: str, stop_cast=True):
     can be called from a non-main thread
     does not check if playing_status is busy
     """
-    global cast, track_start, track_end, track_position, playing_url
+    global cast, track_start, track_end, track_position, track_length, playing_url
     app_log.info(f'Stop reason: {stopped_from}')
     # allow Windows to go to sleep
     ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
     playing_status.stop()
-    if not main_window.was_closed():
-        main_window.TKroot.after(0, lambda: main_window['progress_bar'].update(0, disabled=True))
     sar.alive = playing_url = False
     if settings['discord_rpc']:
         with suppress(Exception): rich_presence.clear()
@@ -1669,7 +1687,8 @@ def stop(stopped_from: str, stop_cast=True):
                 return
     else:
         audio_player.stop()
-    track_start = track_position = track_end = 0
+    track_start = track_position = track_end = track_length = 0
+    if not main_window.was_closed(): main_window.TKroot.after(0, _update_gui)
     refresh_tray()
 
 
@@ -1740,9 +1759,8 @@ def next_track(from_timeout=False, times=1, forced=False, ignore_timestamps=Fals
             elif times > 1:  # explicitly selected
                 settings['skips'].pop(music_queue[0], None)  # reset skip counter
                 save_settings()
-            play(music_queue[0])
-        else:
-            stop('next track')  # repeat is off / no tracks in queue
+            return play(music_queue[0])
+        stop('next track')  # repeat is off / no tracks in queue
 
 
 def prev_track(times=1, forced=False):
@@ -1781,11 +1799,9 @@ def background_tasks():
     - sends info
     - creates/removes shortcut
     - starts keyboard listener
-    - Initializes YoutubeDL
     Periodic (While True) tasks:
     - checks for Chromecast status update
     - reloads settings.json if settings.json is modified
-    - checks for music caster updates
     - scans files
     """
     global cast_last_checked, track_position, track_start, track_end, settings_last_modified
@@ -1798,7 +1814,7 @@ def background_tasks():
     while True:
         # if settings.json was updated outside of Music Caster, reload settings
         if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
-        # Check cast every 5 seconds
+        # check cast every 5 seconds
         if cast is not None and time.monotonic() - cast_last_checked > 5:
             with suppress(UnsupportedNamespace):
                 if cast.app_id == APP_MEDIA_RECEIVER:
@@ -1844,7 +1860,7 @@ def background_tasks():
                 all_tracks[uri] = get_metadata_wrapped(uri)
             uris_to_scan.task_done()
             uris_scanned += 1
-            main_window.metadata['update_listboxes'] = True
+        if uris_scanned: main_window.metadata['update_listboxes'] = True
         # if no files were scanned, pause for 5 seconds
         else: time.sleep(5)
 
@@ -2119,41 +2135,11 @@ def read_main_window():
     main_value = main_values.get(main_event)
     if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
         main_window.metadata['main_last_event'] = main_event
-    metadata = get_current_metadata()
-    title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-    if playing_status.busy() and music_queue and not sar.alive:
-        if settings['show_track_number']:
-            with suppress(KeyError):
-                track_number = metadata['track_number']
-                title = f'{track_number}. {title}'
-    gui_title = main_window['title'].DisplayText
-    if gui_title != title and (not settings['mini_mode'] or gui_title != truncate_title(title)):
-        # usually if music stops playing or another track starts playing
-        if settings['mini_mode']: title = truncate_title(title)
-        else: main_window['album'].update(album)
-        main_window['title'].update(title)
-        main_window['artist'].update(artist)
-        # update album title if not in mini-mode
-        if settings['show_album_art']:
-            size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
-            try:
-                album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
-            except (UnidentifiedImageError, OSError):
-                album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
-            main_window['artwork'].update(data=album_art_data)
-        main_window.metadata['update_listboxes'] = True
     # update timer text if timer is old
     if not settings['mini_mode'] and timer == 0 and main_window['timer_text'].metadata:
         main_window['timer_text'].update('No Timer Set')
         main_window['timer_text'].metadata = False
         main_window['cancel_timer'].update(visible=False)
-    # update repeat button (image) if button metadata differs from settings
-    if settings['repeat'] != main_window['repeat'].metadata: update_repeat_button()
-    # update shuffle button (image) if button metadata differs from settings
-    if settings['shuffle'] != main_window['shuffle'].metadata:
-        shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
-        main_window['shuffle'].update(image_data=shuffle_image_data)
-        main_window['shuffle'].metadata = settings['shuffle']
     # these events modify main_event (chain events)
     if main_event.startswith('MouseWheel'):
         main_event = main_event.split(':', 1)[1]
@@ -2230,14 +2216,8 @@ def read_main_window():
     elif main_event == 'prev' and playing_status.busy():
         prev_track()
     elif main_event == 'shuffle':
-        shuffle_option = change_settings('shuffle', not settings['shuffle'])
-        shuffle_image_data = SHUFFLE_ON if shuffle_option else SHUFFLE_OFF
-        main_window['shuffle'].update(image_data=shuffle_image_data)
-        main_window['shuffle'].metadata = shuffle_option
-        if shuffle_option: shuffle_queue()
-        else: un_shuffle_queue()
-    elif main_event == 'repeat':
-        cycle_repeat(True)
+        change_settings('shuffle', not settings['shuffle'])
+    elif main_event == 'repeat': cycle_repeat()
     elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
                                             and (main_values.get('tab_group') in {'tab_queue', None}))):
         # User scrubbed volume bar or pressed a, d, #
@@ -2656,11 +2636,11 @@ def read_main_window():
             playlist_uris = settings['playlists'][main_values['playlist_combo']]
             playlist_path = export_playlist(main_values['playlist_combo'], playlist_uris)
             locate_uri(uri=playlist_path)
-    elif main_event == 'del_pl':
+    elif main_event == 'delete_pl':
         pl_name = main_window.metadata['pl_name'] = main_values.get('playlist_combo', '')
         settings['playlists'].pop(pl_name, None)
         pl_name = main_window.metadata['pl_name'] = next(iter(settings['playlists']), '')
-        main_window['playlist_combo'].update(value=pl_name, values=tuple(settings['playlists']))
+        main_window['playlist_combo'].update(value=pl_name, values=tuple(settings['playlists']), size=(PL_COMBO_W, 1))
         pl_tracks = main_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
         new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         # update playlist editor
@@ -2853,25 +2833,13 @@ def read_main_window():
     time_elapsed_text, time_left_text = create_progress_bar_text(get_track_position(), track_length)
     if time_elapsed_text != main_window['time_elapsed'].get(): main_window['time_elapsed'].update(time_elapsed_text)
     if time_left_text != main_window['time_left'].get(): main_window['time_left'].update(time_left_text)
-    if music_queue and playing_status.busy() and not sar.alive:
-        progress_bar.update(floor(track_position))
-    # update pause resume button
-    p_r_button = main_window['pause/resume']
-    if playing_status.playing() and p_r_button.metadata != playing_status:
-        p_r_button.update(image_data=PAUSE_BUTTON_IMG)
-    elif playing_status.paused() and p_r_button.metadata != playing_status:
-        p_r_button.update(image_data=PLAY_BUTTON_IMG)
-    elif playing_status.stopped() and p_r_button.metadata != playing_status:
-        p_r_button.update(image_data=PLAY_BUTTON_IMG)
-    p_r_button.metadata = str(playing_status)
+    if music_queue and playing_status.busy() and not sar.alive: progress_bar.update(floor(track_position))
     return True
 
 
 def create_shortcut():
-    """
-    Creates short-cut in Startup folder (enter "startup" in Explorer address bar to)
-        if setting['run_on_startup'], else removes existing shortcut
-    """
+    """ Creates short-cut in Startup folder (enter "startup" in Explorer address bar to)
+        if setting['run_on_startup'], else removes existing shortcut """
     def _create_shortcut():
         app_log.info('create_shortcut called')
         startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
@@ -2879,7 +2847,7 @@ def create_shortcut():
         shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if debug else ''}.lnk"
         with suppress(com_error):
             shortcut_exists = os.path.exists(shortcut_path)
-            if settings['run_on_startup'] and not shortcut_exists:
+            if settings['run_on_startup'] and not shortcut_exists or debug:
                 # noinspection PyUnresolvedReferences
                 pythoncom.CoInitialize()
                 _shell = win32com.client.Dispatch('WScript.Shell')
@@ -2896,18 +2864,17 @@ def create_shortcut():
                 shortcut.WorkingDirectory = working_dir
                 shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
                 shortcut.save()
-                if debug: os.remove(shortcut_path)
-            elif (not settings['run_on_startup'] or debug) and shortcut_exists: os.remove(shortcut_path)
+                if debug:
+                    time.sleep(1)
+                    os.remove(shortcut_path)
+            elif not settings['run_on_startup'] and shortcut_exists: os.remove(shortcut_path)
     Thread(target=_create_shortcut, name='CreateShortcut').start()
 
 
 def get_latest_release(ver, force=False):
-    """
-    returns {'version': latest_ver, 'setup': 'setup_link'}
-        if the latest release verison is newer (>) than VERSION
+    """ returns {'version': latest_ver, 'setup': 'setup_link'} if the latest release version is newer (>) than VERSION
     if latest release version <= VERSION, returns false
-    if force: return latest release even if latest version <= VERSION
-    """
+    if force: return latest release even if latest version <= VERSION """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     release = requests.get(releases_url).json()
     latest_ver = release.get('tag_name', f'v{VERSION}')[1:]
@@ -2922,11 +2889,8 @@ def get_latest_release(ver, force=False):
 
 
 def auto_update(auto_start=True):
-    """
-    auto_start should be True when checking for updates at startup up,
-        false when checking for updates before exiting
-    :return
-    """
+    """ auto_start should be True when checking for updates at startup up,
+        false when checking for updates before exiting """
     with suppress(requests.RequestException):
         app_log.info(f'Function called: auto_update(auto_start={auto_start})')
         release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', DEBUG)))
@@ -2974,8 +2938,7 @@ def auto_update(auto_start=True):
                             if auto_start and settings['notifications']:
                                 tray_notify('update_available', context=latest_ver)
                 else:
-                    # unins000.exe or updater.exe was deleted
-                    # Better to inform user there is an update available
+                    # unins000.exe or updater.exe was deleted; better to inform user there is an update available
                     if auto_start and settings['notifications']: tray_notify('update_available', context=latest_ver)
 
 

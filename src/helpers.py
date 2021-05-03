@@ -57,8 +57,9 @@ FONT_TITLE = 'Segoe UI', 14
 FONT_MID = 'Segoe UI', 12
 FONT_TAB = 'Meiryo UI', 10
 LINK_COLOR = '#3ea6ff'
-COVER_MINI = (125, 125)
+COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)
+PL_COMBO_W = 37
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
@@ -267,11 +268,9 @@ def timing(f):
 
 def time_cache(max_age, maxsize=None, typed=False):
     """Least-recently-used cache decorator with time-based cache invalidation.
-    Args:
-        max_age: Time to live for cached results (in seconds).
-        maxsize: Maximum cache size (see `functools.lru_cache`).
-        typed: Cache on distinct input types (see `functools.lru_cache`).
-    """
+    max_age: Time to live for cached results (in seconds).
+    maxsize: Maximum cache size (see `functools.lru_cache`).
+    typed: Cache on distinct input types (see `functools.lru_cache`). """
     def _decorator(fn):
         @lru_cache(maxsize=maxsize, typed=typed)
         def _new(*args, __time_salt, **kwargs):
@@ -311,17 +310,13 @@ def get_display_lang():
 
 
 def get_translation(string, lang='', as_title=False):
-    """
-    Returns the translation of the string in the display language
-    If lang pack does not exist, use original string
+    """ Translates string from English to lang or display language if valid
     :param string: English string
     :param lang: Optional code to translate to. Defaults to using display language
     :param as_title: The phrase returned has each word capitalized
-    :return: string translated to display language
-    """
-    lang = lang or get_display_lang()
+    :return: string translated to display language """
     with suppress(IndexError, KeyError):
-        string = get_lang_pack(lang)[get_lang_pack('en')[string]]
+        string = get_lang_pack(lang or get_display_lang())[get_lang_pack('en')[string]]
     if as_title: string = ' '.join(word[0].upper() + word[1:] for word in string.split())
     return string
 
@@ -331,11 +326,9 @@ def gt(string, as_title=False):
 
 
 def get_length(file_path) -> int:
-    """
-    throws InvalidAudioFile if file is invalid
+    """ throws InvalidAudioFile if file is invalid
     :param file_path:
-    :return: length in seconds
-    """
+    :return: length in seconds """
     try:
         if file_path.lower().endswith('.wav'):
             a = WavInfoReader(file_path)
@@ -359,8 +352,7 @@ def get_length(file_path) -> int:
 
 
 def natural_key_file(file_name):
-    file_name = get_file_name(file_name).lower()
-    file_name = unicodedata.normalize('NFKD', file_name)
+    file_name = unicodedata.normalize('NFKD', get_file_name(file_name).lower())
     file_name = u''.join([c for c in file_name if not unicodedata.combining(c)])
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', file_name)]
 
@@ -1130,10 +1122,10 @@ def get_music_controls(settings, playing_status: PlayingStatus):
     shuffle_button = {'button_color': (bg, bg), 'image_data': SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF}
     mute_tooltip = gt('unmute') if is_muted else gt('mute')
     return [Sg.Button(key='prev', image_data=PREVIOUS_BUTTON_IMG, button_color=(bg, bg), **prev_button),
-            Sg.Button(key='pause/resume', image_data=p_r_img, button_color=(bg, bg), metadata=str(playing_status)),
+            Sg.Button(key='pause/resume', image_data=p_r_img, button_color=(bg, bg)),
             Sg.Button(key='next', image_data=NEXT_BUTTON_IMG, button_color=(bg, bg), tooltip=gt('next track')),
             Sg.Button(key='repeat', image_data=repeat_img, **repeat_button),
-            Sg.Button(key='shuffle', **shuffle_button, tooltip=gt('shuffle'), metadata=settings['shuffle']),
+            Sg.Button(key='shuffle', **shuffle_button, tooltip=gt('shuffle')),
             Sg.Button(key='mute', image_data=v_slider_img, button_color=(bg, bg), tooltip=mute_tooltip),
             Sg.Slider((0, 100), default_value=volume, orientation='h', key='volume_slider',
                       disable_number_display=True, enable_events=True, background_color=accent_color,
@@ -1234,9 +1226,9 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     biggest_word = len(max(*file_options, *folder_opts, key=len))
     combo_w = ceil(biggest_word * 0.95)
     queue_controls = [
-        Sg.Column([[Sg.Combo(file_options, default_value=file_options[0], key='file_option', size=(combo_w, None),
+        Sg.Column([[Sg.Combo(file_options, default_value=file_options[0], key='file_option', size=(combo_w, 5),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)), readonly=True)],
-                   [Sg.Combo(folder_opts, default_value=folder_opts[0], key='folder_option', size=(combo_w, None),
+                   [Sg.Combo(folder_opts, default_value=folder_opts[0], key='folder_option', size=(combo_w, 5),
                              font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)), readonly=True)]]),
         Sg.Column([[round_btn(file_options[0], accent_color, bg, key='file_action',
                               button_width=biggest_word, pad=(5, (7, 5)))],
@@ -1311,15 +1303,14 @@ def create_playlists_tab(settings):
     playlist_selector = [
         [Sg.Button('➕', key='new_pl', tooltip=gt('new playlist'), button_color=('#fff', bg)),
          Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), button_color=(bg, bg)),
-         Sg.Button(image_data=DELETE_ICON, key='del_pl', tooltip=gt('delete playlist'), button_color=(bg, bg)),
-         Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'),
-                   pad=((12, 5), 5), button_color=(bg, bg)),
+         Sg.Button(image_data=DELETE_ICON, key='delete_pl', tooltip=gt('delete playlist'), button_color=(bg, bg)),
+         Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=QUEUE_ICON, key='queue_pl', tooltip=gt('queue playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=PLAY_NEXT_ICON, key='add_next_pl', tooltip=gt('add to next up'), button_color=(bg, bg)),
-         Sg.Combo(values=playlists_names, size=(37, 5), key='playlist_combo', font=FONT_NORMAL,
+         Sg.Combo(values=playlists_names, size=(PL_COMBO_W, 1), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
-    url_input = [Sg.Input('', key='pl_url_input', size=(14, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
+    url_input = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
     add_url = [round_btn(gt('Add URL'), accent, bg, key='pl_add_url', button_width=13)]
     add_tracks = [round_btn(gt('Add tracks'), accent, bg, key='pl_add_tracks', button_width=13)]
     lb_height = 14 - 3 * settings['vertical_gui']
