@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.39'
+VERSION = latest_version = '4.90.40'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1960,7 +1960,8 @@ def set_callbacks():
         for scroll_area in scroll_areas:
             main_window[scroll_area].bind('<Enter>', '_mouse_enter')
             main_window[scroll_area].bind('<Leave>', '_mouse_leave')
-        for input_key in ('url_input', 'pl_url_input', 'pl_name', 'timer_input'):
+        for input_key in ('url_input', 'pl_url_input', 'pl_name', 'timer_input',
+                          'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'):
             main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
         tk_lb = main_window['queue'].TKListbox
         drop_target_register(tk_lb, DND_ALL)
