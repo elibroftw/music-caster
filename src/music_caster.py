@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.40'
+VERSION = latest_version = '4.90.41'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -214,7 +214,7 @@ IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AU
 SETTINGS_FILE = 'settings.json'
 PRESSED_KEYS = set()
 settings_file_lock = threading.Lock()
-last_play_command = settings_last_modified = last_press = 0
+last_play_command = settings_last_modified = 0
 update_last_checked = time.time()  # check every hour
 # noinspection PyTypeChecker
 cast: Chromecast = None
@@ -223,7 +223,7 @@ tray_playlists = [gt('Playlists Menu')]
 CHECK_MARK = '✓'
 music_folders, chromecasts, device_names = [], [], [(f'{CHECK_MARK} ' + gt('Local device'), 'device:0')]
 music_queue, done_queue, next_queue = deque(), deque(), deque()
-playing_url = deezer_opened = update_devices = False
+playing_url = deezer_opened = False
 # seconds but using time()
 track_position = timer = track_end = track_length = track_start = 0
 DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
@@ -758,7 +758,6 @@ def handle_500(_e):
 def api_get_debug_info():
     if settings.get('DEBUG', DEBUG):
         return jsonify({'pressed_keys': list(PRESSED_KEYS),
-                        'last_press': datetime.fromtimestamp(last_press),
                         'last_traceback': sys.exc_info(),
                         'mac': get_mac()})
     return gt('set DEBUG = true in `settings.json` to enable this page')
@@ -917,17 +916,17 @@ def chromecast_sorter(cc1: Chromecast, cc2: Chromecast):
 
 
 def chromecast_callback(chromecast):
-    global update_devices, cast, chromecasts
+    global cast
     previous_device = settings['previous_device']
     if str(chromecast.uuid) == previous_device and cast != chromecast:
         cast = chromecast
         cast.wait()
-    if chromecast.uuid not in [_cc.uuid for _cc in chromecasts]:
+    if chromecast.uuid not in (_cc.uuid for _cc in chromecasts):
         chromecasts.append(chromecast)
         # chromecasts.sort(key=lambda _cc: (_cc.device.model_name, type, _cc.name, _cc.uuid))
         chromecasts.sort(key=chromecast_sorter)
         device_names.clear()
-        for _i, _cc in enumerate(['Local device'] + chromecasts):
+        for _i, _cc in enumerate(chain(['Local device'], chromecasts)):
             _cc: Chromecast
             device_name = _cc if _i == 0 else _cc.name
             if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
@@ -1521,7 +1520,6 @@ def folder_action(action='Play Folder'):
     :param action: one of {'pf': 'Play Folder', 'qf': 'Queue Folder', 'pfn': 'Play Folder Next'}
     :return:
     """
-    global music_queue, next_queue
     initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
     folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
                                       icon=WINDOW_ICON)
@@ -1549,7 +1547,7 @@ def folder_action(action='Play Folder'):
         elif action in {gt('Play Folder'), 'pf'}:
             music_queue.clear()
             done_queue.clear()
-            music_queue += temp_queue
+            music_queue.extend(temp_queue)
             play(music_queue[0])
         elif action in {gt('Play Folder Next'), 'pfn'}:
             if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
@@ -1658,7 +1656,7 @@ def stop(stopped_from: str, stop_cast=True):
     can be called from a non-main thread
     does not check if playing_status is busy
     """
-    global cast, track_start, track_end, track_position, track_length, playing_url
+    global track_start, track_end, track_position, track_length, playing_url
     app_log.info(f'Stop reason: {stopped_from}')
     # allow Windows to go to sleep
     ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
@@ -1866,7 +1864,6 @@ def background_tasks():
 
 
 def on_press(key):
-    global last_press
     key = str(key)
     PRESSED_KEYS.add(key)
     valid_shortcut = len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS
@@ -1876,12 +1873,11 @@ def on_press(key):
     # Ctrl + Alt + Shift + M open up main window
     if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked:
         daemon_commands.put('__ACTIVATED__')
-    if key not in {'<179>', '<176>', '<177>', '<178>'} or time.time() - last_press < 0.15: return
+    if key not in {'<179>', '<176>', '<177>', '<178>'}: return
     if key == '<179>' and not pause(): resume()
     elif key == '<176>' and playing_status.busy(): next_track()
     elif key == '<177>' and playing_status.busy(): prev_track()
     elif key == '<178>': stop('keyboard shortcut')
-    last_press = time.time()
 
 
 def get_window_location():
@@ -2109,10 +2105,6 @@ def playlist_action(playlist_name, action='play'):
 
 
 def other_tray_actions(_tray_item):
-    global cast, cast_last_checked, timer
-    # this code checks if its time to go to the next track
-    # this code checks if its time to stop playing music if a timer was set
-    # if _tray_item.split('.', 1)[0].isdigit():  # if user selected a different device
     if _tray_item.startswith('device:'):
         device_index = int(re.search(r'\d+', _tray_item).group())
         with suppress(ValueError): change_device(device_index)
@@ -2377,10 +2369,8 @@ def read_main_window():
                     done_queue.clear()
                 # start playing new track if a track was being played
                 if not sar.alive:
-                    if music_queue and playing_status.busy():
-                        play(music_queue[0])
-                    else:
-                        stop('remove_track')
+                    if music_queue and playing_status.busy(): play(music_queue[0])
+                    else: stop('remove_track')
             elif index_to_remove <= nq_len + dq_len:
                 del next_queue[index_to_remove - dq_len - 1]
             elif index_to_remove < nq_len + mq_len + dq_len:
@@ -3058,10 +3048,7 @@ if __name__ == '__main__':
                 stop('timer')
                 timer = 0
                 if settings['timer_shut_down']:
-                    if platform.system() == 'Windows':
-                        os.system('shutdown /p /f')
-                    else:
-                        os.system('shutdown -h now')
+                    os.system('shutdown /p /f') if platform.system() == 'Windows' else os.system('shutdown -h now')
                 elif settings['timer_hibernate']:
                     if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
                 elif settings['timer_sleep']:

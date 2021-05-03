@@ -270,7 +270,7 @@ def time_cache(max_age, maxsize=None, typed=False):
     """Least-recently-used cache decorator with time-based cache invalidation.
     max_age: Time to live for cached results (in seconds).
     maxsize: Maximum cache size (see `functools.lru_cache`).
-    typed: Cache on distinct input types (see `functools.lru_cache`). """
+    typed: Cache on distinct input types (see `functools.lru_cache`)."""
     def _decorator(fn):
         @lru_cache(maxsize=maxsize, typed=typed)
         def _new(*args, __time_salt, **kwargs):
@@ -1352,9 +1352,9 @@ def create_settings(version, settings):
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
-         Sg.Text('🌐'),
+         Sg.Text('🌐', tooltip=gt('language', True)),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
-                  enable_events=True)]
+                  enable_events=True, tooltip=gt('language'))]
     ], background_color=bg)
     queuing_tab = Sg.Tab(gt('Queueing'), [
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
