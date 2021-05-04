@@ -1,6 +1,6 @@
 Music Caster by Elijah Lopez Changelog
 
-4.90.42
+4.90.43
 - [Fix] Favicon
 
 4.90.42
