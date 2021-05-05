@@ -396,7 +396,7 @@ def set_metadata(file_path: str, metadata: dict):
         else:  # remove all album art
             for k in tuple(audio.keys()):
                 if 'APIC:' in k: audio.pop(k)
-    elif ext in {'.mp4', '.mp4', '.aac'}:
+    elif ext in {'.mp4', '.m4a', '.aac'}:
         if title: audio['@nam'] = [title]
         if artists: audio['@ART'] = artists
         if album: audio['@alb'] = [album]
@@ -418,8 +418,9 @@ def set_metadata(file_path: str, metadata: dict):
         if metadata['art'] is not None:
             if ext == '.flac':
                 img_data = b64decode(metadata['art'])
-                pic = mutagen.flac.Picture(data=img_data)
+                pic = mutagen.flac.Picture()
                 pic.mime = metadata['mime']
+                pic.data = img_data
                 pic.type = 3
                 # noinspection PyUnresolvedReferences
                 audio.add_picture(pic)

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.43'
+VERSION = latest_version = '4.90.44'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -440,7 +440,7 @@ def handle_exception(e, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
-    with suppress(MutagenError):
+    with suppress(MutagenError, IndexError):
         folder = os.path.dirname(file_path)
         if settings['folder_cover_override']:
             for ext in ('png', 'jpg', 'jpeg'):
@@ -448,15 +448,25 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
                 if os.path.exists(folder_cover):
                     with open(folder_cover, 'rb') as f:
                         return ext, base64.b64encode(f.read())
-        tags = mutagen.File(file_path)
-        if tags is not None:
-            for tag in tags.keys():
-                if 'APIC' in tag:
-                    try:
-                        return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
-                    except AttributeError:
-                        mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
-                        return mime, base64.b64encode(tags[tag][0].value).decode()
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == '.flac':
+            pics = mutagen.flac.FLAC(file_path).pictures
+            return pics[0].mime, base64.b64encode(pics[0].data).decode()
+        elif ext in {'.mp4', '.m4a', '.aac'}:
+            tags = mutagen.File(file_path)
+            covers = tags['covr']
+            return covers[0].image_format, base64.b64encode(covers[0].data).decode()
+        else:
+            tags = mutagen.File(file_path)
+            if tags is not None:
+                for tag in tags.keys():
+                    if 'APIC' in tag:
+                        try:
+                            return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+                        except AttributeError:
+                            mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
+                            return mime, base64.b64encode(tags[tag][0].value).decode()
+
     return 'image/jpeg', DEFAULT_ART
 
 
