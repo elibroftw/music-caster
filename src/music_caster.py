@@ -1228,7 +1228,11 @@ def get_url_metadata(url, fetch_art=True) -> list:
                 metadata_list.append(metadata)
     elif get_yt_id(url) is not None or url.startswith('ytsearch:'):
         with suppress(DownloadError, TypeError):  # type error in case video was deleted
-            r = ydl().extract_info(url, download=False)
+            try:
+                r = ydl().extract_info(url, download=False)
+            except DownloadError:
+                proxy = get_proxy(False)['https']
+                r = ydl(proxy).extract_info(url, download=False)
             if 'entries' in r:
                 for entry in r['entries']:
                     audio_url = max(entry['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']

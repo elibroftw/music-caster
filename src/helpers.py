@@ -2,6 +2,7 @@ from b64_images import *
 import audioop
 from queue import LifoQueue, Empty
 import browser_cookie3 as bc3
+from bs4 import BeautifulSoup
 from contextlib import suppress
 import ctypes
 import datetime
@@ -28,7 +29,6 @@ import winreg as wr
 # 3rd party imports
 from deemix.__main__ import Deezer
 from deemix.decryption import generateBlowfishKey, generateStreamURL
-import lxml.html
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -537,8 +537,14 @@ def valid_audio_file(uri) -> bool:
     return ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
 
 
-@lru_cache(maxsize=1)
-def ydl(): return YoutubeDL()
+@lru_cache(maxsize=2)
+def ydl(proxy=None):
+    if proxy is not None:
+        ydl_opts = {
+            'proxy': proxy,
+        }
+        return YoutubeDL(ydl_opts)
+    return YoutubeDL()
 
 
 # noinspection PyTypeChecker
@@ -746,23 +752,35 @@ def parse_m3u(playlist_file):
 
 
 @time_cache(600, maxsize=1)
-def get_proxies():
+def get_proxies(add_local=True):
     url = 'https://free-proxy-list.net/'
     response = requests.get(url)
-    parser = lxml.html.fromstring(response.text)
     scraped_proxies = set()
-    for i in parser.xpath('//tbody/tr')[:10]:
-        if i.xpath('.//td[7][contains(text(),"yes")]'):
-            # Grabbing IP and corresponding PORT
-            proxy = ':'.join([i.xpath('.//td[1]/text()')[0], i.xpath('.//td[2]/text()')[0]])
-            scraped_proxies.add(proxy)
-    proxies = [None, None, None, None, None]
-    for proxy in scraped_proxies: proxies.extend(repeat(proxy, 3))
+    soup = BeautifulSoup(response.text, 'lxml')
+    table = soup.find('table', attrs={'id': 'proxylisttable'})
+    # noinspection PyUnresolvedReferences
+    for row in table.find_all('tr'):
+        count = 0
+        proxy = ''
+        try:
+            is_https = row.find('td', {'class': 'hx'}).text == 'yes'
+        except AttributeError:
+            is_https = False
+        if is_https:
+            for cell in row.find_all('td'):
+                if count == 1:
+                    proxy += ':' + cell.text.replace('&nbsp;', '')
+                    scraped_proxies.add(proxy)
+                    break
+                proxy += cell.text.replace('&nbsp;', '')
+                count += 1
+    proxies: list = [None, None, None, None, None] if add_local else []
+    for proxy in sorted(scraped_proxies): proxies.extend(repeat(proxy, 3))
     return cycle(proxies)
 
 
-def get_proxy():
-    proxy = next(get_proxies())
+def get_proxy(add_local=True):
+    proxy = next(get_proxies(add_local))
     return {'http': proxy, 'https': proxy}
 
 
@@ -844,6 +862,18 @@ def get_dz_token():
                 if cookie.domain.count('.deezer.com'):
                     if cookie.name == 'arl' and not cookie.is_expired():
                         return cookie.value
+    return ''
+
+
+def get_yt_cookie():
+    for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
+        with suppress(bc3.BrowserCookieError, sqlite3.OperationalError):
+            cookie_storage = cookie_storage()
+            yt_cookies = []
+            for cookie in cookie_storage:
+                if cookie.domain.count('.youtube.com'):
+                    if not cookie.is_expired(): yt_cookies.append(f'{cookie.name}={cookie.value}')
+            if yt_cookies: return 'Cookie: ' + '; '.join(yt_cookies)
     return ''
 
 

@@ -224,7 +224,10 @@ def run_tests(uploading_after=False):
                 assert metadata['url']
     assert len(url_metadata) == 0
     get_url_metadata('https://www.youtube.com/watch?v=PNP0hku7hSo')
-    assert len(url_metadata) == 9
+    try:
+        assert len(url_metadata) == 9
+    except AssertionError:
+        print('YOUTUBE-DL FAILED')
     # in case we forgot to update the version
     version = [int(x) for x in VERSION.split('.')]
     compare_ver = get_latest_release(VERSION, True)['version']
