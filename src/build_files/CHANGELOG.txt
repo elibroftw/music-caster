@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.45
+- [Fix] Playlist
+- [Fix] MP4/M4A/AAC
+
 4.90.44
 - [Fix] Flac files
 - [Fix] Better proxy support

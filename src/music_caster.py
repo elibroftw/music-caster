@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.44'
+VERSION = latest_version = '4.90.45'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -440,7 +440,7 @@ def handle_exception(e, restart_program=False):
 
 
 def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
-    with suppress(MutagenError, IndexError):
+    with suppress(MutagenError):
         folder = os.path.dirname(file_path)
         if settings['folder_cover_override']:
             for ext in ('png', 'jpg', 'jpeg'):
@@ -451,11 +451,11 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
         ext = os.path.splitext(file_path)[1].lower()
         if ext == '.flac':
             pics = mutagen.flac.FLAC(file_path).pictures
-            return pics[0].mime, base64.b64encode(pics[0].data).decode()
+            with suppress(IndexError): return pics[0].mime, base64.b64encode(pics[0].data).decode()
         elif ext in {'.mp4', '.m4a', '.aac'}:
-            tags = mutagen.File(file_path)
-            covers = tags['covr']
-            return covers[0].image_format, base64.b64encode(covers[0].data).decode()
+            with suppress(KeyError, IndexError):
+                covers = mutagen.File(file_path)['covr']
+                return covers[0].image_format, base64.b64encode(covers[0].data).decode()
         else:
             tags = mutagen.File(file_path)
             if tags is not None:
@@ -2113,7 +2113,7 @@ def playlist_action(playlist_name, action='play'):
             shuffle_from = len(music_queue)
             music_queue.extend(get_audio_uris(playlist_name))
             if settings['shuffle']: better_shuffle(music_queue, shuffle_from)
-            if action == 'play' or shuffle_from == 0: play(music_queue[0])
+            if music_queue and (action == 'play' or shuffle_from == 0): play(music_queue[0])
         elif 'next':
             next_queue.extend(get_audio_uris(playlist_name))
 
