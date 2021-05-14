@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.46'
+VERSION = latest_version = '4.90.47'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -454,8 +454,8 @@ def get_album_art(file_path: str) -> tuple:  # mime: str, data: str
             with suppress(IndexError): return pics[0].mime, base64.b64encode(pics[0].data).decode()
         elif ext in {'.mp4', '.m4a', '.aac'}:
             with suppress(KeyError, IndexError):
-                covers = mutagen.File(file_path)['covr']
-                return covers[0].imageformat, base64.b64encode(covers[0].data).decode()
+                cover = mutagen.File(file_path)['covr'][0]
+                return cover.imageformat, base64.b64encode(cover).decode()
         else:
             tags = mutagen.File(file_path)
             if tags is not None:

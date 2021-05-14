@@ -405,7 +405,7 @@ def set_metadata(file_path: str, metadata: dict):
         if metadata['art'] is not None:
             image_format = 14 if metadata['mime'].endswith('png') else 13
             img_data = b64decode(metadata['art'])
-            audio['covr'] = [mutagen.mp4.MP4Cover(data=img_data, imageformat=image_format)]
+            audio['covr'] = [mutagen.mp4.MP4Cover(img_data, imageformat=image_format)]
         elif 'covr' in audio:
             del audio['covr']
     else:  # FLAC?

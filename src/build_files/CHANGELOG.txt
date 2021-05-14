@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.47
+- [Fix] MP4/M4A/AAC
+
 4.90.46
 - [Fix] MP4/M4A/AAC
 

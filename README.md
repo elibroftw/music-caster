@@ -91,7 +91,7 @@ What is sent to me when an error is encountered?
   'TIME': current_time,
 }
 ```
-In addition, I collect (MD5 hashed) MAC and IP addresses in a Google Excel Sheet.
+In addition, I collect MD5 hashed MAC addresses and IP addresses in a Google Excel Sheet.
 Only I have access to this data, I will NEVER give it to anyone else.
-- Hashed MAC so that I know how many users (1900+), without knowing the actual MAC addresses
+- Hashed MAC so that I know how many users without knowing the actual MAC addresses
 - IP because I can do something [cool](https://github.com/elibroftw/music-caster/wiki)
