@@ -44,7 +44,7 @@ Library indexing incomplete, only scanned files have been added
 Listening
 System Audio
 Local device
-locate track
+locate selected
 Mini mode on top
 More
 move down
@@ -182,3 +182,6 @@ Searching for artwork...
 Loading URL(s)
 Added URL(s)
 language
+play selected
+queue selected
+add selected to next up

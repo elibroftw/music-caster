@@ -1356,11 +1356,20 @@ def create_playlists_tab(settings):
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(
-                   [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), size=(2, 1))],
-                    [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), size=(2, 1))],
-                    [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), size=(2, 1))],
-                    [Sg.Button(image_data=LOCATE_FILE, key='pl_locate_track', button_color=(bg, bg),
-                               tooltip=gt('locate track'), size=(2, 1))]],
+                   [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), size=(2, 1),
+                               highlight_colors=('#fff', bg))],
+                    [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), size=(2, 1),
+                               highlight_colors=('#fff', bg))],
+                    [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), size=(2, 1),
+                               highlight_colors=('#fff', bg))],
+                    [Sg.Button(image_data=PLAY_ICON, key='play_pl_selected', tooltip=gt('play selected'),
+                               button_color=(bg, bg))],
+                    [Sg.Button(image_data=QUEUE_ICON, key='queue_pl_selected', tooltip=gt('queue selected'),
+                               button_color=(bg, bg))],
+                    [Sg.Button(image_data=PLAY_NEXT_ICON, key='add_next_pl_selected',
+                               tooltip=gt('add selected to next up'), button_color=(bg, bg))],
+                    [Sg.Button(image_data=LOCATE_FILE, key='pl_locate_selected', button_color=(bg, bg),
+                               tooltip=gt('locate selected'), size=(2, 1))]],
                    background_color=bg)]]
     return Sg.Tab(gt('Playlists'), layout, key='tab_playlists')
 

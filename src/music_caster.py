@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.47'
+VERSION = latest_version = '4.90.48'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -745,7 +745,7 @@ def api_play():
 def api_state():
     metadata = get_current_metadata()
     now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
-                   'title': metadata['title'], 'artist': metadata['artist'], 'album': metadata['album'],
+                   'title': str(metadata['title']), 'artist': str(metadata['artist']), 'album': str(metadata['album']),
                    'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
     return jsonify(now_playing)
 
@@ -1433,7 +1433,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
     after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=False):
+def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=False, sort=True):
     """
     Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
         which is shuffled if shuffled is enabled in settings, and then extends music_queue.
@@ -1443,12 +1443,13 @@ def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=F
     play_next has priority over queue_uris
     If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
         except for the track that is currently playing
+    If sort is False, shuffle being off does not sort items
     """
     if not queue_uris and not play_next and not from_explorer:
         music_queue.clear()
         done_queue.clear()
     temp_queue = list(get_audio_uris(uris))
-    if not settings['shuffle']: temp_queue.sort(key=natural_key_file)
+    if not settings['shuffle'] and sort: temp_queue.sort(key=natural_key_file)
     if play_next:
         if settings['shuffle']: better_shuffle(temp_queue)
         if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
@@ -1990,7 +1991,7 @@ def set_callbacks():
         dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
     else:
         root = main_window.TKroot
-        drop_target_register(root, DND_FILES)
+        drop_target_register(root, DND_ALL)
         dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
 
     main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
@@ -2753,8 +2754,12 @@ def read_main_window():
                 if i == len(main_values['pl_tracks']):  # update gui after the last swap
                     new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
                     main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-    elif main_event in {'pl_locate_track', 'pl_tracks'}:
+    elif main_event in {'pl_locate_selected', 'pl_tracks'}:
         for i in main_window['pl_tracks'].get_indexes(): locate_uri(uri=main_window.metadata['pl_tracks'][i])
+    elif main_event in {'play_pl_selected', 'queue_pl_selected', 'add_next_pl_selected'}:
+        uris = (main_window.metadata['pl_tracks'][i] for i in main_window['pl_tracks'].get_indexes())
+        play_uris(uris, queue_uris=main_event == 'queue_pl_selected',
+                  play_next=main_event == 'add_next_pl_selected', sort=settings['shuffle'])
     # metadata tab
     elif main_event in {'metadata_browse', 'metadata_file'}:
         initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER

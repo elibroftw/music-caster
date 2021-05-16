@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.48
+- [Fix] Web GUI
+- [Fix] Playlist tab
+
 4.90.47
 - [Fix] MP4/M4A/AAC
 

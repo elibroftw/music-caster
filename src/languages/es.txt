@@ -44,7 +44,7 @@ Indexación de la biblioteca incompleta, solo se han agregado archivos escaneado
 Escuchando
 Audio del Sistema
 Dispositivo local
-buscar pista
+localizar seleccionado
 Modo Mini en la parte superior
 Más
 mover hacia abajo
@@ -182,3 +182,6 @@ Buscando obras de arte...
 Cargando URL(s)
 URL agregadas
 idioma
+jugar seleccionado
+cola seleccionada
+agregar seleccionado al siguiente

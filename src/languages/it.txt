@@ -44,7 +44,7 @@ Indicizzazione della libreria incompleta, sono stati aggiunti solo i file scansi
 Ascolto
 Audio di Sistema
 Dispositivo locale
-individua brano
+individuare selezionato
 Modalità mini in alto
 Più
 Sposta giù
@@ -182,3 +182,6 @@ Ricerca immagini...
 Caricamento URL(s)
 URL(s) aggiunti/e
 linguaggio
+riproduzione selezionata
+coda selezionata
+aggiungi selezionato al successivo

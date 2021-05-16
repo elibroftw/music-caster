@@ -212,14 +212,14 @@ if args.clean:
 
 if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
-    s1 = Popen(f'{sys.executable} -OO -m PyInstaller {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
+    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
     try:
         ms_build = get_msbuild()
         check_call(f'{ms_build} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln"'
                    f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
-    check_call(f'{sys.executable} -OO -m PyInstaller {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
+    check_call(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
     try:
         s4 = Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError:
