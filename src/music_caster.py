@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.48'
+VERSION = latest_version = '4.90.49'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1350,22 +1350,26 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
         if cast is None:
             audio_player.play(url, start_playing=autoplay, start_from=position)
         else:
-            cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere
-            with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
-            cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
-            mc = cast.media_controller
-            if mc.status.player_is_playing or mc.status.player_is_paused:
-                mc.stop()
+            try:
+                cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere
+                with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
+                cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
+                mc = cast.media_controller
+                if mc.status.player_is_playing or mc.status.player_is_paused:
+                    mc.stop()
+                    mc.block_until_active(WAIT_TIMEOUT)
+                _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+                stream_type = 'LIVE' if track_length is None else 'BUFFERED'
+                mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
+                              current_time=position, autoplay=autoplay, stream_type=stream_type)
                 mc.block_until_active(WAIT_TIMEOUT)
-            _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-            stream_type = 'LIVE' if track_length is None else 'BUFFERED'
-            mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
-                          current_time=position, autoplay=autoplay, stream_type=stream_type)
-            mc.block_until_active(WAIT_TIMEOUT)
-            block_until = time.monotonic() + 5
-            while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
-                time.sleep(0.2)
-            if track_length is None: mc.play()
+                block_until = time.monotonic() + 5
+                while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
+                    time.sleep(0.2)
+                if track_length is None: mc.play()
+            except (UnsupportedNamespace, NotConnected, OSError):
+                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
+                return stop('play')
         track_position = position
         track_start = time.monotonic() - track_position
         if track_length is not None:
@@ -1424,9 +1428,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
         except (UnsupportedNamespace, NotConnected, OSError):
             tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
-            with suppress(UnsupportedNamespace):
-                stop('play')
-            return
+            return stop('play')
     track_position = position
     track_start = time.monotonic() - track_position
     track_end = track_start + track_length
@@ -1683,7 +1685,7 @@ def stop(stopped_from: str, stop_cast=True):
         if cast.app_id == APP_MEDIA_RECEIVER:
             mc = cast.media_controller
             if stop_cast:
-                with suppress(NotConnected):
+                with suppress(NotConnected, UnsupportedNamespace):
                     mc.stop()
                     block_until = time.monotonic() + 5  # 5 seconds
                     status = mc.status
