@@ -12,9 +12,11 @@ import sys
 import time
 import winreg
 import zipfile
-
-
+start_time = time.time()
+starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+os.chdir(starting_dir)
 # CONSTANTS
+YEAR = datetime.today().year
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 UPDATER_DIST_PATH = 'Music Caster Updater/bin/x86/Release/netcoreapp3.1'
 VERSION_FILE = 'build_files/mc_version_info.txt'
@@ -32,10 +34,51 @@ parser.add_argument('--upload', '-u', '--publish', default=False, action='store_
 parser.add_argument('--skip_build', '-t', default=False, action='store_true',
                     help='Skip to testing / uploading')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
-parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of depencencies')
+parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
 args = parser.parse_args()
 if args.dry: print('Dry Build')
-if not args.skip_build and not args.skip_deps and not args.ver_update:
+VERSION = getoutput('music_caster.py --version')
+
+
+def update_versions():
+    """ Update versions of version file and installer script """
+    with open(VERSION_FILE, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('    prodvers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    prodvers=({version}, 0),\n'
+            elif line.startswith('    filevers'):
+                version = ', '.join(VERSION.split('.'))
+                lines[i] = f'    filevers=({version}, 0),\n'
+            elif line.startswith("        StringStruct('FileVersion"):
+                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
+            elif line.startswith("        StringStruct('LegalCopyright'"):
+                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
+            elif line.startswith("        StringStruct('ProductVersion"):
+                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+    with open(INSTALLER_SCRIPT, 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith('#define MyAppVersion'):
+                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
+            elif line.startswith('OutputBaseFilename'):
+                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
+                break
+        f.seek(0)
+        f.writelines(lines)
+        f.truncate()
+
+
+update_versions()
+print('Updated versions of build files')
+if args.ver_update: sys.exit()
+if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
     # install tkdnd
     copy_tree('build_files/tkdnd2.9.2', os.path.dirname(sys.executable) + '/tcl/tkdnd2.9.2')
@@ -49,13 +92,8 @@ import win32com.client
 from win32comext.shell import shell, shellcon
 import traceback
 from git import Repo
-start_time = time.time()
-YEAR = datetime.today().year
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-os.chdir(starting_dir)
-
 sys.argv = sys.argv[:1]
-from music_caster import is_already_running, get_running_processes, VERSION
+from music_caster import is_already_running, get_running_processes
 
 
 def read_env(env_file='.env'):
@@ -142,45 +180,6 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
-def update_versions():
-    """ Update versions of version file and installer script """
-    with open(VERSION_FILE, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('    prodvers'):
-                version = ', '.join(VERSION.split('.'))
-                lines[i] = f'    prodvers=({version}, 0),\n'
-            elif line.startswith('    filevers'):
-                version = ', '.join(VERSION.split('.'))
-                lines[i] = f'    filevers=({version}, 0),\n'
-            elif line.startswith("        StringStruct('FileVersion"):
-                lines[i] = f"        StringStruct('FileVersion', '{VERSION}.0'),\n"
-            elif line.startswith("        StringStruct('LegalCopyright'"):
-                lines[i] = f"        StringStruct('LegalCopyright', 'Copyright (c) 2019 - {YEAR}, Elijah Lopez'),\n"
-            elif line.startswith("        StringStruct('ProductVersion"):
-                lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
-                break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
-
-    with open(INSTALLER_SCRIPT, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('#define MyAppVersion'):
-                lines[i] = f'#define MyAppVersion "{VERSION}"\n'
-            elif line.startswith('OutputBaseFilename'):
-                lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
-                break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
-
-
-if not args.skip_build:
-    update_versions()
-    print('Updated versions of build files')
-if args.ver_update: sys.exit()
 if not args.dry:
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
