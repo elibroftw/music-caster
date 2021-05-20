@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.50'
+VERSION = latest_version = '4.90.51'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1140,7 +1140,7 @@ def after_play(title, artists: str, autoplay, switching_device):
                                  large_text=gt('Listening'), small_image='logo', small_text='Music Caster')
     if not main_window.was_closed():
         main_window.metadata['update_listboxes'] = True
-        main_window.TKroot.after(0, _update_gui)
+        main_window.TKroot.event_generate('<<UpdateGUI>>', when='tail')
 
 
 def play_system_audio(switching_device=False):
@@ -1627,7 +1627,7 @@ def pause():
                                          small_image='logo', small_text='Music Caster')
         except UnsupportedNamespace:
             stop('pause')
-        if not main_window.was_closed(): main_window.TKroot.after(0, _update_gui)
+        if not main_window.was_closed(): main_window.TKroot.event_generate('<<UpdateGUI>>', when='tail')
         refresh_tray()
         return True
     return False
@@ -1662,7 +1662,7 @@ def resume():
                                          large_image='default', large_text=gt('Listening'),
                                          small_image='logo', small_text='Music Caster')
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
-            if not main_window.was_closed(): main_window.TKroot.after(0, _update_gui)
+            if not main_window.was_closed(): main_window.TKroot.event_generate('<<UpdateGUI>>', when='tail')
             refresh_tray()
         except (UnsupportedNamespace, NotConnected):
             if music_queue: return play(music_queue[0], position=track_position)
@@ -1705,7 +1705,7 @@ def stop(stopped_from: str, stop_cast=True):
     else:
         audio_player.stop()
     track_start = track_position = track_end = track_length = 0
-    if not main_window.was_closed(): main_window.TKroot.after(0, _update_gui)
+    if not main_window.was_closed(): main_window.TKroot.event_generate('<<UpdateGUI>>', when='tail')
     refresh_tray()
 
 
@@ -2005,6 +2005,7 @@ def set_callbacks():
     main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
     main_window.bind('<Control-}>', 'mini_mode')
     main_window.bind('<Control-r>', 'repeat')
+    main_window.TKroot.bind('<<UpdateGUI>>', lambda *a: _update_gui())
 
 
 def activate_main_window(selected_tab=None, url_option='url_play'):
