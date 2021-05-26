@@ -743,7 +743,7 @@ def export_playlist(playlist_name, uris):
 
 def parse_m3u(playlist_file):
     playlist_file.replace('\\', '/')
-    with open(playlist_file) as f:
+    with open(playlist_file, errors='ignore') as f:
         for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
                 line = line.lstrip('file:').lstrip('/').rstrip().replace('\\', '/')

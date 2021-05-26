@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.54
+- [Fix] M3U files
+
 4.90.53
 - [Fix] Timer API
 
