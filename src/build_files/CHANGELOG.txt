@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.53
+- [Fix] Timer API
+
 4.90.52
 - [Fix] GUI
 

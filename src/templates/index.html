@@ -189,7 +189,7 @@
             {% endfor %}
             <li class="modalRow">
                 <label title="Enter HH:MM or minutes">{{ gt('Enter Time') }}</label>
-                <input id="timerMinutes" title="HH:MM or minutes" type="text" onchange="parseTimerInput()">
+                <input id="timerMinutes" title="HH:MM or minutes" type="text">
                 <button id="setTimer" onclick="setTimer()">{{ gt('Set') }}</button>
                 <button id="cancelTimer" onclick="cancelTimer()">{{ gt('Cancel') }}</button>
             </li>
@@ -328,43 +328,13 @@
         return num;
     }
 
-    function parseTimerInput() {
-        var timer_value = document.getElementById('timerMinutes').value;
-        timer_value = timer_value.trim();
-        const regex_is_num = RegExp('^[0-9]+ *$');
-        const regex_is_time = RegExp('^[0-9]?[0-9]:[0-9][0-9] *$');
-        let seconds;
-        const set_timer_btn = document.getElementById('setTimer');
-        if (regex_is_num.test(timer_value)) {
-            seconds = parseInt(timer_value) * 60;
-        } else if (regex_is_time.test(timer_value)) {
-            const time = timer_value.split(':');
-            const hour = parseInt(time[0]);
-            const minutes = parseInt(time[1]);
-            var d = new Date();
-            d.setHours(hour);
-            d.setMinutes(minutes);
-            // add 12 hours if the date is old
-            const secondsDelta = d - new Date();
-            if (d < new Date()) d.setTime(d.getTime() + 43200);
-            seconds = d.getTime();
-        } else {
-            // disable set timer button
-            set_timer_btn.disabled = true;
-            return -1;
-        }
-        // enable set timer button
-        set_timer_btn.disabled= false;
-        return seconds;
-    }
-
     function setTimer() {
-        let seconds = parseTimerInput();
-        if (seconds >= 0) {
+        const minutes = document.getElementById('timerMinutes').value;
+        if (minutes !== '') {
             fetch('/timer/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
-                body: seconds
+                body: minutes
             }).then(r => r.text()).then(text => {
                 const timerText = '{{ gt('Timer set for $TIME') }}';
                 showToast(timerText.replace(/\$TIME/g, text));

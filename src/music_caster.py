@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.52'
+VERSION = latest_version = '4.90.53'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -827,24 +827,45 @@ def api_change_device():
     return 'false'
 
 
+def cancel_timer():
+    global timer
+    timer = 0
+    if settings['notifications']: tray_notify(gt('Timer cancelled'))
+
+
+def set_timer(val):
+    global timer
+    if val == 'cancel':
+        cancel_timer()
+        return 'timer cancelled'
+    elif val.isdigit():
+        seconds = abs(float(val)) * 60
+    elif val.count(':') == 1:
+        # parse out any PM and AM's
+        timer_value = val.strip().upper().replace(' ', '').replace('PM', '').replace('AM', '')
+        to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
+        current_time = datetime.now()
+        current_time = current_time.replace(second=0)
+        seconds_delta = (to_stop - current_time).total_seconds()
+        if seconds_delta < 0: seconds_delta += 43200  # add 12 hours
+        seconds = seconds_delta
+    else:
+        raise ValueError()
+    timer = time.time() + seconds
+    timer_set_to = datetime.now().replace(second=0) + timedelta(seconds=seconds)
+    if platform.system() == 'Windows':
+        timer_set_to = timer_set_to.strftime('%#I:%M %p')
+    else:
+        timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+    return timer_set_to
+
+
 @app.route('/timer/', methods=['GET', 'POST'])
 def api_set_timer():
     global timer
     if request.method == 'POST':
         val = request.data.decode()
-        val = val.lower()
-        if val == 'cancel':
-            cancel_timer()
-        else:
-            val = int(val)
-            timer = val + time.time()
-            timer_set_to = datetime.now() + timedelta(minutes=val // 60)
-            if platform.system() == 'Windows':
-                timer_set_to = timer_set_to.strftime('%#I:%M %p')
-            else:
-                timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
-            return timer_set_to
-        return 'timer cancelled'
+        return set_timer(val.lower())
     else:  # GET request
         return str(timer)
 
@@ -2069,12 +2090,6 @@ def activate_main_window(selected_tab=None, url_option='url_play'):
     main_window.force_focus()
 
 
-def cancel_timer():
-    global timer
-    timer = 0
-    if settings['notifications']: tray_notify(gt('Timer cancelled'))
-
-
 def locate_uri(selected_track_index=0, uri=None):
     with suppress(IndexError):
         if uri is None:
@@ -2589,25 +2604,7 @@ def read_main_window():
           and main_values.get('tab_group') == 'tab_timer'):
         try:
             timer_value: str = main_values['timer_input']
-            if timer_value.isdigit():
-                seconds = abs(float(main_values['timer_input'])) * 60
-            elif timer_value.count(':') == 1:
-                # parse out any PM and AM's
-                timer_value = timer_value.strip().upper().replace(' ', '').replace('PM', '').replace('AM', '')
-                to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
-                current_time = datetime.now()
-                current_time = current_time.replace(second=0)
-                seconds_delta = (to_stop - current_time).total_seconds()
-                if seconds_delta < 0: seconds_delta += 43200  # add 12 hours
-                seconds = seconds_delta
-            else:
-                raise ValueError()
-            timer = time.time() + seconds
-            timer_set_to = datetime.now().replace(second=0) + timedelta(seconds=seconds)
-            if platform.system() == 'Windows':
-                timer_set_to = timer_set_to.strftime('%#I:%M %p')
-            else:
-                timer_set_to = timer_set_to.strftime('%-I:%M %p')  # Linux
+            timer_set_to = set_timer(timer_value)
             main_window['timer_text'].update(f'Timer set for {timer_set_to}')
             main_window['timer_text'].metadata = True
             main_window['cancel_timer'].update(visible=True)
