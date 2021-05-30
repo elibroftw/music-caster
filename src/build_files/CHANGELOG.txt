@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.56
+- [Fix] Icon
+
 4.90.55
 - [Fix] GUI
 
