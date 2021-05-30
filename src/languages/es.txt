@@ -96,9 +96,6 @@ Repite todo
 Repetir apagado
 Repetir uno
 Opciones de repetición
-Repetir configurado en Todo
-Repetir configurado en Desactivado
-Repetir establecido en uno
 Volver a Explorar la Biblioteca
 Explorar comenzó
 Reanudar

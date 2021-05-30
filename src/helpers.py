@@ -1274,9 +1274,9 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, button_color=(bg, bg), tooltip=gt('Save queue to playlist'))],
         [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, button_color=(bg, bg), tooltip=gt('locate track'))],
         [Sg.Button(key='move_to_next_up', **move_to_next_up)],
-        [Sg.Button('▲', key='move_up', button_color=('#fff', bg), tooltip=gt('move up'), size=(2, 1))],
-        [Sg.Button('❌', key='remove_track', button_color=('#fff', bg), tooltip=gt('remove'), size=(2, 1))],
-        [Sg.Button('▼', key='move_down', button_color=('#fff', bg), tooltip=gt('move down'), size=(2, 1))]
+        [Sg.Button(key='move_up', image_data=UP_ICON, tooltip=gt('move up'))],
+        [Sg.Button(key='remove_track', image_data=X_ICON, tooltip=gt('remove'))],
+        [Sg.Button(key='move_down', image_data=DOWN_ICON, tooltip=gt('move down'))]
     ]
     listbox_height = 18 - 5 * settings['vertical_gui']
     queue_tab_layout = [queue_controls, [
@@ -1332,7 +1332,7 @@ def create_playlists_tab(settings):
     playlists_names = list(playlists.keys())
     default_pl_name = playlists_names[0] if playlists_names else None
     playlist_selector = [
-        [Sg.Button('➕', key='new_pl', tooltip=gt('new playlist'), button_color=('#fff', bg)),
+        [Sg.Button(image_data=PLUS_ICON, key='new_pl', tooltip=gt('new playlist')),
          Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=DELETE_ICON, key='delete_pl', tooltip=gt('delete playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'), button_color=(bg, bg)),
@@ -1356,12 +1356,9 @@ def create_playlists_tab(settings):
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(
-                   [[Sg.Button('▲', key='pl_move_up', button_color=('#fff', bg), size=(2, 1),
-                               highlight_colors=('#fff', bg))],
-                    [Sg.Button('❌', key='pl_rm_items', button_color=('#fff', bg), size=(2, 1),
-                               highlight_colors=('#fff', bg))],
-                    [Sg.Button('▼', key='pl_move_down', button_color=('#fff', bg), size=(2, 1),
-                               highlight_colors=('#fff', bg))],
+                   [[Sg.Button(key='pl_move_up', image_data=UP_ICON, tooltip=gt('move up'))],
+                    [Sg.Button(key='pl_rm_items', image_data=X_ICON, tooltip=gt('remove'))],
+                    [Sg.Button(key='pl_move_down', image_data=DOWN_ICON, tooltip=gt('move down'))],
                     [Sg.Button(image_data=PLAY_ICON, key='play_pl_selected', tooltip=gt('play selected'),
                                button_color=(bg, bg))],
                     [Sg.Button(image_data=QUEUE_ICON, key='queue_pl_selected', tooltip=gt('queue selected'),
@@ -1424,7 +1421,6 @@ def create_settings(version, settings):
         [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=10)]
     ], pad=(0, 0))
     email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': gt('Send me an email')}
-    folder_btn = {'font': FONT_NORMAL, 'size': (3, 1), 'enable_events': True, 'button_color': ('#fff', bg)}
     layout = [
         [Sg.Text(f'Music Caster v{version} by Elijah Lopez', font=FONT_NORMAL),
          Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
@@ -1433,8 +1429,9 @@ def create_settings(version, settings):
                     key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True,
                     no_scrollbar=True),
          Sg.Column([
-             [Sg.Button('❌', key='remove_music_folder', tooltip=gt('remove selected folder'), **folder_btn)],
-             [Sg.FolderBrowse('➕', key='add_music_folder', tooltip=gt('add folder'), **folder_btn)]])]]
+             [Sg.Button(image_data=X_ICON, key='remove_music_folder',
+                        tooltip=gt('remove selected folder'), enable_events=True)],
+             [Sg.Button(image_data=PLUS_ICON, key='add_music_folder', tooltip=gt('add folder'), enable_events=True)]])]]
     return Sg.Tab(gt('Settings'), layout, key='tab_settings')
 
 

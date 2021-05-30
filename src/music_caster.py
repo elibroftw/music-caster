@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.54'
+VERSION = latest_version = '4.90.55'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -331,17 +331,10 @@ def change_settings(settings_key, new_value):
         settings[settings_key] = new_value
         save_settings()
         if settings_key == 'repeat':
-            main_window.TKroot.after(0, update_repeat_button)
+            daemon_commands.put('update_gui')
             refresh_tray()
-            if settings['notifications']:
-                msg = {None: lambda: gt('Repeat set to Off'),
-                       True: lambda: gt('Repeat set to One'),
-                       False: lambda: gt('Repeat set to All')}[new_value]()
-                tray_notify(msg)
         elif settings_key == 'shuffle':
-            if not main_window.was_closed():
-                shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
-                main_window.TKroot.after(0, lambda: main_window['shuffle'].update(image_data=shuffle_image_data))
+            if not main_window.was_closed(): daemon_commands.put('update_gui')
             shuffle_queue() if new_value else un_shuffle_queue()
     return new_value
 
@@ -367,16 +360,6 @@ def update_volume(new_vol):
     audio_player.set_volume(new_vol)
     if cast is not None:
         with suppress(NotConnected): cast.set_volume(new_vol)
-
-
-def update_repeat_button():
-    """ updates repeat button of main window """
-    if not main_window.was_closed():
-        repeat_button: Sg.Button = main_window['repeat']
-        repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
-        repeat_button.metadata = settings['repeat']
-        repeat_button.update(image_data=repeat_img)
-        repeat_button.set_tooltip(new_tooltip)
 
 
 def cycle_repeat():
@@ -652,7 +635,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
         Shared.track_format = settings['track_format']
         fg, bg, accent = theme['text'], theme['background'], theme['accent']
         Sg.set_options(text_color=fg, element_text_color=fg, input_text_color=fg,
-                       button_color=(bg, accent), element_background_color=bg, scrollbar_color=bg,
+                       button_color=(bg, bg), element_background_color=bg, scrollbar_color=bg,
                        text_element_background_color=bg, background_color=bg,
                        input_elements_background_color=bg, progress_meter_color=accent,
                        # progress_meter_style=
@@ -1138,6 +1121,13 @@ def _update_gui():
         except (UnidentifiedImageError, OSError):
             album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
         main_window['artwork'].update(data=album_art_data)
+    repeat_button: Sg.Button = main_window['repeat']
+    repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
+    repeat_button.metadata = settings['repeat']
+    repeat_button.update(image_data=repeat_img)
+    repeat_button.set_tooltip(new_tooltip)
+    shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
+    main_window['shuffle'].update(image_data=shuffle_image_data)
 
 
 def after_play(title, artists: str, autoplay, switching_device):
@@ -2545,7 +2535,10 @@ def read_main_window():
             save_settings()
             if settings['scan_folders']: index_all_tracks()
     elif main_event == 'add_music_folder':
-        add_music_folder([main_value])
+        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+        folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
+                                          icon=WINDOW_ICON)
+        if folder_path: add_music_folder([folder_path])
     elif main_event in {'settings_file', 'o:79'}:
         try:
             os.startfile(SETTINGS_FILE)

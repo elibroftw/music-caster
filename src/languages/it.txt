@@ -96,9 +96,6 @@ Ripeti Tutto
 Ripeti Off
 Ripeti Uno
 Opzioni di ripetizione
-Ripeti impostato su Tutto
-Ripeti impostato su Off
-Ripeti impostato su Uno
 Scansione della Libreria
 Scansionando la libreria
 Riprendi

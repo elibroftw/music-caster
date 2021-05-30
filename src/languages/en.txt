@@ -96,9 +96,6 @@ Repeat All
 Repeat Off
 Repeat One
 Repeat Options
-Repeat set to All
-Repeat set to Off
-Repeat set to One
 Rescan Library
 Rescanning library
 Resume
