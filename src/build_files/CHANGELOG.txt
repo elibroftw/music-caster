@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.57
+- [Fix] Buffering
+
 4.90.56
 - [Fix] Icon
 

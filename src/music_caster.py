@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.56'
+VERSION = latest_version = '4.90.57'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1131,7 +1131,6 @@ def _update_gui():
 
 
 def after_play(title, artists: str, autoplay, switching_device):
-    global cast_last_checked
     app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
     # prevent Windows from going to sleep
     if autoplay:
@@ -1143,7 +1142,6 @@ def after_play(title, artists: str, autoplay, switching_device):
     else:
         playing_status.pause()
     refresh_tray()
-    cast_last_checked = time.monotonic()
     save_queues()
     if settings['discord_rpc']:
         with suppress(Exception):
@@ -1420,7 +1418,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
         audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
     else:
         try:
-            cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere
+            cast_last_checked = time.monotonic() + 30  # make sure background_tasks doesn't interfere
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{Shared.PORT}/file?{url_args}'
             with suppress(RuntimeError):
