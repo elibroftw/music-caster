@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.57'
+VERSION = latest_version = '4.90.58'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1602,7 +1602,7 @@ def get_track_position():
     return track_position
 
 
-def pause():
+def pause(source=''):
     """
     Returns true if player was playing
     Returns false if player was not playing
@@ -1615,9 +1615,9 @@ def pause():
             if cast is None:
                 track_position = time.monotonic() - track_start
                 if audio_player.pause():
-                    app_log.info('paused local audio player')
+                    app_log.info(f'{source}. paused local audio player')
                 else:
-                    app_log.info('could not pause local audio player')
+                    app_log.info(f'{source}. could not pause local audio player')
             else:
                 mc = cast.media_controller
                 mc.update_status()
@@ -1855,7 +1855,7 @@ def background_tasks():
                             track_position = mc.status.adjusted_current_time
                             track_start = time.monotonic() - track_position
                             if not is_live: track_end = track_start + track_length
-                    if is_paused: pause()
+                    if is_paused: pause('background tasks')
                     elif is_playing: resume()
                     elif is_stopped and playing_status.busy() and not is_live and time.monotonic() - track_end > 1:
                         # if cast says nothing is playing, only stop if we are not at the end of the track
