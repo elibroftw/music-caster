@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.58'
+VERSION = latest_version = '4.90.59'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -236,7 +236,7 @@ settings = {  # default settings
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'show_queue_index': True,
-    'queue_library': False, 'lang': '', 'theme': DEFAULT_THEME.copy(), 'use_last_folder': False,
+    'queue_library': False, 'lang': '', 'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '',
     'last_folder': DEFAULT_FOLDER, 'track_format': '&artist - &title', 'reversed_play_next': False,
     'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 default_settings = deepcopy(settings)
@@ -647,6 +647,17 @@ def load_settings(first_load=False):  # up to 0.4 seconds
 @app.errorhandler(404)
 def page_not_found(_):
     return redirect('/')
+
+
+@app.post('/upload/')
+def upload_files():  # web GUI
+    if 'files' not in request.files or not request.values.get('password'): return redirect('/#more')
+    if request.values['password'] == settings['upload_pw']:
+        # only save if upload_pw is set
+        uploaded_files = request.files.getlist('files')
+        for file in uploaded_files:
+            file.save(Path.home() / 'Downloads' / file.filename)
+    return redirect('/#more')
 
 
 @app.route('/', methods=['GET', 'POST'])

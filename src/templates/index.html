@@ -194,6 +194,13 @@
                 <button id="cancelTimer" onclick="cancelTimer()">{{ gt('Cancel') }}</button>
             </li>
         </ul>
+        {% if settings['upload_pw'] %}
+        <form class="modalRow" action="/upload/" method="post" enctype="multipart/form-data">
+            <input type="file" name="files" required multiple>
+            <input type="password" name="password" required placeholder="server password">
+            <button type="submit">Upload File(s)</button>
+        </form>
+        {% endif %}
     </div>
 </div>
 <div id="toast"></div>
