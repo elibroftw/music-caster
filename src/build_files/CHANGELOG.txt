@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.60
+- [Fix] GUI
+
 4.90.59
 - [Feature] Upload files to PC
 

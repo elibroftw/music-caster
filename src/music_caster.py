@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.59'
+VERSION = latest_version = '4.90.60'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2393,17 +2393,18 @@ def read_main_window():
             if index_to_remove < dq_len:
                 del done_queue[index_to_remove]
             elif index_to_remove == dq_len:
-                # remove the "0. XXXX" track that could be playing right now
-                music_queue.popleft()
-                if next_queue: music_queue.insert(0, next_queue.popleft())
-                # if queue is empty but repeat is all AND there are tracks in the done_queue
-                if not music_queue and settings['repeat'] is False and done_queue:
-                    music_queue.extend(done_queue)
-                    done_queue.clear()
-                # start playing new track if a track was being played
-                if not sar.alive:
-                    if music_queue and playing_status.busy(): play(music_queue[0])
-                    else: stop('remove_track')
+                with suppress(IndexError):
+                    # remove the "0. XXXX" track that could be playing right now
+                    music_queue.popleft()
+                    if next_queue: music_queue.insert(0, next_queue.popleft())
+                    # if queue is empty but repeat is all AND there are tracks in the done_queue
+                    if not music_queue and settings['repeat'] is False and done_queue:
+                        music_queue.extend(done_queue)
+                        done_queue.clear()
+                    # start playing new track if a track was being played
+                    if not sar.alive:
+                        if music_queue and playing_status.busy(): play(music_queue[0])
+                        else: stop('remove_track')
             elif index_to_remove <= nq_len + dq_len:
                 del next_queue[index_to_remove - dq_len - 1]
             elif index_to_remove < nq_len + mq_len + dq_len:
