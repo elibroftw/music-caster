@@ -1,3 +1,4 @@
+from deezer import TrackFormats
 from b64_images import *
 import audioop
 from queue import LifoQueue, Empty
@@ -60,6 +61,7 @@ LINK_COLOR = '#3ea6ff'
 COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)
 PL_COMBO_W = 37
+DECRYPT_TRACK = False
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
@@ -922,7 +924,7 @@ def parse_deezer_track(track_obj) -> dict:
     }
     with suppress(KeyError):
         md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
-        file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], 'MP3_320')
+        file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], TrackFormats.MP3_320)
         bf_key = generateBlowfishKey(sng_id).encode()
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
@@ -930,10 +932,20 @@ def parse_deezer_track(track_obj) -> dict:
     return metadata
 
 
+def set_dz_url(metadata):
+    if DECRYPT_TRACK:
+        src_url = metadata['src']
+        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src_url})}'
+    else:
+        metadata['url'] = metadata['file_url']
+
+
 def get_deezer_track(url):
     sng_id = parse_deezer_page(url)['sng_id']
-    return {**parse_deezer_track(Shared.dz.gw.get_track(sng_id)), 'src': url,
-            'url': f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": url})}'}
+    metadata = parse_deezer_track(Shared.dz.gw.get_track(sng_id))
+    metadata['src'] = url
+    set_dz_url(metadata)
+    return metadata
 
 
 def get_deezer_album(url):
@@ -943,7 +955,7 @@ def get_deezer_album(url):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
         src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src})}'
+        set_dz_url(metadata)
         tracks.append(metadata)
     return tracks
 
@@ -955,7 +967,7 @@ def get_deezer_playlist(url):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
         metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src})}'
+        set_dz_url(metadata)
         tracks.append(metadata)
     return tracks
 
