@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.62
+- [Fix] Library selection colors
+
 4.90.61
 - [Fix] URL
 

@@ -1309,6 +1309,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
                                 col_widths=[25, 15, 15], bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
                                 justification='right', num_rows=14 - 3 * settings['vertical_gui'],
+                                selected_row_colors=(bg, accent_color),
                                 right_click_menu=['', ['Play::library', 'Play Next::library',
                                                        'Queue::library', 'Locate::library']],
                                 header_text_color=fg, header_background_color=bg,
