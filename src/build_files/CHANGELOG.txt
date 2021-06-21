@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.64
+- [Fix] Tray devices
+
 4.90.63
 - [Fix] Combo boxes
 

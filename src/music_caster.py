@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.63'
+VERSION = latest_version = '4.90.64'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -877,8 +877,8 @@ def api_get_file():
                 except IndexError:
                     ext = 'png'
                 return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
-                                 mimetype=mime_type, as_attachment=True, cache_timeout=360000, conditional=True)
-            return send_file(file_path, conditional=True, as_attachment=True, cache_timeout=360000)
+                                 mimetype=mime_type, as_attachment=True, max_age=360000, conditional=True)
+            return send_file(file_path, conditional=True, as_attachment=True, max_age=360000)
     return '400'
 
 
@@ -927,7 +927,7 @@ def api_system_audio(get_thumb=''):
     """
     if get_thumb:
         return send_file(io.BytesIO(base64.b64decode(custom_art('SYS'))), attachment_filename=f'thumbnail.png',
-                         mimetype='image/png', as_attachment=True, cache_timeout=360000, conditional=True)
+                         mimetype='image/png', as_attachment=True, max_age=360000, conditional=True)
     return Response(sar.get_audio_data())
 
 
@@ -956,7 +956,7 @@ def chromecast_callback(chromecast):
         for _i, _cc in enumerate(chain(['Local device'], chromecasts)):
             _cc: Chromecast
             device_name = _cc if _i == 0 else _cc.name
-            if (previous_device is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
+            if (cast is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
                 # device_names.append(f'{CHECK_MARK} {device_name}::device')
                 device_names.append((f'{CHECK_MARK} {device_name}', f'device:{_i}'))
             else:
