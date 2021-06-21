@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.63
+- [Fix] Combo boxes
+
 4.90.62
 - [Fix] Library selection colors
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.62'
+VERSION = latest_version = '4.90.63'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2650,7 +2650,7 @@ def read_main_window():
         pl_name = main_window.metadata['pl_name'] = main_values.get('playlist_combo', '')
         settings['playlists'].pop(pl_name, None)
         pl_name = main_window.metadata['pl_name'] = next(iter(settings['playlists']), '')
-        main_window['playlist_combo'].update(value=pl_name, values=tuple(settings['playlists']), size=(PL_COMBO_W, 1))
+        main_window['playlist_combo'].update(value=pl_name, values=tuple(settings['playlists']))
         pl_tracks = main_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
         new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
         # update playlist editor
@@ -2685,7 +2685,7 @@ def read_main_window():
             # sort playlists alphabetically
             playlist_names = sorted(settings['playlists'])
             settings['playlists'] = {k: settings['playlists'][k] for k in playlist_names}
-            main_window['playlist_combo'].update(value=pl_name, values=playlist_names, visible=True)
+            main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
         save_settings()
         refresh_tray()
     elif main_event in {'pl_rm_items', 'q:81'} and main_values['pl_tracks']:
