@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.64'
+VERSION = latest_version = '4.90.65'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -505,12 +505,13 @@ def get_current_metadata() -> dict:
     return {'artist': '', 'title': gt('Nothing Playing'), 'album': ''}
 
 
-def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False, parsed_m3us=None):
+def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False, parsed_m3us=None, ignore_dir=False):
     """
     :param uris: A list of URIs (urls, folders, m3u files, files)
     :param scan_uris: whether to add to uris_to_scan
     :param ignore_m3u: whether to ignore .m3u(8) files
     :param parsed_m3us: m3u files that have already been parsed. This is to avoid recursive parsing
+    :param ignore_dir: whether to scan uri if it is a dir
     :return: generator of valid audio files
     """
     if parsed_m3us is None: parsed_m3us = set()
@@ -519,9 +520,10 @@ def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False, parsed_m3us
         if uri in settings['playlists']:
             yield from get_audio_uris(settings['playlists'][uri], scan_uris=scan_uris, ignore_m3u=ignore_m3u,
                                       parsed_m3us=parsed_m3us)
-        elif os.path.isdir(uri):  # if scanning a folder, ignore playlist files as they aren't audio files
+        elif os.path.isdir(uri) and not ignore_dir:
+            # if scanning a folder, ignore playlist files and folders that are named as files as they aren't audio files
             yield from get_audio_uris(glob.iglob(f'{glob.escape(uri)}/**/*.*', recursive=True),
-                                      scan_uris=scan_uris, ignore_m3u=True, parsed_m3us=parsed_m3us)
+                                      scan_uris=scan_uris, ignore_m3u=True, parsed_m3us=parsed_m3us, ignore_dir=True)
         elif os.path.isfile(uri):
             uri = uri.replace('\\', '/')
             if not ignore_m3u and (uri.endswith('.m3u') or uri.endswith('.m3u8')) and uri not in parsed_m3us:
@@ -2435,7 +2437,7 @@ def read_main_window():
         activate_main_window()
     elif main_event == 'clear_queue':
         main_window['queue'].update(values=[])
-        if playing_status.busy(): stop('clear queue')
+        stop('clear queue')
         music_queue.clear()
         next_queue.clear()
         done_queue.clear()

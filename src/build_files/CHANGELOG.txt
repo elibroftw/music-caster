@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.65
+- [Fix] Scanning
+
 4.90.64
 - [Fix] Tray devices
 
