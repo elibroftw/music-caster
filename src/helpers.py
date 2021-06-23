@@ -954,7 +954,7 @@ def get_deezer_album(url):
     for track in Shared.dz.gw.get_album_tracks(alb_id):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
-        src = metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
+        metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
         set_dz_url(metadata)
         tracks.append(metadata)
     return tracks
@@ -966,7 +966,7 @@ def get_deezer_playlist(url):
     for track in Shared.dz.gw.get_playlist_tracks(pl_id):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
-        metadata['src'] = src = f'https://www.deezer.com/track/{sng_id}'
+        metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
         set_dz_url(metadata)
         tracks.append(metadata)
     return tracks
@@ -1119,9 +1119,10 @@ def get_video_timestamps(video_info):
     if len(description_timestamps) > 1: return description_timestamps
     # try parsing comments
     url = video_info['webpage_url']
-    for count, comment in enumerate(get_youtube_comments(url, limit=10)):
-        times = parse_timestamps(comment['text'])
-        if len(times) > 2: return times
+    with suppress(json.JSONDecodeError):
+        for count, comment in enumerate(get_youtube_comments(url, limit=10)):
+            times = parse_timestamps(comment['text'])
+            if len(times) > 2: return times
     return []
 
 
