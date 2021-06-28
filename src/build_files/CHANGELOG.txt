@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.67
+- [Fix] Mini-mode drag
+
 4.90.66
 - [Fix] YouTube parsing
 

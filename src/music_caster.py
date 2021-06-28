@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.66'
+VERSION = latest_version = '4.90.67'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2154,7 +2154,7 @@ def other_tray_actions(_tray_item):
 
 def read_main_window():
     global track_position, track_start, track_end, timer, music_queue, done_queue
-    main_event, main_values = main_window.read(timeout=200)
+    main_event, main_values = main_window.read(timeout=100)
     ignore_events = {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
     if (main_event in {None, 'Escape:27'} and main_window.metadata['main_last_event'] not in ignore_events
             or main_values is None):
