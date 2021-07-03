@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.68
+- [Fix] Metadata
+
 4.90.67
 - [Fix] Mini-mode drag
 

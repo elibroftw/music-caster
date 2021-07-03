@@ -471,7 +471,10 @@ def get_metadata(file_path: str):
     with suppress(KeyError, TypeError):
         if len(audio['artist']) == 1:
             # in case the sep char is a slash
-            audio['artist'] = audio['artist'][0].split('/')
+            try:
+                audio['artist'] = audio['artist'][0].split('/')
+            except AttributeError:
+                audio['artist'] = [unknown_artist]
         artist = ', '.join(audio['artist'])
     if not title: title = unknown_title
     if not artist: artist = unknown_artist

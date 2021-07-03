@@ -7,7 +7,7 @@ Music Caster</h1>
 
 Music Caster is a modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
 
-Donate
+**Donate**
 - monero:42hpQgwfvFw6RXpmcXHBJ85cZs9yF97kqfV3JpycnanG7JazfdL4WHkVLuR8rcM64q6LHt547nKeeYaixBdCQYaHSuEnAuj
 - https://www.paypal.me/elibroftw.
 
@@ -84,6 +84,7 @@ What is sent to me when an error is encountered?
   'CASTING': cast is not None,                          # was user was casting to a chromecast
   'MQ': len(music_queue),                               # queue lengths
   'PLAYING_TYPE': play_uri,                             # what uri type if any was user playing
+  'CWD': os.getcwd(),                                   # lets me know if CWD is expected or not
   'VERSION': VERSION,
   'NQ': len(next_queue),
   'DQ': len(done_queue),

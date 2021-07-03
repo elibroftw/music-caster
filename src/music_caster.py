@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.67'
+VERSION = latest_version = '4.90.68'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -395,7 +395,7 @@ def handle_exception(e, restart_program=False):
     except FileNotFoundError:
         log_lines = []
     payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
-               'PORTABLE': not os.path.exists(UNINSTALLER),
+               'PORTABLE': not os.path.exists(UNINSTALLER), 'CWD': os.getcwd(),
                'MQ': len(music_queue), 'NQ': len(next_queue), 'DQ': len(done_queue),
                'TRACEBACK': trace_back_msg.replace('\\', '/'), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
                'FATAL': restart_program, 'LOG': log_lines, 'CASTING': cast is not None,
