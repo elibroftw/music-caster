@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.68'
+VERSION = latest_version = '4.90.69'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1109,38 +1109,39 @@ def create_track_list():
 
 
 def _update_gui():
-    if playing_status.stopped():
-        main_window['progress_bar'].update(0, disabled=True)
-    else:
-        value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
-        main_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
-    metadata = get_current_metadata()
-    title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-    if playing_status.busy() and music_queue and not sar.alive:
-        if settings['show_track_number']:
-            with suppress(KeyError):
-                track_number = metadata['track_number']
-                title = f'{track_number}. {title}'
-    if settings['mini_mode']: title = truncate_title(title)
-    else: main_window['album'].update(album)
-    main_window['title'].update(title)
-    main_window['artist'].update(artist)
-    image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
-    main_window['pause/resume'].update(image_data=image_data)
-    if settings['show_album_art']:
-        size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
-        try:
-            album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
-        except (UnidentifiedImageError, OSError):
-            album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
-        main_window['artwork'].update(data=album_art_data)
-    repeat_button: Sg.Button = main_window['repeat']
-    repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
-    repeat_button.metadata = settings['repeat']
-    repeat_button.update(image_data=repeat_img)
-    repeat_button.set_tooltip(new_tooltip)
-    shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
-    main_window['shuffle'].update(image_data=shuffle_image_data)
+    if not main_window.was_closed():
+        if playing_status.stopped():
+            main_window['progress_bar'].update(0, disabled=True)
+        else:
+            value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
+            main_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
+        metadata = get_current_metadata()
+        title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+        if playing_status.busy() and music_queue and not sar.alive:
+            if settings['show_track_number']:
+                with suppress(KeyError):
+                    track_number = metadata['track_number']
+                    title = f'{track_number}. {title}'
+        if settings['mini_mode']: title = truncate_title(title)
+        else: main_window['album'].update(album)
+        main_window['title'].update(title)
+        main_window['artist'].update(artist)
+        image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
+        main_window['pause/resume'].update(image_data=image_data)
+        if settings['show_album_art']:
+            size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
+            try:
+                album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
+            except (UnidentifiedImageError, OSError):
+                album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+            main_window['artwork'].update(data=album_art_data)
+        repeat_button: Sg.Button = main_window['repeat']
+        repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
+        repeat_button.metadata = settings['repeat']
+        repeat_button.update(image_data=repeat_img)
+        repeat_button.set_tooltip(new_tooltip)
+        shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
+        main_window['shuffle'].update(image_data=shuffle_image_data)
 
 
 def after_play(title, artists: str, autoplay, switching_device):
