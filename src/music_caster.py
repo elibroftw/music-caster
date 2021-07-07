@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.69'
+VERSION = latest_version = '4.90.70'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1623,6 +1623,7 @@ def pause(source=''):
     can be called from a non-main thread
     """
     global track_position
+    app_log.info(f'pause() called, playing status = {playing_status}')
     if playing_status.playing():
         ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         try:
@@ -1658,6 +1659,7 @@ def pause(source=''):
 
 def resume():
     global track_end, track_position, track_start
+    app_log.info(f'resume() called, playing status = {playing_status}')
     if playing_status.paused():
         if music_queue and url_metadata.get(music_queue[0], {'expired': lambda: False})['expired']():
             # check if the url has expired before resuming in case it has been a long time
@@ -1916,6 +1918,7 @@ def on_press(key):
     if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked:
         daemon_commands.put('__ACTIVATED__')
     if key not in {'<179>', '<176>', '<177>', '<178>'}: return
+    app_log.info(f'valid key press: {key}')
     if key == '<179>' and not pause(): resume()
     elif key == '<176>' and playing_status.busy(): next_track()
     elif key == '<177>' and playing_status.busy(): prev_track()
