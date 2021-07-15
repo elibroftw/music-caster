@@ -228,6 +228,8 @@ def run_tests(uploading_after=False):
         assert len(url_metadata) == 9
     except AssertionError:
         print('YOUTUBE-DL FAILED')
+
+    assert list(get_youtube_comments('https://www.youtube.com/watch?v=znndNZBsdGY', 10))
     # in case we forgot to update the version
     version = [int(x) for x in VERSION.split('.')]
     compare_ver = get_latest_release(VERSION, True)['version']

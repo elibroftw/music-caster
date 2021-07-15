@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.71
+- [Fix] YT Comment Parser
+
 4.90.70
 - [Fix] Added more logging
 

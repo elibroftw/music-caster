@@ -1031,35 +1031,37 @@ def search_dict(partial: [dict, list], key):
 def get_youtube_comments(url, limit=-1):
     """
     raises ValueError if comments are disabled
+    Modified from https://github.com/egbertbouman/youtube-comment-downloader
     """
     session = requests.Session()
-    session_token, ncd = '', None
+    version, yt_api_key = '', ''
+    user_agent = 'Firefox/80.0'
     for _ in range(5):
         proxies = get_proxy()
-        res = session.get(url, headers={'user-agent': 'Firefox/78.0'})
+        res = session.get(url, headers={'user-agent': user_agent})
         token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
-        with suppress(AttributeError):
-            session_token = token.group()[13:].encode('ascii').decode('unicode-escape')
-        if session_token:
-            match = re.search(r'var ytInitialData = (.*);</script>', res.text)
-            data_str = match.groups()[0]
-            data = json.loads(data_str)
-            for renderer in search_dict(data, 'itemSectionRenderer'):
-                ncd = next(search_dict(renderer, 'nextContinuationData'), None)
-                if ncd: break
-    if not session_token or not ncd: return  # Comments are disabled?
-    data = {'session_token': session_token}
-    continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
+        version = re.search('client.version....([0-9].*)\'', res.text).groups()[0]
+        yt_api_key = re.search('"INNERTUBE_API_KEY":"([^"]*)"', res.text).groups()[0]
+        if yt_api_key and version:
+            match = re.search(r'var ytInitialData = (.*?\});', res.text)
+            data = json.loads(match.groups()[0])
+            section = next(search_dict(data, 'itemSectionRenderer'), None)
+            renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
+            break
+    if not isinstance(renderer, dict): return  # Comments disabled?
+
+    continuations = [renderer['continuationEndpoint']]
     while continuations:
-        continuation, itct, action = continuations.pop()
-        params = {action: 1, 'pbj': 1, 'ctoken': continuation, 'continuation': continuation, 'itct': itct}
-        headers = {'X-YouTube-Client-Name': '1', 'X-YouTube-Client-Version': '2.20201202.06.01'}
+        continuation = continuations.pop()
         response = {}
-        for _ in range(5):
-            ajax_url = 'https://www.youtube.com/comment_service_ajax'
+        comments_url = 'https://www.youtube.com' + continuation['commandMetadata']['webCommandMetadata']['apiUrl']
+        # noinspection PyUnboundLocalVariable
+        data = {'context': {'client': {'userAgent': user_agent, 'clientName': 'WEB', 'clientVersion': version},
+                'clickTracking': {'clickTrackingParams': continuation['clickTrackingParams']}},
+                'continuation': continuation['continuationCommand']['token']}
+        for _ in range(5):  # 5 retries
             try:
-                # noinspection PyUnboundLocalVariable
-                response = session.post(ajax_url, params=params, proxies=proxies, data=data, headers=headers)
+                response = session.post(comments_url, params={'key': yt_api_key}, proxies=proxies, json=data)
                 if response.status_code == 200:
                     response = response.json()
                     break
@@ -1072,21 +1074,17 @@ def get_youtube_comments(url, limit=-1):
         if not response: break
         if list(search_dict(response, 'externalErrorMessage')):
             raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
-
-        if action == 'action_get_comments':
-            section = next(search_dict(response, 'itemSectionContinuation'), {})
-            for continuation in section.get('continuations', []):
-                ncd = continuation['nextContinuationData']
-                continuations.append((ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments'))
-            for item in section.get('contents', []):
-                continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
-                                      for ncd in search_dict(item, 'nextContinuationData')])
-
-        elif action == 'action_get_comment_replies':
-            continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
-                                  for ncd in search_dict(response, 'nextContinuationData')])
-
-        for comment in search_dict(response, 'commentRenderer'):
+        actions = list(search_dict(response, 'reloadContinuationItemsCommand')) + \
+                  list(search_dict(response, 'appendContinuationItemsAction'))
+        for action in actions:
+            for item in action.get('continuationItems', []):
+                if action['targetId'] == 'comments-section':
+                    # Process continuations for comments and replies.
+                    continuations[:0] = [ep for ep in search_dict(item, 'continuationEndpoint')]
+                if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
+                    # Process the 'Show more replies' button
+                    continuations.append(next(search_dict(item, 'buttonRenderer'))['command'])
+        for comment in reversed(list(search_dict(response, 'commentRenderer'))):
             yield {'cid': comment['commentId'],
                    'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
