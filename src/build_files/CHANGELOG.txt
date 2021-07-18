@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.72
+- [Fix] Default volume now 50%
+
 4.90.71
 - [Fix] YT Comment Parser
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.71'
+VERSION = latest_version = '4.90.72'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -232,7 +232,7 @@ settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'smart_queue': False, 'skips': {},
     'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': False, 'repeat': None,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'persistent_queue': False,
-    'volume': 100, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
+    'volume': 50, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'show_queue_index': True,
