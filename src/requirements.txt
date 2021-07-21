@@ -21,8 +21,8 @@ youtube_dl
 zeroconf==0.24.5
 werkzeug
 pyperclip
-git+https://gitlab.com/RemixDev/deezer-py#egg=deezer-py
-git+https://git.freezer.life/RemixDev/deemix-py@refactoring#egg=deemix
+deezer-py
+deemix
 # pyinstaller dependencies
 setuptools<50.0.0   # 50.0.0 breaks a modulegraph regession test
 altgraph

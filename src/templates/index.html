@@ -180,7 +180,7 @@
                                     ('timer_hibernate', gt('Hibernate Computer')),
                                     ('timer_stop', gt('Only Stop Playback'))) %}
             <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
-                <label for="{{ timer_toggle[0] }}">{{ timer_toggle[1] }}</label>
+                {{ timer_toggle[1] }}
                 <label class="switch">
                     <input type="radio" id="{{ timer_toggle[0] }}" name="timerOption">
                     <span class="slider round"></span>

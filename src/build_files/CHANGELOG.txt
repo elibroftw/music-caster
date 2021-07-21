@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.73
+- [Fix] Timer settings Web GUI
+
 4.90.72
 - [Fix] Default volume now 50%
 
