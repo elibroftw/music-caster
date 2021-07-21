@@ -928,7 +928,7 @@ def parse_deezer_track(track_obj) -> dict:
     with suppress(KeyError):
         md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
         file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], TrackFormats.MP3_320)
-        bf_key = generateBlowfishKey(sng_id).encode()
+        bf_key = generateBlowfishKey(sng_id)
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
         metadata['expired'] = is_expired
