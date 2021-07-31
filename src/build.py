@@ -145,7 +145,10 @@ def add_new_changes(prev_changes: str):
                 if line == '': break
                 changes.add(line)
             line = f.readline()
-    if not add_changes: raise RuntimeWarning(f'CHANGELOG does not contain changes for {VERSION}')
+    if not add_changes:
+        print(f'CHANGELOG does not contain changes for {VERSION}...')
+        input('Press enter to try again...')
+        return add_new_changes(prev_changes)
     return '\n'.join(sorted(changes, key=lambda item: item.lower()))
 
 
