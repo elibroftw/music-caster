@@ -759,28 +759,31 @@ def parse_m3u(playlist_file):
 @time_cache(600, maxsize=1)
 def get_proxies(add_local=True):
     url = 'https://free-proxy-list.net/'
-    response = requests.get(url)
-    scraped_proxies = set()
-    soup = BeautifulSoup(response.text, 'lxml')
-    table = soup.find('table', attrs={'id': 'proxylisttable'})
-    # noinspection PyUnresolvedReferences
-    for row in table.find_all('tr'):
-        count = 0
-        proxy = ''
-        try:
-            is_https = row.find('td', {'class': 'hx'}).text == 'yes'
-        except AttributeError:
-            is_https = False
-        if is_https:
-            for cell in row.find_all('td'):
-                if count == 1:
-                    proxy += ':' + cell.text.replace('&nbsp;', '')
-                    scraped_proxies.add(proxy)
-                    break
-                proxy += cell.text.replace('&nbsp;', '')
-                count += 1
-    proxies: list = [None, None, None, None, None] if add_local else []
-    for proxy in sorted(scraped_proxies): proxies.extend(repeat(proxy, 3))
+    try:
+        response = requests.get(url)
+        scraped_proxies = set()
+        soup = BeautifulSoup(response.text, 'lxml')
+        table = soup.find('table', attrs={'id': 'proxylisttable'})
+        # noinspection PyUnresolvedReferences
+        for row in table.find_all('tr'):
+            count = 0
+            proxy = ''
+            try:
+                is_https = row.find('td', {'class': 'hx'}).text == 'yes'
+            except AttributeError:
+                is_https = False
+            if is_https:
+                for cell in row.find_all('td'):
+                    if count == 1:
+                        proxy += ':' + cell.text.replace('&nbsp;', '')
+                        scraped_proxies.add(proxy)
+                        break
+                    proxy += cell.text.replace('&nbsp;', '')
+                    count += 1
+        proxies: list = [None, None, None, None, None] if add_local else []
+        for proxy in sorted(scraped_proxies): proxies.extend(repeat(proxy, 3))
+    except requests.RequestException:
+        return cycle([None])
     return cycle(proxies)
 
 
@@ -1034,20 +1037,20 @@ def get_youtube_comments(url, limit=-1):
     Modified from https://github.com/egbertbouman/youtube-comment-downloader
     """
     session = requests.Session()
-    version, yt_api_key = '', ''
     user_agent = 'Firefox/80.0'
-    for _ in range(5):
-        proxies = get_proxy()
-        res = session.get(url, headers={'user-agent': user_agent})
-        token = re.search(r'XSRF_TOKEN":"[^"]*', res.text)
-        version = re.search('client.version....([0-9].*)\'', res.text).groups()[0]
-        yt_api_key = re.search('"INNERTUBE_API_KEY":"([^"]*)"', res.text).groups()[0]
-        if yt_api_key and version:
-            match = re.search(r'var ytInitialData = (.*?\});', res.text)
-            data = json.loads(match.groups()[0])
-            section = next(search_dict(data, 'itemSectionRenderer'), None)
-            renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
-            break
+    YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
+    YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
+    renderer = None
+    for _ in range(6):
+        with suppress(AttributeError):
+            proxies = get_proxy()
+            res = session.get(url, headers={'user-agent': user_agent}, proxies=proxies)
+            ytcfg = json.loads(re.search(YT_CFG_RE, res.text).group(1))
+            if ytcfg:
+                data = json.loads(re.search(YT_INITIAL_DATA_RE, res.text).group(1))
+                section = next(search_dict(data, 'itemSectionRenderer'), None)
+                renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
+                break
     if not isinstance(renderer, dict): return  # Comments disabled?
 
     continuations = [renderer['continuationEndpoint']]
@@ -1056,12 +1059,10 @@ def get_youtube_comments(url, limit=-1):
         response = {}
         comments_url = 'https://www.youtube.com' + continuation['commandMetadata']['webCommandMetadata']['apiUrl']
         # noinspection PyUnboundLocalVariable
-        data = {'context': {'client': {'userAgent': user_agent, 'clientName': 'WEB', 'clientVersion': version},
-                'clickTracking': {'clickTrackingParams': continuation['clickTrackingParams']}},
-                'continuation': continuation['continuationCommand']['token']}
+        data = {'context': ytcfg['INNERTUBE_CONTEXT'], 'continuation': continuation['continuationCommand']['token']}
         for _ in range(5):  # 5 retries
             try:
-                response = session.post(comments_url, params={'key': yt_api_key}, proxies=proxies, json=data)
+                response = session.post(comments_url, params={'key': ytcfg['INNERTUBE_API_KEY']}, proxies=proxies, json=data)
                 if response.status_code == 200:
                     response = response.json()
                     break
