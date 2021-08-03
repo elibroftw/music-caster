@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.75
+- [Fix] Timer 24hr support
+
 4.90.74
 - [Fix] YT Comment Parser
 

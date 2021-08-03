@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.74'
+VERSION = latest_version = '4.90.75'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -830,6 +830,7 @@ def cancel_timer():
 
 
 def set_timer(val):
+    # TIMER PARSER
     global timer
     if val == 'cancel':
         cancel_timer()
@@ -839,7 +840,7 @@ def set_timer(val):
     elif val.count(':') == 1:
         # parse out any PM and AM's
         timer_value = val.strip().upper().replace(' ', '').replace('PM', '').replace('AM', '')
-        to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%I:%M,%Y,%m,%d,%p')
+        to_stop = datetime.strptime(timer_value + time.strftime(',%Y,%m,%d,%p'), '%H:%M,%Y,%m,%d,%p')
         current_time = datetime.now()
         current_time = current_time.replace(second=0)
         seconds_delta = (to_stop - current_time).total_seconds()
