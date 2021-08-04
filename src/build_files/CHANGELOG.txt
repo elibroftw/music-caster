@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.76
+- [Fix] Better tray exit behaviour
+
 4.90.75
 - [Fix] Timer 24hr support
 

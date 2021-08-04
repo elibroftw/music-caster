@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.75'
+VERSION = latest_version = '4.90.76'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -90,6 +90,9 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
         return pystray.Menu(*items)
 
     def on_tray_click(string, key=''):
+        if key == 'exit':  # special case to end the tray
+            first_fn = on_tray_click(string)
+            return lambda: first_fn() and child_queue.put({'close': None})
         return lambda: (main_queue.put(key) if key else main_queue.put(string))
 
     def background():
@@ -258,6 +261,11 @@ def tray_notify(message, title='Music Caster', context=''):
     tray_process_queue.put({'notify': {'message': message, 'title': title}})
 
 
+def close_tray():
+    tray_process_queue.put({'close': None})
+    tray_process.join()
+
+
 def save_settings():
     global settings_last_modified
     with settings_file_lock:
@@ -287,7 +295,7 @@ def refresh_tray():
                           [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                           [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
                           [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                          gt('Play All')], gt('Exit')]
+                          gt('Play All')], (gt('Exit'), 'exit')]
     tray_menu_playing = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
                          [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
                          [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
@@ -296,7 +304,7 @@ def refresh_tray():
                           [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                           [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
                           [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                          gt('Play All')], gt('Exit')]
+                          gt('Play All')], (gt('Exit'), 'exit')]
     tray_menu_paused = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
                         [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
                         [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
@@ -306,7 +314,7 @@ def refresh_tray():
                          [gt('Folders'), *tray_folders],
                          [gt('Playlists'), *tray_playlists],
                          [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                         gt('Play All')], gt('Exit')]
+                         gt('Play All')], (gt('Exit'), 'exit')]
     # refresh playlists
     tray_playlists.clear()
     tray_playlists.append(gt('Playlists Menu'))
@@ -412,8 +420,7 @@ def handle_exception(e, restart_program=False):
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
-    tray_process_queue.put({'close': None})
-    tray_process.join()
+    close_tray()
     if restart_program:
         with suppress(Exception): stop('error handling')
         tray_notify(gt('An error occurred, restarting now'))
@@ -2115,7 +2122,7 @@ def locate_uri(selected_track_index=0, uri=None):
 
 def exit_program():
     main_window.close()
-    tray_process_queue.put({'close': None})
+    close_tray()
     with suppress(UnsupportedNamespace, NotConnected):
         if cast is None:
             stop('exit program')
@@ -2126,7 +2133,6 @@ def exit_program():
     if settings['persistent_queue']:
         save_queues()
         save_queue_thread.join()
-    tray_process.join()
     sys.exit()
 
 
@@ -2909,11 +2915,11 @@ def get_latest_release(ver, force=False):
     return False
 
 
-def auto_update(auto_start=True):
+def auto_update():
     """ auto_start should be True when checking for updates at startup up,
         false when checking for updates before exiting """
     with suppress(requests.RequestException):
-        app_log.info(f'Function called: auto_update(auto_start={auto_start})')
+        app_log.info(f'Function called: auto_update()')
         release = get_latest_release(VERSION, force=(not IS_FROZEN or settings.get('DEBUG', DEBUG)))
         if release:
             latest_ver = release['version']
@@ -2925,42 +2931,39 @@ def auto_update(auto_start=True):
                 if os.path.exists(UNINSTALLER):
                     # only show message on startup to not confuse the user
                     cmd = 'mc_installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
-                    if auto_start:
-                        cmd_args = ' '.join(sys.argv[1:])
-                        cmd += f' && "Music Caster.exe" {cmd_args}'  # auto start is True when updating on startup
-                        download_update = gt('Downloading update $VER').replace('$VER', latest_ver)
-                        tray_notify(download_update)
-                        tray_tooltip = download_update
-                        tray_process_queue.put({'tooltip': tray_tooltip})
+                    cmd_args = ' '.join(sys.argv[1:])
+                    cmd += f' && "Music Caster.exe" {cmd_args}'  # auto start is True when updating on startup
+                    download_update = gt('Downloading update $VER').replace('$VER', latest_ver)
+                    tray_notify(download_update)
+                    tray_tooltip = download_update
+                    tray_process_queue.put({'tooltip': tray_tooltip})
                     try:
                         # download setup, close tray, run setup, and exit
                         download(setup_dl_link, 'mc_installer.exe')
-                        if auto_start:
-                            tray_process_queue.put({'close': None})
+                        close_tray()
                         Popen(cmd, shell=True)
                         sys.exit()
                     except OSError as e:
                         if e.errno == errno.ENOSPC:
-                            if auto_start:
-                                tray_notify(gt('ERROR') + ': ' + gt('No space left on device to auto-update'))
+                            tray_notify(gt('ERROR') + ': ' + gt('No space left on device to auto-update'))
                     except (ConnectionAbortedError, ProtocolError):
-                        if auto_start:
-                            tray_notify('update_available', context=latest_ver)
+                        tray_notify('update_available', context=latest_ver)
                 elif os.path.exists('Updater.exe'):
                     # portable installation
                     try:
                         os.startfile('Updater.exe')
+                        close_tray()
                         sys.exit()
                     except OSError as e:
                         if e == errno.ECANCELED:
                             # user cancelled update, don't try auto-updating again
                             # inform user what we were trying to do though
                             change_settings('auto_update', False)
-                            if auto_start and settings['notifications']:
+                            if settings['notifications']:
                                 tray_notify('update_available', context=latest_ver)
                 else:
                     # unins000.exe or updater.exe was deleted; better to inform user there is an update available
-                    if auto_start and settings['notifications']: tray_notify('update_available', context=latest_ver)
+                    if settings['notifications']: tray_notify('update_available', context=latest_ver)
 
 
 def send_info():
