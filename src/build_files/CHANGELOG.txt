@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.77
+- [Fix] Fix YouTube link expiry
+
 4.90.76
 - [Fix] Better tray exit behaviour
 

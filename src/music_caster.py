@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.76'
+VERSION = latest_version = '4.90.77'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1271,7 +1271,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                     audio_url = max(entry['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                    expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0]) - 1200
+                    expiry_time = int(parse_qs(urlparse(_f['url']).query)['expire'][0]) - 3600
                     album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
                     length = entry['duration'] if entry['duration'] != 0 else None
                     metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
@@ -1292,7 +1292,7 @@ def get_url_metadata(url, fetch_art=True) -> list:
                     expiry_time = int(re.search(r'expire/\d+', _f['url']).group().split('/', 1)[1])
                 length = r['duration'] if r['duration'] != 0 else None
                 metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                            'expired': lambda: time.time() > expiry_time - 1200,
+                            'expired': lambda: time.time() > expiry_time - 3600,
                             'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
                             'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
                 # if duration > 10 minutes, try to parse out timestamps for track from comment section
