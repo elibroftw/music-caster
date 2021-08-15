@@ -47,5 +47,4 @@ coll = COLLECT(exe,
                a.datas,
                strip=False,
                upx=False,
-               upx_exclude=['vcruntime140.dll', 'msvcp140.dll', 'python36.dll', 'python37.dll', 'python38.dll'],
                name='Music Caster')

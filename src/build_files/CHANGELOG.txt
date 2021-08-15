@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.78
+- [Fix] Update dependencies
+
 4.90.77
 - [Fix] Fix YouTube link expiry
 
