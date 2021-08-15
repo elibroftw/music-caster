@@ -217,7 +217,7 @@ if not args.dry and not args.skip_build:
     s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
     try:
         ms_build = get_msbuild()
-        check_call(f'{ms_build} "{starting_dir}\\Music Caster Updater\\Music Caster Updater.sln"'
+        check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
                    f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
@@ -392,11 +392,7 @@ if args.upload and tests_passed and not args.dry and not args.debug:
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
 if tests_passed and not args.dry and not args.debug:
     print('Installing Music Caster [Will Launch After]')
-    startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
-    shortcut_path = startup_dir + '\\Music Caster.lnk'
-    shell = win32com.client.Dispatch('WScript.Shell')
-    shortcut = shell.CreateShortCut(shortcut_path)
-    exe = shortcut.Targetpath
-    install_cmd = '"dist\\Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
+    install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
+    exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
     cmd = f'{install_cmd} && "{exe}"'
     Popen(cmd, shell=True)
