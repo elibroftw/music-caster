@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.79
+- [Feature] Open window when run
+
 4.90.78
 - [Fix] Update dependencies
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.78'
+VERSION = latest_version = '4.90.79'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -28,6 +28,7 @@ parser.add_argument('--urlprotocol', '-p', default=False, action='store_true', h
 parser.add_argument('--update', '-u', default=False, action='store_true', help='allow updating')
 parser.add_argument('--exit', '-x', default=False, action='store_true',
                     help='exits any existing instance (including self)')
+parser.add_argument('--minimized', '-m', default=False, action='store_true', help='start minimized to tray')
 parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
 # freeze_support() adds the following
 parser.add_argument('--multiprocessing-fork', default=False, action='store_true')
@@ -2874,7 +2875,7 @@ def create_shortcut():
         shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if debug else ''}.lnk"
         with suppress(com_error):
             shortcut_exists = os.path.exists(shortcut_path)
-            if settings['run_on_startup'] and not shortcut_exists or debug:
+            if settings['run_on_startup'] or debug:
                 # noinspection PyUnresolvedReferences
                 pythoncom.CoInitialize()
                 _shell = win32com.client.Dispatch('WScript.Shell')
@@ -2885,11 +2886,12 @@ def create_shortcut():
                     target = f'{working_dir}\\music_caster.bat'
                     if os.path.exists(target):
                         with open('music_caster.bat', 'w') as f:
-                            f.write(f'pythonw {os.path.basename(sys.argv[0])}')
+                            f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
                     shortcut.IconLocation = f'{working_dir}\\resources\\Music Caster Icon.ico'
                 shortcut.Targetpath = target
+                shortcut.Arguments = '-m'
                 shortcut.WorkingDirectory = working_dir
-                shortcut.WindowStyle = 1  # 7 - Minimized, 3 - Maximized, 1 - Normal
+                shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
                 shortcut.save()
                 if debug:
                     time.sleep(1)
@@ -3074,6 +3076,9 @@ if __name__ == '__main__':
                 play_all(queue_only=True)
             except RuntimeError:
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
+        # open window if minimized argument not given
+        if not args.minimized:
+            daemon_commands.put('__ACTIVATED__')
         while True:
             while not daemon_commands.empty(): handle_action(daemon_commands.get())
             if playing_status.playing() and track_length is not None and time.monotonic() > track_end:
