@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.79'
+VERSION = latest_version = '4.90.80'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2934,7 +2934,7 @@ def auto_update():
                     # only show message on startup to not confuse the user
                     cmd = 'mc_installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
                     cmd_args = ' '.join(sys.argv[1:])
-                    cmd += f' && "Music Caster.exe" {cmd_args}'  # auto start is True when updating on startup
+                    cmd += f' && "Music Caster.exe" -m {cmd_args}'  # auto start is True when updating on startup
                     download_update = gt('Downloading update $VER').replace('$VER', latest_ver)
                     tray_notify(download_update)
                     tray_tooltip = download_update
