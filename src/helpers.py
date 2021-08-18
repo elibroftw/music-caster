@@ -62,6 +62,7 @@ COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)
 PL_COMBO_W = 37
 DECRYPT_TRACK = False
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/12.0'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
@@ -795,7 +796,7 @@ def get_proxy(add_local=True):
 @time_cache(max_age=3500, maxsize=1)
 def get_spotify_headers():
     # access token key expires in ~1 hour
-    r = requests.get('https://open.spotify.com/', headers={'user-agent': 'Firefox/78.0'})
+    r = requests.get('https://open.spotify.com/', headers={'user-agent': USER_AGENT})
     m = re.search('"accessToken":"[^"]*', r.text)
     access_token = m.group().split(':"')[1]
     return {'Authorization': f'Bearer {access_token}'}
@@ -1037,14 +1038,13 @@ def get_youtube_comments(url, limit=-1):
     Modified from https://github.com/egbertbouman/youtube-comment-downloader
     """
     session = requests.Session()
-    user_agent = 'Firefox/80.0'
     YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
     YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
     renderer = None
     for _ in range(6):
         with suppress(AttributeError):
             proxies = get_proxy()
-            res = session.get(url, headers={'user-agent': user_agent}, proxies=proxies)
+            res = session.get(url, headers={'user-agent': USER_AGENT, 'referer': 'https://google.com/'}, proxies=proxies)
             ytcfg = json.loads(re.search(YT_CFG_RE, res.text).group(1))
             if ytcfg:
                 data = json.loads(re.search(YT_INITIAL_DATA_RE, res.text).group(1))
