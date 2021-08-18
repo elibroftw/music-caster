@@ -31,8 +31,10 @@ parser.add_argument('--ver_update', '-v', default=False, action='store_true', he
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
-parser.add_argument('--skip_build', '-t', default=False, action='store_true',
+parser.add_argument('--skip_build', default=False, action='store_true',
                     help='Skip to testing / uploading')
+parser.add_argument('--skip_tests', default=False, action='store_true',
+                    help='Skip testing')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
 args = parser.parse_args()
@@ -296,7 +298,7 @@ def test(title, fn, assert_statement=False):
         raise _e
 
 
-if not args.dry and tests_passed:
+if not args.dry and not args.skip_tests and tests_passed:
     try:
         sys.argv = sys.argv[:1]
         from test_harness import run_tests
