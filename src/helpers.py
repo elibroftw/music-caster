@@ -62,7 +62,7 @@ COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)
 PL_COMBO_W = 37
 DECRYPT_TRACK = False
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/12.0'
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/591'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
