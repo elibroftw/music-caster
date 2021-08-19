@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.80'
+VERSION = latest_version = '4.90.81'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -241,7 +241,7 @@ settings = {  # default settings
     'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True, 'scan_folders': True, 'update_check_hours': 1,
     'timer_shut_down': False, 'timer_hibernate': False, 'timer_sleep': False, 'show_queue_index': True,
     'queue_library': False, 'lang': '', 'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '',
-    'last_folder': DEFAULT_FOLDER, 'track_format': '&artist - &title', 'reversed_play_next': False,
+    'last_folder': DEFAULT_FOLDER, 'track_format': '&artist - &title', 'reversed_play_next': False, 'delay': 0,
     'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
 default_settings = deepcopy(settings)
 indexing_tracks_thread = save_queue_thread = Thread()
@@ -939,7 +939,7 @@ def api_system_audio(get_thumb=''):
     if get_thumb:
         return send_file(io.BytesIO(base64.b64decode(custom_art('SYS'))), attachment_filename=f'thumbnail.png',
                          mimetype='image/png', as_attachment=True, max_age=360000, conditional=True)
-    return Response(sar.get_audio_data())
+    return Response(sar.get_audio_data(settings['delay']))
 
 
 @cmp_to_key
@@ -2099,9 +2099,7 @@ def activate_main_window(selected_tab=None, url_option='url_play'):
             if default_text.startswith('http'):
                 main_window['pl_url_input'].update(default_text)
                 main_window.metadata['pl_url_input'] = default_text
-    steal_focus(main_window)
-    main_window.normal()
-    main_window.force_focus()
+    focus_window(main_window)
 
 
 def locate_uri(selected_track_index=0, uri=None):
@@ -2255,6 +2253,9 @@ def read_main_window():
         next_track()
     elif main_event == 'prev' and playing_status.busy():
         prev_track()
+    elif main_event == 'delay':
+        with suppress(ValueError):
+            change_settings('delay', int(main_value))
     elif main_event == 'shuffle':
         change_settings('shuffle', not settings['shuffle'])
     elif main_event == 'repeat': cycle_repeat()

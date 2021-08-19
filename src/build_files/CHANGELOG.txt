@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.81
+- [Fix] Window focus
+- [Feature] Specify delay (beta)
+
 4.90.80
 - [Fix] Auto-update restart minimized
 

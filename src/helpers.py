@@ -94,10 +94,11 @@ class SystemAudioRecorder:
         self.lag = 0.0
         self.data_stream = LifoQueue()
 
-    def get_audio_data(self):
+    def get_audio_data(self, delay=0):
         if not self.alive: return  # ensure that start() was called
         silent_wav = b'\x00' * self.STREAM_CHUNK
         yield self.get_wav_header()
+        yield silent_wav * delay * 1000
         last_sleep = time.time() + 1
         while self.alive:
             if self.lag and time.time() - last_sleep > 1:
@@ -1407,7 +1408,9 @@ def create_settings(version, settings):
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
          Sg.Text('🌐', tooltip=gt('language', True)),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
-                  enable_events=True, tooltip=gt('language'))]
+                  enable_events=True, tooltip=gt('language'))],
+        [Sg.Text(gt('System Audio Delay:')),
+         Sg.Input(settings['delay'], size=(10, 1), key='delay', tooltip=gt('seconds'), border_width=1, pad=(70, 1))]
     ], background_color=bg)
     queuing_tab = Sg.Tab(gt('Queueing'), [
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
@@ -1474,7 +1477,7 @@ def create_timer(settings, timer):
         [Sg.Radio(gt('Hibernate when timer runs out'), 'TIMER', default=hibernate, key='hibernate', **defaults)],
         [Sg.Radio(gt('Only Stop Playback').capitalize(), 'TIMER', default=do_nothing, key='timer_stop', **defaults)],
         [Sg.Text(gt('Enter minutes or HH:MM'), font=FONT_NORMAL),
-         Sg.Input(key='timer_input', font=FONT_NORMAL, size=(11, 1), border_width=1),
+         Sg.Input(key='timer_input', size=(11, 1), border_width=1),
          round_btn(gt('Submit'), accent, bg, key='timer_submit')],
         [Sg.Text(gt('Invalid Input (enter minutes or HH:MM)'), font=FONT_NORMAL, visible=False, key='timer_error')],
         [Sg.Text(timer_text, font=FONT_NORMAL, key='timer_text', size=(20, 1), metadata=timer != 0), cancel_button]
@@ -1503,11 +1506,25 @@ def create_metadata_tab(settings):
     return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
 
 
-def steal_focus(window: Sg.Window):
-    # makes window the top-most application
-    keybd_event(alt_key, 0, extended_key | 0, 0)
-    ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
-    keybd_event(alt_key, 0, extended_key | key_up, 0)
+def focus_window(window: Sg.Window):
+    # use bring to front in the small case of window already in foreground
+    if window_is_foreground(window):
+        window.bring_to_front()
+    else:
+        # makes window the top-most application via windows API (breaks if already in foreground)
+        keybd_event(alt_key, 0, extended_key | 0, 0)
+        ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
+        keybd_event(alt_key, 0, extended_key | key_up, 0)
+    window.normal()
+    window.force_focus()
+
+
+def window_is_foreground(window: Sg.Window):
+    width, height, x, y = window.TKroot.winfo_width(), window.TKroot.winfo_height(), \
+                          window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
+    if (width, height, x, y) != (1, 1, 0, 0):
+        return window.TKroot.winfo_containing(x + (width // 2), y + (height // 2)) is not None
+    return False
 
 
 # TKDnD
