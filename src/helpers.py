@@ -1045,7 +1045,8 @@ def get_youtube_comments(url, limit=-1):
     for _ in range(6):
         with suppress(AttributeError):
             proxies = get_proxy()
-            res = session.get(url, headers={'user-agent': USER_AGENT, 'referer': 'https://google.com/'}, proxies=proxies)
+            res = session.get(url, headers={'user-agent': USER_AGENT, 'referer': 'https://google.com/'},
+                              proxies=proxies)
             ytcfg = json.loads(re.search(YT_CFG_RE, res.text).group(1))
             if ytcfg:
                 data = json.loads(re.search(YT_INITIAL_DATA_RE, res.text).group(1))
@@ -1063,7 +1064,8 @@ def get_youtube_comments(url, limit=-1):
         data = {'context': ytcfg['INNERTUBE_CONTEXT'], 'continuation': continuation['continuationCommand']['token']}
         for _ in range(5):  # 5 retries
             try:
-                response = session.post(comments_url, params={'key': ytcfg['INNERTUBE_API_KEY']}, proxies=proxies, json=data)
+                response = session.post(comments_url, params={'key': ytcfg['INNERTUBE_API_KEY']}, proxies=proxies,
+                                        json=data)
                 if response.status_code == 200:
                     response = response.json()
                     break

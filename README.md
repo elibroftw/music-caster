@@ -19,6 +19,7 @@ If you are able and willing to translate to other languages, click [here](https:
 
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 - [VirusTotal scan](https://www.virustotal.com/gui/file/cdc549d0ec0d40e7703e168723a452b90c282c2d461c56c10373bed770c919ae/detection)
+- Windows will detect Music Caster as a Trojan even though I built the PyInstaller bootloader myself...
 - [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 - [Screenshots](https://elijahlopez.herokuapp.com/music-caster/)
 
