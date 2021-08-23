@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.82
+- [Fix] Polling
+
 4.90.81
 - [Fix] Window focus
 - [Feature] Specify delay (beta)

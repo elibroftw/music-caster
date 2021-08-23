@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.81'
+VERSION = latest_version = '4.90.82'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -97,7 +97,12 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
         return lambda: (main_queue.put(key) if key else main_queue.put(string))
 
     def background():
+        last_polled = time.time() + 10
         while True:
+            if time.time() > last_polled + 60:  # close automatically after a minute of no response
+                tray.stop()
+            elif time.time() > last_polled + 30:
+                main_queue.put('poll')
             while not child_queue.empty():
                 for parent_cmd, arguments in child_queue.get().items():
                     if parent_cmd == 'tooltip':
@@ -115,6 +120,8 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         tray.visible = False
                     elif parent_cmd == 'close':
                         tray.stop()
+                    elif parent_cmd == 'poll':
+                        last_polled = time.time()
             time.sleep(0.1)
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
     threading.Thread(target=background, daemon=True).start()
@@ -2979,6 +2986,7 @@ def handle_action(action):
     actions = {
         '__ACTIVATED__': activate_main_window,
         'update_gui': _update_gui,
+        'poll': lambda: tray_process_queue.put('poll'),
         # from tray menu
         gt('Rescan Library'): index_all_tracks,
         gt('Refresh Devices'): lambda: start_chromecast_discovery(start_thread=True),

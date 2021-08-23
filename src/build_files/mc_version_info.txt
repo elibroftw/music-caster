@@ -3,8 +3,8 @@
 # noinspection PyUnresolvedReferences
 VSVersionInfo(
   ffi=FixedFileInfo(
-    prodvers=(4, 90, 81, 0),
-    filevers=(4, 90, 81, 0),
+    prodvers=(4, 90, 82, 0),
+    filevers=(4, 90, 82, 0),
     # Contains a bitmask that specifies the valid bits 'flags'r
     mask=0x17,
     # Contains a bitmask that specifies the Boolean attributes of the file.
@@ -28,12 +28,12 @@ VSVersionInfo(
         '000004b0',
         [StringStruct('CompanyName', 'Elijah Lopez'),
         StringStruct('FileDescription', 'Music Caster'),
-        StringStruct('FileVersion', '4.90.81.0'),
+        StringStruct('FileVersion', '4.90.82.0'),
         StringStruct('InternalName', 'Music Caster'),
         StringStruct('LegalCopyright', 'Copyright (c) 2019 - 2021, Elijah Lopez'),
         StringStruct('OriginalFilename', 'Music Caster.exe'),
         StringStruct('ProductName', 'Music Caster'),
-        StringStruct('ProductVersion', '4.90.81.0')])
+        StringStruct('ProductVersion', '4.90.82.0')])
       ]),
     VarFileInfo([VarStruct('Translation', [0, 1200])])
   ]
