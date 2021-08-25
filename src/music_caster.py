@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.82'
+VERSION = latest_version = '4.90.83'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2986,7 +2986,7 @@ def handle_action(action):
     actions = {
         '__ACTIVATED__': activate_main_window,
         'update_gui': _update_gui,
-        'poll': lambda: tray_process_queue.put('poll'),
+        'poll': lambda: tray_process_queue.put({'poll': None}),
         # from tray menu
         gt('Rescan Library'): index_all_tracks,
         gt('Refresh Devices'): lambda: start_chromecast_discovery(start_thread=True),
