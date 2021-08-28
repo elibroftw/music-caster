@@ -760,12 +760,11 @@ def parse_m3u(playlist_file):
 
 @time_cache(600, maxsize=1)
 def get_proxies(add_local=True):
-    url = 'https://free-proxy-list.net/'
     try:
-        response = requests.get(url)
+        response = requests.get('https://free-proxy-list.net/', headers={'user-agent': USER_AGENT})
         scraped_proxies = set()
         soup = BeautifulSoup(response.text, 'lxml')
-        table = soup.find('table', attrs={'id': 'proxylisttable'})
+        table = soup.find('table')
         # noinspection PyUnresolvedReferences
         for row in table.find_all('tr'):
             count = 0
@@ -784,7 +783,7 @@ def get_proxies(add_local=True):
                     count += 1
         proxies: list = [None, None, None, None, None] if add_local else []
         for proxy in sorted(scraped_proxies): proxies.extend(repeat(proxy, 3))
-    except requests.RequestException:
+    except (requests.RequestException, AttributeError):
         return cycle([None])
     return cycle(proxies)
 

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.84
+- [Fix] Proxies
+
 4.90.83
 - [Fix] Polling
 
