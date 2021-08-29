@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.85
+- [Fix] Strip URL's
+
 4.90.84
 - [Fix] Proxies
 

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.84'
+VERSION = latest_version = '4.90.85'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2595,7 +2595,7 @@ def read_main_window():
             pyperclip.copy(main_window['url_input'].Widget.selection_get())
     elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
           and main_values.get('tab_group') == 'tab_url' and main_values['url_input']):
-        urls_to_insert = main_values['url_input']
+        urls_to_insert = main_values['url_input'].strip()
         if '\n' in urls_to_insert: urls_to_insert = urls_to_insert.split('\n')
         else: urls_to_insert = urls_to_insert.split(';')
         main_window['url_input'].update(value='')
