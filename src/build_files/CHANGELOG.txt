@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.86
+- [Fix] Polling
+
 4.90.85
 - [Fix] Strip URL's
 

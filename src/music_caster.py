@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.85'
+VERSION = latest_version = '4.90.86'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -99,7 +99,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     def background():
         last_polled = time.time() + 10
         while True:
-            if time.time() > last_polled + 60:  # close automatically after a minute of no response
+            if time.time() > last_polled + 600:  # close automatically after 10 minutes of no response
                 tray.stop()
             elif time.time() > last_polled + 30:
                 main_queue.put('poll')
