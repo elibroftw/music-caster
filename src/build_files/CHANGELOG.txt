@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.87
+- [Fix] Polling (Hibernation bug)
+
 4.90.86
 - [Fix] Polling
 

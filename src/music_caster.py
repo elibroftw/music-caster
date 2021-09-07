@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.86'
+VERSION = latest_version = '4.90.87'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -97,11 +97,11 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
         return lambda: (main_queue.put(key) if key else main_queue.put(string))
 
     def background():
-        last_polled = time.time() + 10
+        last_polled = time.monotonic() + 10
         while True:
-            if time.time() > last_polled + 600:  # close automatically after 10 minutes of no response
+            if time.monotonic() > last_polled + 60:  # close automatically after 1 minute of no response
                 tray.stop()
-            elif time.time() > last_polled + 30:
+            elif time.monotonic() > last_polled + 30:
                 main_queue.put('poll')
             while not child_queue.empty():
                 for parent_cmd, arguments in child_queue.get().items():
@@ -121,7 +121,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                     elif parent_cmd == 'close':
                         tray.stop()
                     elif parent_cmd == 'poll':
-                        last_polled = time.time()
+                        last_polled = time.monotonic()
             time.sleep(0.1)
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
     threading.Thread(target=background, daemon=True).start()
