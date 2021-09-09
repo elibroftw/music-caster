@@ -184,3 +184,4 @@ cola seleccionada
 agregar seleccionado al siguiente
 Retraso de audio del sistema:
 segundos
+localizar pista

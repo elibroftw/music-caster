@@ -184,3 +184,4 @@ queue selected
 add selected to next up
 System Audio Delay:
 seconds
+locate track

@@ -184,3 +184,4 @@ coda selezionata
 aggiungi selezionato al successivo
 Ritardo audio di sistema:
 secondi
+localizzare traccia

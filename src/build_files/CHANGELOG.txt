@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.89
+- [Feature] New /devices/ API
+- [Fix] Translation for "locate track"
+
 4.90.88
 - [Fix] Removed polling
 - [Fix] Fixed anti-virus detection?

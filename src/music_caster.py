@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.88'
+VERSION = latest_version = '4.90.89'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -823,7 +823,16 @@ def api_rescan_library():
     return 'true'
 
 
-@app.route('/change-device/', methods=['POST'])
+@app.get('/devices/')
+def api_get_devices():
+    devices = ['0. Local Device']
+    for i, chromecast in enumerate(chromecasts):
+        i += 1
+        devices.append(f'{i}. {chromecast}')
+    return jsonify(devices)
+
+
+@app.post('/change-device/')
 def api_change_device():
     with suppress(KeyError):
         change_device(int(request.json['device_index']))
