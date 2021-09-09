@@ -739,7 +739,8 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
 def export_playlist(playlist_name, uris):
     # location should be downloads folder
     playlist_name = re.sub(r'(?u)[^-\w.]', '', playlist_name)  # clean name
-    playlist_path = f'{Path.home()}/Downloads/{playlist_name}.m3u'.replace('\\', '/')
+    playlist_path = Path.home() / 'Downloads' / f'{playlist_name}.m3u'
+    playlist_path.mkdir(parents=True, exist_ok=True)
     with open(playlist_path, 'w') as f:
         f.write('#EXTM3U\n')
         for uri in uris:
@@ -1039,11 +1040,12 @@ def get_youtube_comments(url, limit=-1):
     """
     session = requests.Session()
     YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
-    YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
+    YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(' \
+                         r'?:var\s+meta|</script|\n) '
     renderer = None
+    proxies = get_proxy()
     for _ in range(6):
         with suppress(AttributeError):
-            proxies = get_proxy()
             res = session.get(url, headers={'user-agent': USER_AGENT, 'referer': 'https://google.com/'},
                               proxies=proxies)
             ytcfg = json.loads(re.search(YT_CFG_RE, res.text).group(1))
@@ -1052,6 +1054,7 @@ def get_youtube_comments(url, limit=-1):
                 section = next(search_dict(data, 'itemSectionRenderer'), None)
                 renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
                 break
+            proxies = get_proxy()
     if not isinstance(renderer, dict): return  # Comments disabled?
 
     continuations = [renderer['continuationEndpoint']]
@@ -1075,10 +1078,10 @@ def get_youtube_comments(url, limit=-1):
             except requests.exceptions.ProxyError:
                 proxies = get_proxy()
         if not response: break
-        if list(search_dict(response, 'externalErrorMessage')):
+        with suppress(StopIteration):
             raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
-        actions = list(search_dict(response, 'reloadContinuationItemsCommand')) + \
-                  list(search_dict(response, 'appendContinuationItemsAction'))
+        actions = chain(search_dict(response, 'reloadContinuationItemsCommand'),
+                        search_dict(response, 'appendContinuationItemsAction'))
         for action in actions:
             for item in action.get('continuationItems', []):
                 if action['targetId'] == 'comments-section':
@@ -1123,7 +1126,7 @@ def get_video_timestamps(video_info):
     if len(description_timestamps) > 1: return description_timestamps
     # try parsing comments
     url = video_info['webpage_url']
-    with suppress(json.JSONDecodeError):
+    with suppress(json.JSONDecodeError, RuntimeError):
         for count, comment in enumerate(get_youtube_comments(url, limit=10)):
             times = parse_timestamps(comment['text'])
             if len(times) > 2: return times

@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.89'
+VERSION = latest_version = '4.90.90'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -611,11 +611,12 @@ def load_settings(first_load=False):  # up to 0.4 seconds
                 loaded_settings = json.load(json_file)
         except (FileNotFoundError, json.JSONDecodeError):
             # if file does not exist
+            _save_settings = True
             loaded_settings = {}
         for setting_name, setting_value in tuple(loaded_settings.items()):
             loaded_settings[setting_name.replace(' ', '_')] = loaded_settings.pop(setting_name)
         for setting_name, setting_value in settings.items():
-            does_not_exist = setting_name not in loaded_settings
+            does_not_exist = setting_name not in loaded_settings  # setting DNE
             # use default settings if key/value does not exist
             if does_not_exist and setting_name in default_settings:
                 loaded_settings[setting_name] = setting_value
@@ -1575,10 +1576,9 @@ def file_action(action='pf'):
     else: main_window.metadata['main_last_event'] = 'file_action'
 
 
-def folder_action(action='Play Folder'):
+def folder_action(action='pf'):
     """
     :param action: one of {'pf': 'Play Folder', 'qf': 'Queue Folder', 'pfn': 'Play Folder Next'}
-    :return:
     """
     initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
     folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,

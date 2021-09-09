@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.90
+- [Fix] Folder action when using a different language
+
 4.90.89
 - [Feature] New /devices/ API
 - [Fix] Translation for "locate track"
