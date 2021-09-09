@@ -1042,7 +1042,7 @@ def get_youtube_comments(url, limit=-1):
     session = requests.Session()
     YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
     YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(' \
-                         r'?:var\s+meta|</script|\n) '
+                         r'?:var\s+meta|</script|\n)'
     renderer = None
     proxies = get_proxy()
     for _ in range(6):
