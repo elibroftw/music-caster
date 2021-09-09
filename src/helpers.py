@@ -739,8 +739,9 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
 def export_playlist(playlist_name, uris):
     # location should be downloads folder
     playlist_name = re.sub(r'(?u)[^-\w.]', '', playlist_name)  # clean name
-    playlist_path = Path.home() / 'Downloads' / f'{playlist_name}.m3u'
+    playlist_path = Path.home() / 'Downloads'
     playlist_path.mkdir(parents=True, exist_ok=True)
+    playlist_path /= f'{playlist_name}.m3u'
     with open(playlist_path, 'w') as f:
         f.write('#EXTM3U\n')
         for uri in uris:
