@@ -507,7 +507,7 @@ input:checked+.slider:before {
 /* MOBILE */
 @media screen and (max-width: 800px) {
     .modal-content {
-        width: 90%;
+        width: 85%;
     }
 
     #wrapper {

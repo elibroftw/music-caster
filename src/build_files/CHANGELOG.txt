@@ -1,6 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
 4.90.91
+- [Fix] Web UI modal CSS
+
+4.90.91
 - [Fix] Web UI Mobile CSS
 - [Feature] Web UI Dark Theme
 
