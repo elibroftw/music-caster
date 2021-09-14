@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.93
+- [Fix] Web UI upload button
+
 4.90.92
 - [Fix] Web UI modal CSS
 
