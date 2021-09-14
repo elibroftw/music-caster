@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.93'
+VERSION = latest_version = '4.90.94'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -30,11 +30,11 @@ parser.add_argument('--exit', '-x', default=False, action='store_true',
                     help='exits any existing instance (including self)')
 parser.add_argument('--minimized', '-m', default=False, action='store_true', help='start minimized to tray')
 parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
-# freeze_support() adds the following
-parser.add_argument('--multiprocessing-fork', default=False, action='store_true')
 parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
 parser.add_argument('--resume-playback', '-r', default=False, action='store_true', help='play if tracks in queue')
 parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
+# freeze_support() adds the following
+parser.add_argument('--multiprocessing-fork', default=False, action='store_true', help=argparse.SUPPRESS)
 args = parser.parse_args()
 # if from url protocol, re-parse arguments
 if args.urlprotocol:

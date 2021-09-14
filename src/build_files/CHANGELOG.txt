@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.94
+- [Fix] Improved --help output
+
 4.90.93
 - [Fix] Web UI upload button
 
