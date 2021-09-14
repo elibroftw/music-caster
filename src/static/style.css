@@ -1,3 +1,7 @@
+:root {
+    --accent: #00bfff;
+}
+
 html {
     font-size: 16px;
 }
@@ -54,7 +58,7 @@ input:focus {
     max-width: 30rem;
     text-align: center;
     width: 90%;
-    background-color: #fff;
+    background-color: #121212;
     border-radius: 0.25rem;
     box-shadow: 0 10px 20px -5px rgba(0, 0, 0, .19), 0 6px 6px -10px rgba(0, 0, 0, .23);
 }
@@ -65,7 +69,7 @@ input:focus {
 }
 
 .body__cover img {
-    width: 100%;
+    width: 95%;
     border-radius: 0.25rem 0.25rem 0 0;
     display: block;
     margin-left: auto;
@@ -89,8 +93,8 @@ input:focus {
 }
 
 .list--header .list__link, .list--footer .list__link {
-    color: #888;
-    fill: #888;
+    color: #fff;
+    fill: #fff;
 }
 
 .list--cover {
@@ -148,7 +152,7 @@ input:focus {
     background: #fff;
     border-radius: 50%;
     box-shadow: 0 0 3px rgba(0, 0, 0, .15), 0 2px 4px rgba(0, 0, 0, .15);
-    transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .range:focus:after, .range:hover:after {
@@ -173,15 +177,11 @@ input:focus {
 #info__track {
     font-size: 1.5rem;
     font-weight: 400;
-    color: #d30320;
+    color: var(--accent);
 }
 
 .body__buttons {
-    padding-bottom: 2rem;
-}
-
-.body__buttons {
-    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
 .list--buttons {
@@ -195,7 +195,8 @@ input:focus {
 
 .ctrl-btn {
     border-radius: 50%;
-    box-shadow: 0 3px 6px rgba(33, 33, 33, .1), 0 3px 12px rgba(33, 33, 33, .15);
+    box-shadow: 0 3px 6px rgba(214, 214, 214, 0.1), 0 3px 12px rgba(202, 202, 202, 0.15);
+    display: inline-block;
 }
 
 .list--buttons a {
@@ -204,16 +205,12 @@ input:focus {
     padding-bottom: 0.6rem;
     padding-left: 0.75rem;
     font-size: 1rem;
-    color: #212121;
+    color: #fff;
     opacity: 0.5;
 }
 
 .list--buttons a:focus, .list--buttons a:hover {
     opacity: 0.75;
-}
-
-.ctrl-btn:focus, .ctrl-btn:hover {
-    box-shadow: 0 6px 9px rgba(33, 33, 33, .1), 0 6px 16px rgba(33, 33, 33, .15);
 }
 
 #play-pause-btn {
@@ -229,22 +226,38 @@ input:focus {
     opacity: 1;
 }
 
+#repeat-one {
+    position: absolute;
+    margin-left: 1em;
+    color: var(--accent);
+    opacity: .9 !important;
+}
+
+.repeat-enabled, .shuffle-enabled {
+    color: var(--accent);
+    opacity: .9 !important;
+}
+
 #prev-btn, #next-btn {
     font-size: 0.95rem;
 }
 
 .list__link {
-    transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .list__link:focus, .list__link:hover, .list__link>img:hover {
-    color: #d30320;
-    fill: #d30320;
+    color: var(--accent);
+    fill: var(--accent);
 }
 
 .player__footer {
-    padding-top: 1rem;
-    padding-bottom: 2rem;
+    padding-bottom: .5em;
+}
+
+.list--footer {
+    padding-top: 1em;
+    padding-bottom: 1em;
 }
 
 .list--footer a {
@@ -257,11 +270,6 @@ input:focus {
 
 .fa.fa-pause {
     margin-left: -3px;
-}
-
-.red {
-    color: #d30320;
-    opacity: .9 !important;
 }
 
 .modal {
@@ -301,6 +309,7 @@ h2 {
     position: sticky;
     top: 10px;
     background-color: #0006;
+    border-radius: 1em;
 }
 
 .track, .trackRow {
@@ -428,16 +437,17 @@ input:checked+.slider:before {
     top: 20px;
 }
 
-#volControl > svg {
+#volControl svg {
     margin-right: .5em;
 }
 
-#volControl {
-    margin-top: 1.5em;
+#volControl path {
+    fill: #888;
 }
 
 #volRange {
     width: 80%;
+    background: #121212;
     -webkit-appearance: none;
 }
 
@@ -457,10 +467,8 @@ input:checked+.slider:before {
 
 #volRange::-webkit-slider-runnable-track {
     width: 80%;
-    height: 8.4px;
     cursor: pointer;
     box-shadow: 1.7px 1.7px 1px rgba(0, 0, 0, 0.2), 0px 0px 1.7px rgba(13, 13, 13, 0.2);
-    background: #e7eaea;
     border-radius: 25px;
     border: 0px solid #010101;
     margin-top: -18px;
@@ -486,7 +494,7 @@ input:checked+.slider:before {
 
 #devices {
     width: 80%;
-    margin-left: 8%;
+    margin: 1em 0 1em 8%;
 }
 
 @media screen and (max-width:1100px) {
@@ -496,17 +504,23 @@ input:checked+.slider:before {
 }
 
 
+/* MOBILE */
 @media screen and (max-width: 800px) {
     .modal-content {
-        width: 80%;
+        width: 90%;
     }
 
     #wrapper {
-        margin-top: 10%;
+        margin-top: 1em;
     }
 
     .playLink, .playPlaylist {
         width: 80%;
+    }
+
+    .player__container {
+        width: 100%;
+        margin-top: auto;
     }
 }
 

@@ -5,7 +5,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/apple-touch-icon.png">
 <link rel="manifest" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/site.webmanifest">
 <link rel="mask-icon" href="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/safari-pinned-tab.svg" color="#00bfff">
-<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.4.11">
+<link rel="stylesheet" id="stylesheet" href="/static/style.css?v=1.4.12">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css"
     integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 </head>
@@ -19,6 +19,7 @@
             <div class="body__cover">
                 <img src="{{art|safe}}" alt="Artwork" style="text-align: center" />
             </div>
+            <!-- TODO: progress bar -->
             <div class="body__info">
                 <div id="info__album">{{metadata['album'] if metadata['album'] else '<br>'|safe}}</div>
                 <div id="info__track">{{metadata['title']}}</div>
@@ -26,7 +27,12 @@
             </div>
             <div class="body__buttons">
                 <ul class="list list--buttons">
-                    <li><a href="?shuffle" title="{{ gt('shuffle') }}" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
+                    <!-- Repeat -->
+                    <li><a href="?repeat" class="list__link {{repeat_enabled}}">
+                    <span id="repeat-one">{{1 if repeat_option else ''}}</span>
+                    <i class="fa fa-undo {{repeat_enabled}}"></i></a></li>
+                    <!-- End repeat -->
+
                     <li><a href="?prev" id="prev-btn" title="{{ gt('previous track') }}" class="list__link ctrl-btn"><i class="fa fa-step-backward"></i></a></li>
                     <li>
                         <a href="?{{'pause' if playing_status.playing() else 'play'}}" id="play-pause-btn" class="list__link ctrl-btn">
@@ -34,14 +40,23 @@
                         </a>
                     </li>
                     <li><a href="?next" id="next-btn" title="{{ gt('next track') }}" class="list__link ctrl-btn"><i class="fa fa-step-forward"></i></a></li>
-                    <li><a href="?repeat" class="list__link {{repeat_color}}">
-                    <span class="red">{{1 if repeat_option else ''}}</span>
-                    <i class="fa fa-undo {{repeat_color}}"></i>
-                </a></li>
+                    <li><a href="?shuffle" title="{{ gt('shuffle') }}" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
                 </ul>
             </div>
         </div>
         <div class="player__footer">
+            <div id="volControl">
+                <svg width="20" height="20" viewBox="0 0 480 512">
+                    <path fill="black" d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zM480 256c0-63.53-32.06-121.94-85.77-156.24-11.19-7.14-26.03-3.82-33.12 7.46s-3.78 26.21 7.41 33.36C408.27 165.97 432 209.11 432 256s-23.73 90.03-63.48 115.42c-11.19 7.14-14.5 22.07-7.41 33.36 6.51 10.36 21.12 15.14 33.12 7.46C447.94 377.94 480 319.53 480 256zm-141.77-76.87c-11.58-6.33-26.19-2.16-32.61 9.45-6.39 11.61-2.16 26.2 9.45 32.61C327.98 228.28 336 241.63 336 256c0 14.38-8.02 27.72-20.92 34.81-11.61 6.41-15.84 21-9.45 32.61 6.43 11.66 21.05 15.8 32.61 9.45 28.23-15.55 45.77-45 45.77-76.88s-17.54-61.32-45.78-76.86z" class=""></path>
+                </svg>
+                <input id="volRange" value="{{settings['volume']}}" type="range" min="0" max="100" step="1"
+                       oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
+            </div>
+            <select name="devices" id="devices" onchange="changeDevice()">
+                {% for device_name in devices %}
+                    <option value="{{loop.index - 1}}" {{'selected' if loop.index0 == device_index else ''}}>{{ device_name }}</option>
+                {% endfor %}
+            </select>
             <ul class="list list--footer">
                 <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
                 <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
@@ -62,23 +77,10 @@
                 </a></li>
                 <li><a onclick="showModal('more')" href="/#more" class="list__link"><i class="fas fa-ellipsis-h"></i></a></li>
             </ul>
-            <div id="volControl">
-                <svg width="20" height="20" viewBox="0 0 480 512">
-                    <path fill="black" d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zM480 256c0-63.53-32.06-121.94-85.77-156.24-11.19-7.14-26.03-3.82-33.12 7.46s-3.78 26.21 7.41 33.36C408.27 165.97 432 209.11 432 256s-23.73 90.03-63.48 115.42c-11.19 7.14-14.5 22.07-7.41 33.36 6.51 10.36 21.12 15.14 33.12 7.46C447.94 377.94 480 319.53 480 256zm-141.77-76.87c-11.58-6.33-26.19-2.16-32.61 9.45-6.39 11.61-2.16 26.2 9.45 32.61C327.98 228.28 336 241.63 336 256c0 14.38-8.02 27.72-20.92 34.81-11.61 6.41-15.84 21-9.45 32.61 6.43 11.66 21.05 15.8 32.61 9.45 28.23-15.55 45.77-45 45.77-76.88s-17.54-61.32-45.78-76.86z" class=""></path>
-                </svg>
-                <input id="volRange" value="{{settings['volume']}}" type="range" min="0" max="100" step="1"
-                       oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
-            </div>
-            <div>
-                <select name="devices" id="devices" onchange="changeDevice()">
-                {% for device_name in devices %}
-                    <option value="{{loop.index - 1}}" {{'selected' if loop.index0 == device_index else ''}}>{{ device_name }}</option>
-                {% endfor %}
-                </select>
-            </div>
         </div>
     </div>
 </div>
+<!-- MODALS -->
 <div id="queue-modal" class="modal">
     <div class="modal-content">
         <h2 class="modal-title">{{ gt('Queue') }}</h2>
@@ -396,10 +398,11 @@
                         response['album'] !== currentAlbum ||
                         response['lang'] !== settingsFromServer.lang ||
                         response['queue_length'] !== queueTracks.length ||
-                        Math.round(response['volume']) != Math.round(currentVol) ||
                         response['status'] !== '{{ playing_status.__str__() }}') {
                         // reload window since now playing has changed
                         window.location.reload();
+                    } else if (Math.round(response['volume']) != Math.round(currentVol)) {
+                        document.getElementById('volRange').value = response['volume']
                     }
                 }
             ).catch(error => {

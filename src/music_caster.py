@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.90'
+VERSION = latest_version = '4.90.91'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -33,6 +33,8 @@ parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/play
 # freeze_support() adds the following
 parser.add_argument('--multiprocessing-fork', default=False, action='store_true')
 parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
+parser.add_argument('--resume-playback', '-r', default=False, action='store_true', help='play if tracks in queue')
+parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
 args = parser.parse_args()
 # if from url protocol, re-parse arguments
 if args.urlprotocol:
@@ -698,8 +700,8 @@ def web_index():  # web GUI
             cycle_repeat()
             api_msg = 'cycled repeat to ' + {None: 'off', True: 'one', False: 'all'}[settings['repeat']]
         elif 'shuffle' in request.values:
-            shuffle_option = change_settings('shuffle', not settings['shuffle'])
-            api_msg = f'shuffle set to {shuffle_option}'
+            shuffle_enabled = change_settings('shuffle', not settings['shuffle'])
+            api_msg = f'shuffle set to {shuffle_enabled}'
         elif 'activate' in request.values:
             daemon_commands.put('__ACTIVATED__')  # tells main loop to bring to front all GUI's
             api_msg = 'activated main window'
@@ -710,8 +712,8 @@ def web_index():  # web GUI
     if type(art) == bytes: art = art.decode()
     art = f'data:image/png;base64,{art}'
     repeat_option = settings['repeat']
-    repeat_color = 'red' if settings['repeat'] is not None else ''
-    shuffle_option = 'red' if settings['shuffle'] else ''
+    repeat_enabled = 'repeat-enabled' if settings['repeat'] is not None else ''
+    shuffle_enabled = 'shuffle-enabled' if settings['shuffle'] else ''
     # sort by the formatted title
     list_of_tracks = []
     if all_tracks_sorted: sorted_tracks = all_tracks_sorted
@@ -724,7 +726,7 @@ def web_index():  # web GUI
             device_index = i
             break
     formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
-    return render_template('index.html', device_name=platform.node(), shuffle=shuffle_option, repeat_color=repeat_color,
+    return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled, repeat_enabled=repeat_enabled,
                            playing_status=playing_status, metadata=metadata, art=art,
                            settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, queue=_queue,
                            playing_index=len(done_queue), device_index=device_index, devices=formatted_devices,
@@ -3086,8 +3088,16 @@ if __name__ == '__main__':
                 play_all(queue_only=True)
             except RuntimeError:
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
+        if args.resume_playback and not args.uris:
+            if music_queue:
+                play(music_queue[0])
+        if args.start_playing and not args.uris:
+            if music_queue:
+                play(music_queue[0])
+            else:
+                play_all()
         # open window if minimized argument not given
-        if not args.minimized:
+        if not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')
         while True:
             while not daemon_commands.empty(): handle_action(daemon_commands.get())

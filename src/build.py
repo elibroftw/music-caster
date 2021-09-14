@@ -12,6 +12,8 @@ import sys
 import time
 import winreg
 import zipfile
+
+from requests.exceptions import RequestException
 start_time = time.time()
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
@@ -185,7 +187,12 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
+was_playing = False
+
 if not args.dry:
+    with suppress(RequestException):
+        r = requests.get('http://127.0.0.1:2001/state')
+        was_playing = r.json()['status'] == 'PLAYING'
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
         os.kill(pid, 9)
@@ -396,5 +403,7 @@ if tests_passed and not args.dry and not args.debug:
     print('Installing Music Caster [Will Launch After]')
     install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = f'{install_cmd} && "{exe}"'
+    cmd = f'{install_cmd} && "{exe}" --minimized'
+    if was_playing:
+        cmd += '--resume-playback'
     Popen(cmd, shell=True)
