@@ -403,7 +403,7 @@ if tests_passed and not args.dry and not args.debug:
     print('Installing Music Caster [Will Launch After]')
     install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = f'{install_cmd} && "{exe}" --minimized'
+    cmd = f'{install_cmd} && "{exe}" --minimized '
     if was_playing:
         cmd += '--resume-playback'
     Popen(cmd, shell=True)
