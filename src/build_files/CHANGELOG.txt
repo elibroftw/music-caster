@@ -1,6 +1,6 @@
 Music Caster by Elijah Lopez Changelog
 
-4.90.91
+4.90.92
 - [Fix] Web UI modal CSS
 
 4.90.91
