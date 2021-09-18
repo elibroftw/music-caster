@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.94'
+VERSION = latest_version = '4.90.95'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -899,7 +899,7 @@ def api_get_file():
                     ext = mime_type.rsplit('/', 1)[1]
                 except IndexError:
                     ext = 'png'
-                return send_file(io.BytesIO(img_data), attachment_filename=f'cover.{ext}',
+                return send_file(io.BytesIO(img_data), download_name=f'cover.{ext}',
                                  mimetype=mime_type, as_attachment=True, max_age=360000, conditional=True)
             return send_file(file_path, conditional=True, as_attachment=True, max_age=360000)
     return '400'
@@ -949,7 +949,7 @@ def api_system_audio(get_thumb=''):
     send system audio to chromecast
     """
     if get_thumb:
-        return send_file(io.BytesIO(base64.b64decode(custom_art('SYS'))), attachment_filename=f'thumbnail.png',
+        return send_file(io.BytesIO(base64.b64decode(custom_art('SYS'))), download_name=f'thumbnail.png',
                          mimetype='image/png', as_attachment=True, max_age=360000, conditional=True)
     return Response(sar.get_audio_data(settings['delay']))
 
@@ -2846,8 +2846,11 @@ def read_main_window():
                             'album': main_values['metadata_album'], 'track_number': main_values['metadata_track_num'],
                             'explicit': main_values['metadata_explicit'], 'mime': mime, 'art': art}
             main_window['metadata_msg'].update(value=gt('Saving metadata'), text_color='yellow')
-            set_metadata(main_window['metadata_file'].get(), new_metadata)
-            main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
+            try:
+                set_metadata(main_window['metadata_file'].get(), new_metadata)
+                main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
+            except ValueError as e:  # track number incorrectly entered
+                main_window['metadata_msg'].update(value=f'ERROR: {e}', text_color='red')
             main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
             main_window['title'].update(' ' + main_window['title'].DisplayText + ' ')  # try updating now playing
     # other GUI updates
