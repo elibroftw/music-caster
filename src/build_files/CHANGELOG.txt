@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.96
+- [Fix] Better YouTube playback
+
 4.90.95
 - [Fix] Handle bad metadata input
 - [Fix] Update Flask semantics
