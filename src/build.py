@@ -35,7 +35,7 @@ parser.add_argument('--upload', '-u', '--publish', default=False, action='store_
                     help='Upload and Publish to GitHub after building')
 parser.add_argument('--skip_build', default=False, action='store_true',
                     help='Skip to testing / uploading')
-parser.add_argument('--skip_tests', default=False, action='store_true',
+parser.add_argument('--skip_tests', '--st', default=False, action='store_true',
                     help='Skip testing')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
