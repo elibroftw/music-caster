@@ -1,9 +1,6 @@
 build_files/pyinstaller-5.0.dev0-py3-none-any.whl
 build_files/PyAudio-0.2.11-cp38-cp38-win32.whl
-browser_cookie3
-bs4
 pycparser==2.14
-flask
 mutagen~=1.44
 Pillow~=8.0
 pychromecast~=4.2.3
@@ -11,18 +8,21 @@ pynput~=1.4.5
 pypng~=0.0.20
 pypresence~=4.0.0
 pyqrcode~=1.2.1
-PySimpleGUI~=4.42
-pystray
-python-vlc
+PySimpleGUI~=4.47
+pystray==0.17.3
 requests~=2.22
 urllib3~=1.25
 wavinfo==1.6
 youtube_dl
 zeroconf==0.24.5
-werkzeug
+werkzeug~=2.0.2
 pyperclip
 deezer-py
 deemix
+python-vlc
+browser_cookie3~=0.12
+beautifulsoup4~=4.10
+flask~=2.0
 # pyinstaller dependencies
 setuptools<50.0.0   # 50.0.0 breaks a modulegraph regession test
 altgraph
