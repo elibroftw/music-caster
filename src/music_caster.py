@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.96'
+VERSION = latest_version = '4.90.97'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -775,9 +775,11 @@ def handle_500(_e):
 
 @app.route('/debug/')
 def api_get_debug_info():
+    threads = [(t.name, t.is_alive()) for t in threading.enumerate()]
     if settings.get('DEBUG', DEBUG):
         return jsonify({'pressed_keys': list(PRESSED_KEYS),
                         'last_traceback': sys.exc_info(),
+                        'threads': threads,
                         'mac': get_mac()})
     return gt('set DEBUG = true in `settings.json` to enable this page')
 
@@ -1678,6 +1680,7 @@ def resume():
     global track_end, track_position, track_start
     app_log.info(f'resume() called, playing status = {playing_status}')
     if playing_status.paused():
+        # time.time() > url_metadata.get(music_queue[0], {'expired': False})['expired']:
         if music_queue and url_metadata.get(music_queue[0], {'expired': lambda: False})['expired']():
             # check if the url has expired before resuming in case it has been a long time
             play(music_queue[0], position=track_position, autoplay=False)
@@ -1869,7 +1872,9 @@ def background_tasks():
     update_checker = threading.Timer(216000, check_for_updates)
     update_checker.daemon = True
     update_checker.start()
-    pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key))).start()
+    p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
+    p.setName('pynputListener')
+    p.start()
     while True:
         # if settings.json was updated outside of Music Caster, reload settings
         if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
