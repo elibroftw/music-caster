@@ -399,7 +399,7 @@ if args.upload and tests_passed and not args.dry and not args.debug:
         requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
-if tests_passed and not args.dry and not args.debug:
+if tests_passed and not args.dry and not args.debug and not args.skip_tests:
     print('Installing Music Caster [Will Launch After]')
     install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
