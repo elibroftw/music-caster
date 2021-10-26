@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.98
+- [Fix] Fix reading explicit/rating tag
+
 4.90.97
 - [Fix] Add more DEBUG features
 

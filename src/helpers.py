@@ -451,11 +451,11 @@ def get_metadata(file_path: str):
         if file_path.endswith('.mp3'):
             audio = dict(EasyID3(file_path))
             _audio = mutagen.File(file_path)
-            audio['rating'] = str(_audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', '0')))
+            audio['rating'] = _audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', ['0']))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
             audio = EasyMP4(file_path)
             _audio = mutagen.File(file_path)
-            audio['rating'] = str(_audio.get('rtng', ['0'])[0])
+            audio['rating'] = _audio.get('rtng', ['0'])
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
@@ -468,7 +468,10 @@ def get_metadata(file_path: str):
         audio = {}
     title = audio.get('title', [title])[0]
     album = audio.get('album', [album])[0]
-    is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
+    try:
+        is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
+    except IndexError:
+        is_explicit = False
     track_number = str(audio['tracknumber'][0]).split('/', 1)[0] if 'tracknumber' in audio else None
     with suppress(KeyError, TypeError):
         if len(audio['artist']) == 1:
@@ -819,9 +822,12 @@ def parse_spotify_track(track_obj) -> dict:
     track_number = str(track_obj['track_number'])
     sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
     sort_key = sort_key.replace('&trck', track_number).lower()
-    art = track_obj['album']['images'][0]['url']
-    return {'src': src_url, 'title': title, 'artist': artist, 'album': album, 'art': art,
-            'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
+    metadata =  {'src': src_url, 'title': title, 'artist': artist, 'album': album,
+                 'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
+    with suppress(IndexError):
+        metadata['art'] = track_obj['album']['images'][0]['url']
+    return metadata
+
 
 
 def get_spotify_track(url):

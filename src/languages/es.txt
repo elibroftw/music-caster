@@ -17,6 +17,7 @@ Cancelar Temporizador
 Limpiar la cola
 Controles
 No se pudo conectar al dispositivo de transmisión
+No se pudo encontrar un dispositivo de salida para grabar
 No se pudo reproducir $URL
 No se pudo completar la cola porque el escaneo de la biblioteca está deshabilitado
 No se pudo configurar el temporizador

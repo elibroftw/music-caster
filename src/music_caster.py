@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.97'
+VERSION = latest_version = '4.90.98'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1224,6 +1224,9 @@ def play_system_audio(switching_device=False):
             return True
         except NotConnected:
             tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
+            return False
+        except OSError:
+            tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
             return False
 
 

@@ -17,6 +17,7 @@ Cancel Timer
 Clear the queue
 Controls
 Could not connect to cast device
+Could not find an output device to record
 Could not play $URL
 Could not populate queue because library scan is disabled
 Could not set timer
