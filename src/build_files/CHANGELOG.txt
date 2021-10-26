@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.99
+- [Fix] Fix mini-mode bug
+
 4.90.98
 - [Fix] Fix reading explicit/rating tag
 
