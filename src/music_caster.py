@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.101'
+VERSION = latest_version = '4.90.102'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -257,7 +257,7 @@ app.jinja_env.lstrip_blocks = app.jinja_env.trim_blocks = True
 logging.getLogger('werkzeug').disabled = not DEBUG
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 os.environ['FLASK_SKIP_DOTENV'] = '1'
-stop_discovery = lambda: None  # stop chromecast discovery
+stop_discovery_browser = None
 
 
 def tray_notify(message, title='Music Caster', context=''):
@@ -995,15 +995,16 @@ def chromecast_callback(chromecast):
 
 
 def start_chromecast_discovery(start_thread=False):
-    global stop_discovery
+    global stop_discovery_browser
     if start_thread: return Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
     # stop any active scanning
-    if stop_discovery is not None: stop_discovery()
+    if stop_discovery_browser is not None:
+        pychromecast.discovery.stop_discovery(stop_discovery_browser)
     chromecasts.clear()
-    stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
+    stop_discovery_browser = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
     time.sleep(WAIT_TIMEOUT + 1)
-    stop_discovery()
-    stop_discovery = None
+    pychromecast.discovery.stop_discovery(stop_discovery_browser)
+    stop_discovery_browser = None
     if not device_names:
         device_names.append((f'{CHECK_MARK} Local device', 'device:0'))
         refresh_tray()
@@ -3084,7 +3085,7 @@ if __name__ == '__main__':
         audio_player = AudioPlayer()
         if args.uris:
             # wait until previous device has been found or if it hasn't been found
-            while all((settings['previous_device'], cast is None, stop_discovery)): time.sleep(0.3)
+            while all((settings['previous_device'], cast is None, stop_discovery_browser)): time.sleep(0.3)
             play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
         elif settings['persistent_queue']:
             # load saved queues from settings.json

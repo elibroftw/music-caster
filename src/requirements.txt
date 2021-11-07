@@ -3,7 +3,8 @@ build_files/PyAudio-0.2.11-cp38-cp38-win32.whl
 pycparser==2.14
 mutagen~=1.45.1
 Pillow~=8.0
-pychromecast~=4.2.3
+pychromecast~=9.3
+zeroconf
 pynput~=1.4.5
 pypng~=0.0.20
 pypresence~=4.0
@@ -14,7 +15,6 @@ requests==2.26
 urllib3~=1.26.7
 wavinfo==1.6
 youtube_dl
-zeroconf==0.24.5
 werkzeug~=2.0.2
 pyperclip~=1.8
 python-vlc==3.0.12118
