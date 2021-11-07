@@ -97,16 +97,16 @@
                placeholder="{{ gt('Search for music...') }}" title="Type in artist/tracks">
         {% for track in list_of_tracks %}
             <div class="trackRow">
-                <a class="playLink" title="play {{track.text}}" href="/play?uri={{track.filename|urlencode|replace('/', '%2F')}}">{{track.text}}</a>
-                <a style="float: right;" title="download file" href="/file?path={{track.filename|urlencode|replace('/', '%2F')}}" class="downloadTrack">
+                <a class="playLink" title="play {{track.text}}" href="/play?uri={{track.filename}}">{{track.text}}</a>
+                <a style="float: right;" title="download file" href="/file?path={{track.filename}}" class="downloadTrack">
                     <i class="fas fa-download"></i>
                 </a>
-                <a style="float: right;" title="play file next" href="/play?play_next=true&uri={{track.filename|urlencode|replace('/', '%2F')}}" class="playNext">
+                <a style="float: right;" title="play file next" href="/play?play_next=true&uri={{track.filename}}" class="playNext">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" height="18" viewBox="0 0 23.67 22.8">
                         <path d="M26.83,8.8,16.88,3.6l-.05,3.3c-9,2.45-14.9,13.15-13.45,19.5l4.1-1.1.6-.15,3.5-.95c-.95-4.25-.2-11.1,5.2-13.65L16.68,14Z" transform="translate(-3.17 -3.6)"/>
                     </svg>
                 </a>
-                <a style="float: right;" title="queue file" href="/play?queue=true&uri={{track.filename|urlencode|replace('/', '%2F')}}" class="queueTrack">
+                <a style="float: right;" title="queue file" href="/play?queue=true&uri={{track.filename}}" class="queueTrack">
                     <i class="fas fa-plus"></i>
                 </a>
             </div>

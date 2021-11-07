@@ -18,6 +18,7 @@ import requests
 import sys
 import threading
 from subprocess import Popen, PIPE, DEVNULL
+from urllib.request import pathname2url
 
 
 parser = argparse.ArgumentParser(description='Music Caster')
@@ -715,10 +716,10 @@ def web_index():  # web GUI
     repeat_enabled = 'repeat-enabled' if settings['repeat'] is not None else ''
     shuffle_enabled = 'shuffle-enabled' if settings['shuffle'] else ''
     # sort by the formatted title
-    list_of_tracks = []
     if all_tracks_sorted: sorted_tracks = all_tracks_sorted
     else: sorted_tracks = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
-    for filename, data in sorted_tracks: list_of_tracks.append({'text': format_uri(filename), 'filename': filename})
+    list_of_tracks = [{'text': format_uri(filename),
+                       'filename': pathname2url(filename).strip('/')} for filename, _ in sorted_tracks]
     _queue = create_track_list()
     device_index = 0
     for i, devices in enumerate(device_names):

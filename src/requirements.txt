@@ -6,7 +6,7 @@ Pillow~=8.0
 pychromecast~=4.2.3
 pynput~=1.4.5
 pypng~=0.0.20
-pypresence~=4.0.0
+pypresence~=4.0
 pyqrcode~=1.2.1
 PySimpleGUI==4.49.0
 pystray==0.17.3
