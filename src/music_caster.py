@@ -1,4 +1,6 @@
-VERSION = latest_version = '4.90.100'
+# Important note: Discord RPC has been disabled
+#   Affected code: load_settings, helpers.create_settings
+VERSION = latest_version = '4.90.101'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -631,6 +633,7 @@ def load_settings(first_load=False):  # up to 0.4 seconds
                         loaded_settings[setting_name][k] = v
                         _save_settings = True
         settings = loaded_settings
+        settings['discord_rpc'] = False  # NOTE: THIS DISABLES DISCORD RPC
         # sort playlists by name
         settings['playlists'] = {k: settings['playlists'][k] for k in sorted(settings['playlists'].keys())}
         # if music folders were modified, re-index library

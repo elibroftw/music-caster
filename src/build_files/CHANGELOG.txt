@@ -1,8 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.101
+- [Fix] Disabled Discord RPC
+
 4.90.100
 - [Fix] Files web UI
-- [Fix] Discord presence
 
 4.90.99
 - [Fix] Fix mini-mode bug

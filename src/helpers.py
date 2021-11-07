@@ -1411,7 +1411,8 @@ def create_settings(version, settings):
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     general_tab = Sg.Tab(gt('General'), [
         [create_checkbox(gt('Auto update'), 'auto_update', settings),
-         create_checkbox(gt('Discord presence'), 'discord_rpc', settings, True)],
+        #  create_checkbox(gt('Discord presence'), 'discord_rpc', settings, True)
+         ],
         [create_checkbox(gt('Notifications'), 'notifications', settings),
          create_checkbox(gt('Run on startup'), 'run_on_startup', settings, True)],
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
