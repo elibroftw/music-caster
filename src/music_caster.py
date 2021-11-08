@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.102'
+VERSION = latest_version = '4.90.103'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -239,7 +239,7 @@ DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
 DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
 settings = {  # default settings
     'previous_device': None, 'window_locations': {}, 'update_message': '', 'smart_queue': False, 'skips': {},
-    'auto_update': True, 'run_on_startup': True, 'notifications': True, 'shuffle': False, 'repeat': None,
+    'auto_update': True, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True, 'shuffle': False, 'repeat': None,
     'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False, 'persistent_queue': False,
     'volume': 50, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5, 'flip_main_window': False,
     'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True, 'folder_context_menu': True,

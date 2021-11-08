@@ -28,6 +28,8 @@ from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
 import winreg as wr
 # 3rd party imports
+import deemix.utils.localpaths as __lp
+__lp.musicdata = '/dz'
 from deemix.__main__ import Deezer
 from deemix.decryption import generateBlowfishKey, generateStreamURL
 import mutagen

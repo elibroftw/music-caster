@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.103
+- [Fix] Portable
+
 4.90.102
 - [Fix] Updated pychromecast and zeroconf
 
