@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.103'
+VERSION = latest_version = '4.90.104'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -284,6 +284,11 @@ def save_settings():
                 tray_notify(gt('ERROR') + ': ' + gt('No space left on device to save settings'))
             else:
                 tray_notify(gt('ERROR') + f': {e}')
+
+
+def cast_wait():
+    with suppress(AttributeError, RuntimeError):
+        cast.wait(timeout=WAIT_TIMEOUT)
 
 
 def refresh_tray():
@@ -1043,7 +1048,7 @@ def change_device(new_idx):
             elif not play_system_audio(True):
                 playing_status.stop()
         else:
-            if cast is not None: cast.wait(timeout=WAIT_TIMEOUT)
+            cast_wait()
             volume = 0 if settings['muted'] else settings['volume']
             update_volume(volume)
 
@@ -1201,7 +1206,7 @@ def play_system_audio(switching_device=False):
         sar.alive = False
         return False
     else:
-        cast.wait(timeout=WAIT_TIMEOUT)
+        cast_wait()
         try:
             cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
             mc = cast.media_controller

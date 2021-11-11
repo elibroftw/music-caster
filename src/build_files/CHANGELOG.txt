@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.104
+- [Fix] Already connected errors
+
 4.90.103
 - [Fix] Portable
 
