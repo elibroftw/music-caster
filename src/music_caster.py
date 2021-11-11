@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.104'
+VERSION = latest_version = '4.90.105'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
