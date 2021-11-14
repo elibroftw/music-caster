@@ -261,6 +261,11 @@ os.environ['FLASK_SKIP_DOTENV'] = '1'
 stop_discovery_browser = None
 
 
+def get_linenumber():
+    cf = currentframe()
+    return cf.f_back.f_lineno
+
+
 def tray_notify(message, title='Music Caster', context=''):
     if message == 'update_available':
         message = gt('Update $VER is available').replace('$VER', f'v{context}')
@@ -1233,8 +1238,9 @@ def play_system_audio(switching_device=False):
             track_start = time.monotonic() - track_position
             after_play(title, artist, True, switching_device)
             return True
-        except NotConnected:
-            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(getframeinfo(currentframe()).lineno))
+        except NotConnected as e:
+            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_linenumber()))
+            handle_exception(e)
             return False
         except OSError:
             tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
@@ -1426,8 +1432,9 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                     time.sleep(0.2)
                 if track_length is None: mc.play()
-            except (UnsupportedNamespace, NotConnected, OSError):
-                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(getframeinfo(currentframe()).lineno))
+            except (UnsupportedNamespace, NotConnected, OSError) as e:
+                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_linenumber()))
+                handle_exception(e)
                 return stop('play')
         track_position = position
         track_start = time.monotonic() - track_position
@@ -1486,7 +1493,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
                 time.sleep(0.2)
             app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
         except (UnsupportedNamespace, NotConnected, OSError) as e:
-            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(getframeinfo(currentframe()).lineno))
+            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_linenumber()))
             handle_exception(e)
             return stop('play')
     track_position = position
