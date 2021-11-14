@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.106
+- [Fix] More error catching
+
 4.90.105
 - [Fix] Tray theme
 

@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.105'
+VERSION = latest_version = '4.90.106'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -21,6 +21,7 @@ import sys
 import threading
 from subprocess import Popen, PIPE, DEVNULL
 from urllib.request import pathname2url
+from inspect import currentframe, getframeinfo
 
 
 parser = argparse.ArgumentParser(description='Music Caster')
@@ -1233,7 +1234,7 @@ def play_system_audio(switching_device=False):
             after_play(title, artist, True, switching_device)
             return True
         except NotConnected:
-            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
+            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(getframeinfo(currentframe()).lineno))
             return False
         except OSError:
             tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
@@ -1426,7 +1427,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
                     time.sleep(0.2)
                 if track_length is None: mc.play()
             except (UnsupportedNamespace, NotConnected, OSError):
-                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
+                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(getframeinfo(currentframe()).lineno))
                 return stop('play')
         track_position = position
         track_start = time.monotonic() - track_position
@@ -1484,8 +1485,9 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                 time.sleep(0.2)
             app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
-        except (UnsupportedNamespace, NotConnected, OSError):
-            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device'))
+        except (UnsupportedNamespace, NotConnected, OSError) as e:
+            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(getframeinfo(currentframe()).lineno))
+            handle_exception(e)
             return stop('play')
     track_position = position
     track_start = time.monotonic() - track_position
