@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.106'
+VERSION = latest_version = '4.90.107'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -2557,13 +2557,15 @@ def read_main_window():
             change_settings('persistent_queue', False)
         elif main_event == 'discord_rpc':
             with suppress(Exception):
-                if main_value and playing_status.busy():
-                    metadata = url_metadata['SYSTEM_AUDIO'] if sar.alive else get_uri_metadata(music_queue[0])
-                    title, artist = metadata['title'], get_first_artist(metadata['artist'])
-                    rich_presence.connect()
-                    rich_presence.update(state=gt('By') + f': {artist}', details=title,
-                                         large_image='default', large_text='Listening',
-                                         small_image='logo', small_text='Music Caster')
+                if main_value:
+                    rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
+                    if playing_status.busy():
+                        metadata = url_metadata['SYSTEM_AUDIO'] if sar.alive else get_uri_metadata(music_queue[0])
+                        title, artist = metadata['title'], get_first_artist(metadata['artist'])
+                        rich_presence.connect()
+                        rich_presence.update(state=gt('By') + f': {artist}', details=title,
+                                            large_image='default', large_text='Listening',
+                                            small_image='logo', small_text='Music Caster')
                 elif not main_value:
                     rich_presence.clear()
         elif main_event in {'show_album_art', 'vertical_gui', 'flip_main_window'}:
@@ -3084,9 +3086,10 @@ if __name__ == '__main__':
                         break
                 Shared.PORT += 1  # port in use or failed to bind to port
         print(f'Running on http://127.0.0.1:{Shared.PORT}/')
-        rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
-        if settings['discord_rpc']:
-            with suppress(Exception): rich_presence.connect()
+        with suppress(Exception):
+            rich_presence = pypresence.Presence(MUSIC_CASTER_DISCORD_ID)
+            if settings['discord_rpc']:
+                 rich_presence.connect()
         temp = (settings['timer_shut_down'], settings['timer_hibernate'], settings['timer_sleep'])
         if temp.count(True) > 1:  # Only one of the below can be True
             if settings['timer_shut_down']: change_settings('timer_hibernate', False)
