@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.108
+- [Fix] Auto-update on system startup
+
 4.90.107
 - [Fix] Disalbed Discord RPC For Sure
 

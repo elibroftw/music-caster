@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.107'
+VERSION = latest_version = '4.90.108'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -3064,8 +3064,8 @@ if __name__ == '__main__':
             if settings['update_message'] == '': tray_notify(WELCOME_MSG)
             elif settings['update_message'] != UPDATE_MESSAGE: tray_notify(UPDATE_MESSAGE)
         change_settings('update_message', UPDATE_MESSAGE)
-        # check for update and update if no starting arguments were supplied or if the update flag was used
-        if len(sys.argv) == 1 and settings['auto_update'] or args.update: auto_update()
+        # check for update and update if no must run arguments were provided or if the update flag was used
+        if (len(sys.argv) == 1 or ['-m'] == sys.argv[1:]) and settings['auto_update'] or args.update: auto_update()
         # set file handlers only if installed from the setup (Not a portable installation)
         if os.path.exists(UNINSTALLER):
             with suppress(PermissionError):
