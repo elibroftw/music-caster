@@ -863,6 +863,7 @@ def get_spotify_playlist(url):
 def get_spotify_tracks(url):
     """
     Returns a list of spotify track objects stemming from a Spotify url
+    Could raise: AttributeError, RequestException, KeyError, more?
     """
     if 'track' in url:
         return [get_spotify_track(url)]

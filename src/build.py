@@ -419,6 +419,6 @@ if args.upload and tests_passed and not args.dry and not args.debug:
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
-if tests_passed and not args.dry and not args.debug and not args.skip_tests:
+elif tests_passed and not args.dry and not args.debug and not args.skip_tests:
     print('Installing Music Caster [Will Launch After]')
     local_install()

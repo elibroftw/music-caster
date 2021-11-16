@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.111'
+VERSION = latest_version = '4.90.112'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -1350,6 +1350,8 @@ def get_url_metadata(url, fetch_art=True) -> list:
             # get a list of spotify tracks from the track/album/playlist Spotify URL
             try:
                 spotify_tracks = get_spotify_tracks(url)
+            except AttributeError:
+                spotify_tracks = []
             except Exception as e:
                 handle_exception(e)
                 spotify_tracks = []
