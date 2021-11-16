@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.109'
+VERSION = latest_version = '4.90.110'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -293,8 +293,12 @@ def save_settings():
 
 
 def cast_wait():
-    with suppress(AttributeError, RuntimeError):
+    try:
         cast.wait(timeout=WAIT_TIMEOUT)
+    except AttributeError:
+        pass
+    except RuntimeError:
+        cast.status_event.wait(WAIT_TIMEOUT)
 
 
 def refresh_tray():
@@ -1476,8 +1480,7 @@ def play(uri, position=0, autoplay=True, switching_device=False):
             cast_last_checked = time.monotonic() + 30  # make sure background_tasks doesn't interfere
             url_args = urllib.parse.urlencode({'path': uri})
             url = f'http://{get_ipv4()}:{Shared.PORT}/file?{url_args}'
-            with suppress(RuntimeError):
-                cast.wait(timeout=WAIT_TIMEOUT)
+            cast_wait()
             cast.set_volume(_volume)
             mc = cast.media_controller
             metadata = {'title': metadata['title'], 'artist': metadata['artist'],

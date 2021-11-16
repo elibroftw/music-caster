@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.110
+- [Fix] Maybe fix cast connection issues
+
 4.90.109
 - [Fix] Tray closing on non-fatal error
 
