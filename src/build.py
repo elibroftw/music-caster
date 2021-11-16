@@ -9,11 +9,14 @@ import re
 import shutil
 from subprocess import check_call, Popen, getoutput
 import sys
+import threading
 import time
 import winreg
 import zipfile
 
+
 from requests.exceptions import RequestException
+
 start_time = time.time()
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(starting_dir)
@@ -187,12 +190,14 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
-was_playing = False
+gui_open = was_playing = False
+
 
 if not args.dry:
     with suppress(RequestException):
-        r = requests.get('http://127.0.0.1:2001/state')
-        was_playing = r.json()['status'] == 'PLAYING'
+        r = requests.get('http://127.0.0.1:2001/state').json()
+        was_playing = r['status'] == 'PLAYING'
+        gui_open = r.get('gui_open', False)
     for process in get_running_processes('Music Caster.exe'):
         pid = process['pid']
         os.kill(pid, 9)
@@ -353,6 +358,17 @@ class ProgressUpload:
         return self.file_size
 
 
+def local_install():
+    install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
+    exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
+    cmd = f'{install_cmd} && "{exe}"'
+    if not gui_open:
+        cmd += ' --minimized'
+    if was_playing:
+        cmd += ' --resume-playback'
+    Popen(cmd, shell=True)
+
+
 if args.upload and tests_passed and not args.dry and not args.debug:
     # upload to GitHub
     github = read_env()['github']
@@ -375,6 +391,9 @@ if args.upload and tests_passed and not args.dry and not args.debug:
     body = add_new_changes(body)
     if any(Repo('../.git').index.diff(None)):
         input('Changed (not committed) files detected. Press enter to confirm upload.\n')
+    print('Will upload and install at the same time!')
+    t = threading.Thread(target=local_install)
+    t.start()
 
     new_release = {
         'tag_name': f'v{VERSION}',
@@ -399,11 +418,7 @@ if args.upload and tests_passed and not args.dry and not args.debug:
         requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
+    t.join()
 if tests_passed and not args.dry and not args.debug and not args.skip_tests:
     print('Installing Music Caster [Will Launch After]')
-    install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
-    exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = f'{install_cmd} && "{exe}" --minimized '
-    if was_playing:
-        cmd += '--resume-playback'
-    Popen(cmd, shell=True)
+    local_install()

@@ -210,7 +210,12 @@ def run_tests(uploading_after=False):
             'https://deezer.page.link/URU2yh1GX1wyaoZy9'
     ):
         if 'spotify' in streaming_url:
-            metadata_list = get_spotify_tracks(streaming_url)
+            try:
+                metadata_list = get_spotify_tracks(streaming_url)
+            except AttributeError:
+                print('WARNING: Spotify down')
+                time.sleep(2)
+                continue
         elif 'deezer' in streaming_url:
             metadata_list = get_deezer_tracks(streaming_url)
         else:

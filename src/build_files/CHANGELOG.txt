@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.111
+- [Fix] URL parsing if URL results in 404
+
 4.90.110
 - [Fix] Maybe fix cast connection issues
 

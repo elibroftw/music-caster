@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.110'
+VERSION = latest_version = '4.90.111'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -21,7 +21,7 @@ import sys
 import threading
 from subprocess import Popen, PIPE, DEVNULL
 from urllib.request import pathname2url
-from inspect import currentframe, getframeinfo
+from inspect import currentframe
 
 
 parser = argparse.ArgumentParser(description='Music Caster')
@@ -769,12 +769,13 @@ def api_play():
     return redirect('/') if request.method == 'GET' else 'true'
 
 
+@app.route('/status/')
 @app.route('/state/')
 def api_state():
     metadata = get_current_metadata()
     now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
                    'title': str(metadata['title']), 'artist': str(metadata['artist']), 'album': str(metadata['album']),
-                   'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
+                   'queue_length': len(done_queue) + len(music_queue) + len(next_queue), 'gui_open': not main_window.was_closed()}
     return jsonify(now_playing)
 
 
@@ -1347,7 +1348,11 @@ def get_url_metadata(url, fetch_art=True) -> list:
             metadata_list.append(metadata)
         else:
             # get a list of spotify tracks from the track/album/playlist Spotify URL
-            spotify_tracks = get_spotify_tracks(url)
+            try:
+                spotify_tracks = get_spotify_tracks(url)
+            except Exception as e:
+                handle_exception(e)
+                spotify_tracks = []
             if spotify_tracks:
                 metadata = spotify_tracks[0]
                 query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
@@ -2085,6 +2090,7 @@ def activate_main_window(selected_tab=None, url_option='url_play'):
     # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
     app_log.info(f'activate_main_window: selected_tab={selected_tab}')
     if main_window.was_closed():
+        # create window if window not alive
         lb_tracks = create_track_list()
         selected_value = lb_tracks[len(done_queue)] if lb_tracks and len(done_queue) < len(lb_tracks) else None
         mini_mode = settings['mini_mode']
