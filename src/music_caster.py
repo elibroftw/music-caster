@@ -1,6 +1,6 @@
 # Important note: Discord RPC has been disabled
 #   Affected code: load_settings, helpers.create_settings
-VERSION = latest_version = '4.90.108'
+VERSION = latest_version = '4.90.109'
 UPDATE_MESSAGE = """
 [Feature] Ctrl + (Shift) + }
 [HELP] Could use some translators
@@ -437,8 +437,8 @@ def handle_exception(e, restart_program=False):
         _f.write(pprint.pformat(payload))
         _f.write('\n')
         _f.write(content)
-    close_tray()
     if restart_program:
+        close_tray()
         with suppress(Exception): stop('error handling')
         tray_notify(gt('An error occurred, restarting now'))
         if IS_FROZEN: os.startfile('Music Caster.exe')
@@ -1435,7 +1435,7 @@ def play_url(url, position=0, autoplay=True, switching_device=False):
             except (UnsupportedNamespace, NotConnected, OSError) as e:
                 tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_linenumber()))
                 handle_exception(e)
-                return stop('play')
+                return stop('play_url')
         track_position = position
         track_start = time.monotonic() - track_position
         if track_length is not None:

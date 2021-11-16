@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.109
+- [Fix] Tray closing on non-fatal error
+
 4.90.108
 - [Fix] Auto-update on system startup
 
