@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.116'
+VERSION = latest_version = '4.90.117'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -835,7 +835,7 @@ if __name__ == '__main__':
 
     @app.route('/refresh-devices/')
     def api_refresh_devices():
-        start_chromecast_discovery(start_thread=True)
+        start_chromecast_discovery()
         return 'true'
 
 
@@ -1012,20 +1012,16 @@ if __name__ == '__main__':
             refresh_tray()
 
 
-    def start_chromecast_discovery(start_thread=False):
+    def start_chromecast_discovery():
         global stop_discovery_browser
-        if start_thread: return Thread(target=start_chromecast_discovery, daemon=True, name='CCDiscovery').start()
         # stop any active scanning
         if stop_discovery_browser is not None:
             pychromecast.discovery.stop_discovery(stop_discovery_browser)
         chromecasts.clear()
+        device_names.clear()
+        device_names.append((f'{CHECK_MARK} Local device', 'device:0'))   # default device. will be cleared in callback
+        refresh_tray()
         stop_discovery_browser = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-        time.sleep(WAIT_TIMEOUT + 1)
-        pychromecast.discovery.stop_discovery(stop_discovery_browser)
-        stop_discovery_browser = None
-        if not device_names:
-            device_names.append((f'{CHECK_MARK} Local device', 'device:0'))
-            refresh_tray()
 
 
     def change_device(new_idx):
@@ -2173,6 +2169,7 @@ if __name__ == '__main__':
     def exit_program(quick_exit=False):
         main_window.close()
         close_tray()
+        # stop any active scanning
         if stop_discovery_browser is not None:
             pychromecast.discovery.stop_discovery(stop_discovery_browser)
         with suppress(UnsupportedNamespace, NotConnected):
@@ -3029,7 +3026,7 @@ if __name__ == '__main__':
             # from tray menu
             gt('Exit'): exit_program,
             gt('Rescan Library'): index_all_tracks,
-            gt('Refresh Devices'): lambda: start_chromecast_discovery(start_thread=True),
+            gt('Refresh Devices'): lambda: start_chromecast_discovery,
             # isdigit should be an if statement
             gt('Settings'): lambda: activate_main_window('tab_settings'),
             gt('Playlists Menu'): lambda: activate_main_window('tab_playlists'),
@@ -3095,7 +3092,7 @@ if __name__ == '__main__':
             change_settings('populate_queue_startup', False)
         cast_last_checked = time.monotonic()
         Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
-        start_chromecast_discovery(start_thread=True)
+        start_chromecast_discovery()
         audio_player = AudioPlayer()
         if args.uris:
             # wait until previous device has been found or if it hasn't been found
@@ -3117,12 +3114,11 @@ if __name__ == '__main__':
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
         if args.resume_playback and not args.uris:
             if music_queue:
+                while all((settings['previous_device'], cast is None, stop_discovery_browser)): time.sleep(0.3)
                 play(music_queue[0], autoplay=not args.start_paused, position=args.position)
         if args.start_playing and not args.uris:
-            if music_queue:
-                play(music_queue[0])
-            else:
-                play_all()
+            while all((settings['previous_device'], cast is None, stop_discovery_browser)): time.sleep(0.3)
+            play(music_queue[0]) if music_queue else play_all()
         # open window if minimized argument not given
         if not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')
