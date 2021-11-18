@@ -41,6 +41,7 @@ parser.add_argument('--skip_build', default=False, action='store_true',
 parser.add_argument('--skip_tests', '--st', default=False, action='store_true',
                     help='Skip testing')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
+parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
 parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
 args = parser.parse_args()
 if args.dry: print('Dry Build')
@@ -191,7 +192,7 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 
 
 gui_open = was_playing = False
-
+args.upload = args.upload and not args.test_autoupdate
 
 if not args.dry:
     with suppress(RequestException):
@@ -204,6 +205,7 @@ if not args.dry:
 if args.debug and not args.dry: set_spec_debug(True)
 else: set_spec_debug(False)
 if args.upload and not args.dry: print('Will upload to GitHub after building')
+if args.test_autoupdate and not args.dry: print("This test should test auto update and won't publish to GitHub")
 
 if not args.skip_build:
     # remove existing builds
@@ -314,12 +316,12 @@ if not args.dry and not args.skip_tests and tests_passed:
     try:
         sys.argv = sys.argv[:1]
         from test_harness import run_tests
-        run_tests(uploading_after=args.upload)
+        run_tests(uploading_after=args.upload, testing_autoupdate=args.test_autoupdate)
     except AssertionError as e:
         print('TESTS FAILED: test_helpers()')
         raise e
-    # Test if executable can be run
-    p = Popen('"dist/Music Caster/Music Caster.exe" -m', shell=True)
+    # Test if executable can be run [disables auto update or some shit]
+    p = Popen('"dist/Music Caster/Music Caster.exe" -m --debug', shell=True)
     time.sleep(2)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
     time.sleep(2)

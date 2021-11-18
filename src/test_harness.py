@@ -1,6 +1,5 @@
-from music_caster import *
+from music_caster import get_running_processes, is_already_running, VERSION
 from helpers import *
-from helpers import get_metadata
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
 TEST_MUSIC_FILES = [
@@ -60,14 +59,14 @@ EXPECTED_METADATA = [
 EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
-def run_tests(uploading_after=False):
+def run_tests(uploading_after=False, testing_autoupdate=False):
     assert list(get_running_processes())
 
     for file_path, name in [
-        (r'C:\Users\maste\OneDrive\Music\Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
-        ('C:/Users/maste/OneDrive/Music/Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
-        (r'Music\Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef'),
-        ('Music/Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef')]:
+            (r'C:\Users\maste\OneDrive\Music\Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
+            ('C:/Users/maste/OneDrive/Music/Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
+            (r'Music\Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef'),
+            ('Music/Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef')]:
         try:
             assert get_file_name(file_path) == name
         except AssertionError as e:
@@ -179,12 +178,13 @@ def run_tests(uploading_after=False):
     assert create_progress_bar_text(30, 300) == ('0:30', '4:30')
 
     print('Default Audio Device:', get_default_output_device())
+    sar = SystemAudioRecorder()
     sar.start()  # start system audio recording
     time.sleep(0.5)
     sar.stop()  # stop system audio recording
 
     for size in ((125, 425), COVER_MINI, COVER_NORMAL):
-        base64data = resize_img(DEFAULT_ART, settings['theme']['background'], new_size=size)
+        base64data = resize_img(DEFAULT_ART, '#121212', new_size=size)
         img_data = io.BytesIO(b64decode(base64data))
         img: Image = Image.open(img_data)
         assert img.size == size
@@ -227,23 +227,21 @@ def run_tests(uploading_after=False):
             if 'deezer' in streaming_url:
                 assert callable(metadata['expired'])
                 assert metadata['url']
-    assert len(url_metadata) == 0
-    get_url_metadata('https://www.youtube.com/watch?v=PNP0hku7hSo')
-    try:
-        assert len(url_metadata) == 9
-    except AssertionError:
-        print('YOUTUBE-DL FAILED')
-
+    ydl_extract_info('https://www.youtube.com/watch?v=PNP0hku7hSo')
     get_proxies()
     assert list(get_youtube_comments('https://www.youtube.com/watch?v=znndNZBsdGY', 10))
+
     # in case we forgot to update the version
     version = [int(x) for x in VERSION.split('.')]
-    compare_ver = get_latest_release(VERSION, True)['version']
+    compare_ver = get_latest_release(VERSION, VERSION, True)['version']
     compare_ver = [int(x) for x in compare_ver.split('.')]
-    if uploading_after:
+    if testing_autoupdate:
+        assert version < compare_ver
+    elif uploading_after:
         assert compare_ver < version
     else:
         assert compare_ver <= version
+
 
 
 if __name__ == '__main__':

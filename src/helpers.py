@@ -1,9 +1,8 @@
-from deezer import TrackFormats
+from deezer import TrackFormats  # 0.259 seconds because of requests
 from b64_images import *
+import base64
 import audioop
 from queue import LifoQueue, Empty
-import browser_cookie3 as bc3
-from bs4 import BeautifulSoup
 from contextlib import suppress
 import ctypes
 import datetime
@@ -11,7 +10,7 @@ from functools import wraps, lru_cache
 import glob
 import io
 from itertools import cycle, repeat, chain
-import json
+import ujson as json
 import locale
 from math import floor, ceil
 import os
@@ -20,18 +19,23 @@ import platform
 from random import getrandbits
 import re
 import socket
-import sqlite3
 import time
 from threading import Thread
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
 import winreg as wr
+
 # 3rd party imports
+import pypresence
 import deemix.utils.localpaths as __lp
 __lp.musicdata = '/dz'
-from deemix.__main__ import Deezer
-from deemix.decryption import generateBlowfishKey, generateStreamURL
+# without dz imports:
+# helpers: 0.5212428569793701
+# Done importing: 4.07397723197937
+# with dz imports:
+# helpers: 1.3634579181671143
+# Done importing: 4.319329738616943
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -45,11 +49,10 @@ from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 import pyaudio
 import pyqrcode
-import PySimpleGUI as Sg
+import PySimpleGUI as Sg  # 0.11 seconds
 from PIL import Image, ImageFile, ImageDraw, ImageFont
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-from youtube_dl import YoutubeDL
 
 
 # CONSTANTS
@@ -78,7 +81,6 @@ class Shared:
     """
     lang = ''
     track_format = '&title - &artist'
-    dz = Deezer()
     PORT = 2001
 
 
@@ -256,6 +258,47 @@ class Unknown(str):
 
     def __len__(self):
         return len(str(self))
+
+
+class DiscordPresence:
+    """
+    Exception safe wrapper for pypresence
+    """
+    rich_presence: pypresence.Presence = None
+    MUSIC_CASTER_DISCORD_ID = '696092874902863932'
+
+    @classmethod
+    def set_rich_presence(cls):
+        if cls.rich_presence is None:
+            with suppress(Exception):
+                cls.rich_presence = pypresence.Presence()
+
+    @classmethod
+    def connect(cls, confirm_connect=True):
+        if confirm_connect:
+            cls.set_rich_presence()
+            with suppress(Exception):
+                cls.rich_presence.connect()
+
+    @classmethod
+    def update(cls, confirm_connect=True, state: str = None, details: str = None, large_text: str = None,
+               large_image='default', small_image='logo', small_text='Music Caster'):
+        if confirm_connect:
+            cls.set_rich_presence()
+            with suppress(Exception):
+                cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
+                                         small_image=small_image, small_text=small_text)
+
+    @classmethod
+    def clear(cls, confirm=True):
+        if confirm:
+            with suppress(Exception):
+                cls.rich_presence.clear()
+
+    @classmethod
+    def close(cls):
+        with suppress(Exception):
+            cls.rich_presence.close()
 
 
 def get_file_name(file_path): return Path(file_path).stem
@@ -498,6 +541,38 @@ def get_metadata(file_path: str):
     return metadata
 
 
+def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime: str, data: str
+    with suppress(MutagenError):
+        folder = os.path.dirname(file_path)
+        if folder_cover_override:
+            for ext in ('png', 'jpg', 'jpeg'):
+                folder_cover = os.path.join(folder, f'cover.{ext}')
+                if os.path.exists(folder_cover):
+                    with open(folder_cover, 'rb') as f:
+                        return ext, base64.b64encode(f.read())
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == '.flac':
+            pics = mutagen.flac.FLAC(file_path).pictures
+            with suppress(IndexError): return pics[0].mime, base64.b64encode(pics[0].data).decode()
+        elif ext in {'.mp4', '.m4a', '.aac'}:
+            with suppress(KeyError, IndexError):
+                cover = mutagen.File(file_path)['covr'][0]
+                image_format = cover.imageformat
+                mime = 'image/png' if image_format == 14 else 'image/jpeg'
+                return mime, base64.b64encode(cover).decode()
+        else:
+            tags = mutagen.File(file_path)
+            if tags is not None:
+                for tag in tags.keys():
+                    if 'APIC' in tag:
+                        try:
+                            return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+                        except AttributeError:
+                            mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
+                            return mime, base64.b64encode(tags[tag][0].value).decode()
+    return 'image/jpeg', DEFAULT_ART
+
+
 def fix_path(path, by_os=True): return str(Path(path)) if by_os else Path(path).as_posix()
 
 
@@ -549,14 +624,28 @@ def valid_audio_file(uri) -> bool:
     return ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
 
 
+@lru_cache(maxsize=1)
+def dz():
+    from deemix.__main__ import Deezer  # 1.4 seconds. 0.4 due to Downloader
+    return Deezer()
+
+
 @lru_cache(maxsize=2)
 def ydl(proxy=None):
-    if proxy is not None:
-        ydl_opts = {
-            'proxy': proxy,
-        }
-        return YoutubeDL(ydl_opts)
-    return YoutubeDL()
+    from youtube_dl import YoutubeDL  # 2 seconds!
+    return YoutubeDL() if proxy is None else YoutubeDL({'proxy': proxy})
+
+
+def ydl_extract_info(url):
+    """
+    Raises IOError instead of YoutubeDL's DownloadError, saving us time on imports
+    """
+    from youtube_dl.utils import DownloadError
+    with suppress(DownloadError):
+        return ydl().extract_info(url, download=False)
+    with suppress(DownloadError):
+        return ydl(get_proxy(False)['https']).extract_info(url, download=False)
+    raise IOError
 
 
 # noinspection PyTypeChecker
@@ -607,7 +696,6 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
     mc_file = 'MusicCaster_file'
     write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
-
     # create URL protocol handler
     url_protocol = f'{classes_path}music-caster'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
@@ -765,8 +853,31 @@ def parse_m3u(playlist_file):
                 if line != playlist_file: yield line
 
 
+def get_latest_release(ver, this_version, force=False):
+    """
+    returns {'version': latest_ver, 'setup': 'setup_link'} if the latest release version is newer (>) than VERSION
+    if latest release version <= VERSION, returns false
+    if force: return latest release even if latest version <= VERSION """
+    releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
+    with suppress(requests.RequestException):
+        release = requests.get(releases_url)
+        if release.status_code >= 400:
+            release = requests.get(releases_url, proxies=get_proxy(False))
+        release = release.json()
+        latest_ver = release.get('tag_name', f'v{this_version}')[1:]
+        _version = [int(x) for x in ver.split('.')]
+        compare_ver = [int(x) for x in latest_ver.split('.')]
+        if compare_ver > _version or force:
+            for asset in release.get('assets', []):
+                # check if setup exists
+                if 'exe' in asset['name']:
+                    return {'version': latest_ver, 'setup': asset['browser_download_url']}
+    return False
+
+
 @time_cache(600, maxsize=1)
 def get_proxies(add_local=True):
+    from bs4 import BeautifulSoup  # 0.32 seconds if at top level, here it is 0.1 seconds
     try:
         response = requests.get('https://free-proxy-list.net/', headers={'user-agent': USER_AGENT})
         scraped_proxies = set()
@@ -824,12 +935,11 @@ def parse_spotify_track(track_obj) -> dict:
     track_number = str(track_obj['track_number'])
     sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
     sort_key = sort_key.replace('&trck', track_number).lower()
-    metadata =  {'src': src_url, 'title': title, 'artist': artist, 'album': album,
-                 'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
+    metadata = {'src': src_url, 'title': title, 'artist': artist, 'album': album,
+                'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
     with suppress(IndexError):
         metadata['art'] = track_obj['album']['images'][0]['url']
     return metadata
-
 
 
 def get_spotify_track(url):
@@ -874,26 +984,25 @@ def get_spotify_tracks(url):
     return []
 
 
-def get_dz_token():
+def get_cookies(domain_contains, cookie_name='', return_first=True, return_value=True):
+    """
+    get_cookies('.youtube.com', '', False, False)
+    """
+    import browser_cookie3 as bc3  # 0.388 seconds if on top level, 0.06 here
+    import sqlite3
     for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
+        cookies = []
         with suppress(bc3.BrowserCookieError, sqlite3.OperationalError):
             cookie_storage = cookie_storage()
             for cookie in cookie_storage:
-                if cookie.domain.count('.deezer.com'):
-                    if cookie.name == 'arl' and not cookie.is_expired():
-                        return cookie.value
-    return ''
-
-
-def get_yt_cookie():
-    for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
-        with suppress(bc3.BrowserCookieError, sqlite3.OperationalError):
-            cookie_storage = cookie_storage()
-            yt_cookies = []
-            for cookie in cookie_storage:
-                if cookie.domain.count('.youtube.com'):
-                    if not cookie.is_expired(): yt_cookies.append(f'{cookie.name}={cookie.value}')
-            if yt_cookies: return 'Cookie: ' + '; '.join(yt_cookies)
+                if cookie.domain.count(domain_contains):
+                    formatted_cookie = f'{cookie.name}={cookie.value}'
+                    if (not cookie_name or cookie.name == cookie_name) and not cookie.is_expired():
+                        cookie_to_use = cookie.value if return_value else formatted_cookie
+                        if return_first: return cookie_to_use
+                        cookies.append(cookie_to_use)
+        if cookies:
+            return 'Cookie: ' + '; '.join(cookies)
     return ''
 
 
@@ -917,6 +1026,7 @@ def parse_deezer_page(url):
 
 
 def parse_deezer_track(track_obj) -> dict:
+    from deemix.decryption import generateBlowfishKey, generateStreamURL
     artists = []
     try:
         main_artists = track_obj['SNG_CONTRIBUTORS']['main_artist']
@@ -960,7 +1070,7 @@ def set_dz_url(metadata):
 
 def get_deezer_track(url):
     sng_id = parse_deezer_page(url)['sng_id']
-    metadata = parse_deezer_track(Shared.dz.gw.get_track(sng_id))
+    metadata = parse_deezer_track(dz().gw.get_track(sng_id))
     metadata['src'] = url
     set_dz_url(metadata)
     return metadata
@@ -969,7 +1079,7 @@ def get_deezer_track(url):
 def get_deezer_album(url):
     alb_id = parse_deezer_page(url)['sng_id']
     tracks = []
-    for track in Shared.dz.gw.get_album_tracks(alb_id):
+    for track in dz().gw.get_album_tracks(alb_id):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
         metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
@@ -981,7 +1091,7 @@ def get_deezer_album(url):
 def get_deezer_playlist(url):
     pl_id = parse_deezer_page(url)['sng_id']
     tracks = []
-    for track in Shared.dz.gw.get_playlist_tracks(pl_id):
+    for track in dz().gw.get_playlist_tracks(pl_id):
         metadata = parse_deezer_track(track)
         sng_id = metadata['sng_id']
         metadata['src'] = f'https://www.deezer.com/track/{sng_id}'
@@ -993,8 +1103,8 @@ def get_deezer_playlist(url):
 @lru_cache
 def get_deezer_tracks(url, login=True):
     if login:
-        if not Shared.dz.logged_in:
-            if not Shared.dz.login_via_arl(get_dz_token()):
+        if not dz().logged_in:
+            if not dz().login_via_arl(get_cookies('.deezer.com', cookie_name='arl')):
                 raise LookupError('Not logged into deezer.com')
     dz_type = parse_deezer_page(url)['type']
     if dz_type == 'track':
@@ -1136,7 +1246,7 @@ def get_video_timestamps(video_info):
     if len(description_timestamps) > 1: return description_timestamps
     # try parsing comments
     url = video_info['webpage_url']
-    with suppress(json.JSONDecodeError, RuntimeError):
+    with suppress(ValueError, RuntimeError):
         for count, comment in enumerate(get_youtube_comments(url, limit=10)):
             times = parse_timestamps(comment['text'])
             if len(times) > 2: return times
@@ -1414,8 +1524,7 @@ def create_settings(version, settings):
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
     general_tab = Sg.Tab(gt('General'), [
         [create_checkbox(gt('Auto update'), 'auto_update', settings),
-        #  create_checkbox(gt('Discord presence'), 'discord_rpc', settings, True)
-         ],
+         create_checkbox(gt('Discord presence'), 'discord_rpc', settings, True)],
         [create_checkbox(gt('Notifications'), 'notifications', settings),
          create_checkbox(gt('Run on startup'), 'run_on_startup', settings, True)],
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),

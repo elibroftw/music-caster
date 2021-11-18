@@ -95,8 +95,10 @@ namespace Music_Caster_Updater
             JsonElement assets = (JsonElement) jsonResponse.GetValueOrDefault("assets");
             foreach (JsonElement asset in assets.EnumerateArray())
             {
-                if (asset.GetProperty("name").ToString().Contains("exe")) setupDownloadURL = asset.GetProperty("browser_download_url").ToString();
-                else if (asset.GetProperty("name").ToString().ToLower().Contains("portable")) portableDownloadURL = asset.GetProperty("browser_download_url").ToString();
+                if (asset.GetProperty("name").ToString().Contains("exe"))
+                    setupDownloadURL = asset.GetProperty("browser_download_url").ToString();
+                else if (asset.GetProperty("name").ToString().ToLower().Contains("portable"))
+                    portableDownloadURL = asset.GetProperty("browser_download_url").ToString();
             }
             string latestVersion = jsonResponse.GetValueOrDefault("tag_name").ToString();
             if (debugSetting)
@@ -113,7 +115,7 @@ namespace Music_Caster_Updater
             else
             {   // portable installation
                 Download(portableDownloadURL, "Portable.zip");
-                Process.Start("\"Music Caster.exe\"");
+                Process.Start("\"Music Caster.exe\" --nupdate");
             }
         }
     }

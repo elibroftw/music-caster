@@ -1,5 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.113
+- [Fix] Chromecast errors
+- [Fix] Discord rich presence
+- [Optimization] Improve startup time by reducing top level imports
+- [Optimization] Using ujson to load and save settings faster
+- [Optimization] Auto-update does not block usage
+
 4.90.112
 - [Fix] Don't send known errors
 
