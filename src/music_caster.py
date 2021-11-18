@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.113'
+VERSION = latest_version = '4.90.114'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -2165,9 +2165,6 @@ if __name__ == '__main__':
 
 
     def exit_program(quick_exit=False):
-        # background tasks or something messes things up
-        if not main_window.was_closed():
-            main_window.minimize()
         main_window.close()
         close_tray()
         if stop_discovery_browser is not None:

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.114
+- [Fix] Revert minimizing when closing
+
 4.90.113
 - [Fix] Chromecast errors
 - [Fix] Discord rich presence
