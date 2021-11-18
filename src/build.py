@@ -189,15 +189,15 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
                 print(f'{file_to_zip} not found')
 
 
-gui_open = was_playing = False
 args.upload = args.upload and not args.test_autoupdate
-
+player_state = {}
 if not args.dry:
     with suppress(RequestException):
-        r = requests.get('http://127.0.0.1:2001/state').json()
-        was_playing = r['status'] == 'PLAYING'
-        gui_open = r.get('gui_open', False)
+        player_state = requests.get('http://127.0.0.1:2001/state').json()
+        requests.get('http://127.0.0.1:2001/exit')
+        time.sleep(1)  # wait for MC to exit
     for process in get_running_processes('Music Caster.exe'):
+        # force close any other instances of MC
         pid = process['pid']
         os.kill(pid, 9)
 if args.debug and not args.dry: set_spec_debug(True)
@@ -359,13 +359,16 @@ class ProgressUpload:
 
 
 def local_install():
-    install_cmd = '"dist/Music Caster Setup.exe" /FORCECLOSEAPPLICATIONS /VERYSILENT /MERGETASKS="!desktopicon"'
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = f'{install_cmd} && "{exe}"'
-    if not gui_open:
-        cmd += ' --minimized'
-    if was_playing:
-        cmd += ' --resume-playback'
+    cmd = ['dist/Music Caster Setup.exe', '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"', '&&', exe]
+    if not player_state.get('gui_open', False):
+        cmd.append('--minimized')
+    if player_state.get('status', 'NOT PLAYING') in ('PLAYING', 'PAUSED'):
+        cmd.append('--resume-playback')
+        if player_state['status'] == 'PAUSED':
+            cmd.append('--start-paused')
+    if position := player_state.get('position', 0) > 0:
+        cmd.append(f'--position={position}')
     Popen(cmd, shell=True)
 
 

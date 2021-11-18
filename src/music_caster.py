@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.115'
+VERSION = latest_version = '4.90.116'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -113,10 +113,13 @@ if __name__ == '__main__':
     parser.add_argument('--exit', '-x', default=False, action='store_true',
                         help='exits any existing instance (including self)')
     parser.add_argument('--minimized', '-m', default=False, action='store_true', help='start minimized to tray')
-    parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
     parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
     parser.add_argument('--resume-playback', '-r', default=False, action='store_true', help='play if tracks in queue')
+    parser.add_argument('--start-paused', default=False, action='store_true', help='use this to only load track if resume_playing')
     parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
+    parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
+    parser.add_argument('--position', default=0, help='position to start at if resume_playing')
+
     # freeze_support() adds the following
     parser.add_argument('--multiprocessing-fork', default=False, action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -383,10 +386,10 @@ if __name__ == '__main__':
             settings[settings_key] = new_value
             save_settings()
             if settings_key == 'repeat':
-                daemon_commands.put('update_gui')
+                daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             elif settings_key == 'shuffle':
-                if not main_window.was_closed(): daemon_commands.put('update_gui')
+                if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 shuffle_queue() if new_value else un_shuffle_queue()
         return new_value
 
@@ -743,6 +746,18 @@ if __name__ == '__main__':
                                devices=formatted_devices, version=VERSION, gt=gt)
 
 
+    @app.route('/status/')
+    @app.route('/state/')
+    def api_state():
+        metadata = get_current_metadata()
+        now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
+                       'title': str(metadata['title']), 'artist': str(metadata['artist']),
+                       'album': str(metadata['album']), 'gui_open': not main_window.was_closed(),
+                       'track_position': get_track_position(), 'track_length': track_end - track_start,
+                       'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
+        return jsonify(now_playing)
+
+
     @app.route('/play/', methods=['GET', 'POST'])
     def api_play():
         global last_play_command
@@ -757,18 +772,7 @@ if __name__ == '__main__':
         elif 'uri' in request.values:
             play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, from_explorer=from_explorer)
             if settings['queue_library']: queue_all()
-        return redirect('/') if request.method == 'GET' else 'true'
-
-
-    @app.route('/status/')
-    @app.route('/state/')
-    def api_state():
-        metadata = get_current_metadata()
-        now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
-                       'title': str(metadata['title']), 'artist': str(metadata['artist']),
-                       'album': str(metadata['album']), 'gui_open': not main_window.was_closed(),
-                       'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
-        return jsonify(now_playing)
+        return redirect('/') if request.method == 'GET' else api_state()
 
 
     @app.errorhandler(InternalServerError)
@@ -807,8 +811,8 @@ if __name__ == '__main__':
 
     @app.route('/exit/', methods=['GET', 'POST'])
     def api_exit():
-        daemon_commands.put(gt('Exit'))
-        return 'true'
+        daemon_commands.put('__EXIT__')
+        return api_state()
 
 
     @app.route('/change-setting/', methods=['POST'])
@@ -1203,7 +1207,7 @@ if __name__ == '__main__':
                                large_text=gt('Listening'))
         if not main_window.was_closed():
             main_window.metadata['update_listboxes'] = True
-            daemon_commands.put('update_gui')
+            daemon_commands.put('__UPDATE_GUI__')
 
 
     def play_system_audio(switching_device=False):
@@ -1697,7 +1701,7 @@ if __name__ == '__main__':
                                            large_text='Paused')
             except UnsupportedNamespace:
                 stop('pause')
-            if not main_window.was_closed(): daemon_commands.put('update_gui')
+            if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
             refresh_tray()
             return True
         return False
@@ -1731,7 +1735,7 @@ if __name__ == '__main__':
                 DiscordPresence.update(settings['discord_rpc'], state=gt('By') + f': {artist}', details=title,
                                        large_text=gt('Listening'))
                 ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
-                if not main_window.was_closed(): daemon_commands.put('update_gui')
+                if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except (UnsupportedNamespace, NotConnected):
                 if music_queue: return play(music_queue[0], position=track_position)
@@ -1773,7 +1777,7 @@ if __name__ == '__main__':
         else:
             audio_player.stop()
         track_start = track_position = track_end = track_length = 0
-        if not main_window.was_closed(): daemon_commands.put('update_gui')
+        if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
         refresh_tray()
 
 
@@ -2174,7 +2178,7 @@ if __name__ == '__main__':
         with suppress(UnsupportedNamespace, NotConnected):
             if cast is None:
                 stop('exit program')
-            elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
+            elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status.busy():
                 cast.quit_app()
         DiscordPresence.close()
         if settings['persistent_queue'] and not quick_exit:
@@ -3020,8 +3024,10 @@ if __name__ == '__main__':
     def handle_action(action):
         actions = {
             '__ACTIVATED__': activate_main_window,
-            'update_gui': _update_gui,
+            '__UPDATE_GUI__': _update_gui,
+            '__EXIT__': exit_program,
             # from tray menu
+            gt('Exit'): exit_program,
             gt('Rescan Library'): index_all_tracks,
             gt('Refresh Devices'): lambda: start_chromecast_discovery(start_thread=True),
             # isdigit should be an if statement
@@ -3046,11 +3052,10 @@ if __name__ == '__main__':
             gt('Repeat One'): lambda: change_settings('repeat', True),
             gt('Repeat All'): lambda: change_settings('repeat', False),
             gt('Repeat Off'): lambda: change_settings('repeat', None),
-            gt('locate track', 1): locate_uri,
-            gt('Exit'): exit_program,
-            '__EXIT__': exit_program
+            gt('locate track', 1): locate_uri
         }
         actions.get(action, lambda: other_tray_actions(action))()
+
 
     try:
         start_time = time.monotonic()
@@ -3112,7 +3117,7 @@ if __name__ == '__main__':
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
         if args.resume_playback and not args.uris:
             if music_queue:
-                play(music_queue[0])
+                play(music_queue[0], autoplay=not args.start_paused, position=args.position)
         if args.start_playing and not args.uris:
             if music_queue:
                 play(music_queue[0])

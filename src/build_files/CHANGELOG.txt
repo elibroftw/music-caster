@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.116
+- [Fix] Cleaner dual instance exit
+- [Fix] Improved /state/ and 
+
 4.90.115
 - [Fix] Cleaner exit
 
