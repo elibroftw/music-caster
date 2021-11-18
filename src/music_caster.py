@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.114'
+VERSION = latest_version = '4.90.115'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -84,7 +84,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         tray.visible = False
                     elif parent_cmd == 'close':
                         tray.stop()
-                        sys.exit()
             time.sleep(0.1)
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
     threading.Thread(target=background, daemon=True).start()
@@ -883,7 +882,7 @@ if __name__ == '__main__':
             if seconds_delta < 0: seconds_delta += 43200  # add 12 hours
             seconds = seconds_delta
         else:
-            raise ValueError()
+            raise ValueError('Timer input is invalid')
         timer = time.time() + seconds
         timer_set_to = datetime.now().replace(second=0) + timedelta(seconds=seconds)
         if platform.system() == 'Windows':
@@ -898,7 +897,10 @@ if __name__ == '__main__':
         global timer
         if request.method == 'POST':
             val = request.data.decode()
-            return set_timer(val.lower())
+            try:
+                return set_timer(val.lower())
+            except ValueError as e:
+                return str(e)
         else:  # GET request
             return str(timer)
 
@@ -3136,6 +3138,8 @@ if __name__ == '__main__':
                 elif settings['timer_sleep']:
                     if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
             time.sleep(0.2) if main_window.was_closed() else read_main_window()
+    except KeyboardInterrupt:
+        exit_program()
     except Exception as exception:
         app_log.info(f'FATAL exception detected: {exception}')
         # try to auto-update before exiting

@@ -396,8 +396,8 @@ def get_length(file_path) -> int:
             audio_info = mutagen.File(file_path).info
             length = audio_info.length
         return length
-    except (AttributeError, HeaderNotFoundError, MutagenError, WavInfoEOFError, StopIteration):
-        raise InvalidAudioFile(f'{file_path} is an invalid audio file')
+    except (AttributeError, HeaderNotFoundError, MutagenError, WavInfoEOFError, StopIteration) as e:
+        raise InvalidAudioFile(f'{file_path} is an invalid audio file') from e
 
 
 def natural_key_file(file_name):
@@ -643,9 +643,10 @@ def ydl_extract_info(url):
     from youtube_dl.utils import DownloadError
     with suppress(DownloadError):
         return ydl().extract_info(url, download=False)
-    with suppress(DownloadError):
+    try:
         return ydl(get_proxy(False)['https']).extract_info(url, download=False)
-    raise IOError
+    except DownloadError as e:
+        raise IOError from e
 
 
 # noinspection PyTypeChecker

@@ -96,8 +96,6 @@ if not args.skip_build and not args.skip_deps:
 
 # import third party libraries
 import requests
-import win32com.client
-from win32comext.shell import shell, shellcon
 import traceback
 from git import Repo
 sys.argv = sys.argv[:1]
