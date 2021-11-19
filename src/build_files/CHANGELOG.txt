@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.0
+- [New] Using Python 3.10 64-bit
+
 4.90.119
 - [Fix] Activate instance using IPv6
 

@@ -1,5 +1,5 @@
 build_files/pyinstaller-5.0.dev0-py3-none-any.whl
-build_files/PyAudio-0.2.11-cp38-cp38-win32.whl
+build_files/PyAudio-0.2.11-cp310-cp310-win_amd64.whl
 ujson==4.2.0
 pycparser==2.14
 mutagen~=1.45.1
@@ -24,13 +24,15 @@ beautifulsoup4~=4.10
 flask~=2.0
 deezer-py
 deemix
+six
 # pyinstaller dependencies
-setuptools<50.0.0   # 50.0.0 breaks a modulegraph regession test
+setuptools
 altgraph
-pyinstaller-hooks-contrib >= 2020.6
+pyinstaller-hooks-contrib >= 2020.11
 pefile; sys_platform == 'win32'
 pywin32-ctypes; sys_platform == 'win32'
 pypiwin32; sys_platform == 'win32'
 macholib; sys_platform == 'darwin'
+importlib-metadata; python_version < '3.8'
 # dev
 GitPython~=3.1

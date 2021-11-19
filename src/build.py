@@ -1,21 +1,17 @@
 import argparse
 from contextlib import suppress
 from datetime import datetime
-from distutils.dir_util import copy_tree
 import glob
 import math
 import os
 import re
 import shutil
-from subprocess import check_call, Popen, getoutput
+from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
 import threading
 import time
 import winreg
 import zipfile
-
-
-from requests.exceptions import RequestException
 
 start_time = time.time()
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -36,16 +32,15 @@ parser.add_argument('--ver_update', '-v', default=False, action='store_true', he
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
-parser.add_argument('--skip_build', default=False, action='store_true',
+parser.add_argument('--skip-build', default=False, action='store_true',
                     help='Skip to testing / uploading')
-parser.add_argument('--skip_tests', '--st', default=False, action='store_true',
+parser.add_argument('--skip-tests', '--st', default=False, action='store_true',
                     help='Skip testing')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
-parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
+parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
 args = parser.parse_args()
 if args.dry: print('Dry Build')
-VERSION = getoutput('music_caster.py --version')
 
 
 def update_versions():
@@ -82,16 +77,23 @@ def update_versions():
         f.writelines(lines)
         f.truncate()
 
-
-update_versions()
+VERSION = getoutput('music_caster.py --version')
+if 'ModuleNotFoundError' not in VERSION:
+    update_versions()
+else:
+    args.dry = True
+    args.ver_update = args.skip_deps = args.skip_build = False
+    print('Warning: could not get version, will install modules')
 print('Updated versions of build files')
 if args.ver_update: sys.exit()
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
     # install tkdnd
-    copy_tree('build_files/tkdnd2.9.2', os.path.dirname(sys.executable) + '/tcl/tkdnd2.9.2')
-    copy_tree('build_files/TkinterDnD2', os.path.dirname(sys.executable) + '/Lib/site-packages/TkinterDnD2')
-    getoutput(f'{sys.executable} -m pip install --upgrade -r requirements.txt')
+    sys_dir_name = os.path.dirname(sys.executable)
+    shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+    shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+    cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade', '--user', '-r', 'requirements.txt']
+    Popen(cmd, stdin=DEVNULL, stdout=None if args.dry else DEVNULL).wait()
 
 
 # import third party libraries
@@ -192,7 +194,7 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 args.upload = args.upload and not args.test_autoupdate
 player_state = {}
 if not args.dry:
-    with suppress(RequestException):
+    with suppress(requests.exceptions.RequestException):
         player_state = requests.get('http://[::1]:2001/state').json()
         requests.get('http://[::1]:2001/exit')
         time.sleep(1)  # wait for MC to exit
@@ -251,8 +253,8 @@ if not args.dry and not args.skip_build:
     for folder in {'dist/static', 'dist/templates'}:
         with suppress(OSError): os.mkdir(folder)
 
-    copy_tree('vlc_lib', 'dist/vlc_lib')
-    copy_tree('languages', 'dist/languages')
+    shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
+    shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
 
     res_files = ['static/style.css', 'templates/index.html']
     for res_file in res_files:
