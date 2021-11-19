@@ -1,7 +1,11 @@
-VERSION = latest_version = '4.90.117'
+VERSION = latest_version = '4.90.118'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
+""".strip()
+IMPORTANT_INFORMATION = """
+v5 will be 64-bit only. v4.90.118 will be the last version to support 32-bit devices.
+The current update prevents 32-bit Windows users from auto-updating to v5.
 """.strip()
 import time
 start_time = time.monotonic()
@@ -105,7 +109,8 @@ if __name__ == '__main__':
     import requests
     parser = argparse.ArgumentParser(description='Music Caster')
     parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
-    parser.add_argument('--queue', '-q', default=False, action='store_true', help='paths are queued')
+    parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
+    parser.add_argument('--queue', '-q', default=False, action='store_true', help='uris are queued not played')
     parser.add_argument('--playnext', '-n', default=False, action='store_true', help='paths are added to next up')
     parser.add_argument('--urlprotocol', '-p', default=False, action='store_true', help='launched using uri protocol')
     parser.add_argument('--update', '-u', default=False, action='store_true', help='update MC even if --args provided')
@@ -114,9 +119,6 @@ if __name__ == '__main__':
                         help='exits any existing instance (including self)')
     parser.add_argument('--minimized', '-m', default=False, action='store_true', help='start minimized to tray')
     parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
-    parser.add_argument('--resume-playback', '-r', default=False, action='store_true', help='play if tracks in queue')
-    parser.add_argument('--start-paused', default=False, action='store_true', help='use this to only load track if resume_playing')
-    parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
     parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
     parser.add_argument('--position', default=0, help='position to start at if resume_playing')
 
@@ -226,7 +228,7 @@ if __name__ == '__main__':
     app_log.addHandler(log_handler)
     logging.getLogger('pychromecast.socket_client').addHandler(log_handler)
     # logging.getLogger('werkzeug').disabled = not DEBUG
-    logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    logging.getLogger('werkzeug').setLevel(logging.DEBUG)
     logging.getLogger('werkzeug').addHandler(log_handler)
     app_log.info(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
 
@@ -265,16 +267,16 @@ if __name__ == '__main__':
     DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
     DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
     settings = {  # default settings
-        'previous_device': None, 'window_locations': {}, 'update_message': '', 'smart_queue': False, 'skips': {},
+        'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {},
         'auto_update': True, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True, 'shuffle': False,
         'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False,
         'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
         'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True,
         'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
         'scan_folders': True, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
-        'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '',
+        'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'delay': 0,
         'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER,
-        'track_format': '&artist - &title', 'reversed_play_next': False, 'delay': 0,
+        'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
         'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
@@ -293,9 +295,9 @@ if __name__ == '__main__':
 
 
     def tray_notify(message, title='Music Caster', context=''):
+        """ A wrapper for tray_process_queue.put({ notify: {message: msg, title: title} }) """
         if message == 'update_available':
             message = gt('Update $VER is available').replace('$VER', f'v{context}')
-        # wrapper for tray_process_queue
         tray_process_queue.put({'notify': {'message': message, 'title': title}})
 
 
@@ -1826,6 +1828,7 @@ if __name__ == '__main__':
                     if music_queue: done_queue.append(music_queue.popleft())
                     if next_queue: music_queue.insert(0, next_queue.popleft())
                     # if queue is empty but repeat is all AND there are tracks in the done_queue
+                    # move tracks from done_queue to music_queue
                     if not music_queue and settings['repeat'] is False and done_queue:
                         music_queue.extend(done_queue)
                         done_queue.clear()
@@ -2042,6 +2045,11 @@ if __name__ == '__main__':
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
+        def report_callback_exception(exc, _, __):
+            if exc == KeyboardInterrupt:
+                raise KeyboardInterrupt
+
+        main_window.hidden_master_root.report_callback_exception = report_callback_exception
         # drag and drop callbacks
         main_window.TKroot.tk.call('package', 'require', 'tkdnd')
         if not settings['mini_mode']:
@@ -2180,7 +2188,8 @@ if __name__ == '__main__':
         DiscordPresence.close()
         if settings['persistent_queue'] and not quick_exit:
             save_queues()
-            save_queue_thread.join()
+            with suppress(RuntimeError):
+                save_queue_thread.join()
         sys.exit()
 
 
@@ -2553,7 +2562,7 @@ if __name__ == '__main__':
         elif main_event == 'email':
             Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
         elif main_event == 'web_gui':
-            Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_ipv4()}:{Shared.PORT}']).start()
+            Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_lan_ip()}:{Shared.PORT}']).start()
         # toggle settings
         elif main_event in TOGGLEABLE_SETTINGS:
             change_settings(main_event, main_value)
@@ -2963,6 +2972,11 @@ if __name__ == '__main__':
                 setup_dl_link = release['setup']
                 app_log.info(f'Update found: v{latest_ver}')
                 print('Installer Link:', setup_dl_link)
+                if int(VERSION.split('.', 1)[0]) < int(latest_ver.split('.', 1)[0]):
+                    if not is_os_64bit():
+                        tray_notify(f"The update v{latest_ver}, is 64-bit only")
+                        tray_notify("I've turned off auto-update for you, so you don't have to worry")
+                        return change_settings('auto_update', False)
                 if settings.get('DEBUG', DEBUG) or not setup_dl_link:
                     return app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
                 if IS_FROZEN:
@@ -3004,11 +3018,10 @@ if __name__ == '__main__':
                                 # user cancelled update, don't try auto-updating again
                                 # inform user what we were trying to do though
                                 change_settings('auto_update', False)
-                                if settings['notifications']:
-                                    tray_notify('update_available', context=latest_ver)
+                                tray_notify('update_available', context=latest_ver)
                     else:
                         # unins000.exe or updater.exe was deleted; better to inform user there is an update available
-                        if settings['notifications']: tray_notify('update_available', context=latest_ver)
+                        tray_notify('update_available', context=latest_ver)
             else:
                 app_log.info(f'auto_update: no update found, or no internet, or API rate limited')
 
@@ -3057,9 +3070,18 @@ if __name__ == '__main__':
     try:
         start_time = time.monotonic()
         load_settings(True)  # starts indexing all tracks
-        if settings['notifications']:
-            if settings['update_message'] == '': tray_notify(WELCOME_MSG)
-            elif settings['update_message'] != UPDATE_MESSAGE: tray_notify(UPDATE_MESSAGE)
+        if settings['important_message'] != IMPORTANT_INFORMATION:
+            temp = []
+            for line in IMPORTANT_INFORMATION.splitlines(keepends=True):
+                temp.append(line)
+                if len(temp) == 2:
+                    tray_notify(''.join(temp), title='Music Caster - Important Information')
+                    temp.clear()
+            tray_notify(''.join(temp), title='Music Caster - Important Information')
+            change_settings('important_message', IMPORTANT_INFORMATION)
+        if settings['update_message'] == '': tray_notify(WELCOME_MSG)
+        elif settings['update_message'] != UPDATE_MESSAGE and settings['notifications']: tray_notify(UPDATE_MESSAGE)
+        # show important information regardless of notification settings
         change_settings('update_message', UPDATE_MESSAGE)
 
         # set file handlers only if installed from the setup (Not a portable installation)
@@ -3071,18 +3093,26 @@ if __name__ == '__main__':
         rmtree('Update', ignore_errors=True)
 
         # find a port to bind to
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.05)
-            while True:
-                if not s.connect_ex(('127.0.0.1', Shared.PORT)) == 0:  # if port is not occupied
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s1, \
+                    socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s2:
+                s1.settimeout(0.05)
+                s2.settimeout(0.05)
+                # if s.connect_ex(('127.0.0.1', Shared.PORT)) != 0:  # if port is not occupied
+                if s1.connect_ex(('127.0.0.1', Shared.PORT)) != 0 and s2.connect_ex(('::1', Shared.PORT)) != 0:
+                    # if ports are not occupied
                     with suppress(OSError):
                         # try to start server and bind it to PORT
                         server_kwargs = {'host': '0.0.0.0', 'port': Shared.PORT, 'threaded': True}
+                        Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
+                        server_kwargs = {'host': '::', 'port': Shared.PORT, 'threaded': True}
                         Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                         break
                 Shared.PORT += 1  # port in use or failed to bind to port
 
         print(f'Running on http://127.0.0.1:{Shared.PORT}/')
+        print(f'Running on http://[::1]:{Shared.PORT}/')
+
         DiscordPresence.connect(settings['discord_rpc'])
         temp = (settings['timer_shut_down'], settings['timer_hibernate'], settings['timer_sleep'])
         if temp.count(True) > 1:  # Only one of the below can be True
@@ -3094,9 +3124,12 @@ if __name__ == '__main__':
         Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
         start_chromecast_discovery()
         audio_player = AudioPlayer()
+        if args.uris or args.start_playing:
+            # wait until previous device has been found or cannot be found
+            end_time = time.monotonic() + WAIT_TIMEOUT
+            while cast is None and time.monotonic() < WAIT_TIMEOUT and settings['previous_device']:
+                time.sleep(0.3)
         if args.uris:
-            # wait until previous device has been found or if it hasn't been found
-            while all((settings['previous_device'], cast is None, stop_discovery_browser)): time.sleep(0.3)
             play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
         elif settings['persistent_queue']:
             # load saved queues from settings.json
@@ -3106,19 +3139,21 @@ if __name__ == '__main__':
                     if valid_audio_file(file_or_url) or file_or_url.startswith('http'):
                         queue.append(file_or_url)
                         uris_to_scan.put(file_or_url)
-        elif settings['populate_queue_startup']:
+            if args.start_playing:
+                if not music_queue:
+                    if next_queue:
+                        music_queue.append(next_queue.popleft())
+                    elif done_queue:
+                        music_queue.extend(done_queue)
+                        done_queue.clear()
+                if music_queue:
+                    play(music_queue[0], position=args.position, autoplay=not args.queue)
+        elif settings['populate_queue_startup'] or args.start_playing:
             try:
                 indexing_tracks_thread.join()
-                play_all(queue_only=True)
+                play_all(queue_only=not args.start_playing or args.queue)
             except RuntimeError:
                 tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
-        if args.resume_playback and not args.uris:
-            if music_queue:
-                while all((settings['previous_device'], cast is None, stop_discovery_browser)): time.sleep(0.3)
-                play(music_queue[0], autoplay=not args.start_paused, position=args.position)
-        if args.start_playing and not args.uris:
-            while all((settings['previous_device'], cast is None, stop_discovery_browser)): time.sleep(0.3)
-            play(music_queue[0]) if music_queue else play_all()
         # open window if minimized argument not given
         if not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')

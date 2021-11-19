@@ -139,7 +139,7 @@ Temporizador establecido a las $TIME
 Escribe artista / pistas
 UI
 activar el sonido
-La actualización $VER está disponible
+Actualización $VER está disponible
 URL
 Use cover.* Para la carátula del álbum
 Use cover.* Para la carátula en lugar de la carátula del álbum del archivo

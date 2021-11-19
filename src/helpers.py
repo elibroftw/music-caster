@@ -579,12 +579,20 @@ def fix_path(path, by_os=True): return str(Path(path)) if by_os else Path(path).
 def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
 
 
-def get_ipv4() -> str:
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80))
-    ipv4_address = s.getsockname()[0]
-    s.close()
-    return ipv4_address
+def get_ipv6():
+    return f'[{next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))}]'
+
+
+def get_ipv4():
+    return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
+
+
+def get_lan_ip() -> str:
+    try:
+        return get_ipv6()
+    except StopIteration:
+        # return IPv4 if IPv6 is unavailable
+        return get_ipv4()
 
 
 def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
@@ -608,10 +616,10 @@ def better_shuffle(seq, first=0, last=-1):
 
 def create_qr_code():
     try:
-        qr_code = pyqrcode.create(f'http://{get_ipv4()}:{Shared.PORT}')
+        qr_code = pyqrcode.create(f'http://{get_lan_ip()}:{Shared.PORT}')
         return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
     except OSError:
-        # get_ipv4() failed because no internet for a long time
+        # Failed?
         return None
 
 

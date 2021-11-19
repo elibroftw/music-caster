@@ -364,9 +364,9 @@ def local_install():
     if not player_state.get('gui_open', False):
         cmd.append('--minimized')
     if player_state.get('status', 'NOT PLAYING') in ('PLAYING', 'PAUSED'):
-        cmd.append('--resume-playback')
+        cmd.append('--start-playing')
         if player_state['status'] == 'PAUSED':
-            cmd.append('--start-paused')
+            cmd.append('--queue')
     if position := player_state.get('position', 0) > 0:
         cmd.append(f'--position={position}')
     Popen(cmd, shell=True)

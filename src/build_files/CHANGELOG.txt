@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.118
+- [Fix] Race condition if previous_device cannot be found
+- [Fix] Allow IPv6 connections
+
 4.90.117
 - [Fix] Playing from command line arguments
 - [Fix] Chromecast errors

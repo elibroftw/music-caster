@@ -130,7 +130,9 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
             print('TEST FAILED', get_first_artist(ext), '!=', expected_first_artist)
             raise AssertionError
 
+    print('get_ipv6():', get_ipv6())
     print('get_ipv4():', get_ipv4())
+    assert get_ipv6().count(':')
     assert get_ipv4().count('.') == 3
 
     print('get_mac():', get_mac())
