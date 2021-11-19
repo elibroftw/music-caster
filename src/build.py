@@ -193,8 +193,8 @@ args.upload = args.upload and not args.test_autoupdate
 player_state = {}
 if not args.dry:
     with suppress(RequestException):
-        player_state = requests.get('http://127.0.0.1:2001/state').json()
-        requests.get('http://127.0.0.1:2001/exit')
+        player_state = requests.get('http://[::1]:2001/state').json()
+        requests.get('http://[::1]:2001/exit')
         time.sleep(1)  # wait for MC to exit
     for process in get_running_processes('Music Caster.exe'):
         # force close any other instances of MC
@@ -323,7 +323,7 @@ if not args.dry and not args.skip_tests and tests_passed:
     time.sleep(2)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
     time.sleep(2)
-    test('Music Caster Exit API', lambda: requests.get('http://127.0.0.1:2001/exit'))
+    test('Music Caster Exit API', lambda: requests.get('http://[::1]:2001/exit'))
     time.sleep(2)
     test('Music Caster Should Have Exited', lambda: not is_already_running(), True)
 

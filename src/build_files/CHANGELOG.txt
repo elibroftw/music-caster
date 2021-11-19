@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.119
+- [Fix] Activate instance using IPv6
+
 4.90.118
 - [Fix] Race condition if previous_device cannot be found
 - [Fix] Allow IPv6 connections

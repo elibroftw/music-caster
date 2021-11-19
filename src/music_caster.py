@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.118'
+VERSION = latest_version = '4.90.119'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -142,17 +142,17 @@ if __name__ == '__main__':
     auto_updating = True
 
     def activate_instance(port=2001):
-        r = ''
-        localhost = 'http://127.0.0.1:'
+        r, localipv6, localipv4 = '', 'http://[::1]:', 'http://127.0.0.1:'
         while port <= 2004 and r == '':
-            with suppress(requests.RequestException):
-                if args.exit:  # --exit argument
-                    r = requests.post(f'{localhost}{port}/exit/').text
-                elif args.uris:  # MC was supplied at least one path to a folder/file
-                    data = {'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext}
-                    r = requests.post(f'{localhost}{port}/play/', data=data).text
-                else:  # neither --exit nor paths was supplied
-                    r = requests.post(f'{localhost}{port}?activate').text
+            for localhost in (localipv4, localipv6):
+                with suppress(requests.RequestException):
+                    if args.exit:  # --exit argument
+                        r = requests.post(f'{localhost}{port}/exit/').text
+                    elif args.uris:  # MC was supplied at least one path to a folder/file
+                        data = {'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext}
+                        r = requests.post(f'{localhost}{port}/play/', data=data).text
+                    else:  # neither --exit nor paths was supplied
+                        r = requests.post(f'{localhost}{port}?activate').text
             port += 1
 
     # check for active instance and forward arguments or activate it
@@ -3096,9 +3096,8 @@ if __name__ == '__main__':
         while True:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s1, \
                     socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s2:
-                s1.settimeout(0.05)
-                s2.settimeout(0.05)
-                # if s.connect_ex(('127.0.0.1', Shared.PORT)) != 0:  # if port is not occupied
+                s1.settimeout(0.05), s2.settimeout(0.05)
+                # check if ports are not occupied
                 if s1.connect_ex(('127.0.0.1', Shared.PORT)) != 0 and s2.connect_ex(('::1', Shared.PORT)) != 0:
                     # if ports are not occupied
                     with suppress(OSError):
