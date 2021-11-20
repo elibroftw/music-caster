@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.125
+- [Fix] Improved pause and resume logging
+
 4.90.124
 - [Fix] Log file location
 
