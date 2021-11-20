@@ -1640,14 +1640,10 @@ def create_metadata_tab(settings):
 
 
 def focus_window(window: Sg.Window):
-    # use bring to front in the small case of window already in foreground
-    if window_is_foreground(window):
-        window.bring_to_front()
-    else:
-        # makes window the top-most application via windows API (breaks if already in foreground)
-        keybd_event(alt_key, 0, extended_key | 0, 0)
-        ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
-        keybd_event(alt_key, 0, extended_key | key_up, 0)
+    # makes window the top-most application via windows API (breaks if already in foreground)
+    keybd_event(alt_key, 0, extended_key | 0, 0)
+    ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
+    keybd_event(alt_key, 0, extended_key | key_up, 0)
     window.normal()
     window.force_focus()
 
