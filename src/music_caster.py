@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.119'
+VERSION = latest_version = '4.90.120'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -142,9 +142,9 @@ if __name__ == '__main__':
     auto_updating = True
 
     def activate_instance(port=2001):
-        r, localipv6, localipv4 = '', 'http://[::1]:', 'http://127.0.0.1:'
+        r, local_ipv6, local_ipv4 = '', 'http://[::1]:', 'http://127.0.0.1:'
         while port <= 2004 and r == '':
-            for localhost in (localipv4, localipv6):
+            for localhost in (local_ipv4, local_ipv6):
                 with suppress(requests.RequestException):
                     if args.exit:  # --exit argument
                         r = requests.post(f'{localhost}{port}/exit/').text
@@ -1908,7 +1908,7 @@ if __name__ == '__main__':
         update_checker.daemon = True
         update_checker.start()
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
-        p.setName('pynputListener')
+        p.name = 'pynputListener'
         p.start()
         while True:
             # if settings.json was updated outside of Music Caster, reload settings

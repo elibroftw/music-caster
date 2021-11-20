@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.120
+- [Fix] Fix json serialization
+
 4.90.119
 - [Fix] Activate instance using IPv6
 

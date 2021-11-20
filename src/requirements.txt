@@ -24,6 +24,7 @@ beautifulsoup4~=4.10
 flask~=2.0
 deezer-py
 deemix
+six
 # pyinstaller dependencies
 setuptools<50.0.0   # 50.0.0 breaks a modulegraph regession test
 altgraph

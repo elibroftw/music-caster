@@ -243,7 +243,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
         assert compare_ver < version
     else:
         assert compare_ver <= version
-
+    print('test_harness.py: tests passed')
 
 
 if __name__ == '__main__':
