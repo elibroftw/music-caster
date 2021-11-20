@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.122
+- [Fix] Move track down
+
 4.90.121
 - [Fix] Focus on first window creation
 
