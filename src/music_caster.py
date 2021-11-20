@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.121'
+VERSION = latest_version = '4.90.122'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -3070,7 +3070,7 @@ if __name__ == '__main__':
     try:
         start_time = time.monotonic()
         load_settings(True)  # starts indexing all tracks
-        if settings['important_message'] != IMPORTANT_INFORMATION:
+        if settings['important_message'] != IMPORTANT_INFORMATION and IMPORTANT_INFORMATION:
             temp = []
             for line in IMPORTANT_INFORMATION.splitlines(keepends=True):
                 temp.append(line)
