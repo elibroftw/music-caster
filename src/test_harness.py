@@ -219,7 +219,10 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
                 time.sleep(0.5)
                 continue
         elif 'deezer' in streaming_url:
-            metadata_list = get_deezer_tracks(streaming_url)
+            try:
+                metadata_list = get_deezer_tracks(streaming_url)
+            except LookupError:
+                continue
         else:
             metadata_list = []
         assert metadata_list
