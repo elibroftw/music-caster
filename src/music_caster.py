@@ -311,7 +311,7 @@ if __name__ == '__main__':
         with settings_file_lock:
             try:
                 with open(SETTINGS_FILE, 'w') as outfile:
-                    json.dump(settings, outfile, indent=2)
+                    json.dump(settings, outfile, indent=2, escape_forward_slashes=False)
                 settings_last_modified = os.path.getmtime(SETTINGS_FILE)
             except OSError as e:
                 if e.errno == errno.ENOSPC:
