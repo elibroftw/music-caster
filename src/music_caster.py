@@ -223,6 +223,8 @@ if __name__ == '__main__':
     from win32comext.shell import shell, shellcon
 
     TIME_TO_IMPORT = time.monotonic() - start_time
+    working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    os.chdir(working_dir)
 
     # LOGS
     log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
@@ -240,8 +242,7 @@ if __name__ == '__main__':
 
     main_window = Sg.Window('', metadata={})
     main_window.close()
-    working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    os.chdir(working_dir)
+
     WELCOME_MSG = gt('Thanks for installing Music Caster.') + '\n' + gt('Music Caster is running in the tray.')
     STREAM_CHUNK = 1024
     EMAIL = 'elijahllopezz@gmail.com'
