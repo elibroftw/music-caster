@@ -699,7 +699,7 @@ if __name__ == '__main__':
     def web_index():  # web GUI
         if request.values:
             if 'play' in request.values:
-                if resume():
+                if resume('web'):
                     api_msg = 'resumed playback'
                 else:
                     if music_queue:
@@ -1712,9 +1712,9 @@ if __name__ == '__main__':
         return False
 
 
-    def resume():
+    def resume(source=''):
         global track_end, track_position, track_start
-        app_log.info(f'resume() called, playing status = {playing_status}')
+        app_log.info(f'resume(source = {source}), playing status = {playing_status}')
         if playing_status.paused():
             # time.time() > url_metadata.get(music_queue[0], {'expired': False})['expired']:
             if music_queue and url_metadata.get(music_queue[0], {'expired': lambda: False})['expired']():
@@ -1935,8 +1935,8 @@ if __name__ == '__main__':
                                 track_position = mc.status.adjusted_current_time
                                 track_start = time.monotonic() - track_position
                                 if not is_live: track_end = track_start + track_length
-                        if is_paused: pause('background tasks')
-                        elif is_playing: resume()
+                        if is_paused and playing_status.playing(): pause('background tasks')
+                        elif is_playing and playing_status.paused(): resume('background tasks')
                         elif is_stopped and playing_status.busy() and not is_live and time.monotonic() - track_end > 1:
                             # if cast says nothing is playing, only stop if we are not at the end of the track
                             #  this will prevent false positives
@@ -1983,7 +1983,7 @@ if __name__ == '__main__':
             daemon_commands.put('__ACTIVATED__')
         if key not in {'<179>', '<176>', '<177>', '<178>'}: return
         app_log.info(f'valid key press: {key}')
-        if key == '<179>' and not pause(): resume()
+        if key == '<179>' and not pause(): resume('keyboard')
         elif key == '<176>' and playing_status.busy(): next_track()
         elif key == '<177>' and playing_status.busy(): prev_track()
         elif key == '<178>': stop('keyboard shortcut')
@@ -2310,7 +2310,7 @@ if __name__ == '__main__':
                 main_window.grab_any_where_on()
             if main_event != 'volume_slider_mouse_leave': main_window.metadata['mouse_hover'] = ''
         elif main_event == 'pause/resume' or main_event == 'k' and main_values.get('tab_group') in {'tab_queue', None}:
-            if playing_status.paused(): resume()
+            if playing_status.paused(): resume('gui')
             elif playing_status.playing(): pause()
             elif music_queue: play(music_queue[0])
             else: play_all()
