@@ -4,7 +4,7 @@ UPDATE_MESSAGE = """
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
-v5 will be 64-bit only. v4 will be the last version to support 32-bit devices.
+v5 will be 64-bit only. v4.90 will be the last version to support 32-bit devices.
 The current update prevents 32-bit Windows users from auto-updating to v5.
 """.strip()
 import time
