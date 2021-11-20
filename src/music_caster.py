@@ -4,8 +4,6 @@ UPDATE_MESSAGE = """
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
-v5 will be 64-bit only. v4.90.118 will be the last version to support 32-bit devices.
-The current update prevents 32-bit Windows users from auto-updating to v5.
 """.strip()
 import time
 start_time = time.monotonic()
@@ -3070,7 +3068,7 @@ if __name__ == '__main__':
     try:
         start_time = time.monotonic()
         load_settings(True)  # starts indexing all tracks
-        if settings['important_message'] != IMPORTANT_INFORMATION:
+        if settings['important_message'] != IMPORTANT_INFORMATION and IMPORTANT_INFORMATION:
             temp = []
             for line in IMPORTANT_INFORMATION.splitlines(keepends=True):
                 temp.append(line)
