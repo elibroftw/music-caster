@@ -50,22 +50,30 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
         # e.g. ['Item 1', ('Item 2 Display', 'item_2_key'), ['Sub Menu Title', ('Sub Menu Item 1 Display', 'KEY')]]
         # TODO: checked/radio
         items = []
-        if root: items.append(pystray.MenuItem('', on_tray_click('__ACTIVATED__'), default=True, visible=False))
+        if root: items.append(pystray.MenuItem('', get_tray_action('__ACTIVATED__'), default=True, visible=False))
         for element in lst:
             if type(element) == list:
                 items.append(pystray.MenuItem(element[0], create_menu(islice(element, 1, None), root=False)))
             elif type(element) == tuple and len(element) == 2:
                 element, key = element
-                items.append(pystray.MenuItem(element, on_tray_click(element, key)))
+                items.append(pystray.MenuItem(element, get_tray_action(element, key)))
             else:
-                items.append(pystray.MenuItem(element, on_tray_click(element)))
+                items.append(pystray.MenuItem(element, get_tray_action(element)))
         return pystray.Menu(*items)
 
-    def on_tray_click(string, key=''):
-        if key == 'exit':  # special case to end the tray
-            first_fn = on_tray_click(string)
-            return lambda: first_fn() and child_queue.put({'close': None})
-        return lambda: (main_queue.put(key) if key else main_queue.put(string))
+
+    def get_tray_action(string, key=''):
+
+        def tray_action():
+            try:
+                main_queue.put(key) if key else main_queue.put(string)
+                if key == '__EXIT__':
+                    child_queue.put({'close': None})
+            except ValueError:
+                child_queue.put({'close': None})
+
+        return tray_action
+
 
     def background():
         while True:
@@ -84,7 +92,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
                     elif parent_cmd == 'hide':
                         tray.visible = False
-                    elif parent_cmd == 'close':
+                    elif parent_cmd in ('close', 'exit', '__EXIT__'):
                         tray.stop()
             time.sleep(0.1)
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
@@ -342,7 +350,7 @@ if __name__ == '__main__':
                               [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                               [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
                               [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                              gt('Play All')], (gt('Exit'), 'exit')]
+                              gt('Play All')], (gt('Exit'), '__EXIT__')]
         tray_menu_playing = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
                              [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
                              [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
@@ -351,7 +359,7 @@ if __name__ == '__main__':
                               [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                               [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
                               [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                              gt('Play All')], (gt('Exit'), 'exit')]
+                              gt('Play All')], (gt('Exit'), '__EXIT__')]
         tray_menu_paused = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
                             [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
                             [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
@@ -361,7 +369,7 @@ if __name__ == '__main__':
                              [gt('Folders'), *tray_folders],
                              [gt('Playlists'), *tray_playlists],
                              [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
-                             gt('Play All')], (gt('Exit'), 'exit')]
+                             gt('Play All')], (gt('Exit'), '__EXIT__')]
         # refresh playlists
         tray_playlists.clear()
         tray_playlists.append(gt('Playlists Menu'))
