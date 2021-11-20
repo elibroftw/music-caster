@@ -2422,7 +2422,7 @@ if __name__ == '__main__':
                     music_queue[mq_i], music_queue[mq_i + 1] = music_queue[mq_i + 1], music_queue[mq_i]
                 else:
                     new_i = max(new_i, 0)
-                if i == len(main_values['queue']):  # update gui after the last swap
+                if i == len(main_values['queue']):  # update gui after moving the last selected track
                     values = create_track_list()
                     main_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
                     save_queues()
@@ -2454,10 +2454,9 @@ if __name__ == '__main__':
                         mq_i = new_i - dq_len - nq_len
                         # swap places
                         music_queue[mq_i], music_queue[mq_i - 1] = music_queue[mq_i - 1], music_queue[mq_i]
-                    if i == len(main_values['queue']):  # update gui after the last swap
-                        values = create_track_list()
-                        new_i = max(new_i - 3, 0)
-                        main_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=new_i)
+                    if i == len(main_values['queue']):  # update gui after moving the last selected track
+                        values, scroll_to = create_track_list(), max(new_i - 3, 0)
+                        main_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=scroll_to)
                         save_queues()
         elif main_event == 'remove_track' and main_values['queue']:
             for i, index_to_remove in enumerate(reversed(main_window['queue'].get_indexes()), 1):
