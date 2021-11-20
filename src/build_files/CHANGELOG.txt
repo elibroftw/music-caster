@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.123
+- [Fix] Tray not closing
+
 4.90.122
 - [Fix] Move track down
 
