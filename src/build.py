@@ -421,9 +421,10 @@ if args.upload and tests_passed and not args.dry and not args.debug:
                       headers={**headers, 'Content-Type': 'application/octet-stream'})
     requests.post(f'{github_api}/repos/{USERNAME}/music-caster/releases/{release_id}',
                   headers=headers, json={'body': body, 'draft': False})
-    if not VERSION.endswith('.0'):
-        # delete old release if not a new major build
-        requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
+    # since winget is slower on the PR's, it's better to not delete anything
+    # if not VERSION.endswith('.0'):
+    #     # delete old release if not a new major build
+    #     requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
