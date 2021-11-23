@@ -661,7 +661,7 @@ def ydl_extract_info(url):
 def get_yt_id(url):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
-    if query.hostname in {'www.youtube.com', 'youtube.com'}:
+    if query.hostname in {'www.youtube.com', 'youtube.com', 'music.youtube.com'}:
         with suppress(KeyError):
             return parse_qs(query.query)['list'][0]
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
@@ -1566,16 +1566,17 @@ def create_settings(version, settings):
                                      border_width=0, selected_background_color=accent_color, font=FONT_TAB,
                                      tab_background_color=bg, selected_title_color=bg, background_color=bg)
     checkbox_col = Sg.Column([[settings_tab_group]], pad=((0, 0), (5, 0)))
-    qr_code_params = {'tooltip': gt('Web GUI QR Code (click or scan)'), 'button_color': (bg, bg)}
+    qr_code_params = {'tooltip': gt('Open Web GUI'), 'button_color': (bg, bg)}
     right_settings_col = Sg.Column([
         [Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)],
         [round_btn('settings.json', accent_color, bg, key='settings_file', pad=((15, 0), 5), button_width=10)],
         [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=10)]
     ], pad=(0, 0))
-    email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': gt('Send me an email')}
+    link_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'click_submits': True}
     layout = [
-        [Sg.Text(f'Music Caster v{version} by Elijah Lopez', font=FONT_NORMAL),
-         Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
+        [Sg.Text(f'Music Caster v{version} by', font=FONT_NORMAL),
+         Sg.Text('Elijah Lopez <elijahllopezzgmail.com>', tooltip=gt('Send me an email'), key='open_email', **link_params),
+         Sg.Text(f'GitHub', **link_params, key='open_github')],
         [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
         [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                     key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True,
