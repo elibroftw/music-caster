@@ -1,6 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
 4.90.125
+- [UX] Support music.youtube.com
+- [UI] Added link to GitHub
+- [UX] Flash border of mini-mode
+
+4.90.125
 - [Fix] Improved pause and resume logging
 
 4.90.124
