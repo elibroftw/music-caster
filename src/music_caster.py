@@ -1278,7 +1278,7 @@ if __name__ == '__main__':
                 r = ydl_extract_info(url)
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 metadata = {'title': r['description'], 'artist': r['uploader'], 'ext': r['ext'],
-                            'expired': lambda: False, 'album': 'Twitch', 'length': None,
+                            'expired': lambda: True, 'album': 'Twitch', 'length': None,
                             'art': r['thumbnail'], 'url': r['url'], 'audio_url': audio_url, 'src': url}
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
@@ -2142,10 +2142,19 @@ if __name__ == '__main__':
                 default_pl_tracks = [f'{i + 1}. {format_uri(pl_track)}' for i, pl_track in enumerate(pl_tracks)]
                 main_window['pl_tracks'].update(values=default_pl_tracks)
             set_callbacks()
-        elif settings['mini_mode'] and selected_tab:
-            change_settings('mini_mode', not settings['mini_mode'])
-            main_window.close()
-            return activate_main_window(selected_tab)
+        elif settings['mini_mode']:
+            if selected_tab:
+                change_settings('mini_mode', not settings['mini_mode'])
+                main_window.close()
+                return activate_main_window(selected_tab)
+            else:
+                # flash border if already in mini mode
+                accent = settings['theme']['accent']
+                for _ in range(2):
+                    main_window.TKroot.config(background=accent, bd=1)
+                    main_window.read(50)
+                    main_window.TKroot.config(background=accent, bd=0)
+                    main_window.read(50)
         if not settings['mini_mode'] and selected_tab is not None:
             main_window[selected_tab].select()
             if selected_tab == 'tab_timer': main_window['timer_input'].set_focus()
@@ -2565,8 +2574,10 @@ if __name__ == '__main__':
                 track_start = time.monotonic() - track_position
                 track_end = track_start + track_length
         # main window settings tab
-        elif main_event == 'email':
+        elif main_event == 'open_email':
             Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
+        elif main_event == 'open_github':
+            Thread(target=webbrowser.open, daemon=True, args=['https://github.com/elibroftw/music-caster']).start()
         elif main_event == 'web_gui':
             Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_lan_ip()}:{Shared.PORT}']).start()
         # toggle settings
@@ -2692,7 +2703,7 @@ if __name__ == '__main__':
                 main_window['timer_input'].set_focus()
             except ValueError:
                 # flash timer error
-                for i in range(3):
+                for _ in range(3):
                     main_window['timer_error'].update(visible=True, text_color='#ffcccb')
                     main_window.read(10)
                     main_window['timer_error'].update(text_color='red')
