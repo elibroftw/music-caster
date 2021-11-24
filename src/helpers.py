@@ -1263,6 +1263,10 @@ def get_video_timestamps(video_info):
 
 
 # GUI Methods
+def icon_btn(image_data, key, tooltip, bg):
+    return Sg.Button(image_data=image_data, key=key, tooltip=tooltip, enable_events=True, button_color=(bg, bg))
+
+
 def round_btn(button_text, fill, text_color, tooltip=None, key=None, visible=True,
               pad=None, bind_return_key=False, button_width=None):
     multi = 4
@@ -1423,9 +1427,9 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, button_color=(bg, bg), tooltip=gt('Save queue to playlist'))],
         [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, button_color=(bg, bg), tooltip=gt('locate track'))],
         [Sg.Button(key='move_to_next_up', **move_to_next_up)],
-        [Sg.Button(key='move_up', image_data=UP_ICON, tooltip=gt('move up'))],
-        [Sg.Button(key='remove_track', image_data=X_ICON, tooltip=gt('remove'))],
-        [Sg.Button(key='move_down', image_data=DOWN_ICON, tooltip=gt('move down'))]
+        [icon_btn(UP_ICON, 'move_up', gt('move up'), bg)],
+        [icon_btn(X_ICON, 'remove_track', gt('remove'), bg)],
+        [icon_btn(DOWN_ICON, 'move_down', gt('move down'), bg)]
     ]
     listbox_height = 18 - 5 * settings['vertical_gui']
     queue_tab_layout = [queue_controls, [
@@ -1482,7 +1486,7 @@ def create_playlists_tab(settings):
     playlists_names = list(playlists.keys())
     default_pl_name = playlists_names[0] if playlists_names else None
     playlist_selector = [
-        [Sg.Button(image_data=PLUS_ICON, key='new_pl', tooltip=gt('new playlist')),
+        [icon_btn(PLUS_ICON, 'new_pl', gt('new playlist'), bg),
          Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=DELETE_ICON, key='delete_pl', tooltip=gt('delete playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'), button_color=(bg, bg)),
@@ -1506,9 +1510,9 @@ def create_playlists_tab(settings):
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(
-                   [[Sg.Button(key='pl_move_up', image_data=UP_ICON, tooltip=gt('move up'))],
-                    [Sg.Button(key='pl_rm_items', image_data=X_ICON, tooltip=gt('remove'))],
-                    [Sg.Button(key='pl_move_down', image_data=DOWN_ICON, tooltip=gt('move down'))],
+                   [[icon_btn(UP_ICON, 'pl_move_up', gt('move up'), bg)],
+                    [icon_btn(X_ICON, 'pl_rm_items', gt('remove'), bg)],
+                    [icon_btn(DOWN_ICON, 'pl_move_down', gt('move down'), bg)],
                     [Sg.Button(image_data=PLAY_ICON, key='play_pl_selected', tooltip=gt('play selected'),
                                button_color=(bg, bg))],
                     [Sg.Button(image_data=QUEUE_ICON, key='queue_pl_selected', tooltip=gt('queue selected'),
@@ -1582,9 +1586,8 @@ def create_settings(version, settings):
                     key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True,
                     no_scrollbar=True),
          Sg.Column([
-             [Sg.Button(image_data=X_ICON, key='remove_music_folder',
-                        tooltip=gt('remove selected folder'), enable_events=True)],
-             [Sg.Button(image_data=PLUS_ICON, key='add_music_folder', tooltip=gt('add folder'), enable_events=True)]])]]
+             [icon_btn(X_ICON, 'remove_music_folder', gt('remove selected folder'), bg)],
+             [icon_btn(PLUS_ICON, 'add_music_folder', gt('add folder'), bg)]])]]
     return Sg.Tab(gt('Settings'), layout, key='tab_settings')
 
 
