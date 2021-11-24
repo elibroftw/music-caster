@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.127
+- [Fix] ComboBox button color
+
 4.90.126
 - [UX] Support music.youtube.com
 - [UI] Added link to GitHub
