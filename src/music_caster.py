@@ -669,7 +669,7 @@ if __name__ == '__main__':
             Shared.track_format = settings['track_format']
             fg, bg, accent = theme['text'], theme['background'], theme['accent']
             Sg.set_options(text_color=fg, element_text_color=fg, input_text_color=fg,
-                           button_color=(bg, bg), element_background_color=bg, scrollbar_color=bg,
+                           button_color=(bg, accent), element_background_color=bg, scrollbar_color=bg,
                            text_element_background_color=bg, background_color=bg,
                            input_elements_background_color=bg, progress_meter_color=accent,
                            titlebar_background_color=bg, titlebar_text_color=fg,
