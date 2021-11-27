@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.128
+- [Fix] YouTube and GUI focus
+
 4.90.127
 - [Fix] ComboBox button color
 
