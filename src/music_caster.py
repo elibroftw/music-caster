@@ -1318,7 +1318,7 @@ if __name__ == '__main__':
                                         key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                         formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                         _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                        expiry_time = time.time() + 3600  # expire in an hour
+                        expiry_time = time.time() + 1800  # expire in 30 minutes
                         album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
                         length = entry['duration'] if entry['duration'] != 0 else None
                         metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
@@ -1333,7 +1333,7 @@ if __name__ == '__main__':
                     audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                    expiry_time = time.time() + 3600
+                    expiry_time = time.time() + 1800  # expire in 30 minutes
                     length = r['duration'] if r['duration'] != 0 else None
                     metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
                                 'expired': lambda: time.time() > expiry_time,

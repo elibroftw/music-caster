@@ -658,12 +658,13 @@ def ydl_extract_info(url):
 
 
 # noinspection PyTypeChecker
-def get_yt_id(url):
+def get_yt_id(url, ignore_playlist=False):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
     if query.hostname in {'www.youtube.com', 'youtube.com', 'music.youtube.com'}:
-        with suppress(KeyError):
-            return parse_qs(query.query)['list'][0]
+        if not ignore_playlist:
+            with suppress(KeyError):
+                return parse_qs(query.query)['list'][0]
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
         if query.path[:7] == '/watch/': return query.path.split('/')[1]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
