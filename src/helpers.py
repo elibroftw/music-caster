@@ -5,6 +5,7 @@ import audioop
 from queue import LifoQueue, Empty
 from contextlib import suppress
 import ctypes
+import ctypes.wintypes
 import datetime
 from functools import wraps, lru_cache
 import glob
@@ -1647,6 +1648,7 @@ def create_metadata_tab(settings):
 def focus_window(window: Sg.Window):
     # makes window the top-most application via windows API (breaks if already in foreground)
     keybd_event(alt_key, 0, extended_key | 0, 0)
+    ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
     ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
     keybd_event(alt_key, 0, extended_key | key_up, 0)
     window.normal()
