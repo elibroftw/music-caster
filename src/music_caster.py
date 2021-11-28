@@ -860,7 +860,7 @@ if __name__ == '__main__':
 
     @app.get('/devices/')
     def api_get_devices():
-        friendly = 'friendly' in requests.values
+        friendly = 'friendly' in request.values
         if not friendly:
             devices = {'0': 'Local Device'}
             for _uuid, cast_info in browser.devices.items():
