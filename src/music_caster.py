@@ -751,8 +751,9 @@ if __name__ == '__main__':
             if devices[0].startswith(CHECK_MARK):
                 device_index = i
                 break
-        formatted_devices = ['Local Device']
-        formatted_devices.extend((cc.friendly_name for cc in browser.devices.values()))
+        formatted_devices = [('Local Device', '0')]
+        for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
+            formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
                                repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
                                settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option,
@@ -861,19 +862,21 @@ if __name__ == '__main__':
 
     @app.get('/devices/')
     def api_get_devices():
-        devices = ['0. Local Device']
-        for i, chromecast in enumerate(browser.devices.values()):
-            i += 1
-            devices.append(f'{i}. {chromecast}')
+        friendly = 'friendly' in requests.values
+        if not friendly:
+            devices = {'0': 'Local Device'}
+            for _uuid, cast_info in browser.devices.items():
+                devices[str(_uuid)] = cast_info
+        else:
+            devices = ['Local Device::0']
+            for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
+                devices.append(f'{cast_info.friendly_name}::{cast_info.uuid}')
         return jsonify(devices)
 
 
-    @app.post('/change-device/')
-    def api_change_device():
-        with suppress(KeyError):
-            change_device(int(request.json['device_index']))
-            return 'true'
-        return 'false'
+    @app.post('/change-device/<_uuid>')
+    def api_change_device(_uuid):
+        return str(change_device(_uuid))
 
 
     def cancel_timer():
@@ -993,28 +996,27 @@ if __name__ == '__main__':
 
 
     @cmp_to_key
-    def cast_info_sorter(cc1: CastInfo, cc2: CastInfo):
+    def cast_info_sorter(ci1: CastInfo, ci2: CastInfo):
         # sort by groups, then by name, then by UUID
-        if cc1.cast_type == 'group' and cc2.cast_type != 'group': return -1
-        if cc1.cast_type != 'group' and cc2.cast_type == 'group': return 1
-        if cc1.friendly_name < cc2.friendly_name: return -1
-        if cc1.friendly_name > cc2.friendly_name: return 1
-        if str(cc1.uuid) > str(cc2.uuid): return 1
+        if ci1.cast_type == 'group' and ci2.cast_type != 'group': return -1
+        if ci1.cast_type != 'group' and ci2.cast_type == 'group': return 1
+        if ci1.friendly_name < ci2.friendly_name: return -1
+        if ci1.friendly_name > ci2.friendly_name: return 1
+        if str(ci1.uuid) > str(ci2.uuid): return 1
         return -1
 
 
     def refresh_devices():
         device_names.clear()
-        ccs = list(browser.devices.values())
-        ccs.sort(key=cast_info_sorter)
-        for _i, _cc in enumerate(chain(['Local device'], ccs)):
-            _cc: CastInfo
-            device_name = _cc if _i == 0 else _cc.friendly_name
-            if (cast is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == settings['previous_device']):
+        lo_cis = sorted(browser.devices.values(), key=cast_info_sorter)
+        for _i, ci in enumerate(chain(['Local device'], lo_cis)):
+            ci: CastInfo
+            device_name = ci if _i == 0 else ci.friendly_name
+            if (cast is None and _i == 0) or (type(ci) != str and str(ci.uuid) == settings['previous_device']):
                 tray_device_name = f'{CHECK_MARK} {device_name}'
             else:
                 tray_device_name = f'    {device_name}'
-            tray_device_key = f'device:{_cc.uuid}' if _i else 'device:0'
+            tray_device_key = f'device:{ci.uuid}' if _i else 'device:0'
             device_names.append((tray_device_name, tray_device_key))
         refresh_tray()
 
@@ -1045,12 +1047,12 @@ if __name__ == '__main__':
             new_uuid = UUID(new_uuid)
             with suppress(AttributeError):
                 if cast.uuid != new_uuid:
-                    return
+                    return False
             new_device = pychromecast.get_chromecast_from_cast_info(browser.devices.get(new_uuid, None), zconf)
         except ValueError:
             new_device = None
         if cast == new_device:
-            return
+            return False
         current_pos = 0
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             if playing_status.busy():
