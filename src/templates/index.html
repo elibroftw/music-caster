@@ -53,8 +53,8 @@
                        oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
             </div>
             <select name="devices" id="devices" onchange="changeDevice()">
-                {% for device_name in devices %}
-                    <option value="{{loop.index - 1}}" {{'selected' if loop.index0 == device_index else ''}}>{{ device_name }}</option>
+                {% for device_name, uuid in devices %}
+                    <option value="{{ uuid }}" {{ 'selected' if loop.index0 == device_index else '' }}>{{ device_name }}</option>
                 {% endfor %}
             </select>
             <ul class="list list--footer">
@@ -374,11 +374,10 @@
     }
 
     function changeDevice() {
-        deviceIndex = parseInt(document.getElementById('devices').value);
-        fetch('/change-device/', {
+        deviceUUID = document.getElementById('devices').value;
+        fetch(`/change-device/${deviceUUID}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({device_index: deviceIndex})
         });
     }
 
