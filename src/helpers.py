@@ -23,6 +23,7 @@ import re
 import socket
 import time
 from threading import Thread
+import tkinter
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode, UUID
@@ -1646,19 +1647,23 @@ def create_metadata_tab(settings):
     return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
 
 
-def focus_window(window: Sg.Window):
+def focus_window(window: Sg.Window, from_api=False):
     # makes window the top-most application via windows API (breaks if already in foreground)
-    keybd_event(alt_key, 0, extended_key | 0, 0)
-    ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
-    ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
-    keybd_event(alt_key, 0, extended_key | key_up, 0)
-    window.normal()
+    if from_api and window_is_foreground(window):
+        window.bring_to_front()
+    else:
+        keybd_event(alt_key, 0, extended_key | 0, 0)
+        ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
+        ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
+        keybd_event(alt_key, 0, extended_key | key_up, 0)
+    if window.TKroot.state() == 'iconic':
+        window.normal()
     window.force_focus()
 
 
 def window_is_foreground(window: Sg.Window):
-    width, height, x, y = window.TKroot.winfo_width(), window.TKroot.winfo_height(), \
-                          window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
+    width, height = window.TKroot.winfo_width(), window.TKroot.winfo_height()
+    x, y = window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
     if (width, height, x, y) != (1, 1, 0, 0):
         return window.TKroot.winfo_containing(x + (width // 2), y + (height // 2)) is not None
     return False

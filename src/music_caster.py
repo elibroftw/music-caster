@@ -729,7 +729,7 @@ if __name__ == '__main__':
                 shuffle_enabled = change_settings('shuffle', not settings['shuffle'])
                 api_msg = f'shuffle set to {shuffle_enabled}'
             elif 'activate' in request.values:
-                daemon_commands.put('__ACTIVATED__')  # tells main loop to bring to front all GUI's
+                daemon_commands.put('__API_ACTIVATE__')  # tell main thread to show GUI
                 api_msg = 'activated main window'
             else: api_msg = 'invalid command'
             return api_msg if ('is_api' in request.args or request.method == 'POST') else redirect('/')
@@ -2110,7 +2110,7 @@ if __name__ == '__main__':
         main_window.bind('<Control-r>', 'repeat')
 
 
-    def activate_main_window(selected_tab=None, url_option='url_play'):
+    def activate_main_window(selected_tab=None, url_option='url_play', from_api=False):
         global main_window
         # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
         app_log.info(f'activate_main_window: selected_tab={selected_tab}')
@@ -2178,7 +2178,7 @@ if __name__ == '__main__':
                 if default_text.startswith('http'):
                     main_window['pl_url_input'].update(default_text)
                     main_window.metadata['pl_url_input'] = default_text
-        focus_window(main_window)
+        focus_window(main_window, from_api=from_api)
 
 
     def locate_uri(selected_track_index=0, uri=None):
@@ -3061,6 +3061,7 @@ if __name__ == '__main__':
     def handle_action(action):
         actions = {
             '__ACTIVATED__': activate_main_window,
+            '__API_ACTIVATE__': lambda: activate_main_window(from_api=True),
             '__UPDATE_GUI__': _update_gui,
             '__EXIT__': exit_program,
             # from tray menu
