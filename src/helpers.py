@@ -4,6 +4,7 @@ import base64
 import audioop
 from queue import LifoQueue, Empty
 from contextlib import suppress
+from configparser import MissingSectionHeaderError
 import ctypes
 import ctypes.wintypes
 import datetime
@@ -1003,7 +1004,7 @@ def get_cookies(domain_contains, cookie_name='', return_first=True, return_value
     import sqlite3
     for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
         cookies = []
-        with suppress(bc3.BrowserCookieError, sqlite3.OperationalError):
+        with suppress(bc3.BrowserCookieError, sqlite3.OperationalError, MissingSectionHeaderError):
             cookie_storage = cookie_storage()
             for cookie in cookie_storage:
                 if cookie.domain.count(domain_contains):
