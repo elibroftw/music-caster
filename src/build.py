@@ -93,10 +93,11 @@ if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
     # install tkdnd
     sys_dir_name = os.path.dirname(sys.executable)
+    encoding = 'cp850'
     shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
     shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
     cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade', '--user', '-r', 'requirements.txt']
-    Popen(cmd, stdin=DEVNULL, stdout=None if args.dry else DEVNULL, text=True, encoding='utf-8').wait()
+    Popen(cmd, stdin=DEVNULL, stdout=None if args.dry else DEVNULL, text=True, encoding=encoding).wait()
 
 
 # import third party libraries

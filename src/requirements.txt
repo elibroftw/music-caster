@@ -10,7 +10,7 @@ pynput~=1.4.5
 pypng~=0.0.20
 pypresence~=4.0
 pyqrcode~=1.2.1
-PySimpleGUI==4.49.0
+PySimpleGUI~=4.55.1
 pystray==0.17.3
 requests==2.26
 urllib3~=1.26.7

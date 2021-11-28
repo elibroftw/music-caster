@@ -216,6 +216,7 @@ if __name__ == '__main__':
     from pychromecast.error import UnsupportedNamespace, NotConnected
     from pychromecast.config import APP_MEDIA_RECEIVER
     from pychromecast import Chromecast
+    from pychromecast.models import CastInfo
     import pyperclip
     import pythoncom
     from TkinterDnD2 import DND_FILES, DND_ALL
@@ -223,6 +224,7 @@ if __name__ == '__main__':
     from urllib3.exceptions import ProtocolError
     import win32com.client
     from win32comext.shell import shell, shellcon
+    import zeroconf
 
     TIME_TO_IMPORT = time.monotonic() - start_time
     working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -268,7 +270,7 @@ if __name__ == '__main__':
     all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
     tray_playlists = [gt('Playlists Menu')]
     CHECK_MARK = '✓'
-    music_folders, chromecasts, device_names = [], [], [(f'{CHECK_MARK} ' + gt('Local device'), 'device:0')]
+    music_folders, device_names = [], [(f'{CHECK_MARK} ' + gt('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     playing_url = deezer_opened = False
     # seconds but using time()
@@ -749,7 +751,8 @@ if __name__ == '__main__':
             if devices[0].startswith(CHECK_MARK):
                 device_index = i
                 break
-        formatted_devices = ['Local Device'] + [cc.name for cc in chromecasts]
+        formatted_devices = ['Local Device']
+        formatted_devices.extend((cc.friendly_name for cc in browser.devices.values()))
         return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
                                repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
                                settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option,
@@ -846,7 +849,7 @@ if __name__ == '__main__':
 
     @app.route('/refresh-devices/')
     def api_refresh_devices():
-        start_chromecast_discovery()
+        refresh_devices()
         return 'true'
 
 
@@ -859,7 +862,7 @@ if __name__ == '__main__':
     @app.get('/devices/')
     def api_get_devices():
         devices = ['0. Local Device']
-        for i, chromecast in enumerate(chromecasts):
+        for i, chromecast in enumerate(browser.devices.values()):
             i += 1
             devices.append(f'{i}. {chromecast}')
         return jsonify(devices)
@@ -990,87 +993,88 @@ if __name__ == '__main__':
 
 
     @cmp_to_key
-    def chromecast_sorter(cc1: Chromecast, cc2: Chromecast):
+    def cast_info_sorter(cc1: CastInfo, cc2: CastInfo):
         # sort by groups, then by name, then by UUID
         if cc1.cast_type == 'group' and cc2.cast_type != 'group': return -1
         if cc1.cast_type != 'group' and cc2.cast_type == 'group': return 1
-        if cc1.name < cc2.name: return -1
-        if cc1.name > cc2.name: return 1
+        if cc1.friendly_name < cc2.friendly_name: return -1
+        if cc1.friendly_name > cc2.friendly_name: return 1
         if str(cc1.uuid) > str(cc2.uuid): return 1
         return -1
 
 
-    def chromecast_callback(chromecast):
-        global cast
-        previous_device = settings['previous_device']
-        if str(chromecast.uuid) == previous_device and cast != chromecast:
-            cast = chromecast
-            cast.wait()
-        if chromecast.uuid not in (_cc.uuid for _cc in chromecasts):
-            chromecasts.append(chromecast)
-            # chromecasts.sort(key=lambda _cc: (_cc.device.model_name, type, _cc.name, _cc.uuid))
-            chromecasts.sort(key=chromecast_sorter)
-            device_names.clear()
-            for _i, _cc in enumerate(chain(['Local device'], chromecasts)):
-                _cc: Chromecast
-                device_name = _cc if _i == 0 else _cc.name
-                if (cast is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == previous_device):
-                    # device_names.append(f'{CHECK_MARK} {device_name}::device')
-                    device_names.append((f'{CHECK_MARK} {device_name}', f'device:{_i}'))
-                else:
-                    # device_names.append(f'    {device_name}::device')
-                    device_names.append((f'    {device_name}', f'device:{_i}'))
-            refresh_tray()
-
-
-    def start_chromecast_discovery():
-        global stop_discovery_browser
-        # stop any active scanning
-        if stop_discovery_browser is not None:
-            pychromecast.discovery.stop_discovery(stop_discovery_browser)
-        chromecasts.clear()
+    def refresh_devices():
         device_names.clear()
-        device_names.append((f'{CHECK_MARK} Local device', 'device:0'))   # default device. will be cleared in callback
-        refresh_tray()
-        stop_discovery_browser = pychromecast.get_chromecasts(blocking=False, callback=chromecast_callback)
-
-
-    def change_device(new_idx):
-        # new_idx is the index of the new device
-        global cast
-        new_device: Chromecast = None if (new_idx == 0 or new_idx > len(chromecasts)) else chromecasts[new_idx - 1]
-
-        if cast != new_device:
-            device_names.clear()
-            for idx, cc in enumerate(['Local device'] + chromecasts):
-                cc: Chromecast = cc if idx == 0 else cc.name
-                tray_device_name = f'{CHECK_MARK} {cc}' if idx == new_idx else f'    {cc}'
-                device_names.append((tray_device_name, f'device:{idx}'))
-            refresh_tray()
-
-            current_pos = 0
-            if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
-                if playing_status.busy():
-                    mc = cast.media_controller
-                    with suppress(UnsupportedNamespace):
-                        mc.update_status()  # Switch device without playback loss
-                        current_pos = mc.status.adjusted_current_time
-                        if mc.is_playing or mc.is_paused: mc.stop()
-                with suppress(NotConnected):
-                    cast.quit_app()
-            elif cast is None and audio_player.is_busy():
-                current_pos = audio_player.stop()
-            cast = new_device
-            change_settings('previous_device', None if cast is None else str(cast.uuid))
-            if playing_status.busy() and (music_queue or sar.alive):
-                if not sar.alive:
-                    play(music_queue[0], position=current_pos, autoplay=playing_status.playing(), switching_device=True)
-                elif not play_system_audio(True):
-                    playing_status.stop()
+        ccs = list(browser.devices.values())
+        ccs.sort(key=cast_info_sorter)
+        for _i, _cc in enumerate(chain(['Local device'], ccs)):
+            _cc: CastInfo
+            device_name = _cc if _i == 0 else _cc.friendly_name
+            if (cast is None and _i == 0) or (type(_cc) != str and str(_cc.uuid) == settings['previous_device']):
+                tray_device_name = f'{CHECK_MARK} {device_name}'
             else:
-                cast_wait()
-                volume = 0 if settings['muted'] else settings['volume']
-                update_volume(volume)
+                tray_device_name = f'    {device_name}'
+            tray_device_key = f'device:{_cc.uuid}' if _i else 'device:0'
+            device_names.append((tray_device_name, tray_device_key))
+        refresh_tray()
+
+
+    class MyCastListener(pychromecast.discovery.AbstractCastListener):
+        def add_cast(self, uuid, _service):
+            """Called when a new cast has been discovered."""
+            global cast
+            cast_info = browser.devices[uuid]
+            if str(cast_info.uuid) == settings['previous_device']:
+                if cast is None or cast.uuid != uuid:
+                    cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
+                    cast.wait()
+            refresh_devices()
+
+        def remove_cast(self, uuid, _service, cast_info):
+            """Called when a cast has been lost (MDNS info expired or host down)."""
+            refresh_devices()
+
+        def update_cast(self, uuid, _service):
+            """Called when a cast has been updated (MDNS info renewed or changed)."""
+            refresh_devices()
+
+
+    def change_device(new_uuid):
+        global cast
+        try:
+            new_uuid = UUID(new_uuid)
+            with suppress(AttributeError):
+                if cast.uuid != new_uuid:
+                    return
+            new_device = pychromecast.get_chromecast_from_cast_info(browser.devices.get(new_uuid, None), zconf)
+        except ValueError:
+            new_device = None
+        if cast == new_device:
+            return
+        current_pos = 0
+        if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
+            if playing_status.busy():
+                mc = cast.media_controller
+                with suppress(UnsupportedNamespace):
+                    mc.update_status()  # Switch device without playback loss
+                    current_pos = mc.status.adjusted_current_time
+                    if mc.is_playing or mc.is_paused: mc.stop()
+            with suppress(NotConnected):
+                cast.quit_app()
+        elif cast is None and audio_player.is_busy():
+            current_pos = audio_player.stop()
+        cast = new_device
+        change_settings('previous_device', None if cast is None else str(cast.uuid))
+        refresh_devices()
+        if playing_status.busy() and (music_queue or sar.alive):
+            if not sar.alive:
+                play(music_queue[0], position=current_pos, autoplay=playing_status.playing(), switching_device=True)
+            elif not play_system_audio(True):
+                playing_status.stop()
+        else:
+            cast_wait()
+            volume = 0 if settings['muted'] else settings['volume']
+            update_volume(volume)
 
 
     def un_shuffle_queue():
@@ -2196,8 +2200,10 @@ if __name__ == '__main__':
         main_window.close()
         close_tray()
         # stop any active scanning
-        if stop_discovery_browser is not None:
-            pychromecast.discovery.stop_discovery(stop_discovery_browser)
+        with suppress(NameError):
+            browser.stop_discovery()
+        # if stop_discovery_browser is not None:
+        #     pychromecast.discovery.stop_discovery(stop_discovery_browser)
         with suppress(UnsupportedNamespace, NotConnected):
             if cast is None:
                 stop('exit program')
@@ -2227,8 +2233,8 @@ if __name__ == '__main__':
 
     def other_tray_actions(_tray_item):
         if _tray_item.startswith('device:'):
-            device_index = int(re.search(r'\d+', _tray_item).group())
-            with suppress(ValueError): change_device(device_index)
+            device_uuid = _tray_item[7:]
+            with suppress(ValueError): change_device(device_uuid)
         elif _tray_item.startswith('PL:'):  # playlist
             playlist_action(_tray_item[3:])
         elif _tray_item == gt('Select Folder(s)'):
@@ -3058,7 +3064,7 @@ if __name__ == '__main__':
             # from tray menu
             gt('Exit'): exit_program,
             gt('Rescan Library'): index_all_tracks,
-            gt('Refresh Devices'): lambda: start_chromecast_discovery,
+            gt('Refresh Devices'): refresh_devices,
             # isdigit should be an if statement
             gt('Settings'): lambda: activate_main_window('tab_settings'),
             gt('Playlists Menu'): lambda: activate_main_window('tab_playlists'),
@@ -3140,7 +3146,9 @@ if __name__ == '__main__':
             change_settings('populate_queue_startup', False)
         cast_last_checked = time.monotonic()
         Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
-        start_chromecast_discovery()
+        zconf = zeroconf.Zeroconf()
+        browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
+        browser.start_discovery()
         audio_player = AudioPlayer()
         if args.uris or args.start_playing:
             # wait until previous device has been found or cannot be found
