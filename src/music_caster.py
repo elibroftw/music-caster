@@ -864,7 +864,7 @@ if __name__ == '__main__':
         if not friendly:
             devices = {'0': 'Local Device'}
             for _uuid, cast_info in browser.devices.items():
-                devices[str(_uuid)] = cast_info
+                devices[str(_uuid)] = cast_info.friendly_name
         else:
             devices = ['Local Device::0']
             for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
