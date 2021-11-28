@@ -459,7 +459,7 @@ if __name__ == '__main__':
         else: playing_uri = 'N/A'
         try:
             with open('music_caster.log') as f:
-                log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
+                log_lines = f.read().splitlines()[-10:]  # get last 10 lines of the log
         except FileNotFoundError:
             log_lines = []
         payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
