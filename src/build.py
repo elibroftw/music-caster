@@ -36,6 +36,7 @@ parser.add_argument('--skip-build', default=False, action='store_true',
                     help='Skip to testing / uploading')
 parser.add_argument('--skip-tests', '--st', default=False, action='store_true',
                     help='Skip testing')
+parser.add_argument('--force-install', '-f', default=False, action='store_true', help='Force install')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
 parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
@@ -426,6 +427,6 @@ if args.upload and tests_passed and not args.dry and not args.debug:
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
-elif tests_passed and not args.dry and not args.debug and not args.skip_tests:
+elif args.force_install or (tests_passed and not args.dry and not args.debug and not args.skip_tests):
     print('Installing Music Caster [Will Launch After]')
     local_install()
