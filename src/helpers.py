@@ -24,7 +24,7 @@ import time
 from threading import Thread
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
-from uuid import getnode
+from uuid import getnode, UUID
 import winreg as wr
 
 # 3rd party imports
