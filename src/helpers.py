@@ -71,6 +71,7 @@ COVER_NORMAL = (255, 255)
 PL_COMBO_W = 37
 DECRYPT_TRACK = False
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/591'
+SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
@@ -85,6 +86,8 @@ class Shared:
     lang = ''
     track_format = '&title - &artist'
     PORT = 2001
+    using_tcl_theme = False
+    settings = {}
 
 
 class SystemAudioRecorder:
@@ -263,6 +266,16 @@ class Unknown(str):
         return len(str(self))
 
 
+def exception_wrapper(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                f(*args, **kwargs)
+            except Exception as e:
+                print(f'Handled exception in {f.__name__}:', e)
+        return wrapper
+
+
 class DiscordPresence:
     """
     Exception safe wrapper for pypresence
@@ -271,37 +284,37 @@ class DiscordPresence:
     MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 
     @classmethod
+    @exception_wrapper
     def set_rich_presence(cls):
         if cls.rich_presence is None:
-            with suppress(Exception):
-                cls.rich_presence = pypresence.Presence()
+            cls.rich_presence = pypresence.Presence(cls.MUSIC_CASTER_DISCORD_ID)
 
     @classmethod
+    @exception_wrapper
     def connect(cls, confirm_connect=True):
         if confirm_connect:
             cls.set_rich_presence()
-            with suppress(Exception):
-                cls.rich_presence.connect()
+            cls.rich_presence.connect()
 
     @classmethod
+    @exception_wrapper
     def update(cls, confirm_connect=True, state: str = None, details: str = None, large_text: str = None,
                large_image='default', small_image='logo', small_text='Music Caster'):
         if confirm_connect:
             cls.set_rich_presence()
-            with suppress(Exception):
-                cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
+            cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
                                          small_image=small_image, small_text=small_text)
 
     @classmethod
+    @exception_wrapper
     def clear(cls, confirm=True):
         if confirm:
-            with suppress(Exception):
-                cls.rich_presence.clear()
+            cls.rich_presence.clear()
 
     @classmethod
+    @exception_wrapper
     def close(cls):
-        with suppress(Exception):
-            cls.rich_presence.close()
+        cls.rich_presence.close()
 
 
 def get_file_name(file_path): return Path(file_path).stem
@@ -1273,6 +1286,9 @@ def icon_btn(image_data, key, tooltip, bg):
 
 def round_btn(button_text, fill, text_color, tooltip=None, key=None, visible=True,
               pad=None, bind_return_key=False, button_width=None):
+    if Shared.using_tcl_theme:
+        return Sg.Button(button_text, use_ttk_buttons=True, key=key, visible=visible,
+                         bind_return_key=bind_return_key, size=(button_width, 1), pad=pad)
     multi = 4
     btn_w = ((len(button_text) if button_width is None else button_width) * 5 + 20) * multi
     height = 18 * multi
@@ -1451,9 +1467,17 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     except RuntimeError:
         lib_data = []
     lib_headings = ['title', 'artist', 'album']
+    if Shared.using_tcl_theme:
+        library_height = listbox_height
+        col_widths = [25, 12, 12]
+    else:
+        library_height = 14 - 3 * settings['vertical_gui']
+        col_widths = [20, 15, 15]
+
     library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
-                                col_widths=[25, 15, 15], bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
-                                justification='right', num_rows=14 - 3 * settings['vertical_gui'],
+                                col_widths=col_widths, bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
+                                justification='right', num_rows=library_height,
+                                size=(10, 1),
                                 selected_row_colors=(bg, accent_color),
                                 right_click_menu=['', ['Play::library', 'Play Next::library',
                                                        'Queue::library', 'Locate::library']],
@@ -1577,8 +1601,8 @@ def create_settings(version, settings):
     qr_code_params = {'tooltip': gt('Open Web GUI'), 'button_color': (bg, bg)}
     right_settings_col = Sg.Column([
         [Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)],
-        [round_btn('settings.json', accent_color, bg, key='settings_file', pad=((15, 0), 5), button_width=10)],
-        [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=10)]
+        [round_btn('settings.json', accent_color, bg, key='settings_file', pad=((15, 0), 5), button_width=12)],
+        [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=12)]
     ], pad=(0, 0))
     link_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'click_submits': True}
     layout = [
@@ -1629,19 +1653,21 @@ def create_timer(settings, timer):
 def create_metadata_tab(settings):
     accent, bg = settings['theme']['accent'], settings['theme']['background']
     layout = [
-        [Sg.Text('', size=(40, 1), key='metadata_file'),
-         round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
-         round_btn(gt('Save'), accent, bg, key='metadata_save')],
-        [Sg.Text(gt('Title'), size=(20, 1)), Sg.Input(key='metadata_title', border_width=1)],
-        [Sg.Text(gt('Artist'), size=(20, 1)), Sg.Input(key='metadata_artist', border_width=1)],
-        [Sg.Text(gt('Album'), size=(20, 1)), Sg.Input(key='metadata_album', border_width=1)],
-        [Sg.Text(gt('Track Number'), size=(20, 1)), Sg.Input(key='metadata_track_num', border_width=1)],
-        [Sg.Checkbox(gt('Explicit'), key='metadata_explicit', enable_events=True)],
-        [Sg.Column([[round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10))],
-                    [round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10))],
-                    [round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))]],
-                   pad=((0, 20), 5)),
+        [Sg.Column([
+            [round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
+            round_btn(gt('Save'), accent, bg, key='metadata_save'),
+            Sg.Text('', size=(45, 1), key='metadata_file', border_width=1, relief='sunken', click_submits=True)]],
+            pad=(0, (20, 10)))],
+        [Sg.Column([
+            [Sg.Text(gt('Title'), size=(20, 1)), Sg.Input(key='metadata_title', border_width=1, size=(25, 1))],
+            [Sg.Text(gt('Artist'), size=(20, 1)), Sg.Input(key='metadata_artist', border_width=1, size=(25, 1))],
+            [Sg.Text(gt('Album'), size=(20, 1)), Sg.Input(key='metadata_album', border_width=1, size=(25, 1))],
+            [Sg.Text(gt('Track Number'), size=(20, 1)), Sg.Input(key='metadata_track_num', border_width=1, size=(25, 1))]]),
          Sg.Image(key='metadata_art')],
+        [Sg.Checkbox(gt('Explicit'), key='metadata_explicit', enable_events=True),
+         round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10)),
+         round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10)),
+         round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))],
         [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]
     ]
     return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
