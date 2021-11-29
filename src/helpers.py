@@ -68,7 +68,6 @@ LINK_COLOR = '#3ea6ff'
 COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)
 PL_COMBO_W = 37
-DECRYPT_TRACK = False
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/591'
 SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -1051,7 +1050,7 @@ def parse_deezer_page(url):
 
 
 def parse_deezer_track(track_obj) -> dict:
-    from deemix.decryption import generateBlowfishKey, generateStreamURL
+    from deemix.decryption import generateBlowfishKey, generateCryptedStreamURL
     artists = []
     try:
         main_artists = track_obj['SNG_CONTRIBUTORS']['main_artist']
@@ -1077,7 +1076,7 @@ def parse_deezer_track(track_obj) -> dict:
     }
     with suppress(KeyError):
         md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
-        file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], TrackFormats.MP3_320)
+        file_url = generateCryptedStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], TrackFormats.MP3_128)
         bf_key = generateBlowfishKey(sng_id)
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
@@ -1086,11 +1085,9 @@ def parse_deezer_track(track_obj) -> dict:
 
 
 def set_dz_url(metadata):
-    if DECRYPT_TRACK:
-        src_url = metadata['src']
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src_url})}'
-    else:
-        metadata['url'] = metadata['file_url']
+    src_url = metadata['src']
+    metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src_url})}'
+    # metadata['url'] = metadata['file_url']
 
 
 def get_deezer_track(url):
