@@ -632,7 +632,7 @@ def better_shuffle(seq, first=0, last=-1):
 
 def create_qr_code():
     try:
-        qr_code = pyqrcode.create(f'http://{get_lan_ip()}:{Shared.PORT}')
+        qr_code = pyqrcode.create(f'http://{get_ipv4()}:{Shared.PORT}')
         return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
     except OSError:
         # Failed?
