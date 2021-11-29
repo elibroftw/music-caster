@@ -596,7 +596,15 @@ def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
 
 
 def get_ipv6():
-    return f'[{next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))}]'
+    # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))
+    with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+        try:
+            # doesn't even have to be reachable
+            s.connect(('fe80::116a:fd0a:4a0a:42a7', 1))
+            ip = s.getsockname()[0]
+        except Exception:
+            ip = '::1'
+    return ip
 
 
 def get_ipv4():
