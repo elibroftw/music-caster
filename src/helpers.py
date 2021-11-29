@@ -603,6 +603,17 @@ def get_ipv4():
     return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
 
 
+def get_ipv4():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            # doesn't even have to be reachable
+            s.connect(('10.255.255.255', 1))
+            ip = s.getsockname()[0]
+        except Exception:
+            ip = '127.0.0.1'
+    return ip
+
+
 def get_lan_ip() -> str:
     try:
         return get_ipv6()
