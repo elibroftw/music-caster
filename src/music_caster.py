@@ -3153,7 +3153,11 @@ if __name__ == '__main__':
 
         print(f'Running on http://127.0.0.1:{Shared.PORT}/')
         print(f'Running on http://[::1]:{Shared.PORT}/')
-
+        app_log.info(f'LAN IPV4: {get_ipv4()}')
+        try:
+            app_log.info(f'LAN IPV6: {get_ipv6()}')
+        except StopIteration:
+            app_log.info('Could not get LAN IPV6 address')
         DiscordPresence.connect(settings['discord_rpc'])
         temp = (settings['timer_shut_down'], settings['timer_hibernate'], settings['timer_sleep'])
         if temp.count(True) > 1:  # Only one of the below can be True
