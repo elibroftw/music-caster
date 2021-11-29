@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.133'
+VERSION = latest_version = '4.90.134'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -752,13 +752,22 @@ if __name__ == '__main__':
                 device_index = i
                 break
         formatted_devices = [('Local Device', '0')]
+        stream_url, stream_time = None, track_position
+        if playing_status.playing():
+            metadata = get_current_metadata()
+            uri = music_queue[0]
+            if os.path.exists(uri):
+                file_path = pathname2url(uri).strip('/')
+                stream_url = f'/file?path={file_path}'
+            else:
+                stream_url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
         for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
                                repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
                                settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option,
                                queue=_queue, playing_index=len(done_queue), device_index=device_index,
-                               devices=formatted_devices, version=VERSION, gt=gt)
+                               devices=formatted_devices, version=VERSION, gt=gt, stream_url=stream_url, stream_time=stream_time)
 
 
     @app.route('/status/')
@@ -1436,7 +1445,8 @@ if __name__ == '__main__':
             thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART'
             track_length = metadata['length']
             if cast is None:
-                audio_player.play(url, start_playing=autoplay, start_from=position)
+                _volume = 0 if settings['muted'] else settings['volume'] / 100
+                audio_player.play(url, start_playing=autoplay, start_from=position, volume=_volume)
             else:
                 try:
                     cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere

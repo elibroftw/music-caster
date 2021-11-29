@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.134
+- [Feature] Mobile playback
+- [Fix] URL local muted playback
+
 4.90.133
 - [Fix] GUI activation
 
