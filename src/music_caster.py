@@ -652,7 +652,7 @@ if __name__ == '__main__':
                         if k not in loaded_settings[setting_name]:
                             loaded_settings[setting_name][k] = v
                             _save_settings = True
-            settings = loaded_settings
+            Shared.settings = settings = loaded_settings
             # sort playlists by name
             settings['playlists'] = {k: settings['playlists'][k] for k in sorted(settings['playlists'].keys())}
             # if music folders were modified, re-index library
@@ -2113,6 +2113,7 @@ if __name__ == '__main__':
         # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
         app_log.info(f'activate_main_window: selected_tab={selected_tab}')
         if main_window.was_closed():
+            Shared.using_tcl_theme = settings.get('EXPERIMENTAL', False) and os.path.exists(SUN_VALLEY_TCL)
             # create window if window not alive
             lb_tracks = create_track_list()
             selected_value = lb_tracks[len(done_queue)] if lb_tracks and len(done_queue) < len(lb_tracks) else None
@@ -2138,11 +2139,18 @@ if __name__ == '__main__':
                                      'mouse_hover': '', 'url_input': '', 'pl_url_input': ''}
             pl_name = window_metadata['pl_name'] = next(iter(settings['playlists']), '')
             pl_tracks = window_metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
+
             main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
                                     finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
                                     use_default_focus=False, margins=window_margins,
                                     keep_on_top=mini_mode and settings['mini_on_top'],
                                     location=window_location, metadata=window_metadata)
+            if Shared.using_tcl_theme:
+                with suppress(tkinter.TclError):
+                    main_window.TKroot.tk.call('source', SUN_VALLEY_TCL)
+                main_window.TKroot.tk.call('set_theme', 'dark')
+            else:
+                Shared.using_tcl_theme = False
             if not settings['mini_mode']:
                 main_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
                 default_pl_tracks = [f'{i + 1}. {format_uri(pl_track)}' for i, pl_track in enumerate(pl_tracks)]
