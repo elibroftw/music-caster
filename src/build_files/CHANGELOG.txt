@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.133
+- [Fix] GUI activation
+
 4.90.132
 - [Fix] URL support
 
