@@ -81,21 +81,25 @@ def update_versions():
 VERSION = getoutput('music_caster.py --version')
 if 'ModuleNotFoundError' not in VERSION:
     update_versions()
+    print('Updated versions of build files')
+    if args.ver_update: sys.exit()
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt'
 else:
     args.dry = True
-    args.ver_update = args.skip_deps = args.skip_build = False
+    args.skip_deps = args.skip_build = False
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt --force'
     print('Warning: could not get version, will install modules')
-print('Updated versions of build files')
-if args.ver_update: sys.exit()
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
     # install tkdnd
     sys_dir_name = os.path.dirname(sys.executable)
-    encoding = 'cp850'
     shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
     shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
-    cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade', '--user', '-r', 'requirements.txt']
-    Popen(cmd, stdin=DEVNULL, stdout=None if args.dry else DEVNULL, text=True, encoding=encoding).wait()
+    if args.dry:
+        Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
+    else:
+        # surpress output if not dry
+        getoutput(pip_cmd)
 
 
 # import third party libraries
@@ -232,14 +236,17 @@ if args.clean:
 
 if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
-    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
+    additional_args = '--log=DEBUG' if args.debug else ''
+    if args.clean:
+        additional_args += ' --clean'
+    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}')
     try:
         ms_build = get_msbuild()
         check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
                    f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
-    check_call(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
+    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}')
     try:
         s4 = Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError:
