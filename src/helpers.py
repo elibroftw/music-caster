@@ -599,10 +599,7 @@ def get_ipv6():
 
 
 def get_ipv4():
-    return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
-
-
-def get_ipv4():
+    # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         try:
             # doesn't even have to be reachable
