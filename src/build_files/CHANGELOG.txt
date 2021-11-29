@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.131
+- [Fix] Metadata Tab
+- [Fix] Discord Presence
+
 4.90.130
 - [Fix] GUI activation
 
