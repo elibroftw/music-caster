@@ -958,7 +958,6 @@ if __name__ == '__main__':
             # noinspection PyProtectedMember
             blowfish_key = metadata['bf_key']
             iv = b'\x00\x01\x02\x03\x04\x05\x06\x07'
-            cipher = Blowfish.new(blowfish_key, Blowfish.MODE_CBC, iv)
 
             def generate():
                 nonlocal start_bytes
@@ -968,12 +967,12 @@ if __name__ == '__main__':
                     extra_bytes = 2048 - extra_bytes
                     chunk = next(r.iter_content(extra_bytes))
                     if start_bytes // 2048 == 0:
-                        chunk = cipher.decrypt(chunk)
+                        chunk = Blowfish.new(blowfish_key, Blowfish.MODE_CBC, iv).decrypt(chunk)
                     yield chunk
                     start_bytes += extra_bytes
                 for i, chunk in enumerate(r.iter_content(2048), start_bytes // 2048):
                     if (i % 3) == 0 and len(chunk) == 2048:
-                        chunk = cipher.decrypt(chunk)
+                        chunk = Blowfish.new(blowfish_key, Blowfish.MODE_CBC, iv).decrypt(chunk)
                     yield chunk
 
             content_type = r.headers['Content-Type']
