@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.136
+- [Fix] URL support
+
 4.90.135
 - [Fix] get ipv4
 

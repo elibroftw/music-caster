@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.135'
+VERSION = latest_version = '4.90.136'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
