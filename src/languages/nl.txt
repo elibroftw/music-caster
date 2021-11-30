@@ -1,0 +1,187 @@
+# Language: Dutch
+# Credits: Jeffrey (PD3J) Jansen github.com/Plaatjesdraaier
+# Any line starting with a # is ignored!
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+map toevoegen
+Voeg Music Caster toe aan het contextmenu van de map
+Liedjes toevoegen
+URL toevoegen
+Er is een fout opgetreden, nu aan het herstarten
+Er heeft een interne server fout plaatsgevonden
+Audio Selectie
+Automatische update
+Door
+Annuleren
+Annuleer Timer
+Wis de wachtrij
+Bediening
+Kon niet verbinden met cast-apparaat
+Kon geen uitvoerapparaat vinden om op te nemen
+Kan $URL niet afspelen
+Kan de wachtrij niet vullen omdat bibliotheekscan is uitgeschakeld
+Kon de timer niet instellen
+Discord aanwezig
+Downloading update $VER
+Voer het aantal minuten in of UU:MM
+Voer tijd in
+Vul URL in
+FOUT
+Exit
+Contextmenu van de map
+Deze map bevat geen audio bestanden
+Mappen
+Algemeen
+Ga in slaapstand als de timer afloopt
+Slaapstand Computer
+INFO
+Verkeerde ingave (geef aantal minuten in of UU:MM)
+Ongeldige URL. URL's moeten beginnen met http:// of https://
+Houdt mini modus zichtbaar
+Start mini modus
+Muziekbediening aan de linkerkant
+Bibliotheek
+Bibliotheekindexering onvolledig, alleen gescande bestanden zijn toegevoegd
+Aan het luisteren
+Systeemaudio
+Lokale apparaten
+lokaliseren geselecteerd
+Mini-modus bovenaan
+Meer
+omlaag
+Nummerinhoud naar links verplaatsen
+omhoog
+Music Caster is geminimaliseerd in de taakbalk.
+mute
+Nieuw
+volgend nummer
+Geen ruimte over op het apparaat om automatisch te updaten
+Geen ruimte meer op het apparaat om instellingen op te slaan
+Geen timer ingesteld
+Niet verbonden met een cast-apparaat
+Niet ingelogd bij deezer.com
+Niets aan het spelen
+Meldingen
+Alleen afspelen stoppen
+Pause
+Aanhoudende wachtrij
+Afspelen
+Speel alles af
+Speel bestand(en)
+Speel volgende bestand(en)
+Speel map
+Speel volgende map
+Speel meteen
+Speel volgende
+Speel URL
+Speel volgende URL
+Afspelen
+Naam afspeellijst
+Afspeellijsten
+Afspeellijsten Menu
+Wachtrij vullen bij opstarten
+Vult wachtrij uit mappen bij opstarten
+vorige nummer
+Wachtrij
+alles naar de wachtrij
+Bestand(en)naar wachtrij
+Map naar wachtrij
+URL naar wachtrij
+Ververs apparaten
+Onthoud laatste map
+verwijder geselecteerde map
+verwijder
+Herhaal
+Herhaal alles
+Herhalen uit
+Herhaal een keer
+Herhaal opties
+Bibliotheek opnieuw scannen
+Bibliotheek aan het herscannen
+Hervatten
+Omgekeerd afspelen volgende gedrag
+Omgekeerd afspelen volgende
+Uitvoeren bij het starten
+Wachtrij tussen sessies opslaan
+Bewaar de wachtrij in een afspeellijst
+Vensterposities opslaan
+Mappen scannen
+scroll muiswiel
+Muziek aan het zoeken...
+Selecteer apparaat
+Selecteer map
+Selecteer map(pen)
+Selecteer bestand(en)
+Selecteer bestand
+Selecteer Muziek bestand(en)
+Stuur een e-mail
+set DEBUG = true in `settings.json` om deze pagina in te schakelen
+Stel Timer in
+Instellen
+Instellingen
+Albumhoezen weergeven
+Albumhoezen weergeven in Grafische gebruikers-interface
+Toon index in wachtrij
+Toon tracknummer
+Toon tracknummer in wachtrij
+shuffle
+Afsluiten wanneer de timer afloopt
+Computer afsluiten
+Ga in slaapstand als de timer afloopt
+Computer slaapstand
+Stop
+Indienen
+Bedankt voor het installeren van Music Caster.
+Timer
+Timer geannuleerd
+Timer gezet voor $TIME
+Geef artiest/tracks in
+Gebruikersinterface
+mute opheffen
+Update $VER is beschikbaar
+URL
+Gebruik cover.* voor albumhoezen
+Gebruik cover.* voor albumhoed in plaats van de albumhoes van het bestand
+cover.* afbeelding heeft voorrang op de albumhoes van het bestand
+Verticale Grafische gebruikers-interface
+Bekijk de bronlinks van de audiobestanden
+QR Code voor de webgebaseerde gebruikers-interface (Klikken of scannen)
+nieuwe afspeellijst
+afspeellijst exporteren
+afspeellijst verwijderen
+afspeellijst afspelen
+afspeellijst in de wachtrij zetten
+Onbekende titel
+Onbekende artiest
+Onbekend album
+Bibliotheek altijd in wachtrij plaatsen
+Afspelen met Music Caster
+In de wachtrij van Music Caster zetten
+Volgende afspelen in Music Caster
+In de wachtrij zetten
+Slimme wachtrij
+toevoegen aan volgende te spelen
+Metagegevens
+Metagegevens opslaan
+Metagegevens opgeslagen
+Opslaan
+Titel
+Artiest
+Album
+Tracknummer
+Expliciet
+Selecteer afbeelding
+Zoek afbeelding
+Verwijder afbeelding
+Afbeelding gevonden
+Geen afbeelding gevonden
+Zoeken naar afbeelding...
+URL(s) laden
+Toegevoegde URL(s)
+Taal
+Speel selectie
+Zet selectie in de wachtrij
+voeg selectie to aan volgende te spelen
+Systeem Audio Vertraging:
+seconden
+track zoeken
