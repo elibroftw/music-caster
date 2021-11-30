@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.139'
+VERSION = latest_version = '4.90.140'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -1054,13 +1054,16 @@ if __name__ == '__main__':
         try:
             new_uuid = UUID(new_uuid)
             with suppress(AttributeError):
-                if cast.uuid != new_uuid:
+                if cast.uuid == new_uuid:
+                    # do not change device if same cast is selected
                     return False
             new_device = pychromecast.get_chromecast_from_cast_info(browser.devices.get(new_uuid, None), zconf)
         except ValueError:
             new_device = None
         if cast == new_device:
+            # do not change device if local device is selected again
             return False
+        # cache information
         current_pos = 0
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             if playing_status.busy():
@@ -1073,6 +1076,7 @@ if __name__ == '__main__':
                 cast.quit_app()
         elif cast is None and audio_player.is_busy():
             current_pos = audio_player.stop()
+
         cast = new_device
         change_settings('previous_device', None if cast is None else str(cast.uuid))
         refresh_devices()
