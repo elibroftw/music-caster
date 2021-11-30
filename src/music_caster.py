@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.136'
+VERSION = latest_version = '4.90.137'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -909,7 +909,7 @@ if __name__ == '__main__':
             current_time = datetime.now()
             current_time = current_time.replace(second=0)
             seconds_delta = (to_stop - current_time).total_seconds()
-            if seconds_delta < 0: seconds_delta += 43200  # add 12 hours
+            while seconds_delta < 0: seconds_delta += 43200  # add 12 hours
             seconds = seconds_delta
         else:
             raise ValueError('Timer input is invalid')

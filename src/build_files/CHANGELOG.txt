@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.137
+- [Fix] Timer
+- [Fix] Export playlist
+- [UI] Added Dutch translation
+
 4.90.136
 - [Fix] URL support
 

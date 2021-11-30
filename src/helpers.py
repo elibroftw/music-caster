@@ -877,7 +877,7 @@ def export_playlist(playlist_name, uris):
     playlist_path = Path.home() / 'Downloads'
     playlist_path.mkdir(parents=True, exist_ok=True)
     playlist_path /= f'{playlist_name}.m3u'
-    with open(playlist_path, 'w') as f:
+    with open(playlist_path, 'w', encoding='utf-8') as f:
         f.write('#EXTM3U\n')
         for uri in uris:
             if uri.replace('\\', '/') != playlist_path:
