@@ -92,7 +92,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
                     elif parent_cmd == 'hide':
                         tray.visible = False
-                    elif parent_cmd in ('close', 'exit', '__EXIT__'):
+                    elif parent_cmd in {'close', 'exit', '__EXIT__'}:
                         tray.stop()
             time.sleep(0.1)
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
@@ -841,7 +841,7 @@ if __name__ == '__main__':
     def api_change_setting():
         with suppress(KeyError):
             setting_key = request.json['setting_name']
-            if setting_key in settings or setting_key in {'timer_stop'}:
+            if setting_key in settings or setting_key == 'timer_stop':
                 val = request.json['value']
                 change_settings(setting_key, val)
                 timer_settings = {'timer_hibernate', 'timer_sleep',
@@ -2085,8 +2085,8 @@ if __name__ == '__main__':
             for scroll_area in scroll_areas:
                 main_window[scroll_area].bind('<Enter>', '_mouse_enter')
                 main_window[scroll_area].bind('<Leave>', '_mouse_leave')
-            for input_key in ('url_input', 'pl_url_input', 'pl_name', 'timer_input',
-                              'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'):
+            for input_key in {'url_input', 'pl_url_input', 'pl_name', 'timer_input',
+                              'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
             tk_lb = main_window['queue'].TKListbox
             drop_target_register(tk_lb, DND_ALL)
@@ -2566,7 +2566,7 @@ if __name__ == '__main__':
             main_window['pl_name'].set_focus()
             main_window['pl_name'].update(value=main_window.metadata['pl_name'])
             main_window['pl_tracks'].update(values=new_values, set_to_index=0)
-        elif main_event in ('library', 'Play::library', 'Play Next::library', 'Queue::library', 'Locate::library'):
+        elif main_event in {'library', 'Play::library', 'Play Next::library', 'Queue::library', 'Locate::library'}:
             library_metadata = main_window.metadata['library']
             if library_metadata['region'] == 'heading':
                 col_index = library_metadata['column']
@@ -2904,7 +2904,7 @@ if __name__ == '__main__':
             # search for artwork using spotify API
             main_window['metadata_msg'].update(value=gt('Searching for artwork...'), text_color='yellow')
             found_artwork = False
-            for mkt in ('MX', 'CA', 'US', 'UK', 'HK'):
+            for mkt in {'MX', 'CA', 'US', 'UK', 'HK'}:
                 title = main_values['metadata_title']
                 artist = main_values['metadata_artist']
                 url = f'https://api.spotify.com/v1/search?q={title}'
@@ -3180,7 +3180,7 @@ if __name__ == '__main__':
             play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
         elif settings['persistent_queue']:
             # load saved queues from settings.json
-            for queue_name in ('done', 'music', 'next'):
+            for queue_name in {'done', 'music', 'next'}:
                 queue = {'done': done_queue, 'music': music_queue, 'next': next_queue}[queue_name]
                 for file_or_url in settings['queues'].get(queue_name, []):
                     if valid_audio_file(file_or_url) or file_or_url.startswith('http'):

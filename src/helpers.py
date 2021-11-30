@@ -1085,7 +1085,6 @@ def parse_deezer_track(track_obj) -> dict:
     title, album = track_obj['SNG_TITLE'], track_obj['ALB_TITLE']
     length = int(track_obj['DURATION'])
     is_explicit = track_obj['EXPLICIT_TRACK_CONTENT']['EXPLICIT_LYRICS_STATUS'] == '1'
-    is_expired = lambda: time.time() > track_obj['TRACK_TOKEN_EXPIRE']
     sng_id = track_obj['SNG_ID']
     metadata = {
         'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str, 'album': album,
@@ -1097,7 +1096,8 @@ def parse_deezer_track(track_obj) -> dict:
         bf_key = generateBlowfishKey(sng_id)
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
-        metadata['expired'] = is_expired
+        expiry_time = time.time() + 1800  # 30 minute expiry
+        metadata['expired'] = lambda: time.time() > expiry_time
     return metadata
 
 
