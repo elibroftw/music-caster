@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.139
+- [Fix] IPv6
+
 4.90.138
 - [Fix] Import playlist
 
