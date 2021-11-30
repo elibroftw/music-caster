@@ -602,7 +602,7 @@ def get_ipv6():
             s.connect(('fe80::116a:fd0a:4a0a:42a7', 1))
             ip = s.getsockname()[0]
         except Exception:
-            ip = '::1'
+            ip = get_ipv4()
     return ip
 
 
@@ -611,7 +611,7 @@ def get_ipv4():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         try:
             # doesn't even have to be reachable
-            s.connect(('10.255.255.255', 1))
+            s.connect(('192.168.1.2', 1))
             ip = s.getsockname()[0]
         except Exception:
             ip = '127.0.0.1'
