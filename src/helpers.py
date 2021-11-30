@@ -600,7 +600,7 @@ def get_ipv6():
         try:
             # doesn't even have to be reachable
             s.connect(('fe80::116a:fd0a:4a0a:42a7', 1))
-            ip = s.getsockname()[0]
+            ip = f'[{s.getsockname()[0]}]'
         except Exception:
             ip = get_ipv4()
     return ip
@@ -619,11 +619,7 @@ def get_ipv4():
 
 
 def get_lan_ip() -> str:
-    try:
-        return get_ipv6()
-    except StopIteration:
-        # return IPv4 if IPv6 is unavailable
-        return get_ipv4()
+    return get_ipv6()
 
 
 def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
