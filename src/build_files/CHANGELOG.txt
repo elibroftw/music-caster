@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.141
+- [Fix] Dutch
+
 4.90.140
 - [Fix] Change Chromecast
 
