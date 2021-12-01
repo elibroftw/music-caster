@@ -1,5 +1,5 @@
 # Language: Dutch
-# Credits: Jeffrey (PD3J) Jansen github.com/Plaatjesdraaier
+# Credits: Jeffrey (PD3J) Jansen
 # Any line starting with a # is ignored!
 # If a line contains $X do not translate the $X, please use it in context
 # e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
@@ -49,6 +49,7 @@ lokaliseren geselecteerd
 Mini-modus bovenaan
 Meer
 omlaag
+verplaatsen naar volgende te spelen
 Nummerinhoud naar links verplaatsen
 omhoog
 Music Caster is geminimaliseerd in de taakbalk.
