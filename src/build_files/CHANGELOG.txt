@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.142
+- [Fix] Web GUI
+
 4.90.141
 - [Fix] Dutch
 
