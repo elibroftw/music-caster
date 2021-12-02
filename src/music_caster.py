@@ -753,15 +753,14 @@ if __name__ == '__main__':
                 break
         formatted_devices = [('Local Device', '0')]
         stream_url, stream_time = None, track_position
-        if playing_status.playing():
+        if playing_status.playing() and music_queue:
             metadata = get_current_metadata()
-            if music_queue:
-                uri = music_queue[0]
-                if os.path.exists(uri):
-                    file_path = pathname2url(uri).strip('/')
-                    stream_url = f'/file?path={file_path}'
-                else:
-                    stream_url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
+            uri = music_queue[0]
+            if os.path.exists(uri):
+                file_path = pathname2url(uri).strip('/')
+                stream_url = f'/file?path={file_path}'
+            else:
+                stream_url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
         for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
