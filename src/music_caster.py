@@ -1339,20 +1339,21 @@ if __name__ == '__main__':
                         length = entry['duration'] if entry['duration'] != 0 else None
                         metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
                                     'album': album, 'length': length, 'ext': _f['ext'],
-                                    'expired': lambda: time.time() > expiry_time,
+                                    'expired': lambda: time.time() > expiry_time, 'ytid': entry['id'],
                                     'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
                         # if duration > 10 minutes, try to parse out timestamps for track from comment section
                         if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry)
                         for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
                         metadata_list.append(metadata)
                 else:
+                    # single video
                     audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
                     expiry_time = time.time() + 1800  # expire in 30 minutes
                     length = r['duration'] if r['duration'] != 0 else None
                     metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                                'expired': lambda: time.time() > expiry_time,
+                                'expired': lambda: time.time() > expiry_time, 'ytid': r['id'],
                                 'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
                                 'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
                     # if duration > 10 minutes, try to parse out timestamps for track from comment section
@@ -1362,10 +1363,13 @@ if __name__ == '__main__':
                     metadata_list.append(metadata)
         elif url.startswith('https://open.spotify.com'):
             # Handle Spotify URL (get metadata to search for track on YouTube)
-            if url in url_metadata:
+            if url in url_metadata and isinstance(url_metadata[url], dict):
                 metadata = url_metadata[url]
-                query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                if 'ytid' in metadata:
+                    youtube_metadata = get_url_metadata(metadata['ytid'], False)[0]
+                else:
+                    query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
+                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
                 metadata = {**youtube_metadata, **metadata}
                 url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                 metadata_list.append(metadata)
