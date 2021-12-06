@@ -591,12 +591,13 @@ if __name__ == '__main__':
             use_temp = len(all_tracks)  # use temp if all_tracks is not empty
             all_tracks_temp = {}
             dict_to_use = all_tracks_temp if use_temp else all_tracks
+            # prioritize playist items over folders
+            for _ in get_audio_uris(settings['playlists']): pass
+            # scan folders
             for uri in get_audio_uris(music_folders, False, True):
                 dict_to_use[uri] = get_metadata_wrapped(uri)
             if use_temp: all_tracks = all_tracks_temp
             main_window.metadata['update_listboxes'] = True
-            # scan playlist items
-            for _ in get_audio_uris(settings['playlists']): pass
             all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
 
         if not update_global:
