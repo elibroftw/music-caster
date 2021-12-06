@@ -90,7 +90,7 @@ if 'ModuleNotFoundError' not in VERSION:
 else:
     args.dry = True
     args.skip_deps = args.skip_build = False
-    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt --force'
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt --force-reinstall --force'
     print('Warning: could not get version, will install modules')
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
