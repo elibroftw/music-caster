@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.144
+- [Fix] Handle chromecast disconnect
+
 4.90.143
 - [Fix] Previous track
 
