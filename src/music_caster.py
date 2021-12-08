@@ -1043,7 +1043,9 @@ if __name__ == '__main__':
             """Called when a cast has been lost (MDNS info expired or host down)."""
             global cast
             if cast is not None and cast.uuid == uuid:
+                # lost connection to current chromecast
                 cast = None
+                pause()
             refresh_devices()
 
         def update_cast(self, uuid, _service):
