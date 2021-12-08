@@ -1894,7 +1894,7 @@ if __name__ == '__main__':
                 if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps'):
                     # smart next track if playing a long URL with multiple tracks
                     timestamps = url_metadata[music_queue[0]]['timestamps']
-                    new_position = next(filter(lambda seconds: seconds < get_track_position(), timestamps), -1)
+                    new_position = next(filter(lambda seconds: seconds < get_track_position() - 5, reversed(timestamps)), -1)
                     if new_position != -1: return set_pos(new_position)
             if done_queue:
                 for _ in range(times):
