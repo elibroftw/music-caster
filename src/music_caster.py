@@ -1043,6 +1043,9 @@ if __name__ == '__main__':
 
         def remove_cast(self, uuid, _service, cast_info):
             """Called when a cast has been lost (MDNS info expired or host down)."""
+            global cast
+            if cast is not None and cast.uuid == uuid:
+                cast = None
             refresh_devices()
 
         def update_cast(self, uuid, _service):
