@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.144'
+VERSION = latest_version = '4.90.145'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -1849,8 +1849,8 @@ if __name__ == '__main__':
             playing_status.stop()
         elif (forced or playing_status.busy() and not sar.alive) and (next_queue or music_queue):
             with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
-                if track_length > 600:
-                    if url_metadata.get(music_queue[0], {}).get('timestamps') and not ignore_timestamps:
+                if track_length > 600 and not ignore_timestamps:
+                    if url_metadata.get(music_queue[0], {}).get('timestamps'):
                         # smart next track if playing a long URL with multiple tracks
                         timestamps = url_metadata[music_queue[0]]['timestamps']
                         new_position = next(filter(lambda seconds: seconds > get_track_position(), timestamps), 0)
@@ -1890,13 +1890,13 @@ if __name__ == '__main__':
             stop('next track')  # repeat is off / no tracks in queue
 
 
-    def prev_track(times=1, forced=False):
+    def prev_track(times=1, forced=False, ignore_timestamps=False):
         app_log.info('prev_track()')
         if not forced and cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
             playing_status.stop()
         elif forced or playing_status.busy() and not sar.alive:
             with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
-                if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps'):
+                if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps') and not ignore_timestamps:
                     # smart next track if playing a long URL with multiple tracks
                     timestamps = url_metadata[music_queue[0]]['timestamps']
                     new_position = next(filter(lambda seconds: seconds < get_track_position() - 5, reversed(timestamps)), -1)
@@ -2413,9 +2413,9 @@ if __name__ == '__main__':
             with suppress(ValueError):
                 selected_uri_index = main_window['queue'].get_indexes()[0]
                 if selected_uri_index <= len(done_queue):
-                    prev_track(times=len(done_queue) - selected_uri_index, forced=True)
+                    prev_track(times=len(done_queue) - selected_uri_index, forced=True, ignore_timestamps=True)
                 else:
-                    next_track(times=selected_uri_index - len(done_queue), forced=True)
+                    next_track(times=selected_uri_index - len(done_queue), forced=True, ignore_timestamps=True)
                 values = create_track_list()
                 dq_len = len(done_queue)
                 main_window['queue'].update(values=values, set_to_index=dq_len, scroll_to_index=dq_len)

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.145
+- [Fix] Next/Previous track from queue
+
 4.90.144
 - [Fix] Handle chromecast disconnect
 
