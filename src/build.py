@@ -241,9 +241,14 @@ if not args.dry and not args.skip_build:
         additional_args += ' --clean'
     s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}')
     try:
-        ms_build = get_msbuild()
-        check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
-                   f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
+        # build Updater
+        # https://github.com/akavel/rsrc
+        check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
+        check_call('go build -ldflags "-H windowsgui" -o dist/Updater.exe')
+        # OLD: C# Updater
+        # ms_build = get_msbuild()
+        # check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
+        #            f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
     check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}')
@@ -270,10 +275,12 @@ if not args.dry and not args.skip_build:
         shutil.copyfile(res_file, 'dist/' + res_file)
     lang_packs = glob.glob('languages/*.txt')
     # noinspection PyTypeChecker
-    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')]
+    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'),
+                      ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
+                      ('dist/Updater.exe', 'Updater.exe')]
     portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
     portable_files.extend(lang_packs)
-    portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
+    # portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')

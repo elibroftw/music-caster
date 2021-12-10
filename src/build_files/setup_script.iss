@@ -46,8 +46,13 @@ Type: files; Name: {app}\*.dll
 Type: filesandordirs; Name: {app}\Crypto
 Type: filesandordirs; Name: {app}\Cryptodome
 Type: filesandordirs; Name: {app}\google
+Type: filesandordirs; Name: {app}\numpy
+Type: filesandordirs; Name: {app}\PIL
+Type: filesandordirs; Name: {app}\psutil
+Type: filesandordirs; Name: {app}\gevent
 Type: filesandordirs; Name: {app}\greenlet
 Type: filesandordirs; Name: {app}\templates
+Type: filesandordirs; Name: {app}\setuptools*
 Type: filesandordirs; Name: {app}\images
 Type: filesandordirs; Name: {app}\lib2to3
 Type: filesandordirs; Name: {app}\lxml
