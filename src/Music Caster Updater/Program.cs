@@ -14,7 +14,7 @@ namespace Music_Caster_Updater
         private static void ExtractZip(string fileName)
         {
             /**
-             * Extracts fileName (ends with .zip) to fileName (without .zip)
+             * Extracts fileName (ends with .zip) to root directory
              * Deletes fileName after
              */
             using (ZipArchive archive = ZipFile.OpenRead(fileName))
@@ -76,7 +76,7 @@ namespace Music_Caster_Updater
                 debugSetting = ((JsonElement)loadedSettings.GetValueOrDefault("DEBUG")).GetBoolean();
             }
             catch (InvalidCastException) { }
-            
+
 
             Dictionary<string, object> jsonResponse;
 
@@ -100,9 +100,9 @@ namespace Music_Caster_Updater
                 else if (asset.GetProperty("name").ToString().ToLower().Contains("portable"))
                     portableDownloadURL = asset.GetProperty("browser_download_url").ToString();
             }
-            string latestVersion = jsonResponse.GetValueOrDefault("tag_name").ToString();
             if (debugSetting)
             {
+                string latestVersion = jsonResponse.GetValueOrDefault("tag_name").ToString();
                 Debug.WriteLine($"Latest Version: {latestVersion}");
                 Debug.WriteLine($"Portable:       {portableDownloadURL}");
                 Debug.WriteLine($"Installer:      {setupDownloadURL}");
