@@ -206,6 +206,7 @@ if __name__ == '__main__':
     # 3rd party imports
     # TODO: use fastapi instead of flask
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
+    from jinja2.exceptions import TemplateNotFound
     # Flask take 1 second to import
     from werkzeug.exceptions import InternalServerError
     import pychromecast.controllers.media  # 1.12 seconds
@@ -326,15 +327,6 @@ if __name__ == '__main__':
                     tray_notify(gt('ERROR') + ': ' + gt('No space left on device to save settings'))
                 else:
                     tray_notify(gt('ERROR') + f': {e}')
-
-
-    def cast_wait():
-        try:
-            cast.wait(timeout=WAIT_TIMEOUT)
-        except AttributeError:
-            pass
-        except RuntimeError:
-            cast.status_event.wait(WAIT_TIMEOUT)
 
 
     def refresh_tray():
@@ -705,7 +697,7 @@ if __name__ == '__main__':
                     api_msg = 'resumed playback'
                 else:
                     if music_queue:
-                        play(music_queue[0])
+                        play()
                         api_msg = 'started playing first track in queue'
                     else:
                         play_all()
@@ -761,11 +753,14 @@ if __name__ == '__main__':
                 stream_url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
         for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
-        return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
-                               repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
-                               settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
-                               queue=_queue, playing_index=len(done_queue), device_index=device_index, version=VERSION,
-                               devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
+        try:
+            return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
+                                repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
+                                settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
+                                queue=_queue, playing_index=len(done_queue), device_index=device_index, version=VERSION,
+                                devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
+        except TemplateNotFound:
+            return redirect('https://github.com/elibroftw/music-caster/releases/latest')
 
 
     @app.route('/status/')
@@ -1053,6 +1048,9 @@ if __name__ == '__main__':
 
 
     def change_device(new_uuid):
+        """
+        if new_uuid is invalid, then the local device is selected
+        """
         global cast
         try:
             new_uuid = UUID(new_uuid)
@@ -1085,11 +1083,11 @@ if __name__ == '__main__':
         refresh_devices()
         if playing_status.busy() and (music_queue or sar.alive):
             if not sar.alive:
-                play(music_queue[0], position=current_pos, autoplay=playing_status.playing(), switching_device=True)
+                play(position=current_pos, autoplay=playing_status.playing(), switching_device=True)
             elif not play_system_audio(True):
                 playing_status.stop()
         else:
-            cast_wait()
+            cast.wait(timeout=WAIT_TIMEOUT)
             volume = 0 if settings['muted'] else settings['volume']
             update_volume(volume)
 
@@ -1245,7 +1243,7 @@ if __name__ == '__main__':
             sar.alive = False
             return False
         else:
-            cast_wait()
+            cast.wait(timeout=WAIT_TIMEOUT)
             try:
                 cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
                 mc = cast.media_controller
@@ -1441,9 +1439,15 @@ if __name__ == '__main__':
         return metadata_list
 
 
-    def play_url(url, position=0, autoplay=True, switching_device=False):
+    def play_url(position=0, autoplay=True, switching_device=False):
         global cast, playing_url, cast_last_checked, track_length, track_start, track_end, track_position
-        metadata_list = get_url_metadata(url)
+        url = music_queue[0]
+        try:
+            metadata_list = get_url_metadata(url)
+        except IndexError as e:
+            # TODO: handle IndexError in get_url_metadata
+            handle_exception(e)
+            return False
         if metadata_list:
             if len(metadata_list) > 1:
                 # url was for multiple sources
@@ -1492,23 +1496,24 @@ if __name__ == '__main__':
         return False
 
 
-    def play(uri, position=0, autoplay=True, switching_device=False):
+    def play(position=0, autoplay=True, switching_device=False):
         global track_start, track_end, track_length, track_position, music_queue, cast_last_checked, playing_url
+        uri = music_queue[0]
         while not os.path.exists(uri):
-            if play_url(uri, position=position, autoplay=autoplay, switching_device=switching_device): return
-            music_queue.remove(uri)
+            if play_url(position=position, autoplay=autoplay, switching_device=switching_device): return
+            done_queue.append(music_queue.popleft())
             if not music_queue: return
-            uri = music_queue[0]
-            position = 0
+            uri, position = music_queue[0], 0
         uri = Path(uri).as_posix()
         playing_url = sar.alive = False
-        cleaned_uri = 'some_file.' + uri.split('.')[-1]  # clean uri for log
-        app_log.info(f'play({cleaned_uri}, {position}, autoplay={autoplay}, switching_device={switching_device})')
+        shortened_uri = '$FILE.' + uri.rsplit('.')[-1]
+        app_log.info(f'Playing {shortened_uri} @{position}, autoplay={autoplay}, switching_device={switching_device})')
         try:
             track_length = get_length(uri)
         except InvalidAudioFile:
-            tray_notify(f"ERROR: can't play {music_queue.popleft()}")
-            if music_queue: play(music_queue[0])
+            done_queue.append(music_queue.popleft())
+            tray_notify(f"ERROR: can't play {uri}")
+            if music_queue: play()
             return
         metadata = get_metadata_wrapped(uri)
         # update metadata of track in case something changed
@@ -1521,7 +1526,7 @@ if __name__ == '__main__':
                 cast_last_checked = time.monotonic() + 30  # make sure background_tasks doesn't interfere
                 url_args = urllib.parse.urlencode({'path': uri})
                 url = f'http://{get_ipv4()}:{Shared.PORT}/file?{url_args}'
-                cast_wait()
+                cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(_volume)
                 mc = cast.media_controller
                 metadata = {'title': metadata['title'], 'artist': metadata['artist'],
@@ -1536,10 +1541,11 @@ if __name__ == '__main__':
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                     time.sleep(0.2)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
-            except (UnsupportedNamespace, NotConnected, OSError) as e:
-                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_line_number()))
+            except (UnsupportedNamespace, NotConnected, OSError, RuntimeError) as e:
+                change_device('local')
+                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + '\n' + gt('Switching to local device'))
                 handle_exception(e)
-                return stop('play')
+                return
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
@@ -1579,7 +1585,7 @@ if __name__ == '__main__':
         music_queue.extend(temp_queue)
         if not queue_uris and not play_next:
             if music_queue:
-                return play(music_queue[0])
+                return play()
             elif next_queue:
                 playing_status.play()
                 return next_track()
@@ -1606,7 +1612,7 @@ if __name__ == '__main__':
         better_shuffle(music_queue, start_shuffle_from)
         if not queue_only:
             if music_queue:
-                play(music_queue[0])
+                play()
             elif next_queue:
                 next_track(forced=True)
         main_window.metadata['update_listboxes'] = True
@@ -1675,7 +1681,7 @@ if __name__ == '__main__':
                 music_queue.clear()
                 done_queue.clear()
                 music_queue.extend(temp_queue)
-                play(music_queue[0])
+                play()
             elif action in {gt('Play Folder Next'), 'pfn'}:
                 if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
                 else: next_queue.extend(temp_queue)
@@ -1685,7 +1691,7 @@ if __name__ == '__main__':
                     next_track()
             elif action in {gt('Queue Folder'), 'qf'}:
                 music_queue.extend(temp_queue)
-                if len(temp_queue) == len(music_queue) and not sar.alive: play(music_queue[0])
+                if len(temp_queue) == len(music_queue) and not sar.alive: play()
             else: raise ValueError(f'folder_action expected something else. Got {action}')
             main_window.metadata['update_listboxes'] = True
             save_queues()
@@ -1747,7 +1753,7 @@ if __name__ == '__main__':
             # time.time() > url_metadata.get(music_queue[0], {'expired': False})['expired']:
             if music_queue and url_metadata.get(music_queue[0], {'expired': lambda: False})['expired']():
                 # check if the url has expired before resuming in case it has been a long time
-                play(music_queue[0], position=track_position, autoplay=False)
+                play(position=track_position, autoplay=False)
             try:
                 if cast is None:
                     audio_player.resume()
@@ -1771,7 +1777,7 @@ if __name__ == '__main__':
                 if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except (UnsupportedNamespace, NotConnected):
-                if music_queue: return play(music_queue[0], position=track_position)
+                if music_queue: return play(position=track_position)
             return True
         return False
 
@@ -1822,7 +1828,7 @@ if __name__ == '__main__':
             except UnsupportedNamespace:
                 cast.wait()
             if cast.media_controller.is_idle and music_queue:
-                return play(music_queue[0], position=new_position, autoplay=playing_status.playing())
+                return play(position=new_position, autoplay=playing_status.playing())
             else:
                 cast.media_controller.seek(new_position)
                 if playing_status.paused(): cast.media_controller.pause()
@@ -1883,7 +1889,7 @@ if __name__ == '__main__':
                 elif times > 1:  # explicitly selected
                     settings['skips'].pop(music_queue[0], None)  # reset skip counter
                     save_settings()
-                return play(music_queue[0])
+                return play()
             stop('next track')  # repeat is off / no tracks in queue
 
 
@@ -1906,7 +1912,7 @@ if __name__ == '__main__':
                     music_queue.insert(0, track)
             with suppress(IndexError):
                 settings['skips'].pop(music_queue[0], None)  # reset skip counter
-                play(music_queue[0])
+                play()
 
 
     def check_for_updates():
@@ -2257,7 +2263,7 @@ if __name__ == '__main__':
                 shuffle_from = len(music_queue)
                 music_queue.extend(get_audio_uris(playlist_name))
                 if settings['shuffle']: better_shuffle(music_queue, shuffle_from)
-                if music_queue and (action == 'play' or shuffle_from == 0): play(music_queue[0])
+                if music_queue and (action == 'play' or shuffle_from == 0): play()
             elif 'next':
                 next_queue.extend(get_audio_uris(playlist_name))
 
@@ -2360,7 +2366,7 @@ if __name__ == '__main__':
         elif main_event == 'pause/resume' or main_event == 'k' and main_values.get('tab_group') in {'tab_queue', None}:
             if playing_status.paused(): resume('gui')
             elif playing_status.playing(): pause()
-            elif music_queue: play(music_queue[0])
+            elif music_queue: play()
             else: play_all()
         elif main_event == 'next' and playing_status.busy():
             next_track()
@@ -2531,7 +2537,7 @@ if __name__ == '__main__':
                             done_queue.clear()
                         # start playing new track if a track was being played
                         if not sar.alive:
-                            if music_queue and playing_status.busy(): play(music_queue[0])
+                            if music_queue and playing_status.busy(): play()
                             else: stop('remove_track')
                 elif index_to_remove <= nq_len + dq_len:
                     del next_queue[index_to_remove - dq_len - 1]
@@ -2708,7 +2714,7 @@ if __name__ == '__main__':
                 music_queue.extendleft(reversed(urls_to_insert))
                 main_window['url_msg'].update(gt('Loading URL(s)'), text_color='yellow')
                 main_window.read(1)
-                play(music_queue[0])
+                play()
                 main_window['url_msg'].update('')
                 urls_to_insert.pop(0)
             elif main_values['url_queue']:
@@ -2791,7 +2797,7 @@ if __name__ == '__main__':
                 music_queue.clear()
                 music_queue.extend(temp_lst)
                 if settings['shuffle']: shuffle(music_queue)
-                play(music_queue[0])
+                play()
         elif main_event == 'queue_pl':
             playlist_action(main_values['playlist_combo'], 'queue')
             main_window.metadata['update_listboxes'] = True
@@ -3208,7 +3214,7 @@ if __name__ == '__main__':
                         music_queue.extend(done_queue)
                         done_queue.clear()
                 if music_queue:
-                    play(music_queue[0], position=args.position, autoplay=not args.queue)
+                    play(position=args.position, autoplay=not args.queue)
         elif settings['populate_queue_startup'] or args.start_playing:
             try:
                 indexing_tracks_thread.join()

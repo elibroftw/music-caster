@@ -186,3 +186,4 @@ agregar seleccionado al siguiente
 Retraso de audio del sistema:
 segundos
 localizar pista
+Cambiar a dispositivo local

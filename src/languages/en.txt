@@ -186,3 +186,4 @@ add selected to next up
 System Audio Delay:
 seconds
 locate track
+Switching to local device

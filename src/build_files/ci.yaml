@@ -1,0 +1,49 @@
+# TODO
+on:
+  workflow_dispatch:
+
+  schedule:
+    # run every day at midnight
+    -cron: '0 0 * * *'
+jobs:
+  update_youtubedl_and_auto_release:
+    runs-on: windows-latest
+    steps:
+      - name: Get Latest youtube-dl Release
+        id: ytdl
+        uses: pozetroninc/github-action-get-latest-release@v0.5.0
+        with:
+          owner: ytdl-org
+          repo: youtube-dl
+          excludes: prerelease, draft
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v2
+        with:
+        python-version: '3.10'
+        architecture: 'x64'
+      - name: Install Dependencies
+        run: |
+        cd src && pip install -r requirements.txt
+      - name: Build and Publish if YTDL is outdated
+        run: |
+        python build.py --ytdl --upload
+
+# from datetime import datetime
+# import requests
+# ytdl_publish = requests.get('https://api.github.com/repos/ytdl-org/youtube-dl/releases/latest').json()['published_at']
+# t = datetime.strptime(ytdl_publish, '%Y-%m-%dT%H:%M:%SZ')
+# mc_publish = requests.get('https://api.github.com/repos/elibroftw/music-caster/releases/latest').json()['published_at']
+# t2 = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
+# if t2 < t:
+#     # if youtube-dl was released after the latest music-caster, update version and publish
+#     maj, _min, fix = VERSION.split('.')
+#     fix = int(fix) + 1
+#     new_version = f'{maj}.{_min}.{fix}'
+#     with open('music_caster.py', 'r+') as f:
+#         # VERSION = latest_version = '5.0.0'
+#         new_txt = f.read().replace(f"VERSION = latest_version = '{VERSION}'", f"VERSION = latest_version = '{new_version}'")
+#         f.seek(0)
+#         f.write(new_txt)
+#     VERSION = new_version
