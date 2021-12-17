@@ -43,6 +43,7 @@ parser.add_argument('--dry', default=False, action='store_true', help='skips the
 parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
 parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
 parser.add_argument('--no-install', default=False, action='store_true', help='do not install after building')
+parser.add_argument('--ytdl', default=False, action='store_true', help='version++ if new youtube-dl available')
 args = parser.parse_args()
 if args.dry: print('Dry Build')
 
@@ -84,7 +85,38 @@ def update_versions():
 
 VERSION = getoutput('music_caster.py --version')
 if 'ModuleNotFoundError' not in VERSION:
-    update_versions()
+    if args.ytdl:
+        import requests
+        ytdl_publish = requests.get('https://api.github.com/repos/ytdl-org/youtube-dl/releases/latest').json()['published_at']
+        t = datetime.strptime(ytdl_publish, '%Y-%m-%dT%H:%M:%SZ')
+        mc_publish = requests.get('https://api.github.com/repos/elibroftw/music-caster/releases/latest').json()['published_at']
+        t2 = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
+        if t2 < t:  # latest youtube-dl not used in latest MC
+            print('New YouTube-dl found, updating Music Caster version')
+            # if youtube-dl was released after the latest music-caster, update version and publish
+            maj, _min, fix = VERSION.split('.')
+            fix = int(fix) + 1
+            new_version = f'{maj}.{_min}.{fix}'
+            with open('music_caster.py', 'r+', encoding='utf-8') as f:
+                # VERSION = latest_version = '5.0.0'
+                new_txt = f.read().replace(f"VERSION = latest_version = '{VERSION}'", f"VERSION = latest_version = '{new_version}'")
+                f.seek(0)
+                f.write(new_txt)
+            # TODO: update CHANGELOG
+            with open('build_files/CHANGELOG.txt', 'r+', encoding='utf-8') as f:
+                f.readline()
+                f.write(f'\n{VERSION}\n- [Fix] URL\n')
+            VERSION = new_version
+            update_versions()
+            # commit and push change
+            from git import Repo
+            repo = Repo('.git')
+            repo.git.add(update=True)
+            origin = repo.remote(name='origin')
+            origin.push()
+            repo.index.commit('Updated youtube-dl')
+    else:
+        update_versions()
     print('Updated versions of build files')
     if args.ver_update: sys.exit()
     pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt'
@@ -401,7 +433,9 @@ if args.upload and tests_passed and not args.dry and not args.debug:
 
     # check if tag vVERSION does not exist
     r = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/tags/v{VERSION}', headers=headers)
-    if r.status_code != 404: print(f'ERROR: Tag v{VERSION} already exists')
+    if r.status_code != 404:
+        print(f'ERROR: Tag v{VERSION} already exists')
+        sys.exit(1)
 
     old_release = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/latest').json()
     try:
