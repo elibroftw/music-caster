@@ -63,7 +63,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                 items.append(pystray.MenuItem(element, get_tray_action(element)))
         return pystray.Menu(*items)
 
-
     def get_tray_action(string, key=''):
 
         def tray_action():
@@ -75,7 +74,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                 child_queue.put({'close': None})
 
         return tray_action
-
 
     def background():
         while True:
@@ -280,11 +278,11 @@ if __name__ == '__main__':
     to_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings = {  # default settings
         'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {},
-        'auto_update': to_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER),
-        'notifications': True, 'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True,
+        'auto_update': to_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
+        'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'mini_on_top': True,
         'populate_queue_startup': False, 'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5,
         'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
-        'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
+        'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False,
         'scan_folders': True, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'delay': 0,
         'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER,
@@ -767,18 +765,18 @@ if __name__ == '__main__':
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
                                repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
-                               settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option,
-                               queue=_queue, playing_index=len(done_queue), device_index=device_index,
-                               devices=formatted_devices, version=VERSION, gt=gt, stream_url=stream_url, stream_time=stream_time)
+                               settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
+                               queue=_queue, playing_index=len(done_queue), device_index=device_index, version=VERSION,
+                               devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
 
 
     @app.route('/status/')
     @app.route('/state/')
     def api_state():
-        metadata = get_current_metadata()
+        _metadata = get_current_metadata()
         now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
-                       'title': str(metadata['title']), 'artist': str(metadata['artist']),
-                       'album': str(metadata['album']), 'gui_open': not main_window.was_closed(),
+                       'title': str(_metadata['title']), 'artist': str(_metadata['artist']),
+                       'album': str(_metadata['album']), 'gui_open': not main_window.was_closed(),
                        'track_position': get_track_position(), 'track_length': track_end - track_start,
                        'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
         return jsonify(now_playing)
@@ -1897,10 +1895,11 @@ if __name__ == '__main__':
             playing_status.stop()
         elif forced or playing_status.busy() and not sar.alive:
             with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
-                if track_length > 600 and url_metadata.get(music_queue[0], {}).get('timestamps') and not ignore_timestamps:
+                timestamps = url_metadata.get(music_queue[0], {}).get('timestamps', [])
+                if track_length > 600 and timestamps and not ignore_timestamps:
                     # smart next track if playing a long URL with multiple tracks
-                    timestamps = url_metadata[music_queue[0]]['timestamps']
-                    new_position = next(filter(lambda seconds: seconds < get_track_position() - 5, reversed(timestamps)), -1)
+                    is_prev_chapter = lambda seconds: seconds < get_track_position() - 5
+                    new_position = next(filter(is_prev_chapter, reversed(timestamps)), -1)
                     if new_position != -1: return set_pos(new_position)
             if done_queue:
                 for _ in range(times):
