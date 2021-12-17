@@ -755,10 +755,10 @@ if __name__ == '__main__':
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         try:
             return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
-                                repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
-                                settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
-                                queue=_queue, playing_index=len(done_queue), device_index=device_index, version=VERSION,
-                                devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
+                                   repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
+                                   settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
+                                   queue=_queue, playing_index=len(done_queue), device_index=device_index, version=VERSION,
+                                   devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
         except TemplateNotFound:
             return redirect('https://github.com/elibroftw/music-caster/releases/latest')
 
