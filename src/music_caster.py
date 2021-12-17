@@ -277,13 +277,14 @@ if __name__ == '__main__':
     track_position = timer = track_end = track_length = track_start = 0
     DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
     DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
+    to_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings = {  # default settings
         'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {},
-        'auto_update': True, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True, 'shuffle': False,
-        'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'populate_queue_startup': False,
-        'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5, 'scrubbing_delta': 5,
-        'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False, 'show_album_art': True,
-        'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
+        'auto_update': to_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER),
+        'notifications': True, 'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True,
+        'populate_queue_startup': False, 'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5,
+        'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
+        'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False, 'mini_on_top': True,
         'scan_folders': True, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'delay': 0,
         'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER,
