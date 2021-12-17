@@ -1,7 +1,100 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.147
+- [Fix] URL
+
 4.90.146
 - [Fix] Fix URL and Chromecast errors
+
+4.90.145
+- [Fix] Next/Previous track from queue
+
+4.90.144
+- [Fix] Handle chromecast disconnect
+
+4.90.143
+- [Fix] Previous track
+
+4.90.142
+- [Fix] Web GUI
+
+4.90.141
+- [Fix] Dutch
+
+4.90.140
+- [Fix] Change Chromecast
+
+4.90.139
+- [Fix] IPv6
+
+4.90.138
+- [Fix] Import playlist
+
+4.90.137
+- [Fix] Timer
+- [Fix] Export playlist
+- [UI] Added Dutch translation
+
+4.90.136
+- [Fix] URL support
+
+4.90.135
+- [Fix] get ipv4
+
+4.90.134
+- [Feature] Mobile playback
+- [Fix] URL local muted playback
+
+4.90.133
+- [Fix] GUI activation
+
+4.90.132
+- [Fix] URL support
+
+4.90.131
+- [Fix] Metadata Tab
+- [Fix] Discord Presence
+
+4.90.130
+- [Fix] GUI activation
+
+4.90.129
+- [Fix] APIs
+
+4.90.128
+- [Fix] YouTube and GUI focus
+
+4.90.127
+- [Fix] ComboBox button color
+
+4.90.126
+- [UX] Support music.youtube.com
+- [UI] Added link to GitHub
+- [UX] Flash border of mini-mode
+
+4.90.125
+- [Fix] Improved pause and resume logging
+
+4.90.124
+- [Fix] Log file location
+
+4.90.123
+- [Fix] Tray not closing
+
+4.90.122
+- [Fix] Move track down
+
+4.90.121
+- [Fix] Focus on first window creation
+
+4.90.120
+- [Fix] json serialization
+
+4.90.147
+- [Fix] URL
+
+4.90.146
+- [Fix] URL and Chromecast errors
 
 4.90.145
 - [Fix] Next/Previous track from queue
