@@ -30,7 +30,7 @@ Clicking the image below takes you to my demo video on YouTube.
 
 <a href=https://youtu.be/5xwHkLPgvtQ>
   <p align="center">
-    <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="demo YouTube video thumbnail" align="center"/>
+    <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="YouTube Video Demo" align="center"/>
   </p>
 </a>
 
