@@ -28,9 +28,9 @@ If you are able and willing to translate to other languages, click [here](https:
 ## Demo
 Clicking the image below takes you to my demo video on YouTube.
 
-<a href=https://youtu.be/5xwHkLPgvtQ>
+<a href="https://youtu.be/5xwHkLPgvtQ" title="Music Caster Video Demo">
   <p align="center">
-    <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="YouTube Video Demo" align="center"/>
+    <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="Music Caster Video Demo Thumbnail" align="center"/>
   </p>
 </a>
 
