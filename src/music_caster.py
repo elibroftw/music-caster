@@ -118,7 +118,7 @@ if __name__ == '__main__':
     parser.add_argument('--playnext', '-n', default=False, action='store_true', help='paths are added to next up')
     parser.add_argument('--urlprotocol', '-p', default=False, action='store_true', help='launched using uri protocol')
     parser.add_argument('--update', '-u', default=False, action='store_true', help='update MC even if --args provided')
-    parser.add_argument('--nupdate', default=False, action='store_true', help='launch without AU')
+    parser.add_argument('--nupdate', default=False, action='store_true', help='start without auto-update')
     parser.add_argument('--exit', '-x', default=False, action='store_true',
                         help='exits any existing instance (including self)')
     parser.add_argument('--minimized', '-m', default=False, action='store_true', help='start minimized to tray')
@@ -201,6 +201,7 @@ if __name__ == '__main__':
     import traceback
     import urllib.parse
     from urllib.parse import urlsplit
+    from uuid import UUID
     import webbrowser  # takes 0.05 seconds
     import zipfile
     # 3rd party imports
@@ -274,10 +275,10 @@ if __name__ == '__main__':
     track_position = timer = track_end = track_length = track_start = 0
     DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
     DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
-    to_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
+    default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings = {  # default settings
         'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {},
-        'auto_update': to_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
+        'auto_update': default_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
         'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'mini_on_top': True,
         'populate_queue_startup': False, 'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5,
         'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
@@ -754,10 +755,10 @@ if __name__ == '__main__':
         for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         try:
-            return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled,
-                                   repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata, art=art,
+            return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled, version=VERSION,
+                                   repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata,
                                    settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
-                                   queue=_queue, playing_index=len(done_queue), device_index=device_index, version=VERSION,
+                                   queue=_queue, playing_index=len(done_queue), device_index=device_index, art=art,
                                    devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
         except TemplateNotFound:
             return redirect('https://github.com/elibroftw/music-caster/releases/latest')
@@ -1087,7 +1088,8 @@ if __name__ == '__main__':
             elif not play_system_audio(True):
                 playing_status.stop()
         else:
-            cast.wait(timeout=WAIT_TIMEOUT)
+            if cast is not None:
+                cast.wait(timeout=WAIT_TIMEOUT)
             volume = 0 if settings['muted'] else settings['volume']
             update_volume(volume)
 
@@ -1243,8 +1245,8 @@ if __name__ == '__main__':
             sar.alive = False
             return False
         else:
-            cast.wait(timeout=WAIT_TIMEOUT)
             try:
+                cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
                 mc = cast.media_controller
                 if mc.status.player_is_playing or mc.status.player_is_paused:
@@ -1269,6 +1271,9 @@ if __name__ == '__main__':
                 track_start = time.monotonic() - track_position
                 after_play(title, artist, True, switching_device)
                 return True
+            except AttributeError:
+                tray_notify(gt('ERROR') + ': ' + gt('Not connected to a cast device'))
+                return False
             except NotConnected as e:
                 tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_line_number()))
                 handle_exception(e)
@@ -1539,9 +1544,9 @@ if __name__ == '__main__':
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (UnsupportedNamespace, NotConnected, OSError, RuntimeError) as e:
                 change_device('local')
-                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + '\n' + gt('Switching to local device'))
-                handle_exception(e)
-                return
+                error_msg = gt('Could not connect to cast device') + '\n' + gt('Switching to local device')
+                tray_notify(gt('ERROR') + f': {error_msg}')
+                return handle_exception(e)
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
@@ -2131,6 +2136,8 @@ if __name__ == '__main__':
         main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
         main_window.bind('<Control-}>', 'mini_mode')
         main_window.bind('<Control-r>', 'repeat')
+        main_window.bind('<KeyPress>', 'KeyPress')
+        main_window.TKroot.bind("<KeyRelease>", lambda _: None)
 
 
     def activate_main_window(selected_tab=None, url_option='url_play'):
@@ -2152,7 +2159,6 @@ if __name__ == '__main__':
                     album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
             else:
                 album_art_data = None
-            window_margins = (0, 0) if mini_mode else (0, 0)
             metadata = get_current_metadata()
             title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
             position = get_track_position()
@@ -2166,9 +2172,8 @@ if __name__ == '__main__':
             pl_tracks = window_metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
 
             main_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
-                                    finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
-                                    use_default_focus=False, margins=window_margins,
-                                    keep_on_top=mini_mode and settings['mini_on_top'],
+                                    margins=(0, 0), finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
+                                    use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
                                     location=window_location, metadata=window_metadata)
             if Shared.using_tcl_theme:
                 with suppress(tkinter.TclError):
@@ -2281,7 +2286,10 @@ if __name__ == '__main__':
         global track_position, track_start, track_end, timer, music_queue, done_queue
         main_event, main_values = main_window.read(timeout=100)
         ignore_events = {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
-        if (main_event in {None, 'Escape:27'} and main_window.metadata['main_last_event'] not in ignore_events
+        if main_event == 'KeyPress':
+            e = main_window.user_bind_event
+            main_event = e.char if e.char else str(e.keysym) + ':' + str(e.keycode)
+        if (main_event in {None, 'Escape:27', ''} and main_window.metadata['main_last_event'] not in ignore_events
                 or main_values is None):
             main_window.close()
             return False

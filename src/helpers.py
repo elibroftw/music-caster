@@ -22,10 +22,9 @@ import re
 import socket
 import time
 from threading import Thread
-import tkinter
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
-from uuid import getnode, UUID
+from uuid import getnode
 import winreg as wr
 import sys
 
@@ -266,13 +265,13 @@ class Unknown(str):
 
 
 def exception_wrapper(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            try:
-                f(*args, **kwargs)
-            except Exception as e:
-                print(f'Handled exception in {f.__name__}:', e)
-        return wrapper
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            f(*args, **kwargs)
+        except Exception as e:
+            print(f'Handled exception in {f.__name__}:', e)
+    return wrapper
 
 
 class DiscordPresence:
@@ -302,7 +301,7 @@ class DiscordPresence:
         if confirm_connect:
             cls.set_rich_presence()
             cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
-                                         small_image=small_image, small_text=small_text)
+                                     small_image=small_image, small_text=small_text)
 
     @classmethod
     @exception_wrapper
@@ -850,15 +849,17 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
     art_img: Image = Image.open(img_data)
     w, h = art_img.size
     if w == h:
+        # resize a square
         img = art_img.resize(new_size, Image.ANTIALIAS)
     else:
+        # resize by shrinking the longest side to the new_size
         ratio = h / w if w > h else w / h
         to_change = 1 if w > h else 0
-        ratio_size = list(new_size)
-        ratio_size[to_change] = round(new_size[to_change] * ratio)
-        art_img = art_img.resize(ratio_size, Image.ANTIALIAS)
-        paste_width = (new_size[0] - ratio_size[0]) // 2
-        paste_height = (new_size[1] - ratio_size[1]) // 2
+        new_w = new_size[0] if not to_change else round(new_size[0] * ratio)
+        new_h = new_size[1] if to_change else round(new_size[1] * ratio)
+        art_img = art_img.resize((new_w, new_h), Image.ANTIALIAS)
+        paste_width = (new_size[0] - new_w) // 2
+        paste_height = (new_size[1] - new_h) // 2
         img = Image.new('RGB', new_size, color=bg)
         img.paste(art_img, (paste_width, paste_height))
     data = io.BytesIO()
@@ -1484,10 +1485,8 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         col_widths = [20, 15, 15]
 
     library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
-                                col_widths=col_widths, bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
-                                justification='right', num_rows=library_height,
-                                size=(10, 1),
-                                selected_row_colors=(bg, accent_color),
+                                col_widths=col_widths, bind_return_key=True, justification='right',
+                                size=(10, 1), selected_row_colors=(bg, accent_color), num_rows=library_height,
                                 right_click_menu=['', ['Play::library', 'Play Next::library',
                                                        'Queue::library', 'Locate::library']],
                                 header_text_color=fg, header_background_color=bg,
@@ -1614,9 +1613,10 @@ def create_settings(version, settings):
         [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=12)]
     ], pad=(0, 0))
     link_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'click_submits': True}
+    contact_info = 'Elijah Lopez <elijahllopezzgmail.com>'
     layout = [
         [Sg.Text(f'Music Caster v{version} by', font=FONT_NORMAL),
-         Sg.Text('Elijah Lopez <elijahllopezzgmail.com>', tooltip=gt('Send me an email'), key='open_email', **link_params),
+         Sg.Text(contact_info, tooltip=gt('Send me an email'), key='open_email', **link_params),
          Sg.Text(f'GitHub', **link_params, key='open_github')],
         [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
         [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
@@ -1661,24 +1661,20 @@ def create_timer(settings, timer):
 
 def create_metadata_tab(settings):
     accent, bg = settings['theme']['accent'], settings['theme']['background']
-    layout = [
-        [Sg.Column([
-            [round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
-            round_btn(gt('Save'), accent, bg, key='metadata_save'),
-            Sg.Text('', size=(45, 1), key='metadata_file', border_width=1, relief='sunken', click_submits=True)]],
-            pad=(0, (20, 10)))],
-        [Sg.Column([
-            [Sg.Text(gt('Title'), size=(20, 1)), Sg.Input(key='metadata_title', border_width=1, size=(25, 1))],
-            [Sg.Text(gt('Artist'), size=(20, 1)), Sg.Input(key='metadata_artist', border_width=1, size=(25, 1))],
-            [Sg.Text(gt('Album'), size=(20, 1)), Sg.Input(key='metadata_album', border_width=1, size=(25, 1))],
-            [Sg.Text(gt('Track Number'), size=(20, 1)), Sg.Input(key='metadata_track_num', border_width=1, size=(25, 1))]]),
+    layout = [[Sg.Column([
+        [round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
+         round_btn(gt('Save'), accent, bg, key='metadata_save'),
+         Sg.Text('', size=(45, 1), key='metadata_file', border_width=1, relief='sunken', click_submits=True)]],
+        pad=(0, (20, 10)))],
+        [Sg.Column([[Sg.Text(gt(text), size=(20, 1)), Sg.Input(key=f'metadata_{key}', border_width=1, size=(25, 1))]
+                    for (text, key) in
+                    (('Title', 'title'), ('Artist', 'artist'), ('Album', 'album'), ('Track Number', 'track_num'))]),
          Sg.Image(key='metadata_art')],
         [Sg.Checkbox(gt('Explicit'), key='metadata_explicit', enable_events=True),
          round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10)),
          round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10)),
          round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))],
-        [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]
-    ]
+        [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]]
     return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
 
 
