@@ -1,10 +1,15 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.148
+- [Fix] Keyboard
+- [Fix] Chromecast errors
+
 4.90.147
 - [Fix] URL
 
 4.90.146
-- [Fix] Fix URL and Chromecast errors
+- [Fix] Fix URL
+- [Fix] Chromecast errors
 
 4.90.145
 - [Fix] Next/Previous track from queue
