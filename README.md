@@ -1,3 +1,4 @@
+<!-- markdownlint-disable-file MD033 -->
 <h1 align="left">
 <img width=30px src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-32x32.png" alt="Logo" style="vertical-align: bottom; margin-bottom: -4px;">Music Caster</h1>
 
@@ -9,7 +10,7 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 ### Donate
 
 - monero:84PR6SkYd5zaFLKDjAFrQfbaAg2c7SV3q3XDZ15QCpEZUggrN4YzY7n8m9XC3deXjo41yWHTm1LrsUpPTYGnRQbD9Cwp8En
-- https://www.paypal.me/elibroftw
+- [PayPal](https://www.paypal.me/elibroftw)
 
 ### Important information
 
