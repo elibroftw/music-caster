@@ -853,13 +853,11 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
         img = art_img.resize(new_size, Image.ANTIALIAS)
     else:
         # resize by shrinking the longest side to the new_size
-        ratio = h / w if w > h else w / h
-        to_change = 1 if w > h else 0
-        new_w = new_size[0] if not to_change else round(new_size[0] * ratio)
-        new_h = new_size[1] if to_change else round(new_size[1] * ratio)
-        art_img = art_img.resize((new_w, new_h), Image.ANTIALIAS)
-        paste_width = (new_size[0] - new_w) // 2
-        paste_height = (new_size[1] - new_h) // 2
+        ratios = (1, h / w) if w > h else (w / h, 1)
+        ratio_size = (round(new_size[0] * ratios[0]), round(new_size[1] * ratios[1]))
+        art_img = art_img.resize(ratio_size, Image.ANTIALIAS)
+        paste_width = (new_size[0] - ratio_size[0]) // 2
+        paste_height = (new_size[1] - ratio_size[1]) // 2
         img = Image.new('RGB', new_size, color=bg)
         img.paste(art_img, (paste_width, paste_height))
     data = io.BytesIO()
