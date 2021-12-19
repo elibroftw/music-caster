@@ -1374,7 +1374,7 @@ if __name__ == '__main__':
             if url in url_metadata and isinstance(url_metadata[url], dict):
                 metadata = url_metadata[url]
                 if 'ytid' in metadata:
-                    youtube_metadata = get_url_metadata(metadata['ytid'], False)[0]
+                    youtube_metadata = get_url_metadata(f"https://youtu.be/{metadata['ytid']}", False)[0]
                 else:
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
                     youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
@@ -1393,17 +1393,16 @@ if __name__ == '__main__':
                 if spotify_tracks:
                     metadata = spotify_tracks[0]
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                    with suppress(IndexError):
-                        youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
-                        metadata = {**youtube_metadata, **metadata}
-                        url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
-                        # if url is a spotify track, set its metadata
-                        if len(spotify_tracks) == 1: url_metadata[url] = metadata
-                        metadata_list.append(metadata)
-                        for spotify_track in islice(spotify_tracks, 1, None):
-                            url_metadata[spotify_track['src']] = spotify_track
-                            uris_to_scan.put(spotify_track['src'])
-                            metadata_list.append(spotify_track)
+                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                    metadata = {**youtube_metadata, **metadata}
+                    url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
+                    # if url is a spotify track, set its metadata
+                    if len(spotify_tracks) == 1: url_metadata[url] = metadata
+                    metadata_list.append(metadata)
+                    for spotify_track in islice(spotify_tracks, 1, None):
+                        url_metadata[spotify_track['src']] = spotify_track
+                        uris_to_scan.put(spotify_track['src'])
+                        metadata_list.append(spotify_track)
         elif url.startswith('https://deezer.page.link') or url.startswith('https://www.deezer.com'):
             try:
                 for metadata in get_deezer_tracks(url):
