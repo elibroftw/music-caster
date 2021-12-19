@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.149
+- [Fix] Spotify links
+
 4.90.148
 - [Fix] Keyboard
 - [Fix] Chromecast errors
