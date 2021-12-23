@@ -4,14 +4,12 @@ from datetime import datetime
 import glob
 import math
 import os
-import re
 import shutil
 from shutil import copytree
 from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
 import threading
 import time
-import winreg
 import zipfile
 
 
@@ -160,32 +158,6 @@ def read_env(env_file='.env'):
     return os.environ
 
 
-def get_msbuild():
-    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-    root_key = winreg.OpenKey(reg, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-                              0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
-    num_sub_keys = winreg.QueryInfoKey(root_key)[0]
-    vs = {}
-    for i in range(num_sub_keys):
-        with suppress(EnvironmentError):
-            software: dict = {}
-            software_key = winreg.EnumKey(root_key, i)
-            software_key = winreg.OpenKey(root_key, software_key)
-            info_key = winreg.QueryInfoKey(software_key)
-            for value in range(info_key[1]):
-                value = winreg.EnumValue(software_key, value)
-                software[value[0]] = value[1]
-            display_name = software.get('DisplayName', '')
-            if re.search(r'Visual Studio (Community|Professional|Enterprise)', display_name):
-                software['ver'] = int(software['DisplayName'].rsplit(maxsplit=1)[1])
-                vs_ver = vs.get('ver', 0)
-                if software['ver'] > vs_ver:
-                    vs = software
-    if vs is None: raise RuntimeWarning('No installation of Visual Studio could be found')
-    ms_build_path = vs['InstallLocation'] + r'\MSBuild\Current\Bin\MSBuild.exe'
-    return ms_build_path
-
-
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
     with open('build_files/CHANGELOG.txt') as f:
@@ -283,13 +255,10 @@ if not args.dry and not args.skip_build:
     s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}')
     try:
         # build Updater
-        # https://github.com/akavel/rsrc
+        # install go dependencies
+        check_call('go install github.com/akavel/rsrc@latest')
         check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
         check_call('go build -ldflags "-H windowsgui" -o dist/Updater.exe')
-        # OLD: C# Updater
-        # ms_build = get_msbuild()
-        # check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
-        #            f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
     check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}')
@@ -321,7 +290,6 @@ if not args.dry and not args.skip_build:
                       ('dist/Updater.exe', 'Updater.exe')]
     portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
     portable_files.extend(lang_packs)
-    # portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')

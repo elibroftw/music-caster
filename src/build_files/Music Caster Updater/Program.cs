@@ -1,4 +1,6 @@
-﻿using System;
+﻿// NOTE: This was the old portable updater
+//  the new updater is updater.go
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,6 +8,42 @@ using System.IO.Compression;
 using System.Net;
 using System.Text.Json;
 
+/**
+old code in build.py that was used to build the updater
+def get_msbuild():
+    import re
+    import winreg
+    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+    root_key = winreg.OpenKey(reg, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+                              0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
+    num_sub_keys = winreg.QueryInfoKey(root_key)[0]
+    vs = {}
+    for i in range(num_sub_keys):
+        with suppress(EnvironmentError):
+            software: dict = {}
+            software_key = winreg.EnumKey(root_key, i)
+            software_key = winreg.OpenKey(root_key, software_key)
+            info_key = winreg.QueryInfoKey(software_key)
+            for value in range(info_key[1]):
+                value = winreg.EnumValue(software_key, value)
+                software[value[0]] = value[1]
+            display_name = software.get('DisplayName', '')
+            if re.search(r'Visual Studio (Community|Professional|Enterprise)', display_name):
+                software['ver'] = int(software['DisplayName'].rsplit(maxsplit=1)[1])
+                vs_ver = vs.get('ver', 0)
+                if software['ver'] > vs_ver:
+                    vs = software
+    if vs is None: raise RuntimeWarning('No installation of Visual Studio could be found')
+    ms_build_path = vs['InstallLocation'] + r'\MSBuild\Current\Bin\MSBuild.exe'
+    return ms_build_path
+
+...
+ms_build = get_msbuild()
+check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
+           f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
+...
+# portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
+*/
 
 namespace Music_Caster_Updater
 {
