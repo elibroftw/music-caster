@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.149'
+VERSION = latest_version = '4.90.150'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -2136,7 +2136,11 @@ if __name__ == '__main__':
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
         main_window.bind('<Control-}>', 'mini_mode')
+        main_window.bind('<Control-q>', 'q:81')
         main_window.bind('<Control-r>', 'repeat')
+        main_window.bind('<Control-s>', 's:83')
+        main_window.bind('<Control-m>', 'mute')
+        main_window.bind('<Control-e>', 'locate_uri')
         main_window.bind('<KeyPress>', 'KeyPress')
         main_window.TKroot.bind("<KeyRelease>", lambda _: None)
 
@@ -2405,9 +2409,9 @@ if __name__ == '__main__':
                 # un-mute if volume slider was moved
                 change_settings('muted', False)
                 update_volume(new_volume)
-        elif main_event in {'mute', 'm:77'}:  # toggle mute
+        elif main_event == 'mute':  # toggle mute
             update_volume(0 if change_settings('muted', not settings['muted']) else settings['volume'])
-        elif main_event in {'Prior:33', 'Next:34'} and settings['mini_mode']:  # page up, page down
+        elif main_event in {'Prior:33', 'Next:34'} and not settings['mini_mode']:  # page up, page down
             focused_element = main_window.FindElementWithFocus()
             move = {'Prior:33': -3, 'Next:34': 3}[main_event]
             if focused_element == main_window['queue'] and main_values['queue']:
@@ -2429,7 +2433,7 @@ if __name__ == '__main__':
                 dq_len = len(done_queue)
                 main_window['queue'].update(values=values, set_to_index=dq_len, scroll_to_index=dq_len)
         elif main_event == 'album' and playing_status.busy(): locate_uri()
-        elif main_event in {'locate_uri', 'e:69'}:
+        elif main_event == 'locate_uri':
             if not settings['mini_mode'] and main_values['queue']:
                 for index in main_window['queue'].get_indexes(): locate_uri(index - len(done_queue))
             else: locate_uri()
@@ -2552,7 +2556,7 @@ if __name__ == '__main__':
                     values = create_track_list()
                     new_i = min(len(values), index_to_remove)
                     main_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-        elif main_event == 'file_option':
+        elif main_event == 'file_option':  # combo box input
             main_window['file_action'].update(text=main_values['file_option'])
         elif main_event == 'folder_option':
             main_window['folder_action'].update(text=main_values['folder_option'])
@@ -2687,7 +2691,7 @@ if __name__ == '__main__':
             folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
                                               icon=WINDOW_ICON)
             if folder_path: add_music_folder([folder_path])
-        elif main_event in {'settings_file', 'o:79'}:
+        elif main_event == 'settings_file':
             try:
                 os.startfile(SETTINGS_FILE)
             except OSError:
@@ -2825,7 +2829,7 @@ if __name__ == '__main__':
                 main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
             save_settings()
             refresh_tray()
-        elif main_event in {'pl_rm_items', 'q:81'} and main_values['pl_tracks']:
+        elif main_event in ('pl_rm_items', 'q:81') and main_values['pl_tracks'] and main_values.get('tab_group') == 'tab_playlists':
             # remove items from playlist
             # remove bottom to top to avoid dynamic indices
             pl_tracks = main_window.metadata['pl_tracks']
@@ -2938,7 +2942,7 @@ if __name__ == '__main__':
                 r = requests.get(url, headers=get_spotify_headers()).json()
                 if 'tracks' in r:
                     for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
-                        display_art = base64.b64encode(requests.get(art_link).content)
+                        display_art: str = base64.b64encode(requests.get(art_link).content).decode()
                         main_window['metadata_art'].metadata = ('image/jpeg', display_art)
                         display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
                         main_window['metadata_art'].update(data=display_art)

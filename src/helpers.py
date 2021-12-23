@@ -42,6 +42,7 @@ __lp.musicdata = '/dz'
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
+from mutagen.oggopus import OggOpus
 import mutagen.flac
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
@@ -435,6 +436,9 @@ def set_metadata(file_path: str, metadata: dict):
     track_place = metadata['track_number']      # X/Y
     track_number = track_place.split('/')[0]    # X
     rating = '1' if metadata['explicit'] else '0'
+    # b64 album art data should be b64 as a string not as bytes
+    if 'art' in metadata and isinstance(metadata['art'], bytes):
+        metadata['art'] = metadata['art'].decode()
     if '/' not in track_place:
         tracks = max(1, int(track_place))
         track_place = f'{track_place}/{tracks}'
@@ -472,6 +476,19 @@ def set_metadata(file_path: str, metadata: dict):
             audio['covr'] = [mutagen.mp4.MP4Cover(img_data, imageformat=image_format)]
         elif 'covr' in audio:
             del audio['covr']
+    elif ext == '.opus':
+        if title: audio['title'] = [title]
+        if artists: audio['artist'] = artists
+        if album: audio['album'] = [album]
+        audio['rtng'] = [rating]
+        audio['trkn'] = track_place
+        if metadata['art'] is not None:
+            img_data = metadata['art']  # b64 data
+            audio['metadata_block_picture'] = img_data
+            audio['mime'] = metadata['mime']
+        else:
+            audio.pop('APIC:', None)
+            audio.pop('metadata_block_picture', None)
     else:  # FLAC?
         if title: audio['TITLE'] = title
         if artists: audio['ARTIST'] = artists
@@ -489,8 +506,7 @@ def set_metadata(file_path: str, metadata: dict):
                 # noinspection PyUnresolvedReferences
                 audio.add_picture(pic)
             else:
-                img_data = b64decode(metadata['art'])
-                audio['APIC:'] = img_data
+                audio['METADATA_BLOCK_PICTURE'] = metadata['art'].decode()
                 audio['mime'] = metadata['mime']
         else:
             if ext == '.flac':
@@ -500,7 +516,12 @@ def set_metadata(file_path: str, metadata: dict):
                 # remove all album art
                 for k in tuple(audio.keys()):
                     if 'APIC:' in k: audio.pop(k)
-    audio.save()
+    try:
+        audio.save()
+    except Exception as e:
+        print('error')
+        print(e)
+        raise e
 
 
 def get_metadata(file_path: str):
@@ -575,6 +596,10 @@ def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime
                 image_format = cover.imageformat
                 mime = 'image/png' if image_format == 14 else 'image/jpeg'
                 return mime, base64.b64encode(cover).decode()
+        elif ext == '.opus':
+            audio = OggOpus(file_path)
+            with suppress(KeyError, IndexError):
+                return audio.get('mime', ['image/jpeg'])[0], audio['metadata_block_picture'][0]
         else:
             tags = mutagen.File(file_path)
             if tags is not None:
