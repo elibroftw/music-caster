@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.151
+- [Fix] Explorer play/playnext/queue behaviour
+
 4.90.150
 - [Fix] Opus file cover art
 - [Fix] Keyboard shortcuts
