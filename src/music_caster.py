@@ -157,6 +157,7 @@ if __name__ == '__main__':
                         r = requests.post(f'{localhost}{port}/play/', data=data).text
                     else:  # neither --exit nor paths was supplied
                         r = requests.post(f'{localhost}{port}?activate').text
+                if r: break
             port += 1
 
     # check for active instance and forward arguments or activate it
@@ -779,16 +780,17 @@ if __name__ == '__main__':
     @app.route('/play/', methods=['GET', 'POST'])
     def api_play():
         global last_play_command
-        from_explorer = time.time() - last_play_command < 0.5
-        queue_only = request.values.get('queue', 'false').lower() == 'true' or from_explorer
+        merge_plays = time.time() - last_play_command < 0.5
+        queue_only = request.values.get('queue', 'false').lower() == 'true' or merge_plays
         play_next = request.values.get('play_next', 'false').lower() == 'true'
         # < 0.5 because that's how fast Windows would open each instance of MC
         last_play_command = time.time()
         if 'uris' in request.values:
-            play_uris(request.values.getlist('uris'), queue_uris=queue_only, play_next=play_next,
-                      from_explorer=from_explorer)
+            play_uris(request.values.getlist('uris'), queue_uris=queue_only,
+                      play_next=play_next or merge_plays, merge_plays=merge_plays)
+            if settings['queue_library'] and not merge_plays: queue_all()
         elif 'uri' in request.values:
-            play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, from_explorer=from_explorer)
+            play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, merge_plays=merge_plays)
             if settings['queue_library']: queue_all()
         return redirect('/') if request.method == 'GET' else api_state()
 
@@ -1552,7 +1554,7 @@ if __name__ == '__main__':
         after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-    def play_uris(uris: Iterable, queue_uris=False, play_next=False, from_explorer=False, sort=True):
+    def play_uris(uris: Iterable, queue_uris=False, play_next=False, merge_plays=False, sort=True):
         """
         Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
             which is shuffled if shuffled is enabled in settings, and then extends music_queue.
@@ -1560,30 +1562,35 @@ if __name__ == '__main__':
         If queue_only is false, the music queue and done queue are cleared,
             before files are added to the music_queue
         play_next has priority over queue_uris
-        If from_explorer is true, then the whole music queue is shuffled (if setting enabled),
-            except for the track that is currently playing
+        merge_plays is like play_next but shuffles the entire next_queue instead of just uris
         If sort is False, shuffle being off does not sort items
         """
-        if not queue_uris and not play_next and not from_explorer:
+        if not queue_uris and not play_next and not merge_plays:
             music_queue.clear()
             done_queue.clear()
         temp_queue = list(get_audio_uris(uris))
         if not settings['shuffle'] and sort: temp_queue.sort(key=natural_key_file)
-        if play_next:
-            if settings['shuffle']: better_shuffle(temp_queue)
+        if play_next or merge_plays:
+            # if merge_plays,
+            #   we know that the first file requested to be played would've cleared the queue
+            #    and possibly queued the entire library
+            #  Thus, the uris are to be played after the currently playing track.
+            #  Hence play_next = play_next or merge_plays
+            if settings['shuffle']:
+                if merge_plays:
+                    # This is the only difference between merge_plays and play_next
+                    # Since uris can be requested to be played one by one rather than all at once, we need to shuffle the entire next_queue
+                    temp_queue.extend(next_queue)
+                    next_queue.clear()
+                better_shuffle(temp_queue)
             if settings['reversed_play_next']: next_queue.extendleft(temp_queue)
             else: next_queue.extend(temp_queue)
             main_window.metadata['update_listboxes'] = True
             return
         if settings['shuffle']:
-            if from_explorer:
-                # if from_explorer make temp_queue should also include files in the queue
-                temp_queue.extend(islice(music_queue, 1, None))
-                # remove all but first track if from_explorer
-                for _ in range(len(music_queue) - 1): music_queue.pop()
             shuffle(temp_queue)
         music_queue.extend(temp_queue)
-        if not queue_uris and not play_next:
+        if not queue_uris:
             if music_queue:
                 return play()
             elif next_queue:
