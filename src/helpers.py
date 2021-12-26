@@ -1025,7 +1025,7 @@ def get_spotify_playlist(url):
         response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
                                 headers=get_spotify_headers()).json()
         results.extend(response['items'])
-    return [parse_spotify_track(result['track']) for result in results]
+    return [parse_spotify_track(result['track']) for result in results if isinstance(result['track'], dict)]
 
 
 @lru_cache
