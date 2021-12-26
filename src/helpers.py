@@ -1,4 +1,5 @@
-from deezer import TrackFormats  # 0.259 seconds because of requests
+from deezer import TrackFormats
+from mutagen.oggvorbis import OggVorbis  # 0.259 seconds because of requests
 from b64_images import *
 import base64
 import audioop
@@ -43,12 +44,13 @@ import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
 from mutagen.oggopus import OggOpus
+from mutagen.oggvorbis import OggVorbis
 import mutagen.flac
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
 from mutagen.mp3 import HeaderNotFoundError
-import mutagen.mp4
+from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 import pyaudio
@@ -464,19 +466,19 @@ def set_metadata(file_path: str, metadata: dict):
         else:  # remove all album art
             for k in tuple(audio.keys()):
                 if 'APIC:' in k: audio.pop(k)
-    elif ext in {'.mp4', '.m4a', '.aac'}:
+    elif isinstance(audio, MP4):
         if title: audio['@nam'] = [title]
         if artists: audio['@ART'] = artists
         if album: audio['@alb'] = [album]
-        audio['trkn'] = tuple((int(x) for x in track_place.split('/')))
-        audio['rtng'] = [rating]
+        audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
+        audio['rtng'] = [int(rating)]
         if metadata['art'] is not None:
             image_format = 14 if metadata['mime'].endswith('png') else 13
             img_data = b64decode(metadata['art'])
-            audio['covr'] = [mutagen.mp4.MP4Cover(img_data, imageformat=image_format)]
+            audio['covr'] = [MP4Cover(img_data, imageformat=image_format)]
         elif 'covr' in audio:
             del audio['covr']
-    elif ext == '.opus':
+    elif isinstance(audio, OggOpus) or isinstance(audio, OggVorbis):
         if title: audio['title'] = [title]
         if artists: audio['artist'] = artists
         if album: audio['album'] = [album]
@@ -506,7 +508,7 @@ def set_metadata(file_path: str, metadata: dict):
                 # noinspection PyUnresolvedReferences
                 audio.add_picture(pic)
             else:
-                audio['METADATA_BLOCK_PICTURE'] = metadata['art'].decode()
+                audio['APIC:'] = metadata['art']
                 audio['mime'] = metadata['mime']
         else:
             if ext == '.flac':
@@ -516,12 +518,7 @@ def set_metadata(file_path: str, metadata: dict):
                 # remove all album art
                 for k in tuple(audio.keys()):
                     if 'APIC:' in k: audio.pop(k)
-    try:
-        audio.save()
-    except Exception as e:
-        print('error')
-        print(e)
-        raise e
+    audio.save()
 
 
 def get_metadata(file_path: str):
@@ -534,7 +531,7 @@ def get_metadata(file_path: str):
             _audio = mutagen.File(file_path)
             audio['rating'] = _audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', ['0']))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
-            audio = EasyMP4(file_path)
+            audio = dict(EasyMP4(file_path))
             _audio = mutagen.File(file_path)
             audio['rating'] = _audio.get('rtng', ['0'])
         elif file_path.endswith('.wav'):
@@ -578,7 +575,7 @@ def get_metadata(file_path: str):
 
 
 def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime: str, data: str
-    with suppress(MutagenError):
+    with suppress(MutagenError, AttributeError):
         folder = os.path.dirname(file_path)
         if folder_cover_override:
             for ext in ('png', 'jpg', 'jpeg'):
@@ -587,29 +584,29 @@ def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime
                     with open(folder_cover, 'rb') as f:
                         return ext, base64.b64encode(f.read())
         ext = os.path.splitext(file_path)[1].lower()
-        if ext == '.flac':
+        audio = mutagen.File(file_path)
+        if isinstance(audio, mutagen.flac.FLAC):
             pics = mutagen.flac.FLAC(file_path).pictures
             with suppress(IndexError): return pics[0].mime, base64.b64encode(pics[0].data).decode()
-        elif ext in {'.mp4', '.m4a', '.aac'}:
+        elif isinstance(audio, MP4):
             with suppress(KeyError, IndexError):
-                cover = mutagen.File(file_path)['covr'][0]
+                cover = audio['covr'][0]
                 image_format = cover.imageformat
                 mime = 'image/png' if image_format == 14 else 'image/jpeg'
                 return mime, base64.b64encode(cover).decode()
-        elif ext == '.opus':
-            audio = OggOpus(file_path)
+        elif isinstance(audio, (OggOpus, OggVorbis)):
             with suppress(KeyError, IndexError):
                 return audio.get('mime', ['image/jpeg'])[0], audio['metadata_block_picture'][0]
         else:
-            tags = mutagen.File(file_path)
-            if tags is not None:
-                for tag in tags.keys():
+            # ID3 or something else
+            if audio is not None:
+                for tag in audio.keys():
                     if 'APIC' in tag:
                         try:
-                            return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+                            return audio[tag].mime, base64.b64encode(audio[tag].data).decode()
                         except AttributeError:
-                            mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
-                            return mime, base64.b64encode(tags[tag][0].value).decode()
+                            mime = audio['mime'][0].value if 'mime' in audio else 'image/jpeg'
+                            return mime, base64.b64encode(audio[tag][0].value).decode()
     return 'image/jpeg', DEFAULT_ART
 
 
