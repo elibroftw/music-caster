@@ -2928,7 +2928,7 @@ if __name__ == '__main__':
                     img = Image.open(selected_file)
                     data = io.BytesIO()
                     img.save(data, format='jpeg', quality=95)
-                    mime, artwork = 'image/jpeg', b64encode(data.getvalue())
+                    mime, artwork = 'image/jpeg', b64encode(data.getvalue()).decode()
                 art_metadata = (mime, None if artwork == DEFAULT_ART else artwork)
                 _, display_art = main_window['metadata_art'].metadata = art_metadata
                 if display_art is not None:
@@ -2972,7 +2972,8 @@ if __name__ == '__main__':
                 try:
                     set_metadata(main_window['metadata_file'].get(), new_metadata)
                     main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
-                except ValueError as e:  # track number incorrectly entered
+                except Exception as e:  # e.g. ValueError track number incorrectly entered
+                    print(e)
                     main_window['metadata_msg'].update(value=f'ERROR: {e}', text_color='red')
                 main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
                 main_window['title'].update(' ' + main_window['title'].DisplayText + ' ')  # try updating now playing
