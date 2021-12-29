@@ -212,7 +212,7 @@ if __name__ == '__main__':
     # Flask take 1 second to import
     from werkzeug.exceptions import InternalServerError
     import pychromecast.controllers.media  # 1.12 seconds
-    from pychromecast.error import UnsupportedNamespace, NotConnected
+    from pychromecast.error import PyChromecastError, UnsupportedNamespace, NotConnected
     from pychromecast.config import APP_MEDIA_RECEIVER
     from pychromecast import Chromecast
     from pychromecast.models import CastInfo
@@ -1482,7 +1482,7 @@ if __name__ == '__main__':
                     while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                         time.sleep(0.2)
                     if track_length is None: mc.play()
-                except (UnsupportedNamespace, NotConnected, OSError) as e:
+                except (PyChromecastError, OSError) as e:
                     not_connected_error = gt('Could not connect to cast device')
                     tray_notify(gt('ERROR') + ': ' + not_connected_error + ' ' + str(get_line_number()))
                     handle_exception(e)
@@ -1543,7 +1543,7 @@ if __name__ == '__main__':
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                     time.sleep(0.2)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
-            except (UnsupportedNamespace, NotConnected, OSError, RuntimeError) as e:
+            except (PyChromecastError, OSError, RuntimeError) as e:
                 change_device('local')
                 error_msg = gt('Could not connect to cast device') + '\n' + gt('Switching to local device')
                 tray_notify(gt('ERROR') + f': {error_msg}')
@@ -1783,7 +1783,7 @@ if __name__ == '__main__':
                 ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
                 if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
-            except (UnsupportedNamespace, NotConnected):
+            except PyChromecastError:
                 if music_queue: return play(position=track_position)
             return True
         return False
@@ -1805,7 +1805,7 @@ if __name__ == '__main__':
             if cast.app_id == APP_MEDIA_RECEIVER:
                 mc = cast.media_controller
                 if stop_cast:
-                    with suppress(NotConnected, UnsupportedNamespace):
+                    with suppress(PyChromecastError):
                         mc.stop()
                         block_until = time.monotonic() + 5  # 5 seconds
                         status = mc.status
@@ -2252,7 +2252,7 @@ if __name__ == '__main__':
             browser.stop_discovery()
         # if stop_discovery_browser is not None:
         #     pychromecast.discovery.stop_discovery(stop_discovery_browser)
-        with suppress(UnsupportedNamespace, NotConnected):
+        with suppress(PyChromecastError):
             if cast is None:
                 stop('exit program')
             elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status.busy():
