@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.153
+- [Fix] Chromecast connection issues
+
 4.90.152
 - [Fix] AAC, MP4, OggVorbis
 
