@@ -1,4 +1,4 @@
-VERSION = latest_version = '4.90.153'
+VERSION = latest_version = '4.90.154'
 UPDATE_MESSAGE = """
 [Optimization] Startup & updating
 [MSG] Language translators wanted
@@ -446,10 +446,15 @@ if __name__ == '__main__':
         current_time = str(datetime.now())
         trace_back_msg = traceback.format_exc()
         exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
-        if playing_url: playing_uri = 'url'
-        elif sar.alive: playing_uri = 'system audio'
-        elif playing_status.busy(): playing_uri = 'file'
-        else: playing_uri = 'N/A'
+        playing_uri = 'N/A'
+        if music_queue:
+            if playing_url:
+                playing_uri = music_queue[0]
+            elif sar.alive:
+                playing_uri = 'system audio'
+            elif playing_status.busy():
+                playing_uri = music_queue[0]
+
         try:
             with open('music_caster.log') as f:
                 log_lines = f.read().splitlines()[-10:]  # get last 10 lines of the log
@@ -457,10 +462,9 @@ if __name__ == '__main__':
             log_lines = []
         payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
                    'PORTABLE': not os.path.exists(UNINSTALLER), 'CWD': os.getcwd(),
-                   'MQ': len(music_queue), 'NQ': len(next_queue), 'DQ': len(done_queue),
                    'TRACEBACK': trace_back_msg.replace('\\', '/'), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
                    'FATAL': restart_program, 'LOG': log_lines, 'CASTING': cast is not None,
-                   'OS': platform.platform(), 'TIME': current_time, 'PLAYING_TYPE': playing_uri}
+                   'OS': platform.platform(), 'TIME': current_time, 'MQ[0]': playing_uri}
         if IS_FROZEN:
             with suppress(requests.RequestException):
                 requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
@@ -1581,7 +1585,8 @@ if __name__ == '__main__':
             if settings['shuffle']:
                 if merge_plays:
                     # This is the only difference between merge_plays and play_next
-                    # Since uris can be requested to be played one by one rather than all at once, we need to shuffle the entire next_queue
+                    # Since uris can be requested to be played one by one rather than all at once,
+                    # we need to shuffle the entire next_queue
                     temp_queue.extend(next_queue)
                     next_queue.clear()
                 better_shuffle(temp_queue)
@@ -1961,58 +1966,65 @@ if __name__ == '__main__':
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
         p.name = 'pynputListener'
         p.start()
+        error_sent = False
         while True:
-            # if settings.json was updated outside of Music Caster, reload settings
-            if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
-            # check cast every 5 seconds
-            if cast is not None and time.monotonic() - cast_last_checked > 5:
-                with suppress(UnsupportedNamespace):
-                    if cast.app_id == APP_MEDIA_RECEIVER:
-                        mc = cast.media_controller
-                        mc.update_status()
-                        is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-                        is_stopped = mc.status.player_is_idle
-                        is_live = track_length is None
-                        if not is_stopped and playing_status.busy():
-                            # sync track position with chromecast, also allows scrubbing from external apps
-                            if abs(mc.status.adjusted_current_time - track_position) > 0.5:
-                                track_position = mc.status.adjusted_current_time
-                                track_start = time.monotonic() - track_position
-                                if not is_live: track_end = track_start + track_length
-                        if is_paused and playing_status.playing(): pause('background tasks')
-                        elif is_playing and playing_status.paused(): resume('background tasks')
-                        elif is_stopped and playing_status.busy() and not is_live and time.monotonic() - track_end > 1:
-                            # if cast says nothing is playing, only stop if we are not at the end of the track
-                            #  this will prevent false positives
-                            stop('background tasks', False)
-                        _volume = settings['volume']
-                        cast_volume = round(cast.status.volume_level * 100, 1)
-                        if _volume != cast_volume:
-                            if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
-                                # if volume was changed via Google Home App
-                                _volume = change_settings('volume', cast_volume)
-                                if _volume and settings['muted']: change_settings('muted', False)
-                                main_window.metadata['update_volume_slider'] = True
-                    elif playing_status.playing():
-                        stop('background tasks; app not running')
-                cast_last_checked = time.monotonic()
-                # don't check cast around the time the next track will start playing
-                if track_end is not None and track_end - cast_last_checked < 10: cast_last_checked += 5
-            # scan at most 500 files per loop.
-            # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
-            uris_scanned = 0
-            while uris_scanned < 500 and not uris_to_scan.empty():
-                uri = uris_to_scan.get()
-                if uri.startswith('http'):
-                    get_url_metadata(uri)
-                else:
-                    uri = Path(uri).as_posix()
-                    all_tracks[uri] = get_metadata_wrapped(uri)
-                uris_to_scan.task_done()
-                uris_scanned += 1
-            if uris_scanned: main_window.metadata['update_listboxes'] = True
-            # if no files were scanned, pause for 5 seconds
-            else: time.sleep(5)
+            try:
+                # if settings.json was updated outside of Music Caster, reload settings
+                if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
+                # check cast every 5 seconds
+                if cast is not None and time.monotonic() - cast_last_checked > 5:
+                    with suppress(PyChromecastError):
+                        if cast.app_id == APP_MEDIA_RECEIVER:
+                            mc = cast.media_controller
+                            mc.update_status()
+                            is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                            is_stopped = mc.status.player_is_idle
+                            is_live = track_length is None
+                            if not is_stopped and playing_status.busy():
+                                # sync track position with chromecast, also allows scrubbing from external apps
+                                if abs(mc.status.adjusted_current_time - track_position) > 0.5:
+                                    track_position = mc.status.adjusted_current_time
+                                    track_start = time.monotonic() - track_position
+                                    if not is_live: track_end = track_start + track_length
+                            if is_paused and playing_status.playing(): pause('background tasks')
+                            elif is_playing and playing_status.paused(): resume('background tasks')
+                            elif (is_stopped and playing_status.busy() and
+                                  not is_live and time.monotonic() - track_end > 1):
+                                # if cast says nothing is playing, only stop if we are not at the end of the track
+                                #  this will prevent false positives
+                                stop('background tasks', False)
+                            _volume = settings['volume']
+                            cast_volume = round(cast.status.volume_level * 100, 1)
+                            if _volume != cast_volume:
+                                if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
+                                    # if volume was changed via Google Home App
+                                    _volume = change_settings('volume', cast_volume)
+                                    if _volume and settings['muted']: change_settings('muted', False)
+                                    main_window.metadata['update_volume_slider'] = True
+                        elif playing_status.playing():
+                            stop('background tasks; app not running')
+                    cast_last_checked = time.monotonic()
+                    # don't check cast around the time the next track will start playing
+                    if track_end is not None and track_end - cast_last_checked < 10: cast_last_checked += 5
+                # scan at most 500 files per loop.
+                # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
+                uris_scanned = 0
+                while uris_scanned < 500 and not uris_to_scan.empty():
+                    uri = uris_to_scan.get()
+                    if uri.startswith('http'):
+                        get_url_metadata(uri)
+                    else:
+                        uri = Path(uri).as_posix()
+                        all_tracks[uri] = get_metadata_wrapped(uri)
+                    uris_to_scan.task_done()
+                    uris_scanned += 1
+                if uris_scanned: main_window.metadata['update_listboxes'] = True
+                # if no files were scanned, pause for 5 seconds
+                else: time.sleep(5)
+            except Exception as e:
+                if not error_sent:
+                    handle_exception(e)
+                    error_sent = True
 
 
     def on_press(key):
@@ -2836,7 +2848,8 @@ if __name__ == '__main__':
                 main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
             save_settings()
             refresh_tray()
-        elif main_event in ('pl_rm_items', 'q:81') and main_values['pl_tracks'] and main_values.get('tab_group') == 'tab_playlists':
+        elif (main_event in ('pl_rm_items', 'q:81') and main_values['pl_tracks']
+              and main_values.get('tab_group') == 'tab_playlists'):
             # remove items from playlist
             # remove bottom to top to avoid dynamic indices
             pl_tracks = main_window.metadata['pl_tracks']
