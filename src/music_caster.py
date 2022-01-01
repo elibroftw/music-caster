@@ -2315,6 +2315,8 @@ if __name__ == '__main__':
                 or main_values is None):
             main_window.close()
             return False
+        if settings['mini_mode']:
+            main_window.TKroot.update_idletasks()
         main_value = main_values.get(main_event)
         if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
             main_window.metadata['main_last_event'] = main_event
