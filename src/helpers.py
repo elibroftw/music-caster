@@ -582,7 +582,6 @@ def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime
                 if os.path.exists(folder_cover):
                     with open(folder_cover, 'rb') as f:
                         return ext, base64.b64encode(f.read())
-        ext = os.path.splitext(file_path)[1].lower()
         audio = mutagen.File(file_path)
         if isinstance(audio, mutagen.flac.FLAC):
             pics = mutagen.flac.FLAC(file_path).pictures

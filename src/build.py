@@ -46,8 +46,8 @@ if args.dry: print('Dry Build')
 
 def update_versions():
     """ Update versions of version file and installer script """
-    with open(VERSION_FILE, 'r+') as f:
-        lines = f.readlines()
+    with open(VERSION_FILE, 'r+') as version_info_file:
+        lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('    prodvers'):
                 version = ', '.join(VERSION.split('.'))
@@ -62,29 +62,32 @@ def update_versions():
             elif line.startswith("        StringStruct('ProductVersion"):
                 lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
                 break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
+        version_info_file.seek(0)
+        version_info_file.writelines(lines)
+        version_info_file.truncate()
 
-    with open(INSTALLER_SCRIPT, 'r+') as f:
-        lines = f.readlines()
+    with open(INSTALLER_SCRIPT, 'r+') as version_info_file:
+        lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('#define MyAppVersion'):
                 lines[i] = f'#define MyAppVersion "{VERSION}"\n'
             elif line.startswith('OutputBaseFilename'):
                 lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
                 break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
+        version_info_file.seek(0)
+        version_info_file.writelines(lines)
+        version_info_file.truncate()
+
 
 VERSION = getoutput('music_caster.py --version')
 if 'ModuleNotFoundError' not in VERSION:
     if args.ytdl:
         import requests
-        ytdl_publish = requests.get('https://api.github.com/repos/ytdl-org/youtube-dl/releases/latest').json()['published_at']
+        latest_ytdl = 'https://api.github.com/repos/ytdl-org/youtube-dl/releases/latest'
+        latest_mc = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
+        ytdl_publish = requests.get(latest_ytdl).json()['published_at']
         t = datetime.strptime(ytdl_publish, '%Y-%m-%dT%H:%M:%SZ')
-        mc_publish = requests.get('https://api.github.com/repos/elibroftw/music-caster/releases/latest').json()['published_at']
+        mc_publish = requests.get(latest_mc).json()['published_at']
         t2 = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
         if t2 < t:  # latest youtube-dl not used in latest MC
             print('New YouTube-dl found, updating Music Caster version')
@@ -94,13 +97,16 @@ if 'ModuleNotFoundError' not in VERSION:
             new_version = f'{maj}.{_min}.{fix}'
             with open('music_caster.py', 'r+', encoding='utf-8') as f:
                 # VERSION = latest_version = '5.0.0'
-                new_txt = f.read().replace(f"VERSION = latest_version = '{VERSION}'", f"VERSION = latest_version = '{new_version}'")
+                new_txt = f.read().replace(f"VERSION = latest_version = '{VERSION}'",
+                                           f"VERSION = latest_version = '{new_version}'")
                 f.seek(0)
                 f.write(new_txt)
             # TODO: update CHANGELOG
             with open('build_files/CHANGELOG.txt', 'r+', encoding='utf-8') as f:
-                f.readline()
-                f.write(f'\n{VERSION}\n- [Fix] URL\n')
+                content = ''.join((f.readline(), f'\n{VERSION}\n- [Fix] URL\n', f.read()))
+                f.seek(0)
+                f.write(content)
+
             VERSION = new_version
             update_versions()
             # commit and push change
@@ -129,7 +135,7 @@ if not args.skip_build and not args.skip_deps:
     if args.dry:
         Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
     else:
-        # surpress output if not dry
+        # suppress output if not dry
         getoutput(pip_cmd)
 
 
@@ -142,20 +148,20 @@ from music_caster import is_already_running, get_running_processes
 
 
 def read_env(env_file='.env'):
-    with open(env_file) as f:
-        env_line = f.readline()
+    with open(env_file) as env_file:
+        env_line = env_file.readline()
         while env_line:
             k, v = env_line.split('=', 1)
             os.environ[k] = v.strip()
-            env_line = f.readline()
+            env_line = env_file.readline()
     return os.environ
 
 
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
-    with open('build_files/CHANGELOG.txt') as f:
+    with open('build_files/CHANGELOG.txt') as changelog_file:
         add_changes = False
-        line = f.readline()
+        line = changelog_file.readline()
         while line:
             line = line.strip()
             if line == VERSION:
@@ -163,7 +169,7 @@ def add_new_changes(prev_changes: str):
             elif add_changes:
                 if line == '': break
                 changes.add(line)
-            line = f.readline()
+            line = changelog_file.readline()
     if not add_changes:
         print(f'CHANGELOG does not contain changes for {VERSION}...')
         input('Press enter to try again...')
@@ -360,8 +366,8 @@ class ProgressUpload:
     def __iter__(self):
         progress_str = f'0 / {self.file_size / self.divisor:.2f} {self.unit} (0 %)'
         sys.stderr.write(f'\rUploading {self.filename}: {progress_str}')
-        with open(self.filename, 'rb') as f:
-            for chunk in iter(lambda: f.read(self.chunk_size), b''):
+        with open(self.filename, 'rb') as file_to_upload:
+            for chunk in iter(lambda: file_to_upload.read(self.chunk_size), b''):
                 self.size_read += len(chunk)
                 yield chunk
                 sys.stderr.write('\b' * len(progress_str))
@@ -379,7 +385,8 @@ class ProgressUpload:
 
 def local_install():
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = ['dist/Music Caster Setup.exe', '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"', '&&', exe]
+    cmd = ['dist/Music Caster Setup.exe', '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"']
+    cmd.extend(('&&', exe))
     if not player_state.get('gui_open', False):
         cmd.append('--minimized')
     if player_state.get('status', 'NOT PLAYING') in ('PLAYING', 'PAUSED'):
@@ -391,7 +398,9 @@ def local_install():
     Popen(cmd, shell=True)
 
 
-if args.upload and tests_passed and not args.dry and not args.debug:
+tests_passed = tests_passed and not args.dry and not args.debug and not args.skip_tests
+
+if args.upload and tests_passed:
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
@@ -444,6 +453,6 @@ if args.upload and tests_passed and not args.dry and not args.debug:
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
-elif not args.no_install and (args.force_install or (tests_passed and not args.dry and not args.debug and not args.skip_tests)):
+elif not args.no_install and (tests_passed or args.force_install):
     print('Installing Music Caster [Will Launch After]')
     local_install()
