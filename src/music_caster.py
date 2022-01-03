@@ -625,6 +625,7 @@ if __name__ == '__main__':
         """
         load (and fix if needed) the settings file
         calls refresh_tray(), index_all_tracks(), save_setting()
+        first_load: if true, start indexing all tracks
         """
         global settings, music_folders, settings_last_modified, DEFAULT_FOLDER
         _save_settings = False
@@ -1968,7 +1969,10 @@ if __name__ == '__main__':
         while True:
             try:
                 # if settings.json was updated outside of Music Caster, reload settings
-                if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
+                try:
+                    if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
+                except FileNotFoundError:
+                    load_settings(first_load=True)
                 # check cast every 5 seconds
                 if cast is not None and time.monotonic() - cast_last_checked > 5:
                     with suppress(PyChromecastError):
