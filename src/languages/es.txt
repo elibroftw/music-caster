@@ -1,5 +1,5 @@
 # Language: Spanish
-# Credits: github.com/Varguit
+# Credits: Sergi github.com/Varguit
 # Any line starting with a # is ignored!
 # If a line contains $X do not translate the $X, please use it in context
 # e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
@@ -186,3 +186,4 @@ agregar seleccionado al siguiente
 Retraso de audio del sistema:
 segundos
 localizar pista
+Cambiar a dispositivo local

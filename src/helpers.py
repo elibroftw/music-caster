@@ -1,10 +1,12 @@
-from deezer import TrackFormats  # 0.259 seconds because of requests
+from deezer import TrackFormats
+from mutagen.oggvorbis import OggVorbis  # 0.259 seconds because of requests
 from b64_images import *
 import base64
 import audioop
 from queue import LifoQueue, Empty
 from contextlib import suppress
 import ctypes
+import ctypes.wintypes
 import datetime
 from functools import wraps, lru_cache
 import glob
@@ -25,6 +27,7 @@ import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
 import winreg as wr
+import sys
 
 # 3rd party imports
 import pypresence
@@ -39,12 +42,14 @@ __lp.musicdata = '/dz'
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
+from mutagen.oggopus import OggOpus
+from mutagen.oggvorbis import OggVorbis
 import mutagen.flac
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
 from mutagen.mp3 import HeaderNotFoundError
-import mutagen.mp4
+from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 import pyaudio
@@ -66,8 +71,8 @@ LINK_COLOR = '#3ea6ff'
 COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)
 PL_COMBO_W = 37
-DECRYPT_TRACK = False
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/591'
+SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
@@ -82,6 +87,8 @@ class Shared:
     lang = ''
     track_format = '&title - &artist'
     PORT = 2001
+    using_tcl_theme = False
+    settings = {}
 
 
 class SystemAudioRecorder:
@@ -260,6 +267,16 @@ class Unknown(str):
         return len(str(self))
 
 
+def exception_wrapper(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            f(*args, **kwargs)
+        except Exception as e:
+            print(f'Handled exception in {f.__name__}:', e)
+    return wrapper
+
+
 class DiscordPresence:
     """
     Exception safe wrapper for pypresence
@@ -268,37 +285,37 @@ class DiscordPresence:
     MUSIC_CASTER_DISCORD_ID = '696092874902863932'
 
     @classmethod
+    @exception_wrapper
     def set_rich_presence(cls):
         if cls.rich_presence is None:
-            with suppress(Exception):
-                cls.rich_presence = pypresence.Presence()
+            cls.rich_presence = pypresence.Presence(cls.MUSIC_CASTER_DISCORD_ID)
 
     @classmethod
+    @exception_wrapper
     def connect(cls, confirm_connect=True):
         if confirm_connect:
             cls.set_rich_presence()
-            with suppress(Exception):
-                cls.rich_presence.connect()
+            cls.rich_presence.connect()
 
     @classmethod
+    @exception_wrapper
     def update(cls, confirm_connect=True, state: str = None, details: str = None, large_text: str = None,
                large_image='default', small_image='logo', small_text='Music Caster'):
         if confirm_connect:
             cls.set_rich_presence()
-            with suppress(Exception):
-                cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
-                                         small_image=small_image, small_text=small_text)
+            cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
+                                     small_image=small_image, small_text=small_text)
 
     @classmethod
+    @exception_wrapper
     def clear(cls, confirm=True):
         if confirm:
-            with suppress(Exception):
-                cls.rich_presence.clear()
+            cls.rich_presence.clear()
 
     @classmethod
+    @exception_wrapper
     def close(cls):
-        with suppress(Exception):
-            cls.rich_presence.close()
+        cls.rich_presence.close()
 
 
 def get_file_name(file_path): return Path(file_path).stem
@@ -420,6 +437,9 @@ def set_metadata(file_path: str, metadata: dict):
     track_place = metadata['track_number']      # X/Y
     track_number = track_place.split('/')[0]    # X
     rating = '1' if metadata['explicit'] else '0'
+    # b64 album art data should be b64 as a string not as bytes
+    if 'art' in metadata and isinstance(metadata['art'], bytes):
+        metadata['art'] = metadata['art'].decode()
     if '/' not in track_place:
         tracks = max(1, int(track_place))
         track_place = f'{track_place}/{tracks}'
@@ -445,18 +465,31 @@ def set_metadata(file_path: str, metadata: dict):
         else:  # remove all album art
             for k in tuple(audio.keys()):
                 if 'APIC:' in k: audio.pop(k)
-    elif ext in {'.mp4', '.m4a', '.aac'}:
+    elif isinstance(audio, MP4):
         if title: audio['@nam'] = [title]
         if artists: audio['@ART'] = artists
         if album: audio['@alb'] = [album]
-        audio['trkn'] = tuple((int(x) for x in track_place.split('/')))
-        audio['rtng'] = [rating]
+        audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
+        audio['rtng'] = [int(rating)]
         if metadata['art'] is not None:
             image_format = 14 if metadata['mime'].endswith('png') else 13
             img_data = b64decode(metadata['art'])
-            audio['covr'] = [mutagen.mp4.MP4Cover(img_data, imageformat=image_format)]
+            audio['covr'] = [MP4Cover(img_data, imageformat=image_format)]
         elif 'covr' in audio:
             del audio['covr']
+    elif isinstance(audio, OggOpus) or isinstance(audio, OggVorbis):
+        if title: audio['title'] = [title]
+        if artists: audio['artist'] = artists
+        if album: audio['album'] = [album]
+        audio['rtng'] = [rating]
+        audio['trkn'] = track_place
+        if metadata['art'] is not None:
+            img_data = metadata['art']  # b64 data
+            audio['metadata_block_picture'] = img_data
+            audio['mime'] = metadata['mime']
+        else:
+            audio.pop('APIC:', None)
+            audio.pop('metadata_block_picture', None)
     else:  # FLAC?
         if title: audio['TITLE'] = title
         if artists: audio['ARTIST'] = artists
@@ -474,8 +507,7 @@ def set_metadata(file_path: str, metadata: dict):
                 # noinspection PyUnresolvedReferences
                 audio.add_picture(pic)
             else:
-                img_data = b64decode(metadata['art'])
-                audio['APIC:'] = img_data
+                audio['APIC:'] = metadata['art']
                 audio['mime'] = metadata['mime']
         else:
             if ext == '.flac':
@@ -498,7 +530,7 @@ def get_metadata(file_path: str):
             _audio = mutagen.File(file_path)
             audio['rating'] = _audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', ['0']))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
-            audio = EasyMP4(file_path)
+            audio = dict(EasyMP4(file_path))
             _audio = mutagen.File(file_path)
             audio['rating'] = _audio.get('rtng', ['0'])
         elif file_path.endswith('.wav'):
@@ -542,7 +574,7 @@ def get_metadata(file_path: str):
 
 
 def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime: str, data: str
-    with suppress(MutagenError):
+    with suppress(MutagenError, AttributeError):
         folder = os.path.dirname(file_path)
         if folder_cover_override:
             for ext in ('png', 'jpg', 'jpeg'):
@@ -550,26 +582,29 @@ def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime
                 if os.path.exists(folder_cover):
                     with open(folder_cover, 'rb') as f:
                         return ext, base64.b64encode(f.read())
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext == '.flac':
+        audio = mutagen.File(file_path)
+        if isinstance(audio, mutagen.flac.FLAC):
             pics = mutagen.flac.FLAC(file_path).pictures
             with suppress(IndexError): return pics[0].mime, base64.b64encode(pics[0].data).decode()
-        elif ext in {'.mp4', '.m4a', '.aac'}:
+        elif isinstance(audio, MP4):
             with suppress(KeyError, IndexError):
-                cover = mutagen.File(file_path)['covr'][0]
+                cover = audio['covr'][0]
                 image_format = cover.imageformat
                 mime = 'image/png' if image_format == 14 else 'image/jpeg'
                 return mime, base64.b64encode(cover).decode()
+        elif isinstance(audio, (OggOpus, OggVorbis)):
+            with suppress(KeyError, IndexError):
+                return audio.get('mime', ['image/jpeg'])[0], audio['metadata_block_picture'][0]
         else:
-            tags = mutagen.File(file_path)
-            if tags is not None:
-                for tag in tags.keys():
+            # ID3 or something else
+            if audio is not None:
+                for tag in audio.keys():
                     if 'APIC' in tag:
                         try:
-                            return tags[tag].mime, base64.b64encode(tags[tag].data).decode()
+                            return audio[tag].mime, base64.b64encode(audio[tag].data).decode()
                         except AttributeError:
-                            mime = tags['mime'][0].value if 'mime' in tags else 'image/jpeg'
-                            return mime, base64.b64encode(tags[tag][0].value).decode()
+                            mime = audio['mime'][0].value if 'mime' in audio else 'image/jpeg'
+                            return mime, base64.b64encode(audio[tag][0].value).decode()
     return 'image/jpeg', DEFAULT_ART
 
 
@@ -580,19 +615,31 @@ def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
 
 
 def get_ipv6():
-    return f'[{next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))}]'
+    # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))
+    with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
+        try:
+            # doesn't even have to be reachable
+            s.connect(('fe80::116a:fd0a:4a0a:42a7', 1))
+            ip = f'[{s.getsockname()[0]}]'
+        except Exception:
+            ip = get_ipv4()
+    return ip
 
 
 def get_ipv4():
-    return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
+    # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            # doesn't even have to be reachable
+            s.connect(('192.168.1.2', 1))
+            ip = s.getsockname()[0]
+        except Exception:
+            ip = '127.0.0.1'
+    return ip
 
 
 def get_lan_ip() -> str:
-    try:
-        return get_ipv6()
-    except StopIteration:
-        # return IPv4 if IPv6 is unavailable
-        return get_ipv4()
+    return get_ipv6()
 
 
 def get_mac(): return ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1])
@@ -616,7 +663,7 @@ def better_shuffle(seq, first=0, last=-1):
 
 def create_qr_code():
     try:
-        qr_code = pyqrcode.create(f'http://{get_lan_ip()}:{Shared.PORT}')
+        qr_code = pyqrcode.create(f'http://{get_ipv4()}:{Shared.PORT}')
         return qr_code.png_as_base64_str(scale=3, module_color=(255, 255, 255, 255), background=(18, 18, 18, 255))
     except OSError:
         # Failed?
@@ -658,12 +705,13 @@ def ydl_extract_info(url):
 
 
 # noinspection PyTypeChecker
-def get_yt_id(url):
+def get_yt_id(url, ignore_playlist=False):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
-    if query.hostname in {'www.youtube.com', 'youtube.com'}:
-        with suppress(KeyError):
-            return parse_qs(query.query)['list'][0]
+    if query.hostname in {'www.youtube.com', 'youtube.com', 'music.youtube.com'}:
+        if not ignore_playlist:
+            with suppress(KeyError):
+                return parse_qs(query.query)['list'][0]
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
         if query.path[:7] == '/watch/': return query.path.split('/')[1]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
@@ -822,12 +870,12 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
     art_img: Image = Image.open(img_data)
     w, h = art_img.size
     if w == h:
+        # resize a square
         img = art_img.resize(new_size, Image.ANTIALIAS)
     else:
-        ratio = h / w if w > h else w / h
-        to_change = 1 if w > h else 0
-        ratio_size = list(new_size)
-        ratio_size[to_change] = round(new_size[to_change] * ratio)
+        # resize by shrinking the longest side to the new_size
+        ratios = (1, h / w) if w > h else (w / h, 1)
+        ratio_size = (round(new_size[0] * ratios[0]), round(new_size[1] * ratios[1]))
         art_img = art_img.resize(ratio_size, Image.ANTIALIAS)
         paste_width = (new_size[0] - ratio_size[0]) // 2
         paste_height = (new_size[1] - ratio_size[1]) // 2
@@ -844,7 +892,7 @@ def export_playlist(playlist_name, uris):
     playlist_path = Path.home() / 'Downloads'
     playlist_path.mkdir(parents=True, exist_ok=True)
     playlist_path /= f'{playlist_name}.m3u'
-    with open(playlist_path, 'w') as f:
+    with open(playlist_path, 'w', encoding='utf-8') as f:
         f.write('#EXTM3U\n')
         for uri in uris:
             if uri.replace('\\', '/') != playlist_path:
@@ -854,7 +902,7 @@ def export_playlist(playlist_name, uris):
 
 def parse_m3u(playlist_file):
     playlist_file = playlist_file.replace('\\', '/')
-    with open(playlist_file, errors='ignore') as f:
+    with open(playlist_file, errors='ignore', encoding='utf-8') as f:
         for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
                 line = line.lstrip('file:').lstrip('/').rstrip().replace('\\', '/')
@@ -975,7 +1023,7 @@ def get_spotify_playlist(url):
         response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
                                 headers=get_spotify_headers()).json()
         results.extend(response['items'])
-    return [parse_spotify_track(result['track']) for result in results]
+    return [parse_spotify_track(result['track']) for result in results if isinstance(result['track'], dict)]
 
 
 @lru_cache
@@ -1035,7 +1083,7 @@ def parse_deezer_page(url):
 
 
 def parse_deezer_track(track_obj) -> dict:
-    from deemix.decryption import generateBlowfishKey, generateStreamURL
+    from deemix.decryption import generateBlowfishKey, generateCryptedStreamURL
     artists = []
     try:
         main_artists = track_obj['SNG_CONTRIBUTORS']['main_artist']
@@ -1053,7 +1101,6 @@ def parse_deezer_track(track_obj) -> dict:
     title, album = track_obj['SNG_TITLE'], track_obj['ALB_TITLE']
     length = int(track_obj['DURATION'])
     is_explicit = track_obj['EXPLICIT_TRACK_CONTENT']['EXPLICIT_LYRICS_STATUS'] == '1'
-    is_expired = lambda: time.time() > track_obj['TRACK_TOKEN_EXPIRE']
     sng_id = track_obj['SNG_ID']
     metadata = {
         'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str, 'album': album,
@@ -1061,20 +1108,19 @@ def parse_deezer_track(track_obj) -> dict:
     }
     with suppress(KeyError):
         md5 = track_obj.get('FALLBACK', track_obj)['MD5_ORIGIN']
-        file_url = generateStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], TrackFormats.MP3_320)
+        file_url = generateCryptedStreamURL(sng_id, md5, track_obj['MEDIA_VERSION'], TrackFormats.MP3_128)
         bf_key = generateBlowfishKey(sng_id)
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
-        metadata['expired'] = is_expired
+        expiry_time = time.time() + 1800  # 30 minute expiry
+        metadata['expired'] = lambda: time.time() > expiry_time
     return metadata
 
 
 def set_dz_url(metadata):
-    if DECRYPT_TRACK:
-        src_url = metadata['src']
-        metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src_url})}'
-    else:
-        metadata['url'] = metadata['file_url']
+    src_url = metadata['src']
+    metadata['url'] = f'http://{get_ipv4()}:{Shared.PORT}/dz?{urlencode({"url": src_url})}'
+    # metadata['url'] = metadata['file_url']
 
 
 def get_deezer_track(url):
@@ -1263,8 +1309,15 @@ def get_video_timestamps(video_info):
 
 
 # GUI Methods
+def icon_btn(image_data, key, tooltip, bg):
+    return Sg.Button(image_data=image_data, key=key, tooltip=tooltip, enable_events=True, button_color=(bg, bg))
+
+
 def round_btn(button_text, fill, text_color, tooltip=None, key=None, visible=True,
               pad=None, bind_return_key=False, button_width=None):
+    if Shared.using_tcl_theme:
+        return Sg.Button(button_text, use_ttk_buttons=True, key=key, visible=visible,
+                         bind_return_key=bind_return_key, size=(button_width, 1), pad=pad)
     multi = 4
     btn_w = ((len(button_text) if button_width is None else button_width) * 5 + 20) * multi
     height = 18 * multi
@@ -1423,9 +1476,9 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, button_color=(bg, bg), tooltip=gt('Save queue to playlist'))],
         [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, button_color=(bg, bg), tooltip=gt('locate track'))],
         [Sg.Button(key='move_to_next_up', **move_to_next_up)],
-        [Sg.Button(key='move_up', image_data=UP_ICON, tooltip=gt('move up'))],
-        [Sg.Button(key='remove_track', image_data=X_ICON, tooltip=gt('remove'))],
-        [Sg.Button(key='move_down', image_data=DOWN_ICON, tooltip=gt('move down'))]
+        [icon_btn(UP_ICON, 'move_up', gt('move up'), bg)],
+        [icon_btn(X_ICON, 'remove_track', gt('remove'), bg)],
+        [icon_btn(DOWN_ICON, 'move_down', gt('move down'), bg)]
     ]
     listbox_height = 18 - 5 * settings['vertical_gui']
     queue_tab_layout = [queue_controls, [
@@ -1443,10 +1496,16 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     except RuntimeError:
         lib_data = []
     lib_headings = ['title', 'artist', 'album']
+    if Shared.using_tcl_theme:
+        library_height = listbox_height
+        col_widths = [25, 12, 12]
+    else:
+        library_height = 14 - 3 * settings['vertical_gui']
+        col_widths = [20, 15, 15]
+
     library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
-                                col_widths=[25, 15, 15], bind_return_key=True, select_mode=Sg.SELECT_MODE_EXTENDED,
-                                justification='right', num_rows=14 - 3 * settings['vertical_gui'],
-                                selected_row_colors=(bg, accent_color),
+                                col_widths=col_widths, bind_return_key=True, justification='right',
+                                size=(10, 1), selected_row_colors=(bg, accent_color), num_rows=library_height,
                                 right_click_menu=['', ['Play::library', 'Play Next::library',
                                                        'Queue::library', 'Locate::library']],
                                 header_text_color=fg, header_background_color=bg,
@@ -1482,7 +1541,7 @@ def create_playlists_tab(settings):
     playlists_names = list(playlists.keys())
     default_pl_name = playlists_names[0] if playlists_names else None
     playlist_selector = [
-        [Sg.Button(image_data=PLUS_ICON, key='new_pl', tooltip=gt('new playlist')),
+        [icon_btn(PLUS_ICON, 'new_pl', gt('new playlist'), bg),
          Sg.Button(image_data=EXPORT_PL, key='export_pl', tooltip=gt('export playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=DELETE_ICON, key='delete_pl', tooltip=gt('delete playlist'), button_color=(bg, bg)),
          Sg.Button(image_data=PLAY_ICON, key='play_pl', tooltip=gt('play playlist'), button_color=(bg, bg)),
@@ -1506,9 +1565,9 @@ def create_playlists_tab(settings):
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(
-                   [[Sg.Button(key='pl_move_up', image_data=UP_ICON, tooltip=gt('move up'))],
-                    [Sg.Button(key='pl_rm_items', image_data=X_ICON, tooltip=gt('remove'))],
-                    [Sg.Button(key='pl_move_down', image_data=DOWN_ICON, tooltip=gt('move down'))],
+                   [[icon_btn(UP_ICON, 'pl_move_up', gt('move up'), bg)],
+                    [icon_btn(X_ICON, 'pl_rm_items', gt('remove'), bg)],
+                    [icon_btn(DOWN_ICON, 'pl_move_down', gt('move down'), bg)],
                     [Sg.Button(image_data=PLAY_ICON, key='play_pl_selected', tooltip=gt('play selected'),
                                button_color=(bg, bg))],
                     [Sg.Button(image_data=QUEUE_ICON, key='queue_pl_selected', tooltip=gt('queue selected'),
@@ -1566,24 +1625,25 @@ def create_settings(version, settings):
                                      border_width=0, selected_background_color=accent_color, font=FONT_TAB,
                                      tab_background_color=bg, selected_title_color=bg, background_color=bg)
     checkbox_col = Sg.Column([[settings_tab_group]], pad=((0, 0), (5, 0)))
-    qr_code_params = {'tooltip': gt('Web GUI QR Code (click or scan)'), 'button_color': (bg, bg)}
+    qr_code_params = {'tooltip': gt('Open Web GUI'), 'button_color': (bg, bg)}
     right_settings_col = Sg.Column([
         [Sg.Button(key='web_gui', image_data=qr_code, **qr_code_params)],
-        [round_btn('settings.json', accent_color, bg, key='settings_file', pad=((15, 0), 5), button_width=10)],
-        [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=10)]
+        [round_btn('settings.json', accent_color, bg, key='settings_file', pad=((15, 0), 5), button_width=12)],
+        [round_btn('Changelog', accent_color, bg, key='changelog_file', pad=((15, 0), 5), button_width=12)]
     ], pad=(0, 0))
-    email_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'tooltip': gt('Send me an email')}
+    link_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'click_submits': True}
+    contact_info = 'Elijah Lopez <elijahllopezzgmail.com>'
     layout = [
-        [Sg.Text(f'Music Caster v{version} by Elijah Lopez', font=FONT_NORMAL),
-         Sg.Text('elijahllopezz@gmail.com', click_submits=True, key='email', **email_params)],
+        [Sg.Text(f'Music Caster v{version} by', font=FONT_NORMAL),
+         Sg.Text(contact_info, tooltip=gt('Send me an email'), key='open_email', **link_params),
+         Sg.Text(f'GitHub', **link_params, key='open_github')],
         [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
         [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                     key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True,
                     no_scrollbar=True),
          Sg.Column([
-             [Sg.Button(image_data=X_ICON, key='remove_music_folder',
-                        tooltip=gt('remove selected folder'), enable_events=True)],
-             [Sg.Button(image_data=PLUS_ICON, key='add_music_folder', tooltip=gt('add folder'), enable_events=True)]])]]
+             [icon_btn(X_ICON, 'remove_music_folder', gt('remove selected folder'), bg)],
+             [icon_btn(PLUS_ICON, 'add_music_folder', gt('add folder'), bg)]])]]
     return Sg.Tab(gt('Settings'), layout, key='tab_settings')
 
 
@@ -1620,41 +1680,40 @@ def create_timer(settings, timer):
 
 def create_metadata_tab(settings):
     accent, bg = settings['theme']['accent'], settings['theme']['background']
-    layout = [
-        [Sg.Text('', size=(40, 1), key='metadata_file'),
-         round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
-         round_btn(gt('Save'), accent, bg, key='metadata_save')],
-        [Sg.Text(gt('Title'), size=(20, 1)), Sg.Input(key='metadata_title', border_width=1)],
-        [Sg.Text(gt('Artist'), size=(20, 1)), Sg.Input(key='metadata_artist', border_width=1)],
-        [Sg.Text(gt('Album'), size=(20, 1)), Sg.Input(key='metadata_album', border_width=1)],
-        [Sg.Text(gt('Track Number'), size=(20, 1)), Sg.Input(key='metadata_track_num', border_width=1)],
-        [Sg.Checkbox(gt('Explicit'), key='metadata_explicit', enable_events=True)],
-        [Sg.Column([[round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10))],
-                    [round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10))],
-                    [round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))]],
-                   pad=((0, 20), 5)),
+    layout = [[Sg.Column([
+        [round_btn(gt('Select File'), accent, bg, key='metadata_browse'),
+         round_btn(gt('Save'), accent, bg, key='metadata_save'),
+         Sg.Text('', size=(45, 1), key='metadata_file', border_width=1, relief='sunken', click_submits=True)]],
+        pad=(0, (20, 10)))],
+        [Sg.Column([[Sg.Text(gt(text), size=(20, 1)), Sg.Input(key=f'metadata_{key}', border_width=1, size=(25, 1))]
+                    for (text, key) in
+                    (('Title', 'title'), ('Artist', 'artist'), ('Album', 'album'), ('Track Number', 'track_num'))]),
          Sg.Image(key='metadata_art')],
-        [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]
-    ]
+        [Sg.Checkbox(gt('Explicit'), key='metadata_explicit', enable_events=True),
+         round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10)),
+         round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10)),
+         round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))],
+        [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]]
     return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
 
 
-def focus_window(window: Sg.Window):
-    # use bring to front in the small case of window already in foreground
-    if window_is_foreground(window):
+def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
+    # use bring to fron when frozen, in Python use other method
+    if is_frozen and window_is_foreground(window):
         window.bring_to_front()
     else:
-        # makes window the top-most application via windows API (breaks if already in foreground)
         keybd_event(alt_key, 0, extended_key | 0, 0)
+        ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
         ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
         keybd_event(alt_key, 0, extended_key | key_up, 0)
-    window.normal()
+    if window.TKroot.state() == 'iconic':
+        window.normal()
     window.force_focus()
 
 
 def window_is_foreground(window: Sg.Window):
-    width, height, x, y = window.TKroot.winfo_width(), window.TKroot.winfo_height(), \
-                          window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
+    width, height = window.TKroot.winfo_width(), window.TKroot.winfo_height()
+    x, y = window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
     if (width, height, x, y) != (1, 1, 0, 0):
         return window.TKroot.winfo_containing(x + (width // 2), y + (height // 2)) is not None
     return False

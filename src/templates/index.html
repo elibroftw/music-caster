@@ -51,10 +51,15 @@
                 </svg>
                 <input id="volRange" value="{{settings['volume']}}" type="range" min="0" max="100" step="1"
                        oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
+                {% if stream_url %}
+                <audio controls autoplay id="streamedAudio">
+                    <source src="{{stream_url}}" type="audio/mpeg">
+                </audio>
+                {% endif %}
             </div>
             <select name="devices" id="devices" onchange="changeDevice()">
-                {% for device_name in devices %}
-                    <option value="{{loop.index - 1}}" {{'selected' if loop.index0 == device_index else ''}}>{{ device_name }}</option>
+                {% for device_name, uuid in devices %}
+                    <option value="{{ uuid }}" {{ 'selected' if loop.index0 == device_index else '' }}>{{ device_name }}</option>
                 {% endfor %}
             </select>
             <ul class="list list--footer">
@@ -84,6 +89,7 @@
 <div id="queue-modal" class="modal">
     <div class="modal-content">
         <h2 class="modal-title">{{ gt('Queue') }}</h2>
+
         {% for track in queue %}
             <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
                href="{{'?prev&ignore_timestamps&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
@@ -374,11 +380,10 @@
     }
 
     function changeDevice() {
-        deviceIndex = parseInt(document.getElementById('devices').value);
-        fetch('/change-device/', {
+        deviceUUID = document.getElementById('devices').value;
+        fetch(`/change-device/${deviceUUID}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({device_index: deviceIndex})
         });
     }
 
@@ -393,6 +398,8 @@
                     const currentAlbum = document.getElementById('info__album').textContent;
                     const currentVol = document.getElementById('volRange').value;
                     const queueTracks = modals['queue'].getElementsByClassName('track');
+                    const streamedAudio = document.getElementById('streamedAudio')
+                    const trackPosition = response['track_position']
                     if (response['title'] !== currentTitle ||
                         response['artist'] !== currentArtist ||
                         response['album'] !== currentAlbum ||
@@ -403,6 +410,16 @@
                         window.location.reload();
                     } else if (Math.round(response['volume']) != Math.round(currentVol)) {
                         document.getElementById('volRange').value = response['volume']
+                    } else if (response['status'] === 'PLAYING' && trackPosition && streamedAudio) {
+                        // update position
+                        const currentTime = streamedAudio.currentTime;
+                        if (trackPosition < currentTime -1 || trackPosition > currentTime + 1) {
+                            document.getElementById('streamedAudio').currentTime = trackPosition;
+                        }
+                    }
+                    if (streamedAudio) {
+                        sessionStorage.setItem('streamMuted', streamedAudio.muted);
+                        sessionStorage.setItem('streamVolume', streamedAudio.volume);
                     }
                 }
             ).catch(error => {
@@ -418,6 +435,21 @@
     window.onload = () => {
         // show modal if there is a hash
         try { showModal(getHash()); } catch (TypeError) {}
+
+        try {
+            const streamedAudio = document.getElementById('streamedAudio');
+            streamedAudio.currentTime = {{ stream_time }};
+            if (!sessionStorage.getItem('streamVolume')) {
+                streamedAudio.volume = 0.1;
+            } else {
+                streamedAudio.volume = sessionStorage.getItem('streamVolume');
+            }
+            if (sessionStorage.getItem('streamMuted') === 'false') {
+                streamedAudio.muted = false;
+            } else {
+                streamedAudio.muted = true;
+            }
+        } catch (TypeError) {}
 
         // populate timer option
         const timerToggles = document.getElementsByClassName('timerSetting');

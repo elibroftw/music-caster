@@ -1,21 +1,15 @@
 import argparse
 from contextlib import suppress
 from datetime import datetime
-from distutils.dir_util import copy_tree
 import glob
 import math
 import os
-import re
 import shutil
-from subprocess import check_call, Popen, getoutput
+from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
 import threading
 import time
-import winreg
 import zipfile
-
-
-from requests.exceptions import RequestException
 
 start_time = time.time()
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -36,22 +30,24 @@ parser.add_argument('--ver_update', '-v', default=False, action='store_true', he
 parser.add_argument('--clean', '-c', default=False, action='store_true', help='Use pyinstaller --clean flag')
 parser.add_argument('--upload', '-u', '--publish', default=False, action='store_true',
                     help='Upload and Publish to GitHub after building')
-parser.add_argument('--skip_build', default=False, action='store_true',
+parser.add_argument('--skip-build', default=False, action='store_true',
                     help='Skip to testing / uploading')
-parser.add_argument('--skip_tests', '--st', default=False, action='store_true',
+parser.add_argument('--skip-tests', '--st', default=False, action='store_true',
                     help='Skip testing')
+parser.add_argument('--force-install', '-f', default=False, action='store_true', help='Force install')
 parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
 parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
-parser.add_argument('--skip_deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
+parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
+parser.add_argument('--no-install', default=False, action='store_true', help='do not install after building')
+parser.add_argument('--ytdl', default=False, action='store_true', help='version++ if new youtube-dl available')
 args = parser.parse_args()
 if args.dry: print('Dry Build')
-VERSION = getoutput('music_caster.py --version')
 
 
 def update_versions():
     """ Update versions of version file and installer script """
-    with open(VERSION_FILE, 'r+') as f:
-        lines = f.readlines()
+    with open(VERSION_FILE, 'r+') as version_info_file:
+        lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('    prodvers'):
                 version = ', '.join(VERSION.split('.'))
@@ -66,32 +62,81 @@ def update_versions():
             elif line.startswith("        StringStruct('ProductVersion"):
                 lines[i] = f"        StringStruct('ProductVersion', '{VERSION}.0')])\n"
                 break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
+        version_info_file.seek(0)
+        version_info_file.writelines(lines)
+        version_info_file.truncate()
 
-    with open(INSTALLER_SCRIPT, 'r+') as f:
-        lines = f.readlines()
+    with open(INSTALLER_SCRIPT, 'r+') as version_info_file:
+        lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('#define MyAppVersion'):
                 lines[i] = f'#define MyAppVersion "{VERSION}"\n'
             elif line.startswith('OutputBaseFilename'):
                 lines[i] = f'OutputBaseFilename={SETUP_OUTPUT_NAME}\n'
                 break
-        f.seek(0)
-        f.writelines(lines)
-        f.truncate()
+        version_info_file.seek(0)
+        version_info_file.writelines(lines)
+        version_info_file.truncate()
 
 
-update_versions()
-print('Updated versions of build files')
-if args.ver_update: sys.exit()
+VERSION = getoutput('music_caster.py --version')
+if 'ModuleNotFoundError' not in VERSION:
+    if args.ytdl:
+        import requests
+        latest_ytdl = 'https://api.github.com/repos/ytdl-org/youtube-dl/releases/latest'
+        latest_mc = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
+        ytdl_publish = requests.get(latest_ytdl).json()['published_at']
+        t = datetime.strptime(ytdl_publish, '%Y-%m-%dT%H:%M:%SZ')
+        mc_publish = requests.get(latest_mc).json()['published_at']
+        t2 = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
+        if t2 < t:  # latest youtube-dl not used in latest MC
+            print('New YouTube-dl found, updating Music Caster version')
+            # if youtube-dl was released after the latest music-caster, update version and publish
+            maj, _min, fix = VERSION.split('.')
+            fix = int(fix) + 1
+            new_version = f'{maj}.{_min}.{fix}'
+            with open('music_caster.py', 'r+', encoding='utf-8') as f:
+                # VERSION = latest_version = '5.0.0'
+                new_txt = f.read().replace(f"VERSION = latest_version = '{VERSION}'",
+                                           f"VERSION = latest_version = '{new_version}'")
+                f.seek(0)
+                f.write(new_txt)
+            # TODO: update CHANGELOG
+            with open('build_files/CHANGELOG.txt', 'r+', encoding='utf-8') as f:
+                content = ''.join((f.readline(), f'\n{VERSION}\n- [Fix] URL\n', f.read()))
+                f.seek(0)
+                f.write(content)
+
+            VERSION = new_version
+            update_versions()
+            # commit and push change
+            from git import Repo
+            repo = Repo('.git')
+            repo.git.add(update=True)
+            origin = repo.remote(name='origin')
+            origin.push()
+            repo.index.commit('Updated youtube-dl')
+    else:
+        update_versions()
+    print('Updated versions of build files')
+    if args.ver_update: sys.exit()
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt'
+else:
+    args.dry = True
+    args.skip_deps = args.skip_build = False
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt --force-reinstall --force'
+    print('Warning: could not get version, will install modules')
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
     # install tkdnd
-    copy_tree('build_files/tkdnd2.9.2', os.path.dirname(sys.executable) + '/tcl/tkdnd2.9.2')
-    copy_tree('build_files/TkinterDnD2', os.path.dirname(sys.executable) + '/Lib/site-packages/TkinterDnD2')
-    getoutput(f'{sys.executable} -m pip install --upgrade -r requirements.txt')
+    sys_dir_name = os.path.dirname(sys.executable)
+    shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+    shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+    if args.dry:
+        Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
+    else:
+        # suppress output if not dry
+        getoutput(pip_cmd)
 
 
 # import third party libraries
@@ -103,46 +148,20 @@ from music_caster import is_already_running, get_running_processes
 
 
 def read_env(env_file='.env'):
-    with open(env_file) as f:
-        env_line = f.readline()
+    with open(env_file) as env_file:
+        env_line = env_file.readline()
         while env_line:
             k, v = env_line.split('=', 1)
             os.environ[k] = v.strip()
-            env_line = f.readline()
+            env_line = env_file.readline()
     return os.environ
-
-
-def get_msbuild():
-    reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-    root_key = winreg.OpenKey(reg, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-                              0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
-    num_sub_keys = winreg.QueryInfoKey(root_key)[0]
-    vs = {}
-    for i in range(num_sub_keys):
-        with suppress(EnvironmentError):
-            software: dict = {}
-            software_key = winreg.EnumKey(root_key, i)
-            software_key = winreg.OpenKey(root_key, software_key)
-            info_key = winreg.QueryInfoKey(software_key)
-            for value in range(info_key[1]):
-                value = winreg.EnumValue(software_key, value)
-                software[value[0]] = value[1]
-            display_name = software.get('DisplayName', '')
-            if re.search(r'Visual Studio (Community|Professional|Enterprise)', display_name):
-                software['ver'] = int(software['DisplayName'].rsplit(maxsplit=1)[1])
-                vs_ver = vs.get('ver', 0)
-                if software['ver'] > vs_ver:
-                    vs = software
-    if vs is None: raise RuntimeWarning('No installation of Visual Studio could be found')
-    ms_build_path = vs['InstallLocation'] + r'\MSBuild\Current\Bin\MSBuild.exe'
-    return ms_build_path
 
 
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
-    with open('build_files/CHANGELOG.txt') as f:
+    with open('build_files/CHANGELOG.txt') as changelog_file:
         add_changes = False
-        line = f.readline()
+        line = changelog_file.readline()
         while line:
             line = line.strip()
             if line == VERSION:
@@ -150,7 +169,7 @@ def add_new_changes(prev_changes: str):
             elif add_changes:
                 if line == '': break
                 changes.add(line)
-            line = f.readline()
+            line = changelog_file.readline()
     if not add_changes:
         print(f'CHANGELOG does not contain changes for {VERSION}...')
         input('Press enter to try again...')
@@ -192,7 +211,7 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 args.upload = args.upload and not args.test_autoupdate
 player_state = {}
 if not args.dry:
-    with suppress(RequestException):
+    with suppress(requests.exceptions.RequestException):
         player_state = requests.get('http://[::1]:2001/state').json()
         requests.get('http://[::1]:2001/exit')
         time.sleep(1)  # wait for MC to exit
@@ -228,14 +247,19 @@ if args.clean:
 
 if not args.dry and not args.skip_build:
     print(f'building executables with debug={args.debug}')
-    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {PORTABLE_SPEC}')
+    additional_args = '--log=DEBUG' if args.debug else ''
+    if args.clean:
+        additional_args += ' --clean'
+    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}')
     try:
-        ms_build = get_msbuild()
-        check_call(f'{ms_build} "{starting_dir}/Music Caster Updater/Music Caster Updater.sln"'
-                   f' /t:Build /p:Configuration=Release /p:PlatformTarget=x86')
+        # build Updater
+        # install go dependencies
+        check_call('go install github.com/akavel/rsrc@latest')
+        check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
+        check_call('go build -ldflags "-H windowsgui" -o dist/Updater.exe')
     except RuntimeWarning as e:
         print(f'WARNING: {e}')
-    check_call(f'{sys.executable} -OO -m PyInstaller -y {"--clean" if args.clean else ""} {ONEDIR_SPEC}')
+    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}')
     try:
         s4 = Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError:
@@ -251,18 +275,19 @@ if not args.dry and not args.skip_build:
     for folder in {'dist/static', 'dist/templates'}:
         with suppress(OSError): os.mkdir(folder)
 
-    copy_tree('vlc_lib', 'dist/vlc_lib')
-    copy_tree('languages', 'dist/languages')
+    shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
+    shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
 
     res_files = ['static/style.css', 'templates/index.html']
     for res_file in res_files:
         shutil.copyfile(res_file, 'dist/' + res_file)
     lang_packs = glob.glob('languages/*.txt')
     # noinspection PyTypeChecker
-    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'), ('build_files/CHANGELOG.txt', 'CHANGELOG.txt')]
+    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'),
+                      ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
+                      ('dist/Updater.exe', 'Updater.exe')]
     portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
     portable_files.extend(lang_packs)
-    portable_files.extend([(f, os.path.basename(f)) for f in glob.iglob(f'{glob.escape(UPDATER_DIST_PATH)}/*.*')])
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
     print('Creating dist/Source Files Condensed.zip')
@@ -341,8 +366,8 @@ class ProgressUpload:
     def __iter__(self):
         progress_str = f'0 / {self.file_size / self.divisor:.2f} {self.unit} (0 %)'
         sys.stderr.write(f'\rUploading {self.filename}: {progress_str}')
-        with open(self.filename, 'rb') as f:
-            for chunk in iter(lambda: f.read(self.chunk_size), b''):
+        with open(self.filename, 'rb') as file_to_upload:
+            for chunk in iter(lambda: file_to_upload.read(self.chunk_size), b''):
                 self.size_read += len(chunk)
                 yield chunk
                 sys.stderr.write('\b' * len(progress_str))
@@ -360,7 +385,8 @@ class ProgressUpload:
 
 def local_install():
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = ['dist/Music Caster Setup.exe', '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"', '&&', exe]
+    cmd = ['dist/Music Caster Setup.exe', '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"']
+    cmd.extend(('&&', exe))
     if not player_state.get('gui_open', False):
         cmd.append('--minimized')
     if player_state.get('status', 'NOT PLAYING') in ('PLAYING', 'PAUSED'):
@@ -372,7 +398,9 @@ def local_install():
     Popen(cmd, shell=True)
 
 
-if args.upload and tests_passed and not args.dry and not args.debug:
+tests_passed = tests_passed and not args.dry and not args.debug and not args.skip_tests
+
+if args.upload and tests_passed:
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
@@ -381,7 +409,9 @@ if args.upload and tests_passed and not args.dry and not args.debug:
 
     # check if tag vVERSION does not exist
     r = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/tags/v{VERSION}', headers=headers)
-    if r.status_code != 404: print(f'ERROR: Tag v{VERSION} already exists')
+    if r.status_code != 404:
+        print(f'ERROR: Tag v{VERSION} already exists')
+        sys.exit(1)
 
     old_release = requests.get(f'{github_api}/repos/{USERNAME}/music-caster/releases/latest').json()
     try:
@@ -416,12 +446,13 @@ if args.upload and tests_passed and not args.dry and not args.debug:
                       headers={**headers, 'Content-Type': 'application/octet-stream'})
     requests.post(f'{github_api}/repos/{USERNAME}/music-caster/releases/{release_id}',
                   headers=headers, json={'body': body, 'draft': False})
-    if not VERSION.endswith('.0'):
-        # delete old release if not a new major build
-        requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
+    # since winget is slower on the PR's, it's better to not delete anything
+    # if not VERSION.endswith('.0'):
+    #     # delete old release if not a new major build
+    #     requests.delete(f'{github_api}/repos/{USERNAME}/music-caster/releases/{old_release_id}', headers=headers)
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
-elif tests_passed and not args.dry and not args.debug and not args.skip_tests:
+elif not args.no_install and (tests_passed or args.force_install):
     print('Installing Music Caster [Will Launch After]')
     local_install()
