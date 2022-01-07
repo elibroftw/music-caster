@@ -37,6 +37,7 @@ Ibernazione del computer
 INFO
 Input non valido (inserire minuti o HH:MM)
 URL non valido. Gli URL devono iniziare con http:// o https://
+ERRORE: selezionato file audio non valido
 Mantenere il modo mini in alto
 Avvia il modo mini
 Controlli musicali a sinistra

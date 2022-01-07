@@ -2056,19 +2056,23 @@ if __name__ == '__main__':
 
     def metadata_process_file(file):
         if os.path.isfile(file):
-            main_window['metadata_file'].update(value=file)
-            main_window['metadata_file'].set_tooltip(file)
-            file_metadata = get_metadata_wrapped(file)
-            main_window['metadata_title'].update(value=file_metadata['title'])
-            main_window['metadata_artist'].update(value=file_metadata['artist'])
-            main_window['metadata_album'].update(value=file_metadata['album'])
-            main_window['metadata_track_num'].update(value=file_metadata['track_number'])
-            main_window['metadata_explicit'].update(value=file_metadata['explicit'])
-            mime, artwork = get_album_art(file, settings['folder_cover_override'])
-            _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
-            if display_art is not None:
-                display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
-            main_window['metadata_art'].update(data=display_art)
+            try:
+                file_metadata = get_metadata_wrapped(file)
+                main_window['metadata_file'].update(value=file)
+                main_window['metadata_file'].set_tooltip(file)
+                main_window['metadata_title'].update(value=file_metadata['title'])
+                main_window['metadata_artist'].update(value=file_metadata['artist'])
+                main_window['metadata_album'].update(value=file_metadata['album'])
+                main_window['metadata_track_num'].update(value=file_metadata['track_number'])
+                main_window['metadata_explicit'].update(value=file_metadata['explicit'])
+                mime, artwork = get_album_art(file, settings['folder_cover_override'])
+                _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
+                if display_art is not None:
+                    display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
+                main_window['metadata_art'].update(data=display_art)
+            except InvalidAudioFile:
+                main_window['metadata_msg'].update(value=gt('ERROR: Invalid audio file selected'), text_color='red')
+                main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
 
 
     def add_music_folder(folders):

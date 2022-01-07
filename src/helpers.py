@@ -28,6 +28,7 @@ from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
 import winreg as wr
 import sys
+import logging
 
 # 3rd party imports
 import pypresence
@@ -541,7 +542,11 @@ def get_metadata(file_path: str):
             audio = {k.lower(): audio[k] for k in audio}
             if file_path.endswith('.wma'):
                 audio = {k: [audio[k][0].value] for k in audio}
+    except TypeError as e:
+        logging.getLogger('music_caster').info(f'Could not open {file_path} as audio file')
+        raise InvalidAudioFile(f'Is {file_path} a valid audio file?') from e
     except (ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
+        logging.getLogger('music_caster').info(f'Metadata not found for {file_path}')
         audio = {}
     title = audio.get('title', [title])[0]
     album = audio.get('album', [album])[0]
