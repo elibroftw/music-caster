@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+4.90.157
+- [Fix] Invalid audio file error
+
 4.90.156
 - [Fix] Loading settings
 
