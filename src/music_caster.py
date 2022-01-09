@@ -1471,7 +1471,7 @@ if __name__ == '__main__':
                 audio_player.play(url, start_playing=autoplay, start_from=position, volume=_volume)
             else:
                 try:
-                    cast_last_checked = time.monotonic() + 60  # make sure background_tasks doesn't interfere
+                    cast_last_checked = time.monotonic() + 20
                     with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
                     cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
                     mc = cast.media_controller
@@ -1504,7 +1504,7 @@ if __name__ == '__main__':
 
 
     def play(position=0, autoplay=True, switching_device=False):
-        global track_start, track_end, track_length, track_position, music_queue, cast_last_checked, playing_url
+        global cast, track_start, track_end, track_length, track_position, music_queue, cast_last_checked, playing_url
         uri = music_queue[0]
         while not os.path.exists(uri):
             if play_url(position=position, autoplay=autoplay, switching_device=switching_device): return
@@ -1530,7 +1530,7 @@ if __name__ == '__main__':
             audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
         else:
             try:
-                cast_last_checked = time.monotonic() + 30  # make sure background_tasks doesn't interfere
+                cast_last_checked = time.monotonic() + 20
                 url_args = urllib.parse.urlencode({'path': uri})
                 url = f'http://{get_ipv4()}:{Shared.PORT}/file?{url_args}'
                 cast.wait(timeout=WAIT_TIMEOUT)
@@ -1549,9 +1549,8 @@ if __name__ == '__main__':
                     time.sleep(0.2)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (PyChromecastError, OSError, RuntimeError) as e:
-                change_device('local')
-                error_msg = gt('Could not connect to cast device') + '\n' + gt('Switching to local device')
-                tray_notify(gt('ERROR') + f': {error_msg}')
+                cast = pychromecast.get_chromecast_from_cast_info(browser.devices.get(cast.uuid, None), zconf)
+                tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device'))
                 return handle_exception(e)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -1818,14 +1817,6 @@ if __name__ == '__main__':
                         while ((status.player_is_playing or status.player_is_paused)
                                and time.monotonic() > block_until): time.sleep(0.1)
                         if status.player_is_playing or status.player_is_paused: cast.quit_app()
-                else:  # only when background tasks calls stop()
-                    # check if background tasks is wrong
-                    mc.update_status()
-                    if mc.is_playing:
-                        playing_status.play()
-                    elif mc.is_paused:
-                        playing_status.pause()
-                    return
         else:
             audio_player.stop()
         track_start = track_position = track_end = track_length = 0
@@ -1956,7 +1947,7 @@ if __name__ == '__main__':
         auto_updating = False
 
         import pynput.keyboard  # 0.1 seconds
-        global cast_last_checked, track_position, track_start, track_end, settings_last_modified
+        global cast_last_checked, track_position, track_start, track_end
         if not settings.get('DEBUG', DEBUG): send_info()
         create_shortcut()
         update_checker = threading.Timer(216000, check_for_updates)
@@ -1968,46 +1959,6 @@ if __name__ == '__main__':
         error_sent = False
         while True:
             try:
-                # if settings.json was updated outside of Music Caster, reload settings
-                try:
-                    if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
-                except FileNotFoundError:
-                    load_settings(first_load=True)
-                # check cast every 5 seconds
-                if cast is not None and time.monotonic() - cast_last_checked > 5:
-                    with suppress(PyChromecastError):
-                        if cast.app_id == APP_MEDIA_RECEIVER:
-                            mc = cast.media_controller
-                            mc.update_status()
-                            is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-                            is_stopped = mc.status.player_is_idle
-                            is_live = track_length is None
-                            if not is_stopped and playing_status.busy():
-                                # sync track position with chromecast, also allows scrubbing from external apps
-                                if abs(mc.status.adjusted_current_time - track_position) > 0.5:
-                                    track_position = mc.status.adjusted_current_time
-                                    track_start = time.monotonic() - track_position
-                                    if not is_live: track_end = track_start + track_length
-                            if is_paused and playing_status.playing(): pause('background tasks')
-                            elif is_playing and playing_status.paused(): resume('background tasks')
-                            elif (is_stopped and playing_status.busy() and
-                                  not is_live and time.monotonic() - track_end > 1):
-                                # if cast says nothing is playing, only stop if we are not at the end of the track
-                                #  this will prevent false positives
-                                stop('background tasks', False)
-                            _volume = settings['volume']
-                            cast_volume = round(cast.status.volume_level * 100, 1)
-                            if _volume != cast_volume:
-                                if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
-                                    # if volume was changed via Google Home App
-                                    _volume = change_settings('volume', cast_volume)
-                                    if _volume and settings['muted']: change_settings('muted', False)
-                                    main_window.metadata['update_volume_slider'] = True
-                        elif playing_status.playing():
-                            stop('background tasks; app not running')
-                    cast_last_checked = time.monotonic()
-                    # don't check cast around the time the next track will start playing
-                    if track_end is not None and track_end - cast_last_checked < 10: cast_last_checked += 5
                 # scan at most 500 files per loop.
                 # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
                 uris_scanned = 0
@@ -3278,6 +3229,50 @@ if __name__ == '__main__':
                     if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
                 elif settings['timer_sleep']:
                     if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+            # if settings.json was updated outside of Music Caster, reload settings
+            try:
+                if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
+            except FileNotFoundError:
+                load_settings(first_load=True)
+            # check cast for updates every 2 seconds
+            if cast is not None and time.monotonic() - cast_last_checked > 2:
+                try:
+                    if cast.app_id == APP_MEDIA_RECEIVER:
+                        mc = cast.media_controller
+                        mc.update_status()
+                        is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
+                        is_stopped = mc.status.player_is_idle
+                        is_live = track_length is None
+                        if not is_stopped and playing_status.busy():
+                            # sync track position with chromecast, also allows scrubbing from external apps
+                            if abs(mc.status.adjusted_current_time - track_position) > 0.5:
+                                track_position = mc.status.adjusted_current_time
+                                track_start = time.monotonic() - track_position
+                                if not is_live: track_end = track_start + track_length
+                        if is_paused and playing_status.playing(): pause('main loop')
+                        elif is_playing and playing_status.paused(): resume('main loop')
+                        elif (is_stopped and playing_status.busy() and
+                                not is_live and time.monotonic() - track_end > 1):
+                            # if cast says nothing is playing, only stop if we are not at the end of the track
+                            #  this will prevent false positives
+                            stop('main loop', False)
+                        _volume = settings['volume']
+                        cast_volume = round(cast.status.volume_level * 100, 1)
+                        if _volume != cast_volume:
+                            if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
+                                # if volume was changed via Google Home App
+                                _volume = change_settings('volume', cast_volume)
+                                if _volume and settings['muted']: change_settings('muted', False)
+                                main_window.metadata['update_volume_slider'] = True
+                    elif playing_status.playing():
+                        stop('main loop; app not running')
+                except PyChromecastError as e:
+                    app_log.exception(e)
+                    handle_exception(e)
+                cast_last_checked = time.monotonic()
+                # don't check cast around the time the next track will start playing
+                if track_end is not None and track_end - cast_last_checked < 10: cast_last_checked += 5
+
             time.sleep(0.2) if main_window.was_closed() else read_main_window()
     except KeyboardInterrupt:
         exit_program()

@@ -316,7 +316,8 @@ class DiscordPresence:
     @classmethod
     @exception_wrapper
     def close(cls):
-        cls.rich_presence.close()
+        if cls.rich_presence is not None:
+            cls.rich_presence.close()
 
 
 def get_file_name(file_path): return Path(file_path).stem

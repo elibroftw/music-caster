@@ -3,6 +3,38 @@ Music Caster by Elijah Lopez Changelog
 5.0.0
 - [New] Using Python 3.10 64-bit
 
+4.90.157
+- [Fix] Invalid audio file error
+
+4.90.156
+- [Fix] Loading settings
+
+4.90.155
+- [Optimization] Mini-mode
+
+4.90.154
+- [Fix] Error handling
+
+4.90.153
+- [Fix] Chromecast connection issues
+
+4.90.152
+- [Fix] AAC, MP4, OggVorbis
+
+4.90.151
+- [Fix] Explorer play/playnext/queue behaviour
+
+4.90.150
+- [Fix] Opus file cover art
+- [Fix] Keyboard shortcuts
+
+4.90.149
+- [Fix] Spotify links
+
+4.90.148
+- [Fix] Keyboard
+- [Fix] Chromecast errors
+
 4.90.147
 - [Fix] URL
 
