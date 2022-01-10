@@ -4,6 +4,7 @@ from datetime import datetime
 import glob
 import math
 import os
+import platform
 import shutil
 from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
@@ -128,10 +129,11 @@ else:
     print('Warning: could not get version, will install modules')
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
-    # install tkdnd
-    sys_dir_name = os.path.dirname(sys.executable)
-    shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
-    shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+    if platform.system() == 'Windows':
+        # install tkdnd custom way
+        sys_dir_name = os.path.dirname(sys.executable)
+        shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+        shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
     if args.dry:
         Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
     else:

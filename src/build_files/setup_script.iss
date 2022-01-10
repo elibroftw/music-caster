@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "5.0.0"
+#define MyAppVersion "/bin/sh: 1: music_caster.py: not found"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.herokuapp.com/software#music-caster"
 #define MyAppExeName "Music Caster.exe"
