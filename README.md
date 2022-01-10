@@ -21,7 +21,7 @@ If you are able and willing to translate to other languages, click [here](https:
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 
 - Install from command line: `winget install "Music Caster"` (auto-updates on launch)
-- [VirusTotal scan](https://www.virustotal.com/gui/file/871507ad79e394634b1830802b48b3ebf35c993d6a074cba23fa38b16ed1b740)
+- [VirusTotal scan](https://www.virustotal.com/gui/file/e6add6593cd2127f16571cea7d87c382175e173e7557a3a785e6e649f1ce3742)
 - Windows may detect Music Caster as a Trojan even though I built the PyInstaller bootloader myself...
 - To restore Music Caster, open "Virus & threat protection", "protection history" and restore all files related to Music Caster
 - [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
