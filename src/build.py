@@ -80,7 +80,7 @@ def update_versions():
         version_info_file.truncate()
 
 
-VERSION = getoutput('music_caster.py --version')
+VERSION = getoutput(f'{sys.executable} music_caster.py --version')
 if 'ModuleNotFoundError' not in VERSION:
     if args.ytdl:
         import requests
