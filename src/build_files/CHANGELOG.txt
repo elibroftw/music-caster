@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.2
+- [Fix] TKdnd error
+
 5.0.1
 - [Fix] Better end of list behaviour
 

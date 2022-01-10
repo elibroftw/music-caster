@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.1'
+VERSION = latest_version = '5.0.2'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -100,7 +100,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                     elif parent_cmd in {'close', 'exit', '__EXIT__'}:
                         tray.stop()
             time.sleep(0.1)
-    
+
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
     threading.Thread(target=background, daemon=True).start()
     tray.run()
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     import zipfile
     # 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
-    from jinja2.exceptions import TemplateNotFound    
+    from jinja2.exceptions import TemplateNotFound
     from werkzeug.exceptions import InternalServerError
     import pychromecast.controllers.media
     from pychromecast.error import PyChromecastError, UnsupportedNamespace, NotConnected
@@ -336,7 +336,7 @@ if __name__ == '__main__':
                 else:
                     tray_notify(gt('ERROR') + f': {e}')
 
-    
+
     def is_debug():
         return settings.get('DEBUG', DEBUG)
 
@@ -2101,7 +2101,7 @@ if __name__ == '__main__':
             for input_key in {'url_input', 'pl_url_input', 'pl_name', 'timer_input',
                               'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
-            
+
             try:
                 tk_lb = main_window['queue'].TKListbox
                 drop_target_register(tk_lb, DND_ALL)

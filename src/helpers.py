@@ -1777,12 +1777,12 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
     shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if is_debug else ''}.lnk"
     with suppress(com_error):
         shortcut_exists = os.path.exists(shortcut_path)
-        if settings['run_on_startup'] or is_debug:
+        if run_on_startup or is_debug:
             # noinspection PyUnresolvedReferences
             pythoncom.CoInitialize()
             _shell = win32com.client.Dispatch('WScript.Shell')
             shortcut = _shell.CreateShortCut(shortcut_path)
-            if IS_FROZEN:
+            if is_frozen:
                 target = f'{working_dir}\\Music Caster.exe'
             else:
                 target = f'{working_dir}\\music_caster.bat'
@@ -1798,4 +1798,4 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
             if is_debug:
                 time.sleep(1)
                 os.remove(shortcut_path)
-        elif not settings['run_on_startup'] and shortcut_exists: os.remove(shortcut_path)
+        elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
