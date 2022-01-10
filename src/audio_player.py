@@ -13,7 +13,6 @@ from pathlib import Path
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
 if platform.system() != 'Windows':
-    pass
     os.environ['PYTHON_VLC_MODULE_PATH'] = f'{starting_dir}/vlc_lib/plugins'
 vlc_lib_path = Path(f'{starting_dir}/vlc_lib/libvlc.{vlc_ext}')
 os.environ['PYTHON_VLC_LIB_PATH'] = str(vlc_lib_path)

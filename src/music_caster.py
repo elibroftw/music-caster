@@ -42,8 +42,8 @@ def is_already_running(look_for='Music Caster.exe', threshold=1):
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     import platform
     from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
-    if platform.system() == 'Linux':
-        os.environ['PYSTRAY_BACKEND'] = 'gtk'
+    # if platform.system() == 'Linux':
+    #     os.environ['PYSTRAY_BACKEND'] = 'gtk'
     import pystray
     import time
     filled_icon = Image.open(io.BytesIO(b64decode(FILLED_ICON)))
