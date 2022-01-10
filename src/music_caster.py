@@ -225,6 +225,7 @@ if __name__ == '__main__':
     try:
         from TkinterDnD2 import DND_FILES, DND_ALL
     except ImportError:
+        # what about tkinterdnd2
         import tkinterDnD
     import tkinter
     from urllib3.exceptions import ProtocolError
@@ -2095,32 +2096,39 @@ if __name__ == '__main__':
             for input_key in {'url_input', 'pl_url_input', 'pl_name', 'timer_input',
                               'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
-            tk_lb = main_window['queue'].TKListbox
-            drop_target_register(tk_lb, DND_ALL)
-            dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
+            
+            try:
+                tk_lb = main_window['queue'].TKListbox
+                drop_target_register(tk_lb, DND_ALL)
+                dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
 
-            tk_lb = main_window['pl_tracks'].TKListbox
-            drop_target_register(tk_lb, DND_ALL)
-            dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
+                tk_lb = main_window['pl_tracks'].TKListbox
+                drop_target_register(tk_lb, DND_ALL)
+                dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
 
-            tk_frame = main_window['tab_metadata'].TKFrame
-            drop_target_register(tk_frame, DND_FILES)
-            dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0]))
+                tk_frame = main_window['tab_metadata'].TKFrame
+                drop_target_register(tk_frame, DND_FILES)
+                dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0]))
 
-            tk_lb = main_window['music_folders'].TKListbox
-            drop_target_register(tk_lb, DND_FILES)
-            dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
+                tk_lb = main_window['music_folders'].TKListbox
+                drop_target_register(tk_lb, DND_FILES)
+                dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
+            except NameError:
+                print('TODO: DND Not Implemented')
         else:
-            root = main_window.TKroot
-            drop_target_register(root, DND_ALL)
-            dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
+            try:
+                root = main_window.TKroot
+                drop_target_register(root, DND_ALL)
+                dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
+            except NameError:
+                print('TODO: DND Not Implemented')
 
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
-        main_window.bind('<Control-}>', 'mini_mode')
+        main_window.bind('<Control-braceright>', 'mini_mode')
         main_window.bind('<Control-q>', 'q:81')
         main_window.bind('<Control-r>', 'repeat')
         main_window.bind('<Control-s>', 's:83')
@@ -2195,15 +2203,17 @@ if __name__ == '__main__':
             elif selected_tab == 'tab_url':
                 main_window[url_option].update(True)
                 main_window['url_input'].set_focus()
-                default_text: str = pyperclip.paste()
-                if default_text.startswith('http'):
-                    main_window['url_input'].update(default_text)
-                    main_window.metadata['url_input'] = default_text
+                with suppress(pyperclip.PyperclipException):
+                    default_text: str = pyperclip.paste()
+                    if default_text.startswith('http'):
+                        main_window['url_input'].update(default_text)
+                        main_window.metadata['url_input'] = default_text
             elif selected_tab == 'tab_playlists':
-                default_text: str = pyperclip.paste()
-                if default_text.startswith('http'):
-                    main_window['pl_url_input'].update(default_text)
-                    main_window.metadata['pl_url_input'] = default_text
+                with suppress(pyperclip.PyperclipException):
+                    default_text: str = pyperclip.paste()
+                    if default_text.startswith('http'):
+                        main_window['pl_url_input'].update(default_text)
+                        main_window.metadata['pl_url_input'] = default_text
         focus_window(main_window)
 
 
@@ -2327,17 +2337,19 @@ if __name__ == '__main__':
               main_event == 'tab_group' and main_values.get('tab_group') == 'tab_url'):
             main_window['tab_url'].select()
             main_window['url_input'].set_focus()
-            default_text: str = pyperclip.paste()
-            if default_text.startswith('http'):
-                main_window['url_input'].update(value=default_text)
+            with suppress(pyperclip.PyperclipException):
+                default_text: str = pyperclip.paste()
+                if default_text.startswith('http'):
+                    main_window['url_input'].update(value=default_text)
         elif (main_event == '3:51' and not settings['mini_mode'] or  # Library tab [Ctrl + 3]:
               main_event == 'tab_group' and main_values['tab_group'] == 'tab_library'):
             main_window['tab_library'].select()
         elif (main_event == '4:52' and not settings['mini_mode'] or  # Playlists tab [Ctrl + 4]:
               main_event == 'tab_group' and main_values['tab_group'] == 'tab_playlists'):
-            default_text: str = pyperclip.paste()
-            if default_text.startswith('http'):
-                main_window['pl_url_input'].update(value=default_text)
+            with suppress(pyperclip.PyperclipException):
+                default_text: str = pyperclip.paste()
+                if default_text.startswith('http'):
+                    main_window['pl_url_input'].update(value=default_text)
             main_window['tab_playlists'].select()
             main_window['playlist_combo'].set_focus()
         elif (main_event == '5:53' and not settings['mini_mode'] or  # Timer Tab [Ctrl + 5]
@@ -2994,7 +3006,7 @@ if __name__ == '__main__':
             Thread(target=create_shortcut_windows, name='CreateShortcut',
                    args=(is_debug(), IS_FROZEN, settings['run_on_startup'], working_dir )).start()
         else:
-            print('create_shortcut not implemented for', platform.system())
+            print('TODO: create_shortcut not implemented for', platform.system())
 
     def auto_update():
         """ auto_start should be True when checking for updates at startup up,
@@ -3137,8 +3149,10 @@ if __name__ == '__main__':
                     # if ports are not occupied
                     with suppress(OSError):
                         # try to start server and bind it to PORT
-                        server_kwargs = {'host': '0.0.0.0', 'port': Shared.PORT, 'threaded': True}
-                        Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
+                        if platform.system() == 'Windows':
+                            server_kwargs = {'host': '0.0.0.0', 'port': Shared.PORT, 'threaded': True}
+                            Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
+                        # Linux maps ipv4 to ipv6
                         server_kwargs = {'host': '::', 'port': Shared.PORT, 'threaded': True}
                         Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                         break

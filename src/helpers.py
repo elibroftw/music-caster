@@ -1608,7 +1608,7 @@ def create_settings(version, settings):
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
-         Sg.Text('🌐', tooltip=gt('language', True)),
+         Sg.Text('🌐' if platform.system() == 'Windows' else 'g', tooltip=gt('language', True)),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
                   enable_events=True, tooltip=gt('language'))],
         [Sg.Text(gt('System Audio Delay:')),
@@ -1709,18 +1709,19 @@ def create_metadata_tab(settings):
 
 def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
     # use bring to fron when frozen, in Python use other method
-    if is_frozen and window_is_foreground(window):
-        window.bring_to_front()
-    else:
-        keybd_event = ctypes.windll.user32.keybd_event
-        alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
-        keybd_event(alt_key, 0, extended_key | 0, 0)
-        ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
-        ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
-        keybd_event(alt_key, 0, extended_key | key_up, 0)
-    if window.TKroot.state() == 'iconic':
-        window.normal()
-    window.force_focus()
+    if platform.system() == 'Windows':
+        if is_frozen and window_is_foreground(window):
+            window.bring_to_front()
+        else:
+            keybd_event = ctypes.windll.user32.keybd_event
+            alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
+            keybd_event(alt_key, 0, extended_key | 0, 0)
+            ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
+            ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
+            keybd_event(alt_key, 0, extended_key | key_up, 0)
+        if window.TKroot.state() == 'iconic':
+            window.normal()
+        window.force_focus()
 
 
 def window_is_foreground(window: Sg.Window):
