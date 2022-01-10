@@ -511,8 +511,9 @@ if __name__ == '__main__':
 
     def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
         try:
-            return get_metadata(file_path)
-        except mutagen.MutagenError:
+            m = get_metadata(file_path)
+            return m
+        except mutagen.MutagenError as e:
             try:
                 metadata = all_tracks[Path(file_path).as_posix()]
                 return metadata
@@ -1239,7 +1240,8 @@ if __name__ == '__main__':
         app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
         # prevent Windows from going to sleep
         if autoplay:
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+            if platform.system() == 'Windows':
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
             if settings['notifications'] and not switching_device and main_window.was_closed():
                 # artists is comma separated string
                 tray_notify(gt('Playing') + f': {get_first_artist(artists)} - {title}')
@@ -1738,7 +1740,8 @@ if __name__ == '__main__':
         global track_position
         app_log.info(f'pause() called, playing status = {playing_status}')
         if playing_status.playing():
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+            if platform.system() == 'Windows':
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
             try:
                 if cast is None:
                     track_position = time.monotonic() - track_start
@@ -1795,7 +1798,8 @@ if __name__ == '__main__':
                 title, artist = metadata['title'], get_first_artist(metadata['artist'])
                 DiscordPresence.update(settings['discord_rpc'], state=gt('By') + f': {artist}', details=title,
                                        large_text=gt('Listening'))
-                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+                if platform.system() == 'Windows':
+                    ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
                 if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except PyChromecastError:
@@ -1812,7 +1816,8 @@ if __name__ == '__main__':
         global track_start, track_end, track_position, track_length, playing_url
         app_log.info(f'Stop reason: {stopped_from}')
         # allow Windows to go to sleep
-        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+        if platform.system() == 'Windows':
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         playing_status.stop()
         sar.alive = playing_url = False
         DiscordPresence.clear(settings['discord_rpc'])
@@ -2114,6 +2119,7 @@ if __name__ == '__main__':
                 drop_target_register(tk_lb, DND_FILES)
                 dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
             except NameError:
+                # https://github.com/rdbende/tkinterDnD
                 print('TODO: DND Not Implemented')
         else:
             try:
@@ -2135,6 +2141,8 @@ if __name__ == '__main__':
         main_window.bind('<Control-m>', 'mute')
         main_window.bind('<Control-e>', 'locate_uri')
         main_window.bind('<KeyPress>', 'KeyPress')
+        for i in range(1, 10):
+            main_window.bind(f'<Control-Key-{i}>', f'{i}:{48 + i}')
         main_window.TKroot.bind("<KeyRelease>", lambda _: None)
 
 

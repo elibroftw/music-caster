@@ -524,7 +524,6 @@ def set_metadata(file_path: str, metadata: dict):
 
 
 def get_metadata(file_path: str):
-    file_path = file_path.lower()
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
     try:

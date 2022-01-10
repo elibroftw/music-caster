@@ -288,7 +288,8 @@ if not args.dry and not args.skip_build:
     portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'),
                       ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
                       ('dist/Updater.exe', 'Updater.exe')]
-    portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
+    vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
+    portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
     portable_files.extend(lang_packs)
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
