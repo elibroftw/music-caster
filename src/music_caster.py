@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.0'
+VERSION = latest_version = '5.0.1'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -1021,7 +1021,7 @@ if __name__ == '__main__':
         for _i, ci in enumerate(chain(['Local device'], lo_cis)):
             ci: CastInfo
             device_name = ci if _i == 0 else ci.friendly_name
-            if (cast is None and _i == 0) or (type(ci) != str and str(ci.uuid) == settings['previous_device']):
+            if cast is None and _i == 0 or type(ci) != str and str(ci.uuid) == settings['previous_device']:
                 tray_device_name = f'{CHECK_MARK} {device_name}'
             else:
                 tray_device_name = f'    {device_name}'
@@ -1056,7 +1056,7 @@ if __name__ == '__main__':
 
 
     def change_device(new_uuid):
-        """
+        """switch_device
         if new_uuid is invalid, then the local device is selected
         """
         global cast
@@ -1894,7 +1894,7 @@ if __name__ == '__main__':
                     settings['skips'].pop(music_queue[0], None)  # reset skip counter
                     save_settings()
                 return play()
-            stop('next track')  # repeat is off / no tracks in queue
+            stop('next track', stop_cast=False)  # repeat is off / no tracks in queue
 
 
     def prev_track(times=1, forced=False, ignore_timestamps=False):
@@ -3267,7 +3267,6 @@ if __name__ == '__main__':
                     elif playing_status.playing():
                         stop('main loop; app not running')
                 except PyChromecastError as e:
-                    app_log.exception(e)
                     handle_exception(e)
                 cast_last_checked = time.monotonic()
                 # don't check cast around the time the next track will start playing
