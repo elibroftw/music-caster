@@ -1,4 +1,4 @@
-build_files/pyinstaller-4.8.dev0-py3-none-any.whl
+build_files/pyinstaller-4.8-py3-none-any.whl
 build_files/PyAudio-0.2.11-cp310-cp310-win_amd64.whl
 ujson==4.2.0
 pycparser==2.14
