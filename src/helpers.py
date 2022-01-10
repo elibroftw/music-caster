@@ -26,7 +26,6 @@ from threading import Thread
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
-import winreg as wr
 import sys
 import logging
 
@@ -77,8 +76,7 @@ SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
-keybd_event = ctypes.windll.user32.keybd_event
-alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
+
 
 
 class Shared:
@@ -373,8 +371,11 @@ def get_lang_pack(lang):
 
 
 def get_display_lang():
-    windll = ctypes.windll.kernel32
-    return locale.windows_locale[windll.GetUserDefaultUILanguage()].split('_')[0]
+    if platform.system() == 'Windows':
+        kernal32 = ctypes.windll.kernel32
+        return locale.windows_locale[kernal32.GetUserDefaultUILanguage()].split('_', 1)[0]
+    else:
+        return os.environ['LANG'].split('_', 1)[0]
 
 
 def get_translation(string, lang='', as_title=False):
@@ -523,7 +524,6 @@ def set_metadata(file_path: str, metadata: dict):
 
 
 def get_metadata(file_path: str):
-    file_path = file_path.lower()
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
     try:
@@ -740,6 +740,7 @@ def is_os_64bit(): return platform.machine().endswith('64')
 
 
 def delete_sub_key(root, current_key):
+    import winreg as wr
     access = wr.KEY_ALL_ACCESS | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_ALL_ACCESS
     with suppress(FileNotFoundError):
         with wr.OpenKeyEx(root, current_key, 0, access) as parent_key:
@@ -754,6 +755,7 @@ def delete_sub_key(root, current_key):
 def add_reg_handlers(path_to_exe, add_folder_context=True):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
+    import winreg as wr
     path_to_exe = path_to_exe.replace('/', '\\')
     classes_path = 'SOFTWARE\\Classes\\'
     mc_file = 'MusicCaster_file'
@@ -849,6 +851,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
 
 def get_default_output_device():
     """ returns the PyAudio formatted name of the default output device """
+    import winreg as wr
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
     audio_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
     audio_key = wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, audio_path, 0, read_access)
@@ -1604,7 +1607,7 @@ def create_settings(version, settings):
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
-         Sg.Text('🌐', tooltip=gt('language', True)),
+         Sg.Text('🌐' if platform.system() == 'Windows' else 'g', tooltip=gt('language', True)),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
                   enable_events=True, tooltip=gt('language'))],
         [Sg.Text(gt('System Audio Delay:')),
@@ -1705,16 +1708,19 @@ def create_metadata_tab(settings):
 
 def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
     # use bring to fron when frozen, in Python use other method
-    if is_frozen and window_is_foreground(window):
-        window.bring_to_front()
-    else:
-        keybd_event(alt_key, 0, extended_key | 0, 0)
-        ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
-        ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
-        keybd_event(alt_key, 0, extended_key | key_up, 0)
-    if window.TKroot.state() == 'iconic':
-        window.normal()
-    window.force_focus()
+    if platform.system() == 'Windows':
+        if is_frozen and window_is_foreground(window):
+            window.bring_to_front()
+        else:
+            keybd_event = ctypes.windll.user32.keybd_event
+            alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
+            keybd_event(alt_key, 0, extended_key | 0, 0)
+            ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
+            ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
+            keybd_event(alt_key, 0, extended_key | key_up, 0)
+        if window.TKroot.state() == 'iconic':
+            window.normal()
+        window.force_focus()
 
 
 def window_is_foreground(window: Sg.Window):
@@ -1758,3 +1764,38 @@ def get_cut_text(window, key):
         if i >= len(new_text) or v != new_text[i]: cut_text += v
         else: i += 1
     return cut_text
+
+
+def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
+    from win32comext.shell import shell, shellcon
+    from win32com.universal import com_error
+    import pythoncom
+    import win32com.client
+    app_log = logging.getLogger('music_caster')
+    app_log.info('create_shortcut called')
+    startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
+    shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if is_debug else ''}.lnk"
+    with suppress(com_error):
+        shortcut_exists = os.path.exists(shortcut_path)
+        if settings['run_on_startup'] or is_debug:
+            # noinspection PyUnresolvedReferences
+            pythoncom.CoInitialize()
+            _shell = win32com.client.Dispatch('WScript.Shell')
+            shortcut = _shell.CreateShortCut(shortcut_path)
+            if IS_FROZEN:
+                target = f'{working_dir}\\Music Caster.exe'
+            else:
+                target = f'{working_dir}\\music_caster.bat'
+                if os.path.exists(target):
+                    with open('music_caster.bat', 'w') as f:
+                        f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
+                shortcut.IconLocation = f'{working_dir}\\resources\\Music Caster Icon.ico'
+            shortcut.Targetpath = target
+            shortcut.Arguments = '-m'
+            shortcut.WorkingDirectory = working_dir
+            shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
+            shortcut.save()
+            if is_debug:
+                time.sleep(1)
+                os.remove(shortcut_path)
+        elif not settings['run_on_startup'] and shortcut_exists: os.remove(shortcut_path)

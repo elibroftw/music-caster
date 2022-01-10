@@ -4,6 +4,7 @@ from datetime import datetime
 import glob
 import math
 import os
+import platform
 import shutil
 from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
@@ -128,10 +129,11 @@ else:
     print('Warning: could not get version, will install modules')
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
-    # install tkdnd
-    sys_dir_name = os.path.dirname(sys.executable)
-    shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
-    shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+    if platform.system() == 'Windows':
+        # install tkdnd custom way
+        sys_dir_name = os.path.dirname(sys.executable)
+        shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+        shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
     if args.dry:
         Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
     else:
@@ -286,7 +288,8 @@ if not args.dry and not args.skip_build:
     portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'),
                       ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
                       ('dist/Updater.exe', 'Updater.exe')]
-    portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
+    vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
+    portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
     portable_files.extend(lang_packs)
     print('Creating dist/Portable.zip')
     create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)

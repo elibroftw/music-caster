@@ -40,7 +40,10 @@ def is_already_running(look_for='Music Caster.exe', threshold=1):
 
 
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
+    import platform
     from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
+    if platform.system() == 'Linux':
+        os.environ['PYSTRAY_BACKEND'] = 'gtk'
     import pystray
     import time
     filled_icon = Image.open(io.BytesIO(b64decode(FILLED_ICON)))
@@ -80,19 +83,24 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                     if parent_cmd == 'tooltip':
                         tray.title = arguments
                     elif parent_cmd == 'menu':  # set icon to unfilled
-                        tray.menu = create_menu(arguments)
-                        tray.update_menu()
+                        if tray.HAS_MENU:
+                            tray.menu = create_menu(arguments)
+                            tray.update_menu()
+                        else:
+                            print('pystray: menu not supported')
                     elif parent_cmd == 'filled':  # set icon to filled
                         tray.icon = filled_icon
                     elif parent_cmd == 'unfilled':  # set icon to unfilled
                         tray.icon = unfilled_icon
                     elif parent_cmd == 'notify':
-                        tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
+                        if tray.HAS_NOTIFICATION:
+                            tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
                     elif parent_cmd == 'hide':
                         tray.visible = False
                     elif parent_cmd in {'close', 'exit', '__EXIT__'}:
                         tray.stop()
             time.sleep(0.1)
+    
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
     threading.Thread(target=background, daemon=True).start()
     tray.run()
@@ -197,32 +205,30 @@ if __name__ == '__main__':
     import pprint
     from random import shuffle
     from shutil import copyfileobj, rmtree
-    from win32com.universal import com_error
     from queue import Queue
     import traceback
     import urllib.parse
     from urllib.parse import urlsplit
     from uuid import UUID
-    import webbrowser  # takes 0.05 seconds
+    import webbrowser
     import zipfile
     # 3rd party imports
-    # TODO: use fastapi instead of flask
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
-    from jinja2.exceptions import TemplateNotFound
-    # Flask take 1 second to import
+    from jinja2.exceptions import TemplateNotFound    
     from werkzeug.exceptions import InternalServerError
-    import pychromecast.controllers.media  # 1.12 seconds
+    import pychromecast.controllers.media
     from pychromecast.error import PyChromecastError, UnsupportedNamespace, NotConnected
     from pychromecast.config import APP_MEDIA_RECEIVER
     from pychromecast import Chromecast
     from pychromecast.models import CastInfo
     import pyperclip
-    import pythoncom
-    from TkinterDnD2 import DND_FILES, DND_ALL
+    try:
+        from TkinterDnD2 import DND_FILES, DND_ALL
+    except ImportError:
+        # what about tkinterdnd2
+        import tkinterDnD
     import tkinter
     from urllib3.exceptions import ProtocolError
-    import win32com.client
-    from win32comext.shell import shell, shellcon
     import zeroconf
 
     TIME_TO_IMPORT = time.monotonic() - start_time
@@ -330,6 +336,10 @@ if __name__ == '__main__':
                 else:
                     tray_notify(gt('ERROR') + f': {e}')
 
+    
+    def is_debug():
+        return settings.get('DEBUG', DEBUG)
+
 
     def refresh_tray():
         tray_folders = [gt('Select Folder(s)')]
@@ -380,7 +390,7 @@ if __name__ == '__main__':
             _tooltip = f"{get_first_artist(artists)} - {title}".replace('&', '&&&')
         else:
             menu, _tooltip = tray_menu_default, 'Music Caster'
-        if settings.get('DEBUG', DEBUG): _tooltip += ' [DEBUG]'
+        if is_debug(): _tooltip += ' [DEBUG]'
         tray_process_queue.put({'menu': menu, 'tooltip': _tooltip, **icon})
 
 
@@ -501,8 +511,9 @@ if __name__ == '__main__':
 
     def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
         try:
-            return get_metadata(file_path)
-        except mutagen.MutagenError:
+            m = get_metadata(file_path)
+            return m
+        except mutagen.MutagenError as e:
             try:
                 metadata = all_tracks[Path(file_path).as_posix()]
                 return metadata
@@ -817,7 +828,7 @@ if __name__ == '__main__':
     @app.route('/debug/')
     def api_get_debug_info():
         threads = [(t.name, t.is_alive()) for t in threading.enumerate()]
-        if settings.get('DEBUG', DEBUG):
+        if is_debug():
             return jsonify({'pressed_keys': list(PRESSED_KEYS),
                             'last_traceback': sys.exc_info(),
                             'threads': threads,
@@ -1229,7 +1240,8 @@ if __name__ == '__main__':
         app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
         # prevent Windows from going to sleep
         if autoplay:
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+            if platform.system() == 'Windows':
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
             if settings['notifications'] and not switching_device and main_window.was_closed():
                 # artists is comma separated string
                 tray_notify(gt('Playing') + f': {get_first_artist(artists)} - {title}')
@@ -1728,7 +1740,8 @@ if __name__ == '__main__':
         global track_position
         app_log.info(f'pause() called, playing status = {playing_status}')
         if playing_status.playing():
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+            if platform.system() == 'Windows':
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
             try:
                 if cast is None:
                     track_position = time.monotonic() - track_start
@@ -1785,7 +1798,8 @@ if __name__ == '__main__':
                 title, artist = metadata['title'], get_first_artist(metadata['artist'])
                 DiscordPresence.update(settings['discord_rpc'], state=gt('By') + f': {artist}', details=title,
                                        large_text=gt('Listening'))
-                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+                if platform.system() == 'Windows':
+                    ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
                 if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except PyChromecastError:
@@ -1802,7 +1816,8 @@ if __name__ == '__main__':
         global track_start, track_end, track_position, track_length, playing_url
         app_log.info(f'Stop reason: {stopped_from}')
         # allow Windows to go to sleep
-        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+        if platform.system() == 'Windows':
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         playing_status.stop()
         sar.alive = playing_url = False
         DiscordPresence.clear(settings['discord_rpc'])
@@ -1948,7 +1963,7 @@ if __name__ == '__main__':
 
         import pynput.keyboard  # 0.1 seconds
         global cast_last_checked, track_position, track_start, track_end
-        if not settings.get('DEBUG', DEBUG): send_info()
+        if not is_debug(): send_info()
         create_shortcut()
         update_checker = threading.Timer(216000, check_for_updates)
         update_checker.daemon = True
@@ -2086,38 +2101,48 @@ if __name__ == '__main__':
             for input_key in {'url_input', 'pl_url_input', 'pl_name', 'timer_input',
                               'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
-            tk_lb = main_window['queue'].TKListbox
-            drop_target_register(tk_lb, DND_ALL)
-            dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
+            
+            try:
+                tk_lb = main_window['queue'].TKListbox
+                drop_target_register(tk_lb, DND_ALL)
+                dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
 
-            tk_lb = main_window['pl_tracks'].TKListbox
-            drop_target_register(tk_lb, DND_ALL)
-            dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
+                tk_lb = main_window['pl_tracks'].TKListbox
+                drop_target_register(tk_lb, DND_ALL)
+                dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
 
-            tk_frame = main_window['tab_metadata'].TKFrame
-            drop_target_register(tk_frame, DND_FILES)
-            dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0]))
+                tk_frame = main_window['tab_metadata'].TKFrame
+                drop_target_register(tk_frame, DND_FILES)
+                dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0]))
 
-            tk_lb = main_window['music_folders'].TKListbox
-            drop_target_register(tk_lb, DND_FILES)
-            dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
+                tk_lb = main_window['music_folders'].TKListbox
+                drop_target_register(tk_lb, DND_FILES)
+                dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
+            except NameError:
+                # https://github.com/rdbende/tkinterDnD
+                print('TODO: DND Not Implemented')
         else:
-            root = main_window.TKroot
-            drop_target_register(root, DND_ALL)
-            dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
+            try:
+                root = main_window.TKroot
+                drop_target_register(root, DND_ALL)
+                dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
+            except NameError:
+                print('TODO: DND Not Implemented')
 
         main_window['volume_slider'].bind('<Enter>', '_mouse_enter')
         main_window['volume_slider'].bind('<Leave>', '_mouse_leave')
         main_window['progress_bar'].bind('<Enter>', '_mouse_enter')
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
-        main_window.bind('<Control-}>', 'mini_mode')
+        main_window.bind('<Control-braceright>', 'mini_mode')
         main_window.bind('<Control-q>', 'q:81')
         main_window.bind('<Control-r>', 'repeat')
         main_window.bind('<Control-s>', 's:83')
         main_window.bind('<Control-m>', 'mute')
         main_window.bind('<Control-e>', 'locate_uri')
         main_window.bind('<KeyPress>', 'KeyPress')
+        for i in range(1, 10):
+            main_window.bind(f'<Control-Key-{i}>', f'{i}:{48 + i}')
         main_window.TKroot.bind("<KeyRelease>", lambda _: None)
 
 
@@ -2186,15 +2211,17 @@ if __name__ == '__main__':
             elif selected_tab == 'tab_url':
                 main_window[url_option].update(True)
                 main_window['url_input'].set_focus()
-                default_text: str = pyperclip.paste()
-                if default_text.startswith('http'):
-                    main_window['url_input'].update(default_text)
-                    main_window.metadata['url_input'] = default_text
+                with suppress(pyperclip.PyperclipException):
+                    default_text: str = pyperclip.paste()
+                    if default_text.startswith('http'):
+                        main_window['url_input'].update(default_text)
+                        main_window.metadata['url_input'] = default_text
             elif selected_tab == 'tab_playlists':
-                default_text: str = pyperclip.paste()
-                if default_text.startswith('http'):
-                    main_window['pl_url_input'].update(default_text)
-                    main_window.metadata['pl_url_input'] = default_text
+                with suppress(pyperclip.PyperclipException):
+                    default_text: str = pyperclip.paste()
+                    if default_text.startswith('http'):
+                        main_window['pl_url_input'].update(default_text)
+                        main_window.metadata['pl_url_input'] = default_text
         focus_window(main_window)
 
 
@@ -2318,17 +2345,19 @@ if __name__ == '__main__':
               main_event == 'tab_group' and main_values.get('tab_group') == 'tab_url'):
             main_window['tab_url'].select()
             main_window['url_input'].set_focus()
-            default_text: str = pyperclip.paste()
-            if default_text.startswith('http'):
-                main_window['url_input'].update(value=default_text)
+            with suppress(pyperclip.PyperclipException):
+                default_text: str = pyperclip.paste()
+                if default_text.startswith('http'):
+                    main_window['url_input'].update(value=default_text)
         elif (main_event == '3:51' and not settings['mini_mode'] or  # Library tab [Ctrl + 3]:
               main_event == 'tab_group' and main_values['tab_group'] == 'tab_library'):
             main_window['tab_library'].select()
         elif (main_event == '4:52' and not settings['mini_mode'] or  # Playlists tab [Ctrl + 4]:
               main_event == 'tab_group' and main_values['tab_group'] == 'tab_playlists'):
-            default_text: str = pyperclip.paste()
-            if default_text.startswith('http'):
-                main_window['pl_url_input'].update(value=default_text)
+            with suppress(pyperclip.PyperclipException):
+                default_text: str = pyperclip.paste()
+                if default_text.startswith('http'):
+                    main_window['pl_url_input'].update(value=default_text)
             main_window['tab_playlists'].select()
             main_window['playlist_combo'].set_focus()
         elif (main_event == '5:53' and not settings['mini_mode'] or  # Timer Tab [Ctrl + 5]
@@ -2981,43 +3010,18 @@ if __name__ == '__main__':
     def create_shortcut():
         """ Creates short-cut in Startup folder (enter "startup" in Explorer address bar to)
             if setting['run_on_startup'], else removes existing shortcut """
-        def _create_shortcut():
-            app_log.info('create_shortcut called')
-            startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
-            debug = settings.get('DEBUG', DEBUG)
-            shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if debug else ''}.lnk"
-            with suppress(com_error):
-                shortcut_exists = os.path.exists(shortcut_path)
-                if settings['run_on_startup'] or debug:
-                    # noinspection PyUnresolvedReferences
-                    pythoncom.CoInitialize()
-                    _shell = win32com.client.Dispatch('WScript.Shell')
-                    shortcut = _shell.CreateShortCut(shortcut_path)
-                    if IS_FROZEN:
-                        target = f'{working_dir}\\Music Caster.exe'
-                    else:
-                        target = f'{working_dir}\\music_caster.bat'
-                        if os.path.exists(target):
-                            with open('music_caster.bat', 'w') as f:
-                                f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
-                        shortcut.IconLocation = f'{working_dir}\\resources\\Music Caster Icon.ico'
-                    shortcut.Targetpath = target
-                    shortcut.Arguments = '-m'
-                    shortcut.WorkingDirectory = working_dir
-                    shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
-                    shortcut.save()
-                    if debug:
-                        time.sleep(1)
-                        os.remove(shortcut_path)
-                elif not settings['run_on_startup'] and shortcut_exists: os.remove(shortcut_path)
-        Thread(target=_create_shortcut, name='CreateShortcut').start()
+        if platform.system() == 'Windows':
+            Thread(target=create_shortcut_windows, name='CreateShortcut',
+                   args=(is_debug(), IS_FROZEN, settings['run_on_startup'], working_dir )).start()
+        else:
+            print('TODO: create_shortcut not implemented for', platform.system())
 
     def auto_update():
         """ auto_start should be True when checking for updates at startup up,
             false when checking for updates before exiting """
         with suppress(requests.RequestException):
             app_log.info(f'called auto_update(), IS_FROZEN={IS_FROZEN}')
-            release = get_latest_release(VERSION, VERSION, force=(not IS_FROZEN or settings.get('DEBUG', DEBUG)))
+            release = get_latest_release(VERSION, VERSION, force=(not IS_FROZEN or is_debug()))
             if release:
                 latest_ver = release['version']
                 setup_dl_link = release['setup']
@@ -3028,7 +3032,7 @@ if __name__ == '__main__':
                         tray_notify(f"The update v{latest_ver}, is 64-bit only")
                         tray_notify("I've turned off auto-update for you, so you don't have to worry")
                         return change_settings('auto_update', False)
-                if settings.get('DEBUG', DEBUG) or not setup_dl_link:
+                if is_debug() or not setup_dl_link:
                     return app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
                 if IS_FROZEN:
                     if os.path.exists(UNINSTALLER):
@@ -3153,8 +3157,10 @@ if __name__ == '__main__':
                     # if ports are not occupied
                     with suppress(OSError):
                         # try to start server and bind it to PORT
-                        server_kwargs = {'host': '0.0.0.0', 'port': Shared.PORT, 'threaded': True}
-                        Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
+                        if platform.system() == 'Windows':
+                            server_kwargs = {'host': '0.0.0.0', 'port': Shared.PORT, 'threaded': True}
+                            Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
+                        # Linux maps ipv4 to ipv6
                         server_kwargs = {'host': '::', 'port': Shared.PORT, 'threaded': True}
                         Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                         break
