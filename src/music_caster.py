@@ -42,8 +42,8 @@ def is_already_running(look_for='Music Caster.exe', threshold=1):
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     import platform
     from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
-    # if platform.system() == 'Linux':
-    #     os.environ['PYSTRAY_BACKEND'] = 'gtk'
+    if platform.system() == 'Linux':
+        os.environ['PYSTRAY_BACKEND'] = 'gtk'
     import pystray
     import time
     filled_icon = Image.open(io.BytesIO(b64decode(FILLED_ICON)))
@@ -95,6 +95,8 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                     elif parent_cmd == 'notify':
                         if tray.HAS_NOTIFICATION:
                             tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
+                        else:
+                            print('pystray: notify not supported')
                     elif parent_cmd == 'hide':
                         tray.visible = False
                     elif parent_cmd in {'close', 'exit', '__EXIT__'}:
@@ -2091,8 +2093,7 @@ if __name__ == '__main__':
                 raise KeyboardInterrupt
 
         main_window.hidden_master_root.report_callback_exception = report_callback_exception
-        # drag and drop callbacks
-        main_window.TKroot.tk.call('package', 'require', 'tkdnd')
+
         if not settings['mini_mode']:
             main_window['url_input'].bind('<<Cut>>', '_cut')
             main_window['url_input'].bind('<<Copy>>', '_copy')
@@ -2108,7 +2109,9 @@ if __name__ == '__main__':
                               'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
 
-            try:
+            if platform.system() == 'Windows':
+                # drag and drop callbacks
+                main_window.TKroot.tk.call('package', 'require', 'tkdnd')
                 tk_lb = main_window['queue'].TKListbox
                 drop_target_register(tk_lb, DND_ALL)
                 dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
@@ -2124,7 +2127,7 @@ if __name__ == '__main__':
                 tk_lb = main_window['music_folders'].TKListbox
                 drop_target_register(tk_lb, DND_FILES)
                 dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
-            except NameError:
+            else:
                 # https://github.com/rdbende/tkinterDnD
                 print('TODO: DND Not Implemented')
         else:
