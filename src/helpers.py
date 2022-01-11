@@ -1,5 +1,4 @@
 from deezer import TrackFormats
-from mutagen.oggvorbis import OggVorbis  # 0.259 seconds because of requests
 from b64_images import *
 import base64
 import audioop
@@ -33,12 +32,6 @@ import logging
 import pypresence
 import deemix.utils.localpaths as __lp
 __lp.musicdata = '/dz'
-# without dz imports:
-# helpers: 0.5212428569793701
-# Done importing: 4.07397723197937
-# with dz imports:
-# helpers: 1.3634579181671143
-# Done importing: 4.319329738616943
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -54,7 +47,7 @@ from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
 import pyaudio
 import pyqrcode
-import PySimpleGUI as Sg  # 0.11 seconds
+import PySimpleGUI as Sg
 from PIL import Image, ImageFile, ImageDraw, ImageFont
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
@@ -76,7 +69,6 @@ SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
-
 
 
 class Shared:
@@ -1437,7 +1429,7 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
 
 
 def create_main(queue, listbox_selected, playing_status, settings, version, timer, music_lib,
-                title=gt('Nothing Playing'), artist='', album='', album_art_data: str = '',
+                title=gt('Nothing Playing'), artist='', album='', album_art_data: bytes = b'',
                 track_length=0, track_position=0):
     if settings['mini_mode']:
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)

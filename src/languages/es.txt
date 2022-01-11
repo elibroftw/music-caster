@@ -37,7 +37,7 @@ Hibernar computadora
 INFO
 Entrada no válida (ingrese minutos o HH: MM)
 URL invalida.  La URL debe comenzar con http:// o https://
-ERROR: Se seleccionó un archivo de audio no válido
+Se seleccionó un archivo de audio no válido
 Mantenga el modo mini en la parte superior
 Iniciar el modo mini
 Controles de música en lado izquierdo
@@ -48,6 +48,7 @@ Audio del Sistema
 Dispositivo local
 localizar seleccionado
 Modo Mini en la parte superior
+Conexión perdida a $DEVICE, cambio a dispositivo local
 Más
 mover hacia abajo
 Pasar al siguiente

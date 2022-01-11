@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.3
+- [Fix] Smart queue
+- [Fix] Logging
+- [Fix] Tray device names
+
 5.0.2
 - [Fix] TKdnd error
 

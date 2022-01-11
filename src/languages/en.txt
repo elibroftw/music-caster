@@ -37,7 +37,7 @@ Hibernate Computer
 INFO
 Invalid Input (enter minutes or HH:MM)
 Invalid URL. URL's need to start with http:// or https://
-ERROR: Invalid audio file selected
+Invalid audio file selected
 Keep mini mode on top
 Launch mini mode
 Left-side music controls
@@ -47,6 +47,7 @@ Listening
 System Audio
 Local device
 locate selected
+Lost connection to $DEVICE, switching to local device
 Mini mode on top
 More
 move down

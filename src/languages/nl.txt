@@ -37,7 +37,7 @@ Slaapstand Computer
 INFO
 Verkeerde ingave (geef aantal minuten in of UU:MM)
 Ongeldige URL. URL's moeten beginnen met http:// of https://
-FOUT: Ongeldig audiobestand geselecteerd
+Ongeldig audiobestand geselecteerd
 Houdt mini modus zichtbaar
 Start mini modus
 Muziekbediening aan de linkerkant
@@ -48,6 +48,7 @@ Systeemaudio
 Lokale apparaten
 lokaliseren geselecteerd
 Mini-modus bovenaan
+Verbinding met $DEVICE verbroken, overschakelen naar lokaal apparaat
 Meer
 omlaag
 verplaatsen naar volgende te spelen

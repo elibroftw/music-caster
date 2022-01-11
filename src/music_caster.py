@@ -245,7 +245,7 @@ if __name__ == '__main__':
     app_log.addHandler(log_handler)
     logging.getLogger('pychromecast.socket_client').addHandler(log_handler)
     # logging.getLogger('werkzeug').disabled = not DEBUG
-    logging.getLogger('werkzeug').setLevel(logging.DEBUG)
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
     logging.getLogger('werkzeug').addHandler(log_handler)
     app_log.info(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
 
@@ -513,7 +513,7 @@ if __name__ == '__main__':
         try:
             m = get_metadata(file_path)
             return m
-        except mutagen.MutagenError as e:
+        except mutagen.MutagenError:
             try:
                 metadata = all_tracks[Path(file_path).as_posix()]
                 return metadata
@@ -1028,15 +1028,17 @@ if __name__ == '__main__':
 
     def refresh_devices():
         device_names.clear()
+        # sort CastInfos objects
         lo_cis = sorted(browser.devices.values(), key=cast_info_sorter)
-        for _i, ci in enumerate(chain(['Local device'], lo_cis)):
-            ci: CastInfo
-            device_name = ci if _i == 0 else ci.friendly_name
-            if cast is None and _i == 0 or type(ci) != str and str(ci.uuid) == settings['previous_device']:
+        for i, ci in enumerate(chain(['Local device'], lo_cis)):
+            ci: CastInfo | str
+            device_name = ci if i == 0 else ci.friendly_name
+            device_id = None if i == 0 else str(ci.uuid)
+            if device_id == settings['previous_device']:
                 tray_device_name = f'{CHECK_MARK} {device_name}'
             else:
                 tray_device_name = f'    {device_name}'
-            tray_device_key = f'device:{ci.uuid}' if _i else 'device:0'
+            tray_device_key = f'device:{ci.uuid}' if i else 'device:0'
             device_names.append((tray_device_name, tray_device_key))
         refresh_tray()
 
@@ -1056,9 +1058,11 @@ if __name__ == '__main__':
             """Called when a cast has been lost (MDNS info expired or host down)."""
             global cast
             if cast is not None and cast.uuid == uuid:
-                # lost connection to current chromecast
-                cast = None
-                pause()
+                # lost connection to current chromecast, therefore use local
+                error_msg = gt('Lost connection to $DEVICE, switching to local device')
+                error_msg.replace('$DEVICE', cast.name)
+                tray_notify(gt('ERROR') + ': ' + error_msg)
+                change_device()
             refresh_devices()
 
         def update_cast(self, uuid, _service):
@@ -1066,11 +1070,12 @@ if __name__ == '__main__':
             refresh_devices()
 
 
-    def change_device(new_uuid):
+    def change_device(new_uuid='local'):
         """switch_device
         if new_uuid is invalid, then the local device is selected
         """
         global cast
+        app_log.info(f'change_device({new_uuid})')
         try:
             new_uuid = UUID(new_uuid)
             with suppress(AttributeError):
@@ -1108,8 +1113,7 @@ if __name__ == '__main__':
         else:
             if cast is not None:
                 cast.wait(timeout=WAIT_TIMEOUT)
-            volume = 0 if settings['muted'] else settings['volume']
-            update_volume(volume)
+            update_volume(0 if settings['muted'] else settings['volume'])
 
 
     def un_shuffle_queue():
@@ -1479,8 +1483,8 @@ if __name__ == '__main__':
             thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART'
             track_length = metadata['length']
             if cast is None:
-                _volume = 0 if settings['muted'] else settings['volume'] / 100
-                audio_player.play(url, start_playing=autoplay, start_from=position, volume=_volume)
+                volume = 0 if settings['muted'] else settings['volume'] / 100
+                audio_player.play(url, start_playing=autoplay, start_from=position, volume=volume)
             else:
                 try:
                     cast_last_checked = time.monotonic() + 20
@@ -1537,16 +1541,16 @@ if __name__ == '__main__':
         metadata = get_metadata_wrapped(uri)
         # update metadata of track in case something changed
         all_tracks[uri] = metadata
-        _volume = 0 if settings['muted'] else settings['volume'] / 100
+        volume = 0 if settings['muted'] else settings['volume'] / 100
         if cast is None:  # play locally
-            audio_player.play(uri, volume=_volume, start_playing=autoplay, start_from=position)
+            audio_player.play(uri, volume=volume, start_playing=autoplay, start_from=position)
         else:
             try:
                 cast_last_checked = time.monotonic() + 20
                 url_args = urllib.parse.urlencode({'path': uri})
                 url = f'http://{get_ipv4()}:{Shared.PORT}/file?{url_args}'
                 cast.wait(timeout=WAIT_TIMEOUT)
-                cast.set_volume(_volume)
+                cast.set_volume(volume)
                 mc = cast.media_controller
                 metadata = {'title': metadata['title'], 'artist': metadata['artist'],
                             'albumName': metadata['album'], 'metadataType': 3}
@@ -1814,7 +1818,7 @@ if __name__ == '__main__':
         does not check if playing_status is busy
         """
         global track_start, track_end, track_position, track_length, playing_url
-        app_log.info(f'Stop reason: {stopped_from}')
+        app_log.info(f'stop({stopped_from}, stop_cast={stop_cast})')
         # allow Windows to go to sleep
         if platform.system() == 'Windows':
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
@@ -1882,7 +1886,7 @@ if __name__ == '__main__':
                 settings['skips'][music_queue[0]] = settings['skips'].get(music_queue[0], 0) + 1
                 save_settings()
             # if repeat all or repeat is off or empty queue or manual next
-            if not settings['repeat'] or not music_queue or not from_timeout:
+            if settings['repeat'] in {False, None} or not music_queue or not from_timeout:
                 if settings['repeat']: change_settings('repeat', False)
                 for _ in range(times):
                     if music_queue: done_queue.append(music_queue.popleft())
@@ -1894,22 +1898,23 @@ if __name__ == '__main__':
                         done_queue.clear()
             if music_queue:
                 if settings['smart_queue'] and from_timeout:
-                    # auto skip tracks that are likely to be skipped.
-                    # instead of using an arbitrary number, compare to median skips
-                    max_skips = len(music_queue) + len(next_queue) + len(done_queue)
-                    while settings['skips'].get(music_queue[0], 0) > 3 and max_skips > 0:
-                        if music_queue: done_queue.append(music_queue.popleft())
+                    # in the rare case all tracks are skippable, avoid infinite loop
+                    max_skips = len(music_queue) + len(done_queue) + len(next_queue)
+                    # auto skip tracks that have been skipped a lot previously
+                    while music_queue and settings['skips'].get(music_queue[0], 0) > 5 and max_skips > 0:
+                        done_queue.append(music_queue.popleft())
                         if next_queue: music_queue.insert(0, next_queue.popleft())
-                        # if queue is empty but repeat is all AND there are tracks in the done_queue
-                        if not music_queue and settings['repeat'] is False and done_queue:
+                        # if queue is empty but repeat is all, move tracks from done_queue to music_queue
+                        if not music_queue and settings['repeat'] is False:
                             music_queue.extend(done_queue)
                             done_queue.clear()
                         max_skips -= 1
-                elif times > 1:  # explicitly selected
-                    settings['skips'].pop(music_queue[0], None)  # reset skip counter
+                elif times > 1:  # reset skip counter because user explicitly selected the track to play
+                    settings['skips'].pop(music_queue[0], None)
                     save_settings()
                 return play()
-            stop('next track', stop_cast=False)  # repeat is off / no tracks in queue
+            # repeat is off (from timeout) or skip resulted in exhaustion of queue
+            stop('next track', stop_cast=not from_timeout)
 
 
     def prev_track(times=1, forced=False, ignore_timestamps=False):
@@ -2031,8 +2036,9 @@ if __name__ == '__main__':
                 main_window['metadata_album'].update(value=file_metadata['album'])
                 main_window['metadata_track_num'].update(value=file_metadata['track_number'])
                 main_window['metadata_explicit'].update(value=file_metadata['explicit'])
-                mime, artwork = get_album_art(file, settings['folder_cover_override'])
-                _, display_art = main_window['metadata_art'].metadata = (mime, None if artwork == DEFAULT_ART else artwork)
+                mime, artwork = get_album_art(file)
+                artwork = None if artwork == DEFAULT_ART else artwork
+                _, display_art = main_window['metadata_art'].metadata = (mime, artwork)
                 if display_art is not None:
                     display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
                 main_window['metadata_art'].update(data=display_art)
@@ -2076,7 +2082,7 @@ if __name__ == '__main__':
             pl_tracks = main_window.metadata['pl_tracks']
             pl_tracks.extend(get_audio_uris(file_paths))
             settings['last_folder'] = os.path.dirname(file_paths[-1])
-            new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
+            new_values = [f'{n + 1}. {format_uri(path)}' for n, path in enumerate(pl_tracks)]
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
@@ -2160,9 +2166,9 @@ if __name__ == '__main__':
             if settings['show_album_art']:
                 size = COVER_MINI if mini_mode else COVER_NORMAL
                 try:
-                    album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
+                    album_art_data = resize_img(get_current_art(), settings['theme']['background'], size)
                 except (UnidentifiedImageError, OSError):
-                    album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+                    album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size)
             else:
                 album_art_data = None
             metadata = get_current_metadata()
@@ -2676,9 +2682,9 @@ if __name__ == '__main__':
             elif main_event == 'folder_cover_override':
                 size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
                 try:
-                    album_art_data = resize_img(get_current_art(), settings['theme']['background'], size).decode()
+                    album_art_data = resize_img(get_current_art(), settings['theme']['background'], size)
                 except (UnidentifiedImageError, OSError):
-                    album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size).decode()
+                    album_art_data = resize_img(DEFAULT_ART, settings['theme']['background'], size)
                 main_window['artwork'].update(data=album_art_data)
             elif main_event == 'lang':
                 Shared.lang = main_value
@@ -2950,7 +2956,7 @@ if __name__ == '__main__':
                 r = requests.get(url, headers=get_spotify_headers()).json()
                 if 'tracks' in r:
                     for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
-                        display_art: str = base64.b64encode(requests.get(art_link).content).decode()
+                        display_art = base64.b64encode(requests.get(art_link).content).decode()
                         main_window['metadata_art'].metadata = ('image/jpeg', display_art)
                         display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
                         main_window['metadata_art'].update(data=display_art)
@@ -3065,7 +3071,6 @@ if __name__ == '__main__':
                     elif os.path.exists('Updater.exe'):
                         # portable installation
                         try:
-                            # TODO: propogate arguments to Updater.exe and make that also propogate the arguments back
                             os.startfile('Updater.exe')
                             daemon_commands.put('__EXIT__')  # tell main thread to exit
                         except OSError as e:
@@ -3244,36 +3249,34 @@ if __name__ == '__main__':
             if cast is not None and time.monotonic() - cast_last_checked > 2:
                 try:
                     if cast.app_id == APP_MEDIA_RECEIVER:
-                        mc = cast.media_controller
-                        mc.update_status()
-                        is_playing, is_paused = mc.status.player_is_playing, mc.status.player_is_paused
-                        is_stopped = mc.status.player_is_idle
+                        media_controller = cast.media_controller
+                        media_controller.update_status()
+                        is_stopped = media_controller.status.player_is_idle
                         is_live = track_length is None
                         if not is_stopped and playing_status.busy():
                             # sync track position with chromecast, also allows scrubbing from external apps
-                            if abs(mc.status.adjusted_current_time - track_position) > 0.5:
-                                track_position = mc.status.adjusted_current_time
+                            if abs(media_controller.status.adjusted_current_time - track_position) > 0.5:
+                                track_position = media_controller.status.adjusted_current_time
                                 track_start = time.monotonic() - track_position
                                 if not is_live: track_end = track_start + track_length
-                        if is_paused and playing_status.playing(): pause('main loop')
-                        elif is_playing and playing_status.paused(): resume('main loop')
+                        if media_controller.status.player_is_paused and playing_status.playing(): pause('main loop')
+                        elif media_controller.status.player_is_playing and playing_status.paused(): resume('main loop')
                         elif (is_stopped and playing_status.busy() and
                                 not is_live and time.monotonic() - track_end > 1):
                             # if cast says nothing is playing, only stop if we are not at the end of the track
                             #  this will prevent false positives
                             stop('main loop', False)
-                        _volume = settings['volume']
                         cast_volume = round(cast.status.volume_level * 100, 1)
-                        if _volume != cast_volume:
+                        if settings['volume'] != cast_volume:
                             if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
                                 # if volume was changed via Google Home App
-                                _volume = change_settings('volume', cast_volume)
-                                if _volume and settings['muted']: change_settings('muted', False)
+                                if change_settings('volume', cast_volume) and settings['muted']:
+                                    change_settings('muted', False)
                                 main_window.metadata['update_volume_slider'] = True
                     elif playing_status.playing():
                         stop('main loop; app not running')
-                except PyChromecastError as e:
-                    handle_exception(e)
+                except PyChromecastError as exception:
+                    handle_exception(exception)
                 cast_last_checked = time.monotonic()
                 # don't check cast around the time the next track will start playing
                 if track_end is not None and track_end - cast_last_checked < 10: cast_last_checked += 5
