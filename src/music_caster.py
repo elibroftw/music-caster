@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.3'
+VERSION = latest_version = '5.0.4'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -473,8 +473,8 @@ if __name__ == '__main__':
         payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
                    'PORTABLE': not os.path.exists(UNINSTALLER), 'CWD': os.getcwd(),
                    'TRACEBACK': trace_back_msg.replace('\\', '/'), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
-                   'FATAL': restart_program, 'LOG': log_lines, 'CASTING': cast is not None,
-                   'OS': platform.platform(), 'TIME': current_time, 'MQ[0]': playing_uri}
+                   'FATAL': restart_program, 'LOG': log_lines, 'DEVICE': 'cast' if cast is not None else 'local',
+                   'OS': platform.platform(), 'TIME': current_time, 'MQ[0]': playing_uri, 'PLAYING_STATUS': str(playing_status)}
         if IS_FROZEN:
             with suppress(requests.RequestException):
                 requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
@@ -1950,16 +1950,14 @@ if __name__ == '__main__':
             if settings['notifications']: tray_notify('update_available', context=latest_version)
 
 
-    def background_tasks():
+    def background_thread():
         """
         Startup tasks:
         - try to auto update
         - sends info
         - creates/removes shortcut
         - starts keyboard listener
-        Periodic (While True) tasks:
-        - checks for Chromecast status update
-        - reloads settings.json if settings.json is modified
+        While True tasks:
         - scans files
         """
         global auto_updating
@@ -1981,21 +1979,14 @@ if __name__ == '__main__':
         error_sent = False
         while True:
             try:
-                # scan at most 500 files per loop.
-                # Testing on an i7-7700k, scanning ~1000 files would block for 5 seconds
-                uris_scanned = 0
-                while uris_scanned < 500 and not uris_to_scan.empty():
-                    uri = uris_to_scan.get()
-                    if uri.startswith('http'):
-                        get_url_metadata(uri)
-                    else:
-                        uri = Path(uri).as_posix()
-                        all_tracks[uri] = get_metadata_wrapped(uri)
-                    uris_to_scan.task_done()
-                    uris_scanned += 1
-                if uris_scanned: main_window.metadata['update_listboxes'] = True
-                # if no files were scanned, pause for 5 seconds
-                else: time.sleep(5)
+                uri = uris_to_scan.get()
+                if uri.startswith('http'):
+                    get_url_metadata(uri)
+                else:
+                    uri = Path(uri).as_posix()
+                    all_tracks[uri] = get_metadata_wrapped(uri)
+                uris_to_scan.task_done()
+                main_window.metadata['update_listboxes'] = True
             except Exception as e:
                 if not error_sent:
                     handle_exception(e)
@@ -3189,7 +3180,7 @@ if __name__ == '__main__':
         if settings['persistent_queue'] and settings['populate_queue_startup']:  # mutually exclusive
             change_settings('populate_queue_startup', False)
         cast_last_checked = time.monotonic()
-        Thread(target=background_tasks, daemon=True, name='BackgroundTasks').start()
+        Thread(target=background_thread, daemon=True, name='BackgroundTasks').start()
         zconf = zeroconf.Zeroconf()
         browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
         browser.start_discovery()
@@ -3278,6 +3269,14 @@ if __name__ == '__main__':
                                 main_window.metadata['update_volume_slider'] = True
                     elif playing_status.playing():
                         stop('main loop; app not running')
+                except NotConnected:  # don't care
+                    pass
+                except UnsupportedNamespace:  # known error
+                    # File "pychromecast/controllers/media.py", line 359, in update_status
+                    # File "pychromecast/controllers/init.py", line 91, in send_message
+                    # pychromecast.error.UnsupportedNamespace: Namespace urn:x-cast:com.google.cast.media is not supported
+                    #  by running application.
+                    pass
                 except PyChromecastError as exception:
                     handle_exception(exception)
                 cast_last_checked = time.monotonic()
