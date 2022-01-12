@@ -346,7 +346,7 @@ if not args.dry and not args.skip_tests and tests_passed:
     except AssertionError as e:
         print('TESTS FAILED: test_helpers()')
         raise e
-    # Test if executable can be run [disables auto update or some shit]
+    # Test if executable can be run
     p = Popen('"dist/Music Caster/Music Caster.exe" -m --debug', shell=True)
     time.sleep(2)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)

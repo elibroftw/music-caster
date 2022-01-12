@@ -12,13 +12,14 @@ import platform
 from pathlib import Path
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
-os.chdir(f'{starting_dir}/vlc_lib')
 if platform.system() != 'Windows':
     os.environ['PYTHON_VLC_MODULE_PATH'] = f'{starting_dir}/vlc_lib/plugins'
 vlc_lib_path = Path(f'{starting_dir}/vlc_lib/libvlc.{vlc_ext}')
 os.environ['PYTHON_VLC_LIB_PATH'] = str(vlc_lib_path)
+cwd = os.getcwd()
+os.chdir(f'{starting_dir}/vlc_lib')
 import vlc
-os.chdir(starting_dir)
+os.chdir(cwd)
 
 
 class AudioPlayerUnit(IntEnum):
