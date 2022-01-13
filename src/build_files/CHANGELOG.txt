@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.5
+- [Fix] Dependencies
+
 5.0.4
 - [Fix] Catch errors
 

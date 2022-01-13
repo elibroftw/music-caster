@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.4'
+VERSION = latest_version = '5.0.5'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
