@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.6
+- [Fix] Chromecast
+- [Fix] URL metadata
+
 5.0.5
 - [Fix] Dependencies
 

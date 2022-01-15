@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.5'
+VERSION = latest_version = '5.0.6'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     DEBUG = args.debug
     UNINSTALLER = 'unins000.exe'
-    WAIT_TIMEOUT = 15
+    WAIT_TIMEOUT = 5
     IS_FROZEN = getattr(sys, 'frozen', False)
     daemon_commands, tray_process_queue = mp.Queue(), mp.Queue()
     auto_updating = True
@@ -172,7 +172,6 @@ if __name__ == '__main__':
 
     # check for active instance and forward arguments or activate it
     try:
-        with suppress(FileNotFoundError): os.remove('music_caster.log')
         # if an instance is already running, open that one's GUI and exit this instance
         if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2): raise PermissionError
     except PermissionError:
@@ -246,7 +245,7 @@ if __name__ == '__main__':
     app_log.setLevel(logging.INFO)
     app_log.addHandler(log_handler)
     logging.getLogger('pychromecast.socket_client').addHandler(log_handler)
-    # logging.getLogger('werkzeug').disabled = not DEBUG
+    logging.getLogger('pychromecast').addHandler(log_handler)
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     logging.getLogger('werkzeug').addHandler(log_handler)
     app_log.info(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
@@ -305,7 +304,6 @@ if __name__ == '__main__':
     app.jinja_env.lstrip_blocks = app.jinja_env.trim_blocks = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     os.environ['FLASK_SKIP_DOTENV'] = '1'
-    stop_discovery_browser = None
 
 
     def get_line_number():
@@ -512,6 +510,8 @@ if __name__ == '__main__':
 
 
     def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
+        if file_path.startswith('http'):
+            raise ValueError('expected file not http...')
         try:
             m = get_metadata(file_path)
             return m
@@ -559,7 +559,9 @@ if __name__ == '__main__':
         if parsed_m3us is None: parsed_m3us = set()
         if isinstance(uris, str): uris = (uris,)
         for uri in uris:
-            if uri in settings['playlists']:
+            if isinstance(uri, (tuple, list, dict)):
+                yield from get_audio_uris(uri, scan_uris, ignore_m3u, parsed_m3us, ignore_dir)
+            elif uri in settings['playlists']:
                 yield from get_audio_uris(settings['playlists'][uri], scan_uris=scan_uris, ignore_m3u=ignore_m3u,
                                           parsed_m3us=parsed_m3us)
             elif os.path.isdir(uri) and not ignore_dir:
@@ -601,11 +603,12 @@ if __name__ == '__main__':
             use_temp = len(all_tracks)  # use temp if all_tracks is not empty
             all_tracks_temp = {}
             dict_to_use = all_tracks_temp if use_temp else all_tracks
-            # prioritize playist items over folders
-            for _ in get_audio_uris(settings['playlists']): pass
-            # scan folders
-            for uri in get_audio_uris(music_folders, False, True):
-                dict_to_use[uri] = get_metadata_wrapped(uri)
+            # scan playlist items first and then items in folders
+            for uri in get_audio_uris((settings['playlists'], music_folders), scan_uris=False, ignore_m3u=True):
+                if uri.startswith('http'):
+                    get_url_metadata(uri)
+                else:
+                    dict_to_use[uri] = get_metadata_wrapped(uri)
             if use_temp: all_tracks = all_tracks_temp
             main_window.metadata['update_listboxes'] = True
             all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
@@ -1046,14 +1049,15 @@ if __name__ == '__main__':
 
 
     class MyCastListener(pychromecast.discovery.AbstractCastListener):
+        found_prev_device = False
         def add_cast(self, uuid, _service):
             """Called when a new cast has been discovered."""
             global cast
             cast_info = browser.devices[uuid]
             if str(cast_info.uuid) == settings['previous_device']:
-                if cast is None or cast.uuid != uuid:
-                    cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
-                    cast.wait()
+                self.found_prev_device = True
+                cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
+                cast.wait()
             refresh_devices()
 
         def remove_cast(self, uuid, _service, cast_info):
@@ -1490,7 +1494,8 @@ if __name__ == '__main__':
             else:
                 try:
                     cast_last_checked = time.monotonic() + 20
-                    with suppress(RuntimeError): cast.wait(timeout=WAIT_TIMEOUT)
+                    app_log.info(f'cast.socket_client.is_alive(): {cast.socket_client.is_alive()}')
+                    cast.wait(timeout=WAIT_TIMEOUT)
                     cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
                     mc = cast.media_controller
                     if mc.status.player_is_playing or mc.status.player_is_paused:
@@ -1521,8 +1526,8 @@ if __name__ == '__main__':
         return False
 
 
-    def play(position=0, autoplay=True, switching_device=False):
-        global cast, track_start, track_end, track_length, track_position, music_queue, cast_last_checked, playing_url
+    def play(position=0, autoplay=True, switching_device=False, show_error=False):
+        global cast, track_start, track_end, track_length, track_position, music_queue, cast_last_checked, playing_url, browser
         uri = music_queue[0]
         while not os.path.exists(uri):
             if play_url(position=position, autoplay=autoplay, switching_device=switching_device): return
@@ -1567,9 +1572,18 @@ if __name__ == '__main__':
                     time.sleep(0.2)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (PyChromecastError, OSError, RuntimeError) as e:
-                cast = pychromecast.get_chromecast_from_cast_info(browser.devices.get(cast.uuid, None), zconf)
-                tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device'))
-                return handle_exception(e)
+                if show_error:
+                    tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device'))
+                    return handle_exception(e)
+                change_device()
+                browser.stop_discovery()
+                zconf = zeroconf.Zeroconf()
+                browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
+                browser.start_discovery()
+                end_time = time.monotonic() + WAIT_TIMEOUT
+                while cast is None and time.monotonic() < end_time:
+                    time.sleep(0.2)
+                play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
@@ -2248,8 +2262,6 @@ if __name__ == '__main__':
         # stop any active scanning
         with suppress(NameError):
             browser.stop_discovery()
-        # if stop_discovery_browser is not None:
-        #     pychromecast.discovery.stop_discovery(stop_discovery_browser)
         with suppress(PyChromecastError):
             if cast is None:
                 stop('exit program')
@@ -3188,7 +3200,7 @@ if __name__ == '__main__':
         if args.uris or args.start_playing:
             # wait until previous device has been found or cannot be found
             end_time = time.monotonic() + WAIT_TIMEOUT
-            while cast is None and time.monotonic() < WAIT_TIMEOUT and settings['previous_device']:
+            while cast is None and time.monotonic() < end_time and settings['previous_device']:
                 time.sleep(0.3)
         if args.uris:
             play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
