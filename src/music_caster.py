@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.6'
+VERSION = latest_version = '5.0.7'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -1906,7 +1906,7 @@ if __name__ == '__main__':
                 if settings['repeat']: change_settings('repeat', False)
                 for _ in range(times):
                     if music_queue: done_queue.append(music_queue.popleft())
-                    if next_queue: music_queue.insert(0, next_queue.popleft())
+                    if next_queue: music_queue.appendleft(next_queue.popleft())
                     # if queue is empty but repeat is all AND there are tracks in the done_queue
                     # move tracks from done_queue to music_queue
                     if not music_queue and settings['repeat'] is False and done_queue:
@@ -1914,12 +1914,12 @@ if __name__ == '__main__':
                         done_queue.clear()
             if music_queue:
                 if settings['smart_queue'] and from_timeout:
-                    # in the rare case all tracks are skippable, avoid infinite loop
+                    # in the rare case all tracks will be skipped, avoid infinite loop
                     max_skips = len(music_queue) + len(done_queue) + len(next_queue)
                     # auto skip tracks that have been skipped a lot previously
                     while music_queue and settings['skips'].get(music_queue[0], 0) > 5 and max_skips > 0:
                         done_queue.append(music_queue.popleft())
-                        if next_queue: music_queue.insert(0, next_queue.popleft())
+                        if next_queue: music_queue.appendleft(next_queue.popleft())
                         # if queue is empty but repeat is all, move tracks from done_queue to music_queue
                         if not music_queue and settings['repeat'] is False:
                             music_queue.extend(done_queue)
@@ -1949,7 +1949,10 @@ if __name__ == '__main__':
                 for _ in range(times):
                     if settings['repeat']: change_settings('repeat', False)
                     track = done_queue.pop()
-                    music_queue.insert(0, track)
+                    if next_queue:
+                        next_queue.appendleft(track)
+                    else:
+                        music_queue.appendleft(track)
             with suppress(IndexError):
                 settings['skips'].pop(music_queue[0], None)  # reset skip counter
                 play()
@@ -2463,7 +2466,7 @@ if __name__ == '__main__':
                 if index_to_move < dq_len:
                     track = done_queue[index_to_move]
                     del done_queue[index_to_move]
-                    if settings['reversed_play_next']: next_queue.insert(0, track)
+                    if settings['reversed_play_next']: next_queue.appendleft(track)
                     else: next_queue.append(track)
                     if i == len(main_values['queue']):  # update gui after the last swap
                         values = create_track_list()
@@ -2473,7 +2476,7 @@ if __name__ == '__main__':
                 elif index_to_move > dq_len + nq_len:
                     track = music_queue[index_to_move - dq_len - nq_len]
                     del music_queue[index_to_move - dq_len - nq_len]
-                    if settings['reversed_play_next']: next_queue.insert(0, track)
+                    if settings['reversed_play_next']: next_queue.appendleft(track)
                     else: next_queue.append(track)
                     if i == len(main_values['queue']):  # update gui after the last swap
                         values = create_track_list()
@@ -2524,7 +2527,7 @@ if __name__ == '__main__':
                     new_i = index_to_move + 1
                     if index_to_move == dq_len - 1:  # move index -1 to 1
                         if next_queue:
-                            next_queue.insert(0, done_queue.pop())
+                            next_queue.appendleft(done_queue.pop())
                         else:
                             music_queue.insert(1, done_queue.pop())
                     elif index_to_move < dq_len:  # move within dq
@@ -2558,7 +2561,7 @@ if __name__ == '__main__':
                     with suppress(IndexError):
                         # remove the "0. XXX" track that could be playing right now
                         music_queue.popleft()
-                        if next_queue: music_queue.insert(0, next_queue.popleft())
+                        if next_queue: music_queue.appendleft(next_queue.popleft())
                         # if queue is empty but repeat is all AND there are tracks in the done_queue
                         if not music_queue and settings['repeat'] is False and done_queue:
                             music_queue.extend(done_queue)
