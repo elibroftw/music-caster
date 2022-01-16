@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.8'
+VERSION = latest_version = '5.0.9'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -2103,6 +2103,8 @@ if __name__ == '__main__':
 
         main_window.hidden_master_root.report_callback_exception = report_callback_exception
 
+        main_window.TKroot.tk.call('package', 'require', 'tkdnd')
+
         if not settings['mini_mode']:
             main_window['url_input'].bind('<<Cut>>', '_cut')
             main_window['url_input'].bind('<<Copy>>', '_copy')
@@ -2120,7 +2122,6 @@ if __name__ == '__main__':
 
             try:
                 # drag and drop callbacks
-                main_window.TKroot.tk.call('package', 'require', 'tkdnd')
                 tk_lb = main_window['queue'].TKListbox
                 drop_target_register(tk_lb, DND_ALL)
                 dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
@@ -2136,8 +2137,6 @@ if __name__ == '__main__':
                 tk_lb = main_window['music_folders'].TKListbox
                 drop_target_register(tk_lb, DND_FILES)
                 dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
-            except tkinter.TclError as e:
-                handle_exception(e)
             except NameError:
                 # https://github.com/rdbende/tkinterDnD
                 print('TODO: DND Not Implemented')
@@ -2146,8 +2145,6 @@ if __name__ == '__main__':
                 root = main_window.TKroot
                 drop_target_register(root, DND_ALL)
                 dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
-            except tkinter.TclError as e:
-                handle_exception(e)
             except NameError:
                 print('TODO: DND Not Implemented')
 

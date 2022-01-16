@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.9
+- [Fix] TCLError Mini-mode
+
 5.0.8
 - [Fix] Temp TCLError fix
 
