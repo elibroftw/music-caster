@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.8
+- [Fix] Temp TCLError fix
+
 5.0.7
 - [Fix] Prev track with next queue
 

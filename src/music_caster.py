@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.7'
+VERSION = latest_version = '5.0.8'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -2118,7 +2118,7 @@ if __name__ == '__main__':
                               'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 main_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
 
-            if platform.system() == 'Windows':
+            try:
                 # drag and drop callbacks
                 main_window.TKroot.tk.call('package', 'require', 'tkdnd')
                 tk_lb = main_window['queue'].TKListbox
@@ -2136,7 +2136,9 @@ if __name__ == '__main__':
                 tk_lb = main_window['music_folders'].TKListbox
                 drop_target_register(tk_lb, DND_FILES)
                 dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
-            else:
+            except tkinter.TclError as e:
+                handle_exception(e)
+            except NameError:
                 # https://github.com/rdbende/tkinterDnD
                 print('TODO: DND Not Implemented')
         else:
@@ -2144,6 +2146,8 @@ if __name__ == '__main__':
                 root = main_window.TKroot
                 drop_target_register(root, DND_ALL)
                 dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
+            except tkinter.TclError as e:
+                handle_exception(e)
             except NameError:
                 print('TODO: DND Not Implemented')
 
