@@ -185,7 +185,6 @@ if __name__ == '__main__':
     tray_process.start()
 
     import time
-    from contextlib import suppress
     from collections import defaultdict, deque
     from collections.abc import Iterable
     from helpers import *  # 1.36s  OR 0.264
@@ -452,7 +451,7 @@ if __name__ == '__main__':
 
     def handle_exception(e, restart_program=False):
         current_time = str(datetime.now())
-        trace_back_msg = traceback.format_exc()
+        trace_back_msg = traceback.format_exc().replace('\\', '/')
         exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
         playing_uri = 'N/A'
         if music_queue:
@@ -462,17 +461,17 @@ if __name__ == '__main__':
                 playing_uri = 'system audio'
             elif playing_status.busy():
                 playing_uri = music_queue[0]
-
         try:
             with open('music_caster.log') as f:
-                log_lines = f.read().splitlines()[-5:]  # get last 5 lines of the log
+                log_lines = f.read().splitlines(keepends=False)[-5:]  # get last 5 lines of the log
         except FileNotFoundError:
             log_lines = []
-        payload = {'VERSION': VERSION, 'EXCEPTION TYPE': exc_type.__name__, 'LINE': exc_tb.tb_lineno,
-                   'PORTABLE': not os.path.exists(UNINSTALLER), 'CWD': os.getcwd(),
-                   'TRACEBACK': trace_back_msg.replace('\\', '/'), 'MAC': hashlib.md5(get_mac().encode()).hexdigest(),
-                   'FATAL': restart_program, 'LOG': log_lines, 'DEVICE': 'cast' if cast is not None else 'local',
-                   'OS': platform.platform(), 'TIME': current_time, 'MQ[0]': playing_uri, 'PLAYING_STATUS': str(playing_status)}
+        device = 'local' if cast is None else 'cast'
+        payload = {'VERSION': VERSION, 'FATAL': restart_program, 'EXCEPTION TYPE': exc_type.__name__,
+                   'LINE': exc_tb.tb_lineno, 'TRACEBACK': trace_back_msg, 'LOG': log_lines,
+                   'MQ[0]': playing_uri, 'PLAYING_STATUS': str(playing_status), 'DEVICE': device,
+                   'CWD': os.getcwd(), 'PORTABLE': not os.path.exists(UNINSTALLER),
+                   'MAC': hashlib.md5(get_mac().encode()).hexdigest(), 'OS': platform.platform(), 'TIME': current_time}
         if IS_FROZEN:
             with suppress(requests.RequestException):
                 requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
@@ -774,7 +773,7 @@ if __name__ == '__main__':
                 stream_url = f'/file?path={file_path}'
             else:
                 stream_url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
-        for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
+        for cast_info in sorted(cast_browser.devices.values(), key=cast_info_sorter):
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         try:
             return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled, version=VERSION,
@@ -891,11 +890,11 @@ if __name__ == '__main__':
         friendly = 'friendly' in request.values
         if not friendly:
             devices = {'0': 'Local Device'}
-            for _uuid, cast_info in browser.devices.items():
+            for _uuid, cast_info in cast_browser.devices.items():
                 devices[str(_uuid)] = cast_info.friendly_name
         else:
             devices = ['Local Device::0']
-            for cast_info in sorted(browser.devices.values(), key=cast_info_sorter):
+            for cast_info in sorted(cast_browser.devices.values(), key=cast_info_sorter):
                 devices.append(f'{cast_info.friendly_name}::{cast_info.uuid}')
         return jsonify(devices)
 
@@ -1034,7 +1033,7 @@ if __name__ == '__main__':
     def refresh_devices():
         device_names.clear()
         # sort CastInfos objects
-        lo_cis = sorted(browser.devices.values(), key=cast_info_sorter)
+        lo_cis = sorted(cast_browser.devices.values(), key=cast_info_sorter)
         for i, ci in enumerate(chain(['Local device'], lo_cis)):
             ci: CastInfo | str
             device_name = ci if i == 0 else ci.friendly_name
@@ -1050,10 +1049,11 @@ if __name__ == '__main__':
 
     class MyCastListener(pychromecast.discovery.AbstractCastListener):
         found_prev_device = False
+
         def add_cast(self, uuid, _service):
             """Called when a new cast has been discovered."""
             global cast
-            cast_info = browser.devices[uuid]
+            cast_info = cast_browser.devices[uuid]
             if str(cast_info.uuid) == settings['previous_device']:
                 self.found_prev_device = True
                 cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
@@ -1088,7 +1088,7 @@ if __name__ == '__main__':
                 if cast.uuid == new_uuid:
                     # do not change device if same cast is selected
                     return False
-            new_device = pychromecast.get_chromecast_from_cast_info(browser.devices.get(new_uuid, None), zconf)
+            new_device = pychromecast.get_chromecast_from_cast_info(cast_browser.devices.get(new_uuid, None), zconf)
         except ValueError:
             new_device = None
         if cast == new_device:
@@ -1527,7 +1527,8 @@ if __name__ == '__main__':
 
 
     def play(position=0, autoplay=True, switching_device=False, show_error=False):
-        global cast, track_start, track_end, track_length, track_position, music_queue, cast_last_checked, playing_url, browser
+        global cast, track_start, track_end, track_length, track_position, music_queue,\
+            cast_last_checked, playing_url, cast_browser, zconf
         uri = music_queue[0]
         while not os.path.exists(uri):
             if play_url(position=position, autoplay=autoplay, switching_device=switching_device): return
@@ -1576,12 +1577,12 @@ if __name__ == '__main__':
                     tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device'))
                     return handle_exception(e)
                 change_device()
-                browser.stop_discovery()
+                cast_browser.stop_discovery()
                 zconf = zeroconf.Zeroconf()
-                browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
-                browser.start_discovery()
-                end_time = time.monotonic() + WAIT_TIMEOUT
-                while cast is None and time.monotonic() < end_time:
+                cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
+                cast_browser.start_discovery()
+                wait_until = time.monotonic() + WAIT_TIMEOUT
+                while cast is None and time.monotonic() < wait_until:
                     time.sleep(0.2)
                 play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
@@ -2264,7 +2265,7 @@ if __name__ == '__main__':
         close_tray()
         # stop any active scanning
         with suppress(NameError):
-            browser.stop_discovery()
+            cast_browser.stop_discovery()
         with suppress(PyChromecastError):
             if cast is None:
                 stop('exit program')
@@ -3027,7 +3028,7 @@ if __name__ == '__main__':
             if setting['run_on_startup'], else removes existing shortcut """
         if platform.system() == 'Windows':
             Thread(target=create_shortcut_windows, name='CreateShortcut',
-                   args=(is_debug(), IS_FROZEN, settings['run_on_startup'], working_dir )).start()
+                   args=(is_debug(), IS_FROZEN, settings['run_on_startup'], working_dir)).start()
         else:
             print('TODO: create_shortcut not implemented for', platform.system())
 
@@ -3197,8 +3198,8 @@ if __name__ == '__main__':
         cast_last_checked = time.monotonic()
         Thread(target=background_thread, daemon=True, name='BackgroundTasks').start()
         zconf = zeroconf.Zeroconf()
-        browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
-        browser.start_discovery()
+        cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
+        cast_browser.start_discovery()
         audio_player = AudioPlayer()
         if args.uris or args.start_playing:
             # wait until previous device has been found or cannot be found
@@ -3289,8 +3290,8 @@ if __name__ == '__main__':
                 except UnsupportedNamespace:  # known error
                     # File "pychromecast/controllers/media.py", line 359, in update_status
                     # File "pychromecast/controllers/init.py", line 91, in send_message
-                    # pychromecast.error.UnsupportedNamespace: Namespace urn:x-cast:com.google.cast.media is not supported
-                    #  by running application.
+                    # pychromecast.error.UnsupportedNamespace:
+                    #  Namespace urn:x-cast:com.google.cast.media is not supported by running application.
                     pass
                 except PyChromecastError as exception:
                     handle_exception(exception)
