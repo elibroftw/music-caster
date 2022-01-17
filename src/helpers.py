@@ -6,7 +6,7 @@ from queue import LifoQueue, Empty
 from contextlib import suppress
 import ctypes
 import ctypes.wintypes
-import datetime
+from datetime import datetime
 from functools import wraps, lru_cache
 import glob
 import io
@@ -1657,7 +1657,7 @@ def create_timer(settings, timer):
     do_nothing = not (shut_down or hibernate or sleep)
     # if timer is valid
     if time.time() < timer:
-        timer_date = datetime.datetime.fromtimestamp(timer)
+        timer_date = datetime.fromtimestamp(timer)
         timer_date = timer_date.strftime('%#I:%M %p')
         timer_text = gt('Timer set for $TIME').replace('$TIME', timer_date)
     else:
