@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.10
+- [Fix] Performance
+
 5.0.9
 - [Fix] TCLError Mini-mode
 

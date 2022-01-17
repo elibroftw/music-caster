@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.9'
+VERSION = latest_version = '5.0.10'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -18,6 +18,7 @@ from PIL import Image, UnidentifiedImageError
 from subprocess import Popen, PIPE, DEVNULL
 # noinspection PyUnresolvedReferences
 import re
+
 
 
 def get_running_processes(look_for=''):
@@ -45,7 +46,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     if platform.system() == 'Linux':
         os.environ['PYSTRAY_BACKEND'] = 'appindicator'
     import pystray
-    import time
     filled_icon = Image.open(io.BytesIO(b64decode(FILLED_ICON)))
     unfilled_icon = Image.open(io.BytesIO(b64decode(UNFILLED_ICON)))
 
@@ -119,8 +119,7 @@ if __name__ == '__main__':
     import sys
     from inspect import currentframe
     from urllib.request import pathname2url
-    # noinspection PyUnresolvedReferences
-    import requests
+    import requests  # 0.2 seconds
     parser = argparse.ArgumentParser(description='Music Caster')
     parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
     parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
@@ -155,28 +154,26 @@ if __name__ == '__main__':
     daemon_commands, tray_process_queue = mp.Queue(), mp.Queue()
     auto_updating = True
 
+
     def activate_instance(port=2001):
         r, local_ipv6, local_ipv4 = '', 'http://[::1]:', 'http://127.0.0.1:'
-        while port <= 2004 and r == '':
+        while port <= 2002 and r == '':
             for localhost in (local_ipv4, local_ipv6):
                 with suppress(requests.RequestException):
                     if args.exit:  # --exit argument
-                        r = requests.post(f'{localhost}{port}/exit/').text
+                        r = requests.post(f'{localhost}{port}/exit/', timeout=0.1).text
                     elif args.uris:  # MC was supplied at least one path to a folder/file
                         data = {'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext}
-                        r = requests.post(f'{localhost}{port}/play/', data=data).text
+                        r = requests.post(f'{localhost}{port}/play/', data=data, timeout=0.1).text
                     else:  # neither --exit nor paths was supplied
-                        r = requests.post(f'{localhost}{port}?activate').text
+                        r = requests.post(f'{localhost}{port}?activate', timeout=0.1).text
                 if r: break
             port += 1
 
     # check for active instance and forward arguments or activate it
-    try:
+    if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2):
         # if an instance is already running, open that one's GUI and exit this instance
-        if is_already_running(threshold=1 if os.path.exists(UNINSTALLER) else 2): raise PermissionError
-    except PermissionError:
-        # if music_caster.log can't be opened, its being used by an existing Music Caster process
-        if IS_FROZEN and not DEBUG:
+        if not DEBUG:
             activate_instance()
             sys.exit()
 
@@ -184,20 +181,16 @@ if __name__ == '__main__':
     tray_process = mp.Process(target=system_tray, args=(daemon_commands, tray_process_queue), daemon=True)
     tray_process.start()
 
-    import time
     from collections import defaultdict, deque
     from collections.abc import Iterable
-    from helpers import *  # 1.36s  OR 0.264
-    from audio_player import AudioPlayer
-    from copy import deepcopy
-    from datetime import datetime, timedelta
-    import errno
     # noinspection PyUnresolvedReferences
     import encodings.idna  # DO NOT REMOVE
     from functools import cmp_to_key
     import glob
     import hashlib
-    import ujson as json
+    from copy import deepcopy
+    from datetime import datetime, timedelta
+    import errno
     import logging
     from logging.handlers import RotatingFileHandler
     from math import log10
@@ -206,13 +199,20 @@ if __name__ == '__main__':
     from random import shuffle
     from shutil import copyfileobj, rmtree
     from queue import Queue
+    import tkinter
     import traceback
     import urllib.parse
     from urllib.parse import urlsplit
     from uuid import UUID
     import webbrowser
     import zipfile
-    # 3rd party imports
+
+    # modules take 0.17 seconds to import
+    from helpers import *
+    from audio_player import AudioPlayer
+
+    # 3rd party imports take 0.22 seconds to import
+    # flask takes 0.14 seconds
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
     from jinja2.exceptions import TemplateNotFound
     from werkzeug.exceptions import InternalServerError
@@ -227,10 +227,7 @@ if __name__ == '__main__':
     except ImportError:
         # what about tkinterdnd2
         import tkinterDnD
-    import tkinter
-    from urllib3.exceptions import ProtocolError
     import zeroconf
-
     TIME_TO_IMPORT = time.monotonic() - start_time
     working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     os.chdir(working_dir)
@@ -474,7 +471,7 @@ if __name__ == '__main__':
                    'MAC': hashlib.md5(get_mac().encode()).hexdigest(), 'OS': platform.platform(), 'TIME': current_time}
         if IS_FROZEN:
             with suppress(requests.RequestException):
-                requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload)
+                requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload, timeout=0.5)
         try:
             with open('error.log', 'r') as _f:
                 content = _f.read()
@@ -710,7 +707,6 @@ if __name__ == '__main__':
                 file.save(Path.home() / 'Downloads' / file.filename)
         return redirect('/#more')
 
-
     @app.route('/', methods=['GET', 'POST'])
     def web_index():  # web GUI
         if request.values:
@@ -804,6 +800,7 @@ if __name__ == '__main__':
         queue_only = request.values.get('queue', 'false').lower() == 'true' or merge_plays
         play_next = request.values.get('play_next', 'false').lower() == 'true'
         # < 0.5 because that's how fast Windows would open each instance of MC
+        # TODO: keep track of last_plays that fit < 0.5 to shuffle better
         last_play_command = time.time()
         if 'uris' in request.values:
             play_uris(request.values.getlist('uris'), queue_uris=queue_only,
@@ -3077,7 +3074,7 @@ if __name__ == '__main__':
                         except OSError as e:
                             if e.errno == errno.ENOSPC:
                                 tray_notify(gt('ERROR') + ': ' + gt('No space left on device to auto-update'))
-                        except (ConnectionAbortedError, ProtocolError, requests.RequestException):
+                        except Exception:
                             tray_notify('update_available', context=latest_ver)
                     elif os.path.exists('Updater.exe'):
                         # portable installation
