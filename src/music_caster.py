@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.10'
+VERSION = latest_version = '5.0.11'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -2942,7 +2942,7 @@ if __name__ == '__main__':
                 if os.path.splitext(selected_file)[1][1:].lower() in AUDIO_EXTS:
                     mime, artwork = get_album_art(selected_file, settings['folder_cover_override'])
                 else:
-                    img = Image.open(selected_file)
+                    img = Image.open(selected_file).convert('RGB')
                     data = io.BytesIO()
                     img.save(data, format='jpeg', quality=95)
                     mime, artwork = 'image/jpeg', b64encode(data.getvalue()).decode()
