@@ -461,9 +461,9 @@ def set_metadata(file_path: str, metadata: dict):
             for k in tuple(audio.keys()):
                 if 'APIC:' in k: audio.pop(k)
     elif isinstance(audio, MP4):
-        if title: audio['@nam'] = [title]
-        if artists: audio['@ART'] = artists
-        if album: audio['@alb'] = [album]
+        if title: audio['©nam'] = [title]
+        if artists: audio['©ART'] = artists
+        if album: audio['©alb'] = [album]
         audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
         audio['rtng'] = [int(rating)]
         if metadata['art'] is not None:
@@ -516,6 +516,9 @@ def set_metadata(file_path: str, metadata: dict):
 
 
 def get_metadata(file_path: str):
+    """
+    TODO: do not depend on file endings
+    """
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
     try:
@@ -524,9 +527,11 @@ def get_metadata(file_path: str):
             _audio = mutagen.File(file_path)
             audio['rating'] = _audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', ['0']))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
-            audio = dict(EasyMP4(file_path))
-            _audio = mutagen.File(file_path)
-            audio['rating'] = _audio.get('rtng', ['0'])
+            audio = dict(mutagen.File(file_path))
+            audio['rating'] = audio.get('rtng', [0])
+            for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
+                if tag in audio:
+                    audio[normalized] = audio.pop(tag)
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
@@ -536,6 +541,7 @@ def get_metadata(file_path: str):
             if file_path.endswith('.wma'):
                 audio = {k: [audio[k][0].value] for k in audio}
     except TypeError as e:
+        logging.getLogger('music_caster').error(repr(e))
         logging.getLogger('music_caster').info(f'Could not open {file_path} as audio file')
         raise InvalidAudioFile(f'Is {file_path} a valid audio file?') from e
     except (ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
