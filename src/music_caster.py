@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.0.12'
+VERSION = latest_version = '5.0.13'
 UPDATE_MESSAGE = """
 [New] 64-bit only
 [MSG] Language translators wanted
@@ -1163,7 +1163,12 @@ if __name__ == '__main__':
         main_window.metadata['update_listboxes'] = True
 
 
-    def format_uri(uri: str, use_basename=False):
+    def format_pl_lb(tracks):
+        """Return usable list for playlist listbox"""
+        return [f"{i + 1}. {format_uri(track, _for='pl')}" for i, track in enumerate(tracks)]
+
+
+    def format_uri(uri: str, use_basename=False, _for=''):
         try:
             if use_basename: raise TypeError
             metadata = get_uri_metadata(uri, read_file=False)
@@ -1175,15 +1180,23 @@ if __name__ == '__main__':
                 formatted = formatted.replace('&trck', number)
             elif settings['show_track_number'] and number:
                 formatted = f'[{number}] {formatted}'
+            if not _for:
+                return formatted
+            # at > ?, we need to cut characters
+            if (cut_out := len(formatted) - {'queue': 70, 'pl': 50}[_for]) > 0:
+                cut_out = (cut_out + 3) // 2  # for 3 dots
+                middle = len(formatted) // 2
+                ro = middle + cut_out
+                lo = middle - cut_out
+                formatted = formatted[:lo] + '...' + formatted[ro:]
             return formatted
         except (TypeError, KeyError):
             if uri.startswith('http'): return uri
-            base = os.path.basename(uri)
-            return os.path.splitext(base)[0]
+            return os.path.splitext(os.path.basename(uri))[0]
 
 
     def create_track_list():
-        """:returns the formatted tracks queue, and the selected value (currently playing)"""
+        """Return usable list for queue listbox """
         try:
             max_digits = int(log10(max(len(music_queue) - 1 + len(next_queue), len(done_queue) * 10))) + 2
         except ValueError:
@@ -1194,7 +1207,7 @@ if __name__ == '__main__':
         try:
             for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
                 for uri in items:
-                    formatted_track = format_uri(uri)
+                    formatted_track = format_uri(uri, _for='queue')
                     if settings['show_queue_index']:
                         if i < 0: pre = f'\u2012{abs(i)} '.center(max_digits, '\u2000')
                         else: pre = f'{i} '.center(max_digits, '\u2000')
@@ -2090,7 +2103,7 @@ if __name__ == '__main__':
             pl_tracks = main_window.metadata['pl_tracks']
             pl_tracks.extend(get_audio_uris(file_paths))
             settings['last_folder'] = os.path.dirname(file_paths[-1])
-            new_values = [f'{n + 1}. {format_uri(path)}' for n, path in enumerate(pl_tracks)]
+            new_values = format_pl_lb(pl_tracks)
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
@@ -2205,8 +2218,7 @@ if __name__ == '__main__':
                 Shared.using_tcl_theme = False
             if not settings['mini_mode']:
                 main_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
-                default_pl_tracks = [f'{i + 1}. {format_uri(pl_track)}' for i, pl_track in enumerate(pl_tracks)]
-                main_window['pl_tracks'].update(values=default_pl_tracks)
+                main_window['pl_tracks'].update(values=format_pl_lb(pl_tracks))
             set_callbacks()
         elif settings['mini_mode']:
             if selected_tab:
@@ -2610,12 +2622,11 @@ if __name__ == '__main__':
             if music_queue: pl_tracks.append(music_queue[0])
             pl_tracks.extend(next_queue)
             pl_tracks.extend(islice(music_queue, 1, None))
-            new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
             main_window.metadata['pl_name'] = ''
             main_window['tab_playlists'].select()
             main_window['pl_name'].set_focus()
             main_window['pl_name'].update(value=main_window.metadata['pl_name'])
-            main_window['pl_tracks'].update(values=new_values, set_to_index=0)
+            main_window['pl_tracks'].update(values=format_pl_lb(pl_tracks), set_to_index=0)
         elif main_event in {'library', 'Play::library', 'Play Next::library', 'Queue::library', 'Locate::library'}:
             library_metadata = main_window.metadata['library']
             if library_metadata['region'] == 'heading':
@@ -2794,8 +2805,7 @@ if __name__ == '__main__':
             pl_name = main_window.metadata['pl_name'] = main_value if main_value in settings['playlists'] else ''
             pl_tracks = main_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
             main_window['pl_name'].update(value=pl_name)
-            new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
-            main_window['pl_tracks'].update(values=new_values, set_to_index=0)
+            main_window['pl_tracks'].update(values=format_pl_lb(pl_tracks), set_to_index=0)
         elif main_event in {'new_pl', 'n:78'}:
             main_window.metadata['pl_name'] = ''
             main_window.metadata['pl_tracks'] = []
@@ -2814,10 +2824,9 @@ if __name__ == '__main__':
             pl_name = main_window.metadata['pl_name'] = next(iter(settings['playlists']), '')
             main_window['playlist_combo'].update(value=pl_name, values=tuple(settings['playlists']))
             pl_tracks = main_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
-            new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
             # update playlist editor
             main_window['pl_name'].update(value=pl_name)
-            main_window['pl_tracks'].update(values=new_values, set_to_index=0)
+            main_window['pl_tracks'].update(values=format_pl_lb(pl_tracks), set_to_index=0)
             save_settings()
             refresh_tray()
         elif main_event == 'play_pl':
@@ -2859,7 +2868,7 @@ if __name__ == '__main__':
                 pl_tracks.pop(to_remove)
                 if i == len(main_values['pl_tracks']):  # update gui after the last removal
                     scroll_to_index = max(to_remove - 3, 0)
-                    new_values = [f'{j + 1}. {format_uri(path)}' for j, path in enumerate(pl_tracks)]
+                    new_values = format_pl_lb(pl_tracks)
                     main_window['pl_tracks'].update(new_values, set_to_index=to_remove, scroll_to_index=scroll_to_index)
         elif main_event == 'pl_add_tracks':
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
@@ -2871,7 +2880,7 @@ if __name__ == '__main__':
                 settings['last_folder'] = os.path.dirname(file_paths[-1])
                 main_window.TKroot.focus_force()
                 main_window.normal()
-                new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
+                new_values = format_pl_lb(pl_tracks)
                 new_i = len(new_values) - 1
                 main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
         elif main_event == 'pl_url_input':
@@ -2893,7 +2902,7 @@ if __name__ == '__main__':
                     uris_to_scan.put(link)
                     pl_tracks = main_window.metadata['pl_tracks']
                     pl_tracks.append(link)
-                    new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
+                    new_values = format_pl_lb(pl_tracks)
                     new_i = len(new_values) - 1
                     main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
                     # empty the input field
@@ -2909,7 +2918,7 @@ if __name__ == '__main__':
                     pl_tracks = main_window.metadata['pl_tracks']
                     pl_tracks.insert(new_i, pl_tracks.pop(to_move))
                     if i == len(main_values['pl_tracks']):  # update gui after the last swap
-                        new_values = [f'{j + 1}. {format_uri(path)}' for j, path in enumerate(pl_tracks)]
+                        new_values = format_pl_lb(pl_tracks)
                         main_window['pl_tracks'].update(new_values, set_to_index=new_i,
                                                         scroll_to_index=max(new_i - 3, 0))
         elif main_event == 'pl_move_down':
@@ -2920,8 +2929,7 @@ if __name__ == '__main__':
                     new_i = to_move + 1
                     pl_tracks.insert(new_i, pl_tracks.pop(to_move))
                     if i == len(main_values['pl_tracks']):  # update gui after the last swap
-                        new_values = [f'{i + 1}. {format_uri(path)}' for i, path in enumerate(pl_tracks)]
-                        main_window['pl_tracks'].update(new_values, set_to_index=new_i,
+                        main_window['pl_tracks'].update(format_pl_lb(pl_tracks), set_to_index=new_i,
                                                         scroll_to_index=max(new_i - 3, 0))
         elif main_event in {'pl_locate_selected', 'pl_tracks'}:
             for i in main_window['pl_tracks'].get_indexes(): locate_uri(uri=main_window.metadata['pl_tracks'][i])
@@ -3001,8 +3009,7 @@ if __name__ == '__main__':
             lb_tracks = create_track_list()
             main_window['queue'].update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
             pl_tracks = main_window.metadata['pl_tracks']
-            pl_formatted = [f'{i + 1}. {format_uri(pl_track)}' for i, pl_track in enumerate(pl_tracks)]
-            main_window['pl_tracks'].update(values=pl_formatted)
+            main_window['pl_tracks'].update(values=format_pl_lb(pl_tracks))
             if len(all_tracks) != len(main_window['library'].Values):
                 lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
                             index_all_tracks(False).items()]

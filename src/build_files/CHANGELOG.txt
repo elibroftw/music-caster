@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.0.13
+- [Fix] Long track names
+
 5.0.12
 - [Fix] M4A files
 
