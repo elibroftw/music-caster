@@ -1,5 +1,11 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.2
+- [Optimization] Faster startup
+- [Fix] Queue from explorer
+- [Fix] Prev track
+- [Fix] Cast updates
+
 5.1.1
 - [Fix] Override track format
 - [Fix] URL Metadata

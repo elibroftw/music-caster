@@ -48,7 +48,7 @@ from mutagen.easymp4 import EasyMP4
 import pyaudio
 import pyqrcode
 import PySimpleGUI as Sg
-from PIL import Image, ImageFile, ImageDraw, ImageFont
+from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 
@@ -662,7 +662,7 @@ def better_shuffle(seq, first=0, last=-1):
             size = last - i + 1
             j = getrandbits(size.bit_length()) % size + i
             seq[i], seq[j] = seq[j], seq[i]
-        return seq
+    return seq
 
 
 def create_qr_code():
@@ -692,7 +692,12 @@ def dz():
 @lru_cache(maxsize=2)
 def ydl(proxy=None):
     from youtube_dl import YoutubeDL  # 2 seconds!
-    return YoutubeDL() if proxy is None else YoutubeDL({'proxy': proxy})
+    opts = {
+        'quiet': True
+    }
+    if proxy is not None:
+        opts['proxy'] = proxy
+    return YoutubeDL(opts)
 
 
 def ydl_extract_info(url):
@@ -783,7 +788,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\open\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
 
     # create queue context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\queue', 0, write_access) as key:
@@ -792,7 +797,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\queue\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
 
     # create play next context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\play_next', 0, write_access) as key:
@@ -801,7 +806,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\play_next\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
 
     # set file handlers
     for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
@@ -827,19 +832,19 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play with Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
         # set "queue folder in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Queue in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
         # set "play folder next in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_next_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play next in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_next_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
     else:
         # remove commands for folders
         delete_sub_key(wr.HKEY_CURRENT_USER, play_folder_key_path)
@@ -871,10 +876,17 @@ def get_default_output_device():
     return active_device_name
 
 
-def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
+def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
-    img_data = io.BytesIO(b64decode(base64data))
-    art_img: Image = Image.open(img_data)
+
+    try:
+        img_data = io.BytesIO(b64decode(base64data))
+        art_img: Image = Image.open(img_data)
+    except UnidentifiedImageError as e:
+        if default_art is None:
+            raise OSError from e
+        img_data = io.BytesIO(b64decode(default_art))
+        art_img: Image = Image.open(img_data)
     w, h = art_img.size
     if w == h:
         # resize a square
