@@ -190,3 +190,4 @@ segundos
 localizar pista
 Cambiar a dispositivo local
 Formato de Pista:
+No se pudo obtener el audio para $URL

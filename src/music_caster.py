@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.0'
+VERSION = latest_version = '5.1.1'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1414,13 +1414,18 @@ if __name__ == '__main__':
             if url in url_metadata and isinstance(url_metadata[url], dict):
                 metadata = url_metadata[url]
                 if 'ytid' in metadata:
-                    youtube_metadata = get_url_metadata(f"https://youtu.be/{metadata['ytid']}", False)[0]
+                    youtube_metadata = get_url_metadata(f"https://youtu.be/{metadata['ytid']}", False)
                 else:
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
-                metadata = {**youtube_metadata, **metadata}
-                url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
-                metadata_list.append(metadata)
+                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
+                if youtube_metadata:
+                    youtube_metadata = youtube_metadata[0]
+                    metadata = {**youtube_metadata, **metadata}
+                    url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
+                    metadata_list.append(metadata)
+                else:
+                    error_msg = gt('ERROR') + ': ' + gt('Could not fetch audio for $URL').replace('$URL', url) + ' :('
+                    tray_notify(error_msg)
             else:
                 # get a list of spotify tracks from the track/album/playlist Spotify URL
                 try:
@@ -2072,7 +2077,8 @@ if __name__ == '__main__':
                     display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
                 main_window['metadata_art'].update(data=display_art)
             except InvalidAudioFile:
-                main_window['metadata_msg'].update(value=gt('ERROR: Invalid audio file selected'), text_color='red')
+                error = gt('ERROR') + ': ' + gt('Invalid audio file selected')
+                main_window['metadata_msg'].update(value=error, text_color='red')
                 main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
 
 
@@ -2372,6 +2378,10 @@ if __name__ == '__main__':
                 main_event = 'progress_bar'
                 main_window.refresh()
         # change/select tabs
+        if main_event != '__TIMEOUT__':
+            el = main_window.find_element_with_focus()
+            if el is not None and el.Key in {'track_format', 'sys_audio_delay'}:
+                main_event, main_value = el.Key, main_values.get(el.Key)
         if main_event == '__TIMEOUT__': pass  # avoids checking multiple if statements
         elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
             main_window['tab_queue'].select()
@@ -3009,7 +3019,8 @@ if __name__ == '__main__':
                     main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
                 except Exception as e:  # e.g. ValueError track number incorrectly entered
                     print(e)
-                    main_window['metadata_msg'].update(value=f'ERROR: {e}', text_color='red')
+                    error = gt('ERROR') + ': ' + repr(e)
+                    main_window['metadata_msg'].update(value=error, text_color='red')
                 main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
                 main_window['title'].update(' ' + main_window['title'].DisplayText + ' ')  # try updating now playing
         # other GUI updates

@@ -1609,7 +1609,8 @@ def create_settings(version, settings):
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
                   enable_events=True, tooltip=gt('language'))],
         [Sg.Text(gt('System Audio Delay:')),
-         Sg.Input(settings['sys_audio_delay'], size=(10, 1), key='sys_audio_delay', tooltip=gt('seconds'), border_width=1, pad=(70, 1))]
+         Sg.Input(settings['sys_audio_delay'], size=(10, 1), key='sys_audio_delay', tooltip=gt('seconds'),
+                  border_width=1, pad=(70, 1), enable_events=True)]
     ], background_color=bg)
     queuing_tab = Sg.Tab(gt('Queueing'), [
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
@@ -1627,9 +1628,9 @@ def create_settings(version, settings):
          create_checkbox(gt('Mini mode on top'), 'mini_on_top', settings, True)],
         [create_checkbox(gt('Use cover.* for album art'), 'folder_cover_override', settings),
          create_checkbox(gt('Show index in queue'), 'show_queue_index', settings, True)],
-        [Sg.Text(gt('Track Format:')),
-         Sg.Input(settings['track_format'], size=(30, 1), key='track_format',
-                  border_width=1, pad=(70, 1), tooltip='{&alb, &trck, &artist, &title}')]
+        [Sg.Text(gt('Track Format:'), tooltip='&alb, &trck, &artist, &title'),
+         Sg.Input(settings['track_format'], size=(30, 1), key='track_format', enable_events=True,
+                  border_width=1, pad=(70, 1), tooltip='&alb, &trck, &artist, &title')]
     ], background_color=bg)
     settings_tab_group = Sg.TabGroup([[general_tab, queuing_tab, ui_tab]], title_color=fg,
                                      border_width=0, selected_background_color=accent_color, font=FONT_TAB,

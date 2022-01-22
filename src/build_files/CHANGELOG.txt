@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.1
+- [Fix] Override track format
+- [Fix] URL Metadata
+
 5.1.0
 - [UI] Override track format
 - [Fix] Dialog blocking
