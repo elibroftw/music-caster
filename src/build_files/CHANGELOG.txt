@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.0
+- [UI] Override track format
+- [Fix] Dialog blocking
+
 5.0.13
 - [Fix] Long track names
 

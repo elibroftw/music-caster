@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.0.13'
+VERSION = latest_version = '5.1.0'
 UPDATE_MESSAGE = """
-[New] 64-bit only
+[New] Override track format
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
@@ -200,6 +200,7 @@ if __name__ == '__main__':
     from shutil import copyfileobj, rmtree
     from queue import Queue
     import tkinter
+    from tkinter import filedialog as fd
     import traceback
     import urllib.parse
     from urllib.parse import urlsplit
@@ -288,7 +289,7 @@ if __name__ == '__main__':
         'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
         'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False,
         'scan_folders': True, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
-        'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'delay': 0,
+        'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'sys_audio_delay': 0,
         'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
         'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
@@ -1013,7 +1014,7 @@ if __name__ == '__main__':
         if get_thumb:
             return send_file(io.BytesIO(base64.b64decode(custom_art('SYS'))), download_name=f'thumbnail.png',
                              mimetype='image/png', as_attachment=True, max_age=360000, conditional=True)
-        return Response(sar.get_audio_data(settings['delay']))
+        return Response(sar.get_audio_data(settings['sys_audio_delay']))
 
 
     @cmp_to_key
@@ -1678,39 +1679,46 @@ if __name__ == '__main__':
             Thread(target=play_all, kwargs={'queue_only': True}, daemon=True, name='PlayAll').start()
 
 
+    def open_dialog(title, for_dir=False, filetypes=None, multiple=True):
+        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+        _root = tkinter.Tk()
+        _root.withdraw()
+        _root.iconbitmap(WINDOW_ICON)
+        if for_dir:
+            paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
+        else:
+            paths = fd.askopenfilename(title=title, parent=_root, initialdir=initial_folder, filetypes=filetypes, multiple=multiple)
+        _root.destroy()
+        return paths
+
+
     def file_action(action='pf'):
         """
         action = {'pf': 'Play File(s)', 'pfn': 'Play File(s) Next', 'qf': 'Queue File(s)'}
         :param action: one of {'pf': 'Play File(s)', 'pfn': 'Play File(s) Next', 'qf': 'Queue File(s)'}
         :return:
         """
-        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
-        # noinspection PyTypeChecker
-        paths: tuple = Sg.popup_get_file(gt('Select Music File(s)'), no_window=True, initial_folder=initial_folder,
-                                         multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
+        paths = open_dialog(gt('Select Music File(s)'), filetypes=AUDIO_FILE_TYPES, multiple=True)
         if paths:
             settings['last_folder'] = os.path.dirname(paths[-1])
             app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
             if action in {gt('Play File(s)'), 'pf'}:
                 if settings['queue_library']:
-                    play_all(starting_files=paths)
-                else:
-                    play_uris(paths)
-            elif action in {gt('Queue File(s)'), 'qf'}:
-                play_uris(paths, queue_uris=True)
-            elif action in {gt('Play File(s) Next'), 'pfn'}:
-                play_uris(paths, play_next=True)
-            else: raise ValueError(f'file_action expected something else. Got {action}')
-        else: main_window.metadata['main_last_event'] = 'file_action'
+                    return play_all(starting_files=paths)
+                return play_uris(paths)
+            if action in {gt('Queue File(s)'), 'qf'}:
+                return play_uris(paths, queue_uris=True)
+            if action in {gt('Play File(s) Next'), 'pfn'}:
+                return play_uris(paths, play_next=True)
+            raise ValueError(f'file_action expected something else. Got {action}')
+        main_window.metadata['main_last_event'] = 'file_action'
 
 
     def folder_action(action='pf'):
         """
         :param action: one of {'pf': 'Play Folder', 'qf': 'Queue Folder', 'pfn': 'Play Folder Next'}
         """
-        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
-        folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
-                                          icon=WINDOW_ICON)
+        folder_path = open_dialog(gt('Select Folder'), for_dir=True)
         if folder_path:
             main_window.metadata['main_last_event'] = Sg.TIMEOUT_KEY
             settings['last_folder'] = folder_path
@@ -2414,9 +2422,11 @@ if __name__ == '__main__':
             next_track()
         elif main_event == 'prev' and playing_status.busy():
             prev_track()
-        elif main_event == 'delay':
+        elif main_event == 'sys_audio_delay':
             with suppress(ValueError):
-                change_settings('delay', int(main_value))
+                change_settings('sys_audio_delay', int(main_value))
+        elif main_event == 'track_format':
+            change_settings('track_format', main_value)
         elif main_event == 'shuffle':
             change_settings('shuffle', not settings['shuffle'])
         elif main_event == 'repeat': cycle_repeat()

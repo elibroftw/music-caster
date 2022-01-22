@@ -189,3 +189,4 @@ Ritardo audio di sistema:
 secondi
 localizzare traccia
 Passaggio al dispositivo locale
+Formato Traccia:
