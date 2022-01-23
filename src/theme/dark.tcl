@@ -11,9 +11,9 @@ namespace eval ttk::theme::sun-valley-dark {
     ttk::style theme create sun-valley-dark -parent clam -settings {
         proc load_images {imgdir} {
             variable images
-            foreach file [glob -directory $imgdir *.gif] {
+            foreach file [glob -directory $imgdir *.png] {
                 set images([file tail [file rootname $file]]) \
-                [image create photo -file $file -format gif]
+                [image create photo -file $file -format png]
             }
         }
 
@@ -166,15 +166,6 @@ namespace eval ttk::theme::sun-valley-dark {
             Notebook.border -children {
                 TNotebook.Tab -expand 1
                 Notebook.client -sticky nsew
-            }
-        }
-
-        ttk::style layout TNotebook.Tab {
-            Notebook.tab -expand 1 -children {
-                Notebook.padding -expand 1 -sticky nsew -children {
-                    Notebook.image -side left -sticky w
-                    Notebook.text -side right -expand 1
-                }
             }
         }
 
