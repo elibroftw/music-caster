@@ -1382,9 +1382,6 @@ if __name__ == '__main__':
             track_start = time.monotonic() - track_position
             after_play(title, artist, True, switching_device)
             return True
-        except NotConnected as e:
-            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_line_number()))
-            handle_exception(e)
         except OSError:
             tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
         except PyChromecastError as e:
