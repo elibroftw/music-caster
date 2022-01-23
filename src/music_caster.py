@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.5'
+VERSION = latest_version = '5.1.6'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1512,16 +1512,18 @@ if __name__ == '__main__':
                 if spotify_tracks:
                     metadata = spotify_tracks[0]
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
-                    metadata = {**youtube_metadata, **metadata}
-                    url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
-                    # if url is a spotify track, set its metadata
-                    if len(spotify_tracks) == 1: url_metadata[url] = metadata
-                    metadata_list.append(metadata)
-                    for spotify_track in islice(spotify_tracks, 1, None):
-                        url_metadata[spotify_track['src']] = spotify_track
-                        uris_to_scan.put(spotify_track['src'])
-                        metadata_list.append(spotify_track)
+                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
+                    if youtube_metadata:
+                        youtube_metadata = youtube_metadata[0]
+                        metadata = {**youtube_metadata, **metadata}
+                        url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
+                        # if url is a spotify track, set its metadata
+                        if len(spotify_tracks) == 1: url_metadata[url] = metadata
+                        metadata_list.append(metadata)
+                        for spotify_track in islice(spotify_tracks, 1, None):
+                            url_metadata[spotify_track['src']] = spotify_track
+                            uris_to_scan.put(spotify_track['src'])
+                            metadata_list.append(spotify_track)
         elif url.startswith('https://deezer.page.link') or url.startswith('https://www.deezer.com'):
             try:
                 for metadata in get_deezer_tracks(url):
