@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.2'
+VERSION = latest_version = '5.1.3'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -2101,9 +2101,11 @@ if __name__ == '__main__':
                     all_tracks[uri] = get_metadata_wrapped(uri)
                 uris_to_scan.task_done()
                 scanned += 1
-                if scanned % 50 == 0:
+                if scanned >= 50:
+                    scanned = 0
                     main_window.metadata['update_listboxes'] = True
-            main_window.metadata['update_listboxes'] = True
+            if scanned:
+                main_window.metadata['update_listboxes'] = True
             time.sleep(0.1)
 
 
