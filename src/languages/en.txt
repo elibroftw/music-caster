@@ -81,7 +81,7 @@ Play URL Next
 Playing
 Playlist name
 Playlists
-Playlists Menu
+Playlists Tab
 Populate queue on startup
 Populates queue from folders on startup
 previous track

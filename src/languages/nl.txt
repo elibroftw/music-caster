@@ -81,7 +81,7 @@ Speel volgende URL
 Afspelen
 Naam afspeellijst
 Afspeellijsten
-Afspeellijsten Menu
+Tabblad Afspeellijsten
 Wachtrij vullen bij opstarten
 Vult wachtrij uit mappen bij opstarten
 vorige nummer

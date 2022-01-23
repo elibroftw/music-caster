@@ -1,13 +1,13 @@
-VERSION = latest_version = '5.1.4'
+VERSION = latest_version = '5.1.5'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
-from socket import timeout
 import time
 start_time = time.monotonic()
+# noinspection PyUnresolvedReferences
 from contextlib import suppress
 from itertools import islice
 # noinspection PyUnresolvedReferences
@@ -35,7 +35,7 @@ def get_running_processes(look_for='', pid=None, add_exe=True):
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
         if m is not None:
             yield {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
-                'session_num': m.group(4), 'mem_usage': m.group(5)}
+                   'session_num': m.group(4), 'mem_usage': m.group(5)}
 
 
 def is_already_running(look_for='Music Caster', threshold=1, pid=None) -> bool:
@@ -297,7 +297,7 @@ if __name__ == '__main__':
     # noinspection PyTypeChecker
     cast: Chromecast = None
     all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
-    tray_playlists = [gt('Playlists Menu')]
+    tray_playlists = [gt('Playlists Tab')]
     CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + gt('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
@@ -402,7 +402,7 @@ if __name__ == '__main__':
                              gt('Play All')], (gt('Exit'), '__EXIT__')]
         # refresh playlists
         tray_playlists.clear()
-        tray_playlists.append(gt('Playlists Menu'))
+        tray_playlists.append(gt('Playlists Tab'))
         tray_playlists.extend([(f'{pl}'.replace('&', '&&&'), f'PL:{pl}') for pl in settings['playlists']])
         # tell tray process to update
         # icon = FILLED_ICON if playing_status.playing() else UNFILLED_ICON
@@ -637,7 +637,7 @@ if __name__ == '__main__':
             main_window.metadata['update_listboxes'] = True
             all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
             # scan items in playlists
-            for uri in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
+            for _ in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
                 # the function scans for us
                 pass
 
@@ -849,7 +849,7 @@ if __name__ == '__main__':
                 recent_api_plays[opt] = 0
         if queue_only:
             opt = 'queue'
-        if play_next:
+        elif play_next:
             opt = 'play_next'
         else:
             opt = 'play'
@@ -1606,7 +1606,7 @@ if __name__ == '__main__':
                         tray_notify(gt('ERROR') + ': ' + not_connected_error + ' (play_url)')
                         return handle_exception(e)
                     cast_try_reconnect()
-                    return play_url(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
+                    return play_url(position, autoplay, switching_device, show_error=True)
             track_position = position
             track_start = time.monotonic() - track_position
             if track_length is not None:
@@ -1622,7 +1622,7 @@ if __name__ == '__main__':
         global cast, track_start, track_end, track_length, track_position, music_queue, playing_url, cast_browser, zconf
         uri = music_queue[0]
         while not os.path.exists(uri):
-            if play_url(position=position, autoplay=autoplay, switching_device=switching_device): return
+            if play_url(position, autoplay, switching_device): return
             done_queue.append(music_queue.popleft())
             if not music_queue: return
             uri, position = music_queue[0], 0
@@ -1771,7 +1771,8 @@ if __name__ == '__main__':
         if for_dir:
             paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
         else:
-            paths = fd.askopenfilename(title=title, parent=_root, initialdir=initial_folder, filetypes=filetypes, multiple=multiple)
+            paths = fd.askopenfilename(title=title, parent=_root, initialdir=initial_folder,
+                                       filetypes=filetypes, multiple=multiple)
         _root.destroy()
         return paths
 
@@ -3254,8 +3255,8 @@ if __name__ == '__main__':
             # pychromecast.error.UnsupportedNamespace:
             #  Namespace urn:x-cast:com.google.cast.media is not supported by running application.
             pass
-        except PyChromecastError as exception:
-            handle_exception(exception)
+        except PyChromecastError as e:
+            handle_exception(e)
 
 
     def handle_action(action):
@@ -3269,7 +3270,7 @@ if __name__ == '__main__':
             gt('Refresh Devices'): refresh_devices,
             # isdigit should be an if statement
             gt('Settings'): lambda: activate_main_window('tab_settings'),
-            gt('Playlists Menu'): lambda: activate_main_window('tab_playlists'),
+            gt('Playlists Tab'): lambda: activate_main_window('tab_playlists'),
             # PL should be an if statement
             gt('Set Timer'): lambda: activate_main_window('tab_timer'),
             gt('Cancel Timer'): cancel_timer,
@@ -3298,13 +3299,13 @@ if __name__ == '__main__':
         start_time = time.monotonic()
         load_settings(True)  # starts indexing all tracks
         if settings['important_message'] != IMPORTANT_INFORMATION and IMPORTANT_INFORMATION:
-            temp = []
+            two_lined_info = []
             for line in IMPORTANT_INFORMATION.splitlines(keepends=True):
-                temp.append(line)
-                if len(temp) == 2:
-                    tray_notify(''.join(temp), title='Music Caster - Important Information')
-                    temp.clear()
-            tray_notify(''.join(temp), title='Music Caster - Important Information')
+                two_lined_info.append(line)
+                if len(two_lined_info) == 2:
+                    tray_notify(''.join(two_lined_info), title='Music Caster - Important Information')
+                    two_lined_info.clear()
+            tray_notify(''.join(two_lined_info), title='Music Caster - Important Information')
             change_settings('important_message', IMPORTANT_INFORMATION)
         if settings['update_message'] == '': tray_notify(WELCOME_MSG)
         elif settings['update_message'] != UPDATE_MESSAGE and settings['notifications']: tray_notify(UPDATE_MESSAGE)
@@ -3348,7 +3349,8 @@ if __name__ == '__main__':
         if Shared.PORT > 2001:
             activate_from_lock_file()
         lock_file(overwrite=True, port=Shared.PORT)
-        tray_process = mp.Process(target=system_tray, name='Music Caster Tray', args=(daemon_commands, tray_process_queue), daemon=True)
+        tray_process = mp.Process(target=system_tray, name='Music Caster Tray',
+                                  args=(daemon_commands, tray_process_queue), daemon=True)
         tray_process.start()
         print(f'Running on http://127.0.0.1:{Shared.PORT}/')
         print(f'Running on http://[::1]:{Shared.PORT}/')

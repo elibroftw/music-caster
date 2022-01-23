@@ -47,7 +47,7 @@ if args.dry: print('Dry Build')
 
 def update_versions():
     """ Update versions of version file and installer script """
-    with open(VERSION_FILE, 'r+') as version_info_file:
+    with open(VERSION_FILE, 'r+', encoding='utf-8') as version_info_file:
         lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('    prodvers'):
@@ -67,7 +67,7 @@ def update_versions():
         version_info_file.writelines(lines)
         version_info_file.truncate()
 
-    with open(INSTALLER_SCRIPT, 'r+') as version_info_file:
+    with open(INSTALLER_SCRIPT, 'r+', encoding='utf-8') as version_info_file:
         lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('#define MyAppVersion'):
@@ -150,7 +150,7 @@ from music_caster import is_already_running, get_running_processes
 
 
 def read_env(env_file='.env'):
-    with open(env_file) as env_file:
+    with open(env_file, encoding='utf-8') as env_file:
         env_line = env_file.readline()
         while env_line:
             k, v = env_line.split('=', 1)
@@ -161,7 +161,7 @@ def read_env(env_file='.env'):
 
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
-    with open('build_files/CHANGELOG.txt') as changelog_file:
+    with open('build_files/CHANGELOG.txt', encoding='utf-8') as changelog_file:
         add_changes = False
         line = changelog_file.readline()
         while line:
@@ -180,24 +180,13 @@ def add_new_changes(prev_changes: str):
 
 
 def set_spec_debug(debug_option):
-    with open(PORTABLE_SPEC, 'r+') as _f:
-        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
-        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        _f.seek(0)
-        _f.write(new_spec)
-        _f.truncate()
-    with open(ONEDIR_SPEC, 'r+') as _f:
-        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
-        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        _f.seek(0)
-        _f.write(new_spec)
-        _f.truncate()
-    with open(UPDATER_SPEC_FILE, 'r+') as _f:
-        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
-        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        _f.seek(0)
-        _f.write(new_spec)
-        _f.truncate()
+    for file_name in (ONEDIR_SPEC, PORTABLE_SPEC, UPDATER_SPEC_FILE):
+        with open(file_name, 'r+', encoding='utf-8') as _f:
+            new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+            new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
+            _f.seek(0)
+            _f.write(new_spec)
+            _f.truncate()
 
 
 def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
@@ -304,15 +293,14 @@ dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.
 # check if all files were built
 tests_passed = True
 for dist_file in dist_files:
-    file_name = f'dist/{dist_file}'
-    file_exists = os.path.exists(file_name)
-    file_exists_str = 'EXISTS' if file_exists else 'DOES NOT EXIST!'
-    if file_exists:
-        file_size = os.path.getsize(file_name) // 1000  # KB
-        file_exists_str += f' {file_size:,} KB'.rjust(12)
-    output_string = (dist_file + ':').ljust(30) + file_exists_str
-    print(output_string)
-    if not file_exists: tests_passed = False
+    dist_file_path = f'dist/{dist_file}'
+    if os.path.exists(dist_file_path):
+        file_size = os.path.getsize(dist_file_path) // 1000  # KB
+        file_exists_str = f'EXISTS {file_size:,} KB'.rjust(12)
+    else:
+        file_exists_str = 'DOES NOT EXIST!'
+        tests_passed = False
+    print((dist_file + ':').ljust(30) + file_exists_str)
 
 
 if tests_passed:

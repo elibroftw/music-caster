@@ -81,7 +81,7 @@ Riproduci URL Dopo
 In riproduzione
 Nome Playlist
 Playlist
-Menu Playlist
+Scheda Playlist
 Riempi la coda all'avvio
 Riempi la coda dalle cartelle all'avvio
 traccia precedente

@@ -81,7 +81,7 @@ Reproducir URL Siguiente
 Reproduciendo
 Nombre lista reprod.
 Listas de Reproducción
-Menú de Listas de Reproducción
+Pestaña Listas de Reproducción
 Rellenar cola al inicio
 Llena la cola de las carpetas al inicio
 pista anterior

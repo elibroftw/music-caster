@@ -1,35 +1,34 @@
-from deezer import TrackFormats
-from b64_images import *
-import base64
 import audioop
-from queue import LifoQueue, Empty
+import base64
 from contextlib import suppress
 import ctypes
 import ctypes.wintypes
 from datetime import datetime
+from deezer import TrackFormats
 from functools import wraps, lru_cache
 import glob
 import io
 from itertools import cycle, repeat, chain
-import ujson as json
 import locale
+import logging
 from math import floor, ceil
 import os
 from pathlib import Path
 import platform
+from queue import LifoQueue, Empty
 from random import getrandbits
 import re
 import socket
-import time
+import sys
 from threading import Thread
+import time
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
-import sys
-import logging
+
+from b64_images import *
 
 # 3rd party imports
-import pypresence
 import deemix.utils.localpaths as __lp
 __lp.musicdata = '/dz'
 import mutagen
@@ -44,12 +43,13 @@ from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import HeaderNotFoundError
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easyid3 import EasyID3
-from mutagen.easymp4 import EasyMP4
 import pyaudio
+import pypresence
 import pyqrcode
 import PySimpleGUI as Sg
 from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
+import ujson as json
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 
 
