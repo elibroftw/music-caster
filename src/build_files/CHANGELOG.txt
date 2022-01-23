@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.4
+- [Fix] Chromecast connection
+
 5.1.3
 - [Fix] GUI Listbox
 

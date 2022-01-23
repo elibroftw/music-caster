@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.3'
+VERSION = latest_version = '5.1.4'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -474,7 +474,7 @@ if __name__ == '__main__':
         return mail_to
 
 
-    def handle_exception(e, restart_program=False):
+    def handle_exception(e, restart_program=False) -> False:
         current_time = str(datetime.now())
         trace_back_msg = traceback.format_exc().replace('\\', '/')
         exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
@@ -517,6 +517,7 @@ if __name__ == '__main__':
             if IS_FROZEN: os.startfile('Music Caster.exe')
             else: raise e  # raise exception if running in script rather than executable
             sys.exit()
+        return False
 
     def get_current_art():
         if sar.alive: return custom_art('SYS')
@@ -1070,6 +1071,17 @@ if __name__ == '__main__':
         return Response(sar.get_audio_data(settings['sys_audio_delay']))
 
 
+    def cast_try_reconnect():
+        global cast_browser, zconf
+        cast_browser.stop_discovery()
+        zconf = zeroconf.Zeroconf()
+        cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
+        cast_browser.start_discovery()
+        wait_until = time.monotonic() + WAIT_TIMEOUT
+        while cast is None and time.monotonic() < wait_until:
+            time.sleep(0.2)
+
+
     @cmp_to_key
     def cast_info_sorter(ci1: CastInfo, ci2: CastInfo):
         # sort by groups, then by name, then by UUID
@@ -1275,41 +1287,42 @@ if __name__ == '__main__':
 
 
     def _update_gui():
-        if not main_window.was_closed():
-            if playing_status.stopped():
-                main_window['progress_bar'].update(0, disabled=True)
-            else:
-                value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
-                main_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
-            metadata = get_current_metadata()
-            title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-            if playing_status.busy() and music_queue and not sar.alive:
-                if settings['show_track_number']:
-                    with suppress(KeyError):
-                        track_number = metadata['track_number']
-                        title = f'{track_number}. {title}'
-            if settings['mini_mode']: title = truncate_title(title)
-            else: main_window['album'].update(album)
-            main_window['title'].update(title)
-            main_window['artist'].update(artist)
-            image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
-            main_window['pause/resume'].update(image_data=image_data)
-            if settings['show_album_art']:
-                size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
-                bg = settings['theme']['background']
-                try:
-                    album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
-                except OSError as e:
-                    handle_exception(e)
-                    album_art_data = resize_img(DEFAULT_ART, bg, size)
-                main_window['artwork'].update(data=album_art_data)
-            repeat_button: Sg.Button = main_window['repeat']
-            repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
-            repeat_button.metadata = settings['repeat']
-            repeat_button.update(image_data=repeat_img)
-            repeat_button.set_tooltip(new_tooltip)
-            shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
-            main_window['shuffle'].update(image_data=shuffle_image_data)
+        if main_window.was_closed():
+            return
+        if playing_status.stopped():
+            main_window['progress_bar'].update(0, disabled=True)
+        else:
+            value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
+            main_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
+        metadata = get_current_metadata()
+        title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+        if playing_status.busy() and music_queue and not sar.alive:
+            if settings['show_track_number']:
+                with suppress(KeyError):
+                    track_number = metadata['track_number']
+                    title = f'{track_number}. {title}'
+        if settings['mini_mode']: title = truncate_title(title)
+        else: main_window['album'].update(album)
+        main_window['title'].update(title)
+        main_window['artist'].update(artist)
+        image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
+        main_window['pause/resume'].update(image_data=image_data)
+        if settings['show_album_art']:
+            size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
+            bg = settings['theme']['background']
+            try:
+                album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
+            except OSError as e:
+                handle_exception(e)
+                album_art_data = resize_img(DEFAULT_ART, bg, size)
+            main_window['artwork'].update(data=album_art_data)
+        repeat_button: Sg.Button = main_window['repeat']
+        repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
+        repeat_button.metadata = settings['repeat']
+        repeat_button.update(image_data=repeat_img)
+        repeat_button.set_tooltip(new_tooltip)
+        shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
+        main_window['shuffle'].update(image_data=shuffle_image_data)
 
 
     def after_play(title, artists: str, autoplay, switching_device):
@@ -1333,54 +1346,58 @@ if __name__ == '__main__':
             main_window.metadata['update_listboxes'] = True
             daemon_commands.put('__UPDATE_GUI__')
         cast_last_checked = time.monotonic() + 2
+        return True
 
-    def play_system_audio(switching_device=False):
+
+    def play_system_audio(switching_device=False, show_error=False):
         global track_position, track_start, track_end, track_length
         if cast is None:
             tray_notify(gt('ERROR') + ': ' + gt('Not connected to a cast device'))
             sar.alive = False
             return False
-        else:
-            try:
-                cast.wait(timeout=WAIT_TIMEOUT)
-                cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
-                mc = cast.media_controller
-                if mc.status.player_is_playing or mc.status.player_is_paused:
-                    mc.stop()
-                    mc.block_until_active(WAIT_TIMEOUT)
-                title = 'System Audio'
-                artist = platform.node()
-                album = 'Music Caster'
-                metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-                url_metadata['SYSTEM_AUDIO'] = {'artist': artist, 'title': title, 'album': album}
-                sar.start()  # start recording system audio BEFORE the first request for data
-                url = f'http://{get_ipv4()}:{Shared.PORT}/system-audio/'
-                mc.play_media(url, 'audio/wav', metadata=metadata, thumb=f'{url}/thumb', stream_type='LIVE')
+        try:
+            cast.wait(timeout=WAIT_TIMEOUT)
+            cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
+            mc = cast.media_controller
+            if mc.status.player_is_playing or mc.status.player_is_paused:
+                mc.stop()
                 mc.block_until_active(WAIT_TIMEOUT)
-                stream_start_time = time.monotonic()
-                block_until = time.monotonic() + WAIT_TIMEOUT
-                while not mc.status.player_is_playing and time.monotonic() < block_until: time.sleep(0.01)
-                mc.play()
-                sar.lag = time.monotonic() - stream_start_time  # ~1 second
-                track_length = None
-                track_position = 0
-                track_start = time.monotonic() - track_position
-                after_play(title, artist, True, switching_device)
-                return True
-            except AttributeError:
-                tray_notify(gt('ERROR') + ': ' + gt('Not connected to a cast device'))
-                return False
-            except NotConnected as e:
-                tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_line_number()))
-                handle_exception(e)
-                return False
-            except OSError:
-                tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
-                return False
-            except Exception as e:
-                handle_exception(e)
-                tray_notify('ERROR: Something went wrong')
-                return False
+            title = 'System Audio'
+            artist = platform.node()
+            album = 'Music Caster'
+            metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            url_metadata['SYSTEM_AUDIO'] = {'artist': artist, 'title': title, 'album': album}
+            sar.start()  # start recording system audio BEFORE the first request for data
+            url = f'http://{get_ipv4()}:{Shared.PORT}/system-audio/'
+            mc.play_media(url, 'audio/wav', metadata=metadata, thumb=f'{url}/thumb', stream_type='LIVE')
+            mc.block_until_active(WAIT_TIMEOUT + 1)
+            stream_start_time = time.monotonic()
+            block_until = time.monotonic() + WAIT_TIMEOUT
+            while not mc.status.player_is_playing and time.monotonic() < block_until:
+                time.sleep(0.05)
+            mc.play()
+            sar.lag = time.monotonic() - stream_start_time  # ~1 second
+            track_length = None
+            track_position = 0
+            track_start = time.monotonic() - track_position
+            after_play(title, artist, True, switching_device)
+            return True
+        except NotConnected as e:
+            tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' ' + str(get_line_number()))
+            handle_exception(e)
+        except OSError:
+            tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
+        except PyChromecastError as e:
+            if show_error:
+                tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (psa)')
+                change_device()
+                return handle_exception(e)
+            cast_try_reconnect()
+            return play_system_audio(switching_device=switching_device, show_error=True)
+        except Exception as e:
+            handle_exception(e)
+            tray_notify('ERROR: Something went wrong')
+        return False
 
     # noinspection PyTypeChecker
     def get_url_metadata(url, fetch_art=True) -> list:
@@ -1549,7 +1566,7 @@ if __name__ == '__main__':
         return metadata_list
 
 
-    def play_url(position=0, autoplay=True, switching_device=False):
+    def play_url(position=0, autoplay=True, switching_device=False, show_error=False) -> bool:
         global cast, playing_url, cast_last_checked, track_length, track_start, track_end, track_position
         url = music_queue[0]
         metadata_list = get_url_metadata(url)
@@ -1587,10 +1604,12 @@ if __name__ == '__main__':
                         time.sleep(0.2)
                     if track_length is None: mc.play()
                 except (PyChromecastError, OSError) as e:
-                    not_connected_error = gt('Could not connect to cast device')
-                    tray_notify(gt('ERROR') + ': ' + not_connected_error + ' ' + str(get_line_number()))
-                    handle_exception(e)
-                    return stop('play_url')
+                    if show_error:
+                        not_connected_error = gt('Could not connect to cast device')
+                        tray_notify(gt('ERROR') + ': ' + not_connected_error + ' (play_url)')
+                        return handle_exception(e)
+                    cast_try_reconnect()
+                    return play_url(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
             track_position = position
             track_start = time.monotonic() - track_position
             if track_length is not None:
@@ -1639,30 +1658,22 @@ if __name__ == '__main__':
                 ext = uri.split('.')[-1]
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
-                wait_until = time.monotonic() + WAIT_TIMEOUT
                 mc.block_until_active(WAIT_TIMEOUT + 1)
-                if time.monotonic() > wait_until: app_log.info('play: FAILED TO BLOCK UNTIL ACTIVE')
                 block_until = time.monotonic() + 5
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
-                    time.sleep(0.2)
+                    time.sleep(0.05)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (PyChromecastError, OSError, RuntimeError) as e:
                 if show_error:
-                    tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device'))
+                    tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (play)')
+                    change_device()
                     return handle_exception(e)
-                change_device()
-                cast_browser.stop_discovery()
-                zconf = zeroconf.Zeroconf()
-                cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
-                cast_browser.start_discovery()
-                wait_until = time.monotonic() + WAIT_TIMEOUT
-                while cast is None and time.monotonic() < wait_until:
-                    time.sleep(0.2)
-                play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
+                cast_try_reconnect()
+                return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
-        after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
+        return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
     def play_uris(uris: Iterable, queue_uris=False, play_next=False, merge_tracks=0, sort_uris=True):
