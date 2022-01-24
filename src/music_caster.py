@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.8'
+VERSION = latest_version = '5.1.9'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1502,7 +1502,7 @@ if __name__ == '__main__':
                 if youtube_metadata:
                     youtube_metadata = youtube_metadata[0]
                     # these are the only fields we need to update since they actually expire
-                    for key in ('expiry', 'url', 'audio_url', 'ext', 'ytid'):
+                    for key in ('expiry', 'url', 'audio_url', 'ext', 'ytid', 'length'):
                         metadata[key] = youtube_metadata[key]
                     url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                     metadata_list.append(metadata)
