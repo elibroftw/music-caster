@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.7'
+VERSION = latest_version = '5.1.8'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1491,7 +1491,7 @@ if __name__ == '__main__':
                     url_metadata[url] = metadata
                     metadata_list.append(metadata)
         elif url.startswith('https://open.spotify.com'):
-            # Handle Spotify URL (get metadata to search for track on YouTube)
+            # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):
                 metadata = url_metadata[url]
                 if 'ytid' in metadata:
@@ -1502,7 +1502,7 @@ if __name__ == '__main__':
                 if youtube_metadata:
                     youtube_metadata = youtube_metadata[0]
                     # these are the only fields we need to update since they actually expire
-                    for key in ('expiry', 'url', 'audio_url'):
+                    for key in ('expiry', 'url', 'audio_url', 'ext', 'ytid'):
                         metadata[key] = youtube_metadata[key]
                     url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                     metadata_list.append(metadata)
