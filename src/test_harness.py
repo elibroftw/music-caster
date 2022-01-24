@@ -227,7 +227,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
             assert metadata['src']
             assert 'explicit' in metadata
             if 'deezer' in streaming_url:
-                assert callable(metadata['expired'])
+                assert isinstance(metadata['expiry'], (int, float))
                 assert metadata['url']
     ydl_extract_info('https://www.youtube.com/watch?v=PNP0hku7hSo')
     get_proxies()

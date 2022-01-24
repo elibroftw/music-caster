@@ -7,11 +7,11 @@
 
 Music Caster is a modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
 
-### Donate or Translate 
+### Donate or Translate
 
 - monero:84PR6SkYd5zaFLKDjAFrQfbaAg2c7SV3q3XDZ15QCpEZUggrN4YzY7n8m9XC3deXjo41yWHTm1LrsUpPTYGnRQbD9Cwp8En
 - [PayPal](https://www.paypal.me/elibroftw)
-- [Translate](https://github.com/elibroftw/music-caster/issues/12#issuecomment-808658776) Music Caster to other languages 
+- [Translate](https://github.com/elibroftw/music-caster/issues/12#issuecomment-808658776) Music Caster to other languages
 
 ## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
 
@@ -22,7 +22,7 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 - If Music Caster gets auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
 - [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 
-<a href="https://youtu.be/5xwHkLPgvtQ" title="Music Caster Video Demo">
+<a href="https://www.youtube.com/watch?v=5xwHkLPgvtQ" title="Music Caster Video Demo">
   <p align="center">
     <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="Music Caster Video Demo Thumbnail"/>
   </p>
@@ -40,7 +40,7 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 - Web GUI (QR code in Settings window)
 - [Command Line Arguments](https://github.com/elibroftw/music-caster/wiki/Command-Line-Arguments)
 
-Here are Music Caster specific keyboard shortcuts aside from the global media hot-keys. 
+Here are Music Caster specific keyboard shortcuts aside from the global media hot-keys.
 
 | **Shortcut**           | **Window** | **Behaviour**                  |
 |------------------------|------------|--------------------------------|

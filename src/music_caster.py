@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.6'
+VERSION = latest_version = '5.1.7'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1396,6 +1396,11 @@ if __name__ == '__main__':
             tray_notify('ERROR: Something went wrong')
         return False
 
+    def url_expired(uri, default=False):
+        """ Returns if URI is a URL that has expired """
+        expiry_time = time.time() + 3 if default else 0
+        return url_metadata.get(uri, {}).get('expiry', expiry_time) < time.time()
+
     # noinspection PyTypeChecker
     def get_url_metadata(url, fetch_art=True) -> list:
         # TODO: move to helpers.py and add parameter url_metadata_cache
@@ -1405,20 +1410,22 @@ if __name__ == '__main__':
         """
         global deezer_opened
         metadata_list = []
-        if url in url_metadata and not url_metadata[url].get('expired', lambda: True)(): return [url_metadata[url]]
+        app_log.info('get_url_metadata: ' + url)
+        if url in url_metadata and not url_expired(url): return [url_metadata[url]]
+        app_log.info('get_url_metadata: url has expired')
         if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
             ext = url[::-1].split('.', 1)[0][::-1]
             url_frags = urlsplit(url)
             title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
             url_metadata[url] = metadata = {'title': title, 'artist': artist, 'length': None, 'album': album,
-                                            'src': url, 'url': url, 'ext': ext, 'expired': lambda: False}
+                                            'src': url, 'url': url, 'ext': ext}  # never expires
             metadata_list.append(metadata)
         elif 'twitch.tv' in url:
             with suppress(StopIteration, IOError):
                 r = ydl_extract_info(url)
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 metadata = {'title': r['description'], 'artist': r['uploader'], 'ext': r['ext'],
-                            'expired': lambda: True, 'album': 'Twitch', 'length': None,
+                            'expiry': time.time(), 'album': 'Twitch', 'length': None,
                             'art': r['thumbnail'], 'url': r['url'], 'audio_url': audio_url, 'src': url}
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
@@ -1434,18 +1441,18 @@ if __name__ == '__main__':
                         metadata = {'title': entry['title'], 'artist': entry['uploader'], 'album': album,
                                     'length': entry['duration'], 'art': entry['thumbnail'], 'src': entry['webpage_url'],
                                     'url': entry['url'], 'ext': entry['ext'],
-                                    'expired': lambda: time.time() > expiry_time}
+                                    'expiry': expiry_time}
                         url_metadata[entry['webpage_url']] = metadata
                         metadata_list.append(metadata)
                 else:
                     url_policy_b64 = parse_qs(urlparse(r['url']).query)['Policy'][0].replace('_', '=')
                     policy = base64.b64decode(url_policy_b64).decode()
                     expiry_time = json.loads(policy)['Statement'][0]['Condition']['DateLessThan']['AWS:EpochTime']
-                    is_expired = lambda: time.time() > expiry_time
                     url_metadata[url] = metadata = {'title': r['title'], 'artist': r['uploader'], 'album': 'SoundCloud',
-                                                    'src': url, 'ext': r['ext'], 'expired': is_expired,
+                                                    'src': url, 'ext': r['ext'], 'expiry': expiry_time,
                                                     'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                     metadata_list.append(metadata)
+        # youtube
         elif get_yt_id(url) is not None or url.startswith('ytsearch:'):
             with suppress(IOError, TypeError):  # type error in case video was deleted
                 r = ydl_extract_info(url)
@@ -1456,12 +1463,12 @@ if __name__ == '__main__':
                                         key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                         formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                         _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                        expiry_time = time.time() + 1800  # expire in 30 minutes
+                        expiry_time = time.time() + 3600  # expire in one hour
                         album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
                         length = entry['duration'] if entry['duration'] != 0 else None
                         metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
                                     'album': album, 'length': length, 'ext': _f['ext'],
-                                    'expired': lambda: time.time() > expiry_time, 'ytid': entry['id'],
+                                    'expiry': expiry_time, 'ytid': entry['id'],
                                     'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
                         # if duration > 10 minutes, try to parse out timestamps for track from comment section
                         if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry)
@@ -1472,10 +1479,10 @@ if __name__ == '__main__':
                     audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                    expiry_time = time.time() + 1800  # expire in 30 minutes
+                    expiry_time = time.time() + 3600  # expire in one hour
                     length = r['duration'] if r['duration'] != 0 else None
                     metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                                'expired': lambda: time.time() > expiry_time, 'ytid': r['id'],
+                                'expiry': expiry_time, 'ytid': r['id'],
                                 'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
                                 'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
                     # if duration > 10 minutes, try to parse out timestamps for track from comment section
@@ -1488,13 +1495,15 @@ if __name__ == '__main__':
             if url in url_metadata and isinstance(url_metadata[url], dict):
                 metadata = url_metadata[url]
                 if 'ytid' in metadata:
-                    youtube_metadata = get_url_metadata(f"https://youtu.be/{metadata['ytid']}", False)
+                    youtube_metadata = get_url_metadata(f"https://www.youtube.com/watch?v={metadata['ytid']}", False)
                 else:
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
                     youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
                 if youtube_metadata:
                     youtube_metadata = youtube_metadata[0]
-                    metadata = {**youtube_metadata, **metadata}
+                    # these are the only fields we need to update since they actually expire
+                    for key in ('expiry', 'url', 'audio_url'):
+                        metadata[key] = youtube_metadata[key]
                     url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                     metadata_list.append(metadata)
                 else:
@@ -1515,6 +1524,7 @@ if __name__ == '__main__':
                     youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
                     if youtube_metadata:
                         youtube_metadata = youtube_metadata[0]
+                        # expiry, url, and audio_url are not overwritten here
                         metadata = {**youtube_metadata, **metadata}
                         url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                         # if url is a spotify track, set its metadata
@@ -1559,9 +1569,15 @@ if __name__ == '__main__':
                             metadata_list.append(deezer_track)
         if metadata_list and fetch_art:
             # fetch and cache artwork for first url
+            print('--')
             metadata = metadata_list[0]
             if 'art' in metadata and 'art_data' not in metadata:
                 url_metadata[metadata['src']]['art_data'] = base64.b64encode(requests.get(metadata['art']).content)
+        for metadata in metadata_list:
+            metadata = deepcopy(metadata)
+            metadata.pop('art_data', None)
+            mins_till_expiry = (metadata['expiry'] - time.time()) / 60
+            print(metadata['src'], metadata['expiry'], mins_till_expiry)
         return metadata_list
 
 
@@ -1901,8 +1917,7 @@ if __name__ == '__main__':
         global track_end, track_position, track_start
         app_log.info(f'resume(source = {source}), playing status = {playing_status}')
         if playing_status.paused():
-            # time.time() > url_metadata.get(music_queue[0], {'expired': False})['expired']:
-            if music_queue and url_metadata.get(music_queue[0], {'expired': lambda: False})['expired']():
+            if music_queue and url_expired(music_queue[0]):
                 # check if the url has expired before resuming in case it has been a long time
                 play(position=track_position, autoplay=False)
             try:

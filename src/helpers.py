@@ -906,8 +906,8 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes
 
 
 def export_playlist(playlist_name, uris):
-    # location should be downloads folder
-    playlist_name = re.sub(r'(?u)[^-\w.]', '', playlist_name)  # clean name
+    # exports uris to ~/Downloads/safe(playlist_name).m3u
+    playlist_name = re.sub(r'(?u)[^-\w. ]', '', playlist_name)  # clean name
     playlist_path = Path.home() / 'Downloads'
     playlist_path.mkdir(parents=True, exist_ok=True)
     playlist_path /= f'{playlist_name}.m3u'
@@ -1132,7 +1132,7 @@ def parse_deezer_track(track_obj) -> dict:
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
         expiry_time = time.time() + 1800  # 30 minute expiry
-        metadata['expired'] = lambda: time.time() > expiry_time
+        metadata['expiry'] = expiry_time
     return metadata
 
 
