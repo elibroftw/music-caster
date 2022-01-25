@@ -1721,6 +1721,7 @@ def create_metadata_tab(settings):
 
 
 def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
+    # raises TclError [window_is_foreground]
     # use bring to fron when frozen, in Python use other method
     if platform.system() == 'Windows':
         if is_frozen and window_is_foreground(window):
@@ -1738,6 +1739,7 @@ def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
 
 
 def window_is_foreground(window: Sg.Window):
+    # raises TclError
     width, height = window.TKroot.winfo_width(), window.TKroot.winfo_height()
     x, y = window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
     if (width, height, x, y) != (1, 1, 0, 0):

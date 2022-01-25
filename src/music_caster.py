@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.10'
+VERSION = latest_version = '5.1.11'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -227,6 +227,7 @@ if __name__ == '__main__':
     from queue import Queue
     import tkinter
     from tkinter import filedialog as fd
+    from tkinter import TclError
     import traceback
     import urllib.parse
     from urllib.parse import urlsplit
@@ -2322,7 +2323,7 @@ if __name__ == '__main__':
                                     use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
                                     location=window_location, metadata=window_metadata)
             if Shared.using_tcl_theme:
-                with suppress(tkinter.TclError):
+                with suppress(TclError):
                     main_window.TKroot.tk.call('source', SUN_VALLEY_TCL)
                 main_window.TKroot.tk.call('set_theme', 'dark')
             else:
@@ -2361,7 +2362,8 @@ if __name__ == '__main__':
                     if default_text.startswith('http'):
                         main_window['pl_url_input'].update(default_text)
                         main_window.metadata['pl_url_input'] = default_text
-        focus_window(main_window)
+        with suppress(TclError):
+            focus_window(main_window)
 
 
     def locate_uri(selected_track_index=0, uri=None):
@@ -2862,7 +2864,7 @@ if __name__ == '__main__':
                 pyperclip.copy(cut_text)
                 main_window.metadata['url_input'] = main_window['url_input'].get()
         elif main_event == 'url_input_copy':
-            with suppress(tkinter.TclError):
+            with suppress(TclError):
                 pyperclip.copy(main_window['url_input'].Widget.selection_get())
         elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
               and main_values.get('tab_group') == 'tab_url' and main_values['url_input']):
@@ -3010,7 +3012,7 @@ if __name__ == '__main__':
                 pyperclip.copy(cut_text)
                 main_window.metadata['pl_url_input'] = main_window['pl_url_input'].get()
         elif main_event == 'pl_url_input_copy':
-            with suppress(tkinter.TclError):
+            with suppress(TclError):
                 pyperclip.copy(main_window['pl_url_input'].Widget.selection_get())
         elif main_event == 'pl_add_url':
             links = main_values['pl_url_input']
