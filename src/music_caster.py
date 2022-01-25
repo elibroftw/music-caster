@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.9'
+VERSION = latest_version = '5.1.10'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1569,15 +1569,9 @@ if __name__ == '__main__':
                             metadata_list.append(deezer_track)
         if metadata_list and fetch_art:
             # fetch and cache artwork for first url
-            print('--')
             metadata = metadata_list[0]
             if 'art' in metadata and 'art_data' not in metadata:
                 url_metadata[metadata['src']]['art_data'] = base64.b64encode(requests.get(metadata['art']).content)
-        for metadata in metadata_list:
-            metadata = deepcopy(metadata)
-            metadata.pop('art_data', None)
-            mins_till_expiry = (metadata['expiry'] - time.time()) / 60
-            print(metadata['src'], metadata['expiry'], mins_till_expiry)
         return metadata_list
 
 
