@@ -299,7 +299,10 @@ if not args.dry and not args.skip_build:
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit id: ' + getoutput('git log --format="%H" -n 1'))
 
-dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
+if platform.system() == 'Windows':
+    dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
+else:
+    dist_files = ('Portable.zip', 'Source Files Condensed.zip')
 
 # check if all files were built
 tests_passed = True
