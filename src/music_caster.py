@@ -2228,7 +2228,8 @@ if __name__ == '__main__':
 
         main_window.hidden_master_root.report_callback_exception = report_callback_exception
 
-        main_window.TKroot.tk.call('package', 'require', 'tkdnd')
+        if platform.system() == 'Windows':
+            main_window.TKroot.tk.call('package', 'require', 'tkdnd')
 
         if not settings['mini_mode']:
             main_window['url_input'].bind('<<Cut>>', '_cut')
