@@ -219,11 +219,14 @@ if not args.skip_build:
     # remove existing builds
     try:
         with suppress(FileNotFoundError):
-            shutil.rmtree('dist/Music Caster', False)
+            shutil.rmtree('dist/Music Caster OneDir', False)
     except PermissionError:
-        print('Files in dist/Music caster are in use somehow')
+        print('Files in "dist/Music Caster OneDir" are in use somehow')
         sys.exit()
-    for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+    main_file = 'Music Caster'
+    if platform.system() == 'Windows':
+        main_file += '.exe'
+    for dist_file in (main_file, f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
         with suppress(FileNotFoundError):
             dist_file = os.path.join('dist', dist_file)
             print(f'Removing {dist_file}')
@@ -241,16 +244,16 @@ if not args.dry and not args.skip_build:
     additional_args = '--log=DEBUG' if args.debug else ''
     if args.clean:
         additional_args += ' --clean'
-    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}')
+    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
     try:
         # build Updater
         # install go dependencies
         check_call('go install github.com/akavel/rsrc@latest')
         check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
         check_call('go build -ldflags "-H windowsgui" -o dist/Updater.exe')
-    except RuntimeWarning as e:
+    except Exception as e:
         print(f'WARNING: {e}')
-    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}')
+    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
     try:
         s4 = Popen('iscc build_files/setup_script.iss')
     except FileNotFoundError:
@@ -274,9 +277,17 @@ if not args.dry and not args.skip_build:
         shutil.copyfile(res_file, 'dist/' + res_file)
     lang_packs = glob.glob('languages/*.txt')
     # noinspection PyTypeChecker
-    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'),
+    if platform.system() == 'Windows':
+        music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
+        updater_portable = ('dist/Updater.exe', 'Updater.exe')
+    elif platform.system() == 'Darwin':
+        raise NotImplementedError('Mac?')
+    else:
+        music_caster_portable = ('dist/Music Caster', 'Music Caster')
+        updater_portable = ('dist/Updater', 'Updater')
+    portable_files = [music_caster_portable,
                       ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
-                      ('dist/Updater.exe', 'Updater.exe')]
+                      updater_portable]
     vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
     portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
     portable_files.extend(lang_packs)
@@ -335,7 +346,7 @@ if not args.dry and not args.skip_tests and tests_passed:
         print('TESTS FAILED: test_helpers()')
         raise e
     # Test if executable can be run
-    p = Popen('"dist/Music Caster/Music Caster.exe" -m --debug', shell=True)
+    p = Popen('"dist/Music Caster OneDir/Music Caster" -m --debug', shell=True)
     time.sleep(2)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
     time.sleep(2)

@@ -66,6 +66,7 @@ Non connesso a deezer.com
 Niente in riproduzione
 Notifiche
 Ferma solo la Riproduzione
+Apire
 Pausa
 Coda persistente
 Riproduci

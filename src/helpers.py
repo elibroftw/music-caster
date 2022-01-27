@@ -20,6 +20,7 @@ from random import getrandbits
 import re
 import socket
 import sys
+from subprocess import Popen
 from threading import Thread
 import time
 import unicodedata
@@ -171,11 +172,13 @@ class SystemAudioRecorder:
         self.alive = False
 
     def start(self):
-        if not self.alive:
-            if self.pa is None: self.pa = pyaudio.PyAudio()
-            # initialization process takes ~0.2 seconds
-            Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
-
+        if platform.system() == 'Windows':
+            if not self.alive:
+                if self.pa is None: self.pa = pyaudio.PyAudio()
+                # initialization process takes ~0.2 seconds
+                Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
+        else:
+            print('TODO: SystemAudioRecorder')
 
 class InvalidAudioFile(Exception): pass
 
@@ -1815,3 +1818,13 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
                 time.sleep(1)
                 os.remove(shortcut_path)
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
+
+
+def startfile(file):
+    if platform.system() == 'Windows':
+        return os.startfile(file)
+    elif platform.system() == 'Darwin':
+        return Popen(['open', file])
+    # Linux
+    return Popen(['xdg-open', file])
+    

@@ -66,6 +66,7 @@ Not logged into deezer.com
 Nothing Playing
 Notifications
 Only Stop Playback
+Open
 Pause
 Persistent queue
 Play

@@ -66,6 +66,7 @@ Niet ingelogd bij deezer.com
 Niets aan het spelen
 Meldingen
 Alleen afspelen stoppen
+Open
 Pause
 Aanhoudende wachtrij
 Afspelen

@@ -401,6 +401,10 @@ if __name__ == '__main__':
                              [gt('Playlists'), *tray_playlists],
                              [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
                              gt('Play All')], (gt('Exit'), '__EXIT__')]
+        if platform.system() == 'Linux':
+            # more so for applicationindicator
+            for menu in tray_menu_default, tray_menu_paused, tray_menu_playing:
+                menu.append((gt('Open'), '__ACTIVATED__'))
         # refresh playlists
         tray_playlists.clear()
         tray_playlists.append(gt('Playlists Tab'))
@@ -515,7 +519,7 @@ if __name__ == '__main__':
             with suppress(Exception): stop('error handling')
             tray_notify(gt('An error occurred, restarting now'))
             # minimized = main_window.was_closed()
-            if IS_FROZEN: os.startfile('Music Caster.exe')
+            if IS_FROZEN: startfile('Music Caster')
             else: raise e  # raise exception if running in script rather than executable
             sys.exit()
         return False
@@ -1780,7 +1784,8 @@ if __name__ == '__main__':
         initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
         _root = tkinter.Tk()
         _root.withdraw()
-        _root.iconbitmap(WINDOW_ICON)
+        if platform.system() != 'Linux':
+            _root.iconbitmap(WINDOW_ICON)
         if for_dir:
             paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
         else:
@@ -2845,13 +2850,9 @@ if __name__ == '__main__':
                                               icon=WINDOW_ICON)
             if folder_path: add_music_folder([folder_path])
         elif main_event == 'settings_file':
-            try:
-                os.startfile(SETTINGS_FILE)
-            except OSError:
-                Popen(f'explorer /select,"{fix_path(SETTINGS_FILE)}"')
+            startfile(SETTINGS_FILE)
         elif main_event == 'changelog_file':
-            with suppress(FileNotFoundError):
-                os.startfile('changelog.txt')
+            startfile('CHANGELOG.txt')
         elif main_event == 'music_folders':
             with suppress(IndexError):
                 Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')
@@ -3208,7 +3209,7 @@ if __name__ == '__main__':
                     elif os.path.exists('Updater.exe'):
                         # portable installation
                         try:
-                            os.startfile('Updater.exe')
+                            startfile('Updater')
                             daemon_commands.put('__EXIT__')  # tell main thread to exit
                         except OSError as e:
                             if e == errno.ECANCELED:

@@ -50,4 +50,4 @@ coll = COLLECT(exe,
                a.datas,
                strip=False,
                upx=False,
-               name='Music Caster')
+               name='Music Caster OneDir')
