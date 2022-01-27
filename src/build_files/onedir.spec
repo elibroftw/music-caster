@@ -12,7 +12,7 @@ import platform
 CONF['distpath'] = './dist'
 block_cipher = None
 # TODO: test on MAC OSX
-vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
+vlc_ext = 'dll' if platform.system() == 'Windows' else 'so.*'
 vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob(f'vlc_lib/**/*.{vlc_ext}', recursive=True)]
 lang_packs = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('languages/*.txt')]
 tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
