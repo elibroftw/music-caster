@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.12
+- [Fix] Startup
+
 5.1.11
 - [Fix] GUI
 

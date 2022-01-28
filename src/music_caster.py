@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.11'
+VERSION = latest_version = '5.1.12'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -29,7 +29,7 @@ def get_running_processes(look_for='', pid=None, add_exe=True):
         cmd += f' /FI "IMAGENAME eq {look_for}"'
     if pid is not None:
         cmd += f' /FI "PID eq {pid}"'
-    p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
+    p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True, encoding='utf-8')
     p.stdout.readline()
     for task in iter(lambda: p.stdout.readline().strip(), ''):
         m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
