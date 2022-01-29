@@ -350,7 +350,7 @@ if not args.dry and not args.skip_tests and tests_passed:
         raise e
     # Test if executable can be run
     p = Popen('"dist/Music Caster OneDir/Music Caster" -m --debug', shell=True)
-    time.sleep(2)
+    time.sleep(4)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
     time.sleep(2)
     test('Music Caster Exit API', lambda: requests.post('http://[::1]:2001/exit'))
