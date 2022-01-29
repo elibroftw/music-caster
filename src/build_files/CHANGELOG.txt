@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.14
+- [Fix] Encoding
+
 5.1.13
 - [Fix] Metadata
 
