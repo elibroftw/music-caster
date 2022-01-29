@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.12'
+VERSION = latest_version = '5.1.13'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -415,7 +415,7 @@ if __name__ == '__main__':
         if playing_status.busy():
             menu = tray_menu_playing if playing_status.playing() else tray_menu_paused
             metadata = get_current_metadata()
-            title, artists = metadata['artist'], metadata['title']
+            title, artists = metadata['title'], metadata['artist']
             _tooltip = f"{get_first_artist(artists)} - {title}".replace('&', '&&&')
         else:
             menu, _tooltip = tray_menu_default, 'Music Caster'
@@ -539,35 +539,33 @@ if __name__ == '__main__':
 
 
     def get_metadata_wrapped(file_path: str) -> dict:  # keys: title, artist, album, sort_key
-        if file_path.startswith('http'):
-            raise ValueError('expected file not http...')
         try:
+            if file_path.startswith('http'):
+                raise ValueError('expected file not http...')
             m = get_metadata(file_path)
             return m
-        except mutagen.MutagenError:
+        except (mutagen.MutagenError, ValueError):
             try:
-                metadata = all_tracks[Path(file_path).as_posix()]
-                return metadata
+                return all_tracks[Path(file_path).as_posix()]
             except KeyError:
                 return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
                         'album': Unknown('Title'), 'sort_key': get_file_name(file_path), 'track_number': '0'}
 
 
     def get_uri_metadata(uri, read_file=True):
+        # raises KeyError
         uri = uri.replace('\\', '/')
+        if uri.startswith('http'):
+            return url_metadata[uri]
         try:
             return all_tracks[uri]
         except KeyError:
-            try:
-                # if uri is a url
-                return url_metadata[uri]
-            except KeyError:
-                # uri is probably a file that has not been cached yet
-                if not read_file: raise KeyError
+            # uri is probably a file that has not been cached yet
+            if read_file:
                 metadata = get_metadata_wrapped(uri)
-                if uri.startswith('http'): return metadata
                 all_tracks[uri] = metadata
                 return metadata
+            raise KeyError
 
 
     def get_current_metadata() -> dict:
