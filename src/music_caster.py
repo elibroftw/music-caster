@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.14'
+VERSION = latest_version = '5.1.15'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -556,16 +556,18 @@ if __name__ == '__main__':
         # raises KeyError
         uri = uri.replace('\\', '/')
         if uri.startswith('http'):
-            return url_metadata[uri]
-        try:
+            if uri in url_metadata:
+                return url_metadata[uri]
+            return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
+                    'album': Unknown('Title'), 'sort_key': uri, 'track_number': '0'}
+        if uri in all_tracks:
             return all_tracks[uri]
-        except KeyError:
-            # uri is probably a file that has not been cached yet
-            if read_file:
-                metadata = get_metadata_wrapped(uri)
-                all_tracks[uri] = metadata
-                return metadata
-            raise KeyError
+        # uri is probably a file that has not been cached yet
+        if read_file:
+            metadata = get_metadata_wrapped(uri)
+            all_tracks[uri] = metadata
+            return metadata
+        raise KeyError
 
 
     def get_current_metadata() -> dict:
@@ -1585,7 +1587,8 @@ if __name__ == '__main__':
         if metadata_list:
             if len(metadata_list) > 1:
                 # url was for multiple sources
-                music_queue.popleft()
+                with suppress(IndexError):
+                    music_queue.popleft()
                 music_queue.extendleft((metadata['src'] for metadata in reversed(metadata_list)))
             metadata = metadata_list[0]
             title, artist, album = metadata['title'], metadata['artist'], metadata['album']
@@ -1690,6 +1693,7 @@ if __name__ == '__main__':
 
     def play_uris(uris: Iterable, queue_uris=False, play_next=False, merge_tracks=0, sort_uris=True):
         """
+        TODO: make thread safe
         Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
             which is shuffled if shuffled is enabled in settings, and then extends music_queue.
             Note: file/folder paths take precedence over playlist names
