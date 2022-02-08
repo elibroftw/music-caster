@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.15'
+VERSION = latest_version = '5.1.16'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -3272,8 +3272,8 @@ if __name__ == '__main__':
             # pychromecast.error.UnsupportedNamespace:
             #  Namespace urn:x-cast:com.google.cast.media is not supported by running application.
             pass
-        except PyChromecastError as e:
-            handle_exception(e)
+        except Exception:
+            pass
 
 
     def handle_action(action):
