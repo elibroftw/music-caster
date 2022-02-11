@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.17'
+VERSION = latest_version = '5.1.18'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -817,7 +817,7 @@ if __name__ == '__main__':
                 file_path = pathname2url(uri).strip('/')
                 stream_url = f'/file?path={file_path}'
             else:
-                stream_url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
+                stream_url = metadata.get('audio_url', metadata.get('url'))
         for cast_info in sorted(cast_browser.devices.values(), key=cast_info_sorter):
             formatted_devices.append((cast_info.friendly_name, str(cast_info.uuid)))
         try:
