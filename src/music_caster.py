@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.18'
+VERSION = latest_version = '5.1.19'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -3244,10 +3244,12 @@ if __name__ == '__main__':
                 is_live = track_length is None
                 if not is_stopped and playing_status.busy():
                     # sync track position with chromecast, also allows scrubbing from external apps
-                    if abs(media_controller.status.adjusted_current_time - track_position) > 0.5:
-                        track_position = media_controller.status.adjusted_current_time
-                        track_start = time.monotonic() - track_position
-                        if not is_live: track_end = track_start + track_length
+                    with suppress(IndexError):
+                        buffer = 2 if music_queue[0].startswith('http') else 0.5
+                        if abs(media_controller.status.adjusted_current_time - track_position) > 0.5:
+                            track_position = media_controller.status.adjusted_current_time
+                            track_start = time.monotonic() - track_position
+                            if not is_live: track_end = track_start + track_length
                 if media_controller.status.player_is_paused and playing_status.playing(): pause('main loop')
                 elif media_controller.status.player_is_playing and playing_status.paused(): resume('main loop')
                 elif (is_stopped and playing_status.busy() and

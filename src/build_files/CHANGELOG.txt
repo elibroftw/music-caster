@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.19
+- [Fix] URL casting
+
 5.1.18
 - [Fix] Youtube Playlist Web
 
