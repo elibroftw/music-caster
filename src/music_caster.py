@@ -3182,7 +3182,9 @@ if __name__ == '__main__':
                 if is_debug() or not setup_dl_link:
                     return app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
                 if IS_FROZEN:
-                    if os.path.exists(UNINSTALLER):
+                    if platform.system() in {'Linux', 'Darwin'}:
+                        tray_notify('update_available', context=latest_ver)
+                    elif os.path.exists(UNINSTALLER):
                         # only show message on startup to not confuse the user
                         cmd = ['mc_installer.exe', '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
                                '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']

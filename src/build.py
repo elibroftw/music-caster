@@ -244,7 +244,11 @@ if not args.dry and not args.skip_build:
     additional_args = '--log=DEBUG' if args.debug else ''
     if args.clean:
         additional_args += ' --clean'
-    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
+    # TODO: do not run if on Linux
+    if platform.system() == 'Windows':
+        s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
+    else:
+        s1 = None
     try:
         # build Updater
         # install go dependencies
@@ -255,44 +259,52 @@ if not args.dry and not args.skip_build:
         print(f'WARNING: {e}')
     check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
     try:
-        s4 = Popen('iscc build_files/setup_script.iss')
+        if platform.system() == 'Windows':
+            s4 = Popen('iscc build_files/setup_script.iss')
+        else:
+            s4 = None
     except FileNotFoundError:
         s4 = None
         print('WARNING: could not create an installer because iscc is not installed or is not on PATH')
-    portable_failed = s1.wait()
+    
+    try:
+        portable_failed = s1.wait()
+    except AttributeError:
+        portable_failed = False
     if args.debug: set_spec_debug(False)
     if portable_failed:
         print('Portable installation failed')
         print(s1.communicate()[1])
         sys.exit()
 
-    for folder in {'dist/static', 'dist/templates'}:
-        with suppress(OSError): os.mkdir(folder)
-
-    shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
-    shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
-
-    res_files = ['static/style.css', 'templates/index.html']
-    for res_file in res_files:
-        shutil.copyfile(res_file, 'dist/' + res_file)
-    lang_packs = glob.glob('languages/*.txt')
-    # noinspection PyTypeChecker
+    # Portable
     if platform.system() == 'Windows':
+        for folder in {'dist/static', 'dist/templates'}:
+            with suppress(OSError): os.mkdir(folder)
+        shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
+        shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
+
+        res_files = ['static/style.css', 'templates/index.html']
+        for res_file in res_files:
+            shutil.copyfile(res_file, 'dist/' + res_file)
+        lang_packs = glob.glob('languages/*.txt')
         music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
         updater_portable = ('dist/Updater.exe', 'Updater.exe')
+        portable_files = [music_caster_portable,
+                        ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
+                        updater_portable]
+        vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
+        portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
+        portable_files.extend(lang_packs)
+        print('Creating dist/Portable.zip')
+        create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
+    # zip directory for Linux or Darwin
     elif platform.system() == 'Darwin':
-        raise NotImplementedError('Mac?')
+        pass
     else:
-        music_caster_portable = ('dist/Music Caster', 'Music Caster')
-        updater_portable = ('dist/Updater', 'Updater')
-    portable_files = [music_caster_portable,
-                      ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
-                      updater_portable]
-    vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
-    portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
-    portable_files.extend(lang_packs)
-    print('Creating dist/Portable.zip')
-    create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
+        linux_dist = 'dist/Music Caster (Linux)'
+        print(f'Creating {linux_dist}.zip')
+        shutil.make_archive(linux_dist, 'zip', 'dist/Music Caster OneDir')
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py'])
     with suppress(AttributeError): s4.wait()  # Wait for inno script to finish
@@ -301,8 +313,10 @@ if not args.dry and not args.skip_build:
 
 if platform.system() == 'Windows':
     dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
+elif platform.system() == 'Darwin':
+    dist_files = ('Music Caster (OSX).zip', 'Source Files Condensed.zip')
 else:
-    dist_files = ('Portable.zip', 'Source Files Condensed.zip')
+    dist_files = ('Music Caster (Linux).zip', 'Source Files Condensed.zip')
 
 # check if all files were built
 tests_passed = True
