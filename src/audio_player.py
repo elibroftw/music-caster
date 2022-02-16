@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.3.4
+AudioPlayer v2.3.5
 Author: Elijah Lopez
 Make sure VLC .dll files are located in "vlc_lib/"
 """
@@ -8,9 +8,22 @@ import math
 import os
 import sys
 import time
-starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-os.environ['PYTHON_VLC_LIB_PATH'] = f'{starting_dir}\\vlc_lib\\libvlc.dll'
+import platform
+from pathlib import Path
+if getattr(sys, 'frozen', False):
+    app_path = os.path.dirname(sys.executable)
+else:
+    app_path = os.path.dirname(__file__)
+vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
+if platform.system() != 'Windows':
+    os.environ['PYTHON_VLC_MODULE_PATH'] = f'{app_path}/vlc_lib/plugins'
+vlc_lib_path = Path(f'{app_path}/vlc_lib/libvlc.{vlc_ext}')
+os.environ['PYTHON_VLC_LIB_PATH'] = str(vlc_lib_path)
+cwd = os.getcwd()
+if platform.system() == 'Linux':
+    os.chdir(f'{app_path}/vlc_lib')
 import vlc
+os.chdir(cwd)
 
 
 class AudioPlayerUnit(IntEnum):

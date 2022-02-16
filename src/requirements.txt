@@ -1,9 +1,13 @@
 build_files/PyAudio-0.2.11-cp38-cp38-win32.whl
-ujson==4.2.0
+build_files/pyinstaller-4.8-py3-none-any.whl
+pyaudio; sys_platform != 'win32'
+pgi; sys_platform == 'linux'
+ujson==5.1.0
 pycparser==2.14
 mutagen~=1.45.1
-Pillow~=8.0
+Pillow~=9.0
 pychromecast~=10.1
+protobuf==3.19.1
 zeroconf~=0.37
 pynput~=1.4.5
 pypng~=0.0.20
@@ -25,15 +29,16 @@ flask~=2.0
 deezer-py~=1.2
 deemix~=3.5
 six~=1.16
-setuptools  # use <50.0.0 if needed for wavinfo and pyinstaller
 # pyinstaller dependencies
+setuptools==60.5.0
 altgraph
-pyinstaller-hooks-contrib >= 2020.6
+pyinstaller-hooks-contrib >= 2020.11
 pefile; sys_platform == 'win32'
 altgraph
 pywin32-ctypes; sys_platform == 'win32'
 pypiwin32; sys_platform == 'win32'
 macholib; sys_platform == 'darwin'
-importlib-metadata ; python_version < '3.8'
-build_files/pyinstaller-4.8.dev0-py3-none-any.whl
-GitPython~=3.1     # dev
+python-tkdnd; sys_platform != 'win32'
+# dev
+GitPython~=3.1
+autopep8

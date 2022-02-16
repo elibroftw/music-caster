@@ -44,3 +44,5 @@ music_caster.log1
 resources/assets.png
 settings.json.bak
 *.syso
+*.pid
+*.lock

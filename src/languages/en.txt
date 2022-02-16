@@ -37,7 +37,7 @@ Hibernate Computer
 INFO
 Invalid Input (enter minutes or HH:MM)
 Invalid URL. URL's need to start with http:// or https://
-ERROR: Invalid audio file selected
+Invalid audio file selected
 Keep mini mode on top
 Launch mini mode
 Left-side music controls
@@ -47,6 +47,7 @@ Listening
 System Audio
 Local device
 locate selected
+Lost connection to $DEVICE, switching to local device
 Mini mode on top
 More
 move down
@@ -65,6 +66,7 @@ Not logged into deezer.com
 Nothing Playing
 Notifications
 Only Stop Playback
+Open
 Pause
 Persistent queue
 Play
@@ -80,7 +82,7 @@ Play URL Next
 Playing
 Playlist name
 Playlists
-Playlists Menu
+Playlists Tab
 Populate queue on startup
 Populates queue from folders on startup
 previous track
@@ -188,3 +190,5 @@ System Audio Delay:
 seconds
 locate track
 Switching to local device
+Track Format:
+Could not fetch audio for $URL

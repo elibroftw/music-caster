@@ -4,14 +4,13 @@ from datetime import datetime
 import glob
 import math
 import os
+import platform
 import shutil
-from shutil import copytree
 from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
 import threading
 import time
 import zipfile
-
 
 start_time = time.time()
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -48,7 +47,7 @@ if args.dry: print('Dry Build')
 
 def update_versions():
     """ Update versions of version file and installer script """
-    with open(VERSION_FILE, 'r+') as version_info_file:
+    with open(VERSION_FILE, 'r+', encoding='utf-8') as version_info_file:
         lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('    prodvers'):
@@ -68,7 +67,7 @@ def update_versions():
         version_info_file.writelines(lines)
         version_info_file.truncate()
 
-    with open(INSTALLER_SCRIPT, 'r+') as version_info_file:
+    with open(INSTALLER_SCRIPT, 'r+', encoding='utf-8') as version_info_file:
         lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('#define MyAppVersion'):
@@ -81,8 +80,7 @@ def update_versions():
         version_info_file.truncate()
 
 
-
-VERSION = getoutput('music_caster.py --version')
+VERSION = getoutput(f'{sys.executable} music_caster.py --version')
 if 'ModuleNotFoundError' not in VERSION:
     if args.ytdl:
         import requests
@@ -131,10 +129,11 @@ else:
     print('Warning: could not get version, will install modules')
 if not args.skip_build and not args.skip_deps:
     print('Installing / Updating dependencies...')
-    # install tkdnd
-    sys_dir_name = os.path.dirname(sys.executable)
-    shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
-    shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+    if platform.system() == 'Windows':
+        # install tkdnd custom way
+        sys_dir_name = os.path.dirname(sys.executable)
+        shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+        shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
     if args.dry:
         Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
     else:
@@ -155,7 +154,7 @@ from music_caster import is_already_running, get_running_processes
 
 
 def read_env(env_file='.env'):
-    with open(env_file) as env_file:
+    with open(env_file, encoding='utf-8') as env_file:
         env_line = env_file.readline()
         while env_line:
             k, v = env_line.split('=', 1)
@@ -166,7 +165,7 @@ def read_env(env_file='.env'):
 
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
-    with open('build_files/CHANGELOG.txt') as changelog_file:
+    with open('build_files/CHANGELOG.txt', encoding='utf-8') as changelog_file:
         add_changes = False
         line = changelog_file.readline()
         while line:
@@ -185,24 +184,13 @@ def add_new_changes(prev_changes: str):
 
 
 def set_spec_debug(debug_option):
-    with open(PORTABLE_SPEC, 'r+') as _f:
-        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
-        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        _f.seek(0)
-        _f.write(new_spec)
-        _f.truncate()
-    with open(ONEDIR_SPEC, 'r+') as _f:
-        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
-        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        _f.seek(0)
-        _f.write(new_spec)
-        _f.truncate()
-    with open(UPDATER_SPEC_FILE, 'r+') as _f:
-        new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
-        new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
-        _f.seek(0)
-        _f.write(new_spec)
-        _f.truncate()
+    for file_name in (ONEDIR_SPEC, PORTABLE_SPEC, UPDATER_SPEC_FILE):
+        with open(file_name, 'r+', encoding='utf-8') as _f:
+            new_spec = _f.read().replace(f'debug={not debug_option}', f'debug={debug_option}')
+            new_spec = new_spec.replace(f'console={not debug_option}', f'console={debug_option}')
+            _f.seek(0)
+            _f.write(new_spec)
+            _f.truncate()
 
 
 def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
@@ -218,7 +206,7 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 args.upload = args.upload and not args.test_autoupdate
 player_state = {}
 if not args.dry:
-    with suppress(requests.RequestException):
+    with suppress(requests.exceptions.RequestException):
         player_state = requests.get('http://[::1]:2001/state').json()
         requests.get('http://[::1]:2001/exit')
         time.sleep(1)  # wait for MC to exit
@@ -235,11 +223,14 @@ if not args.skip_build:
     # remove existing builds
     try:
         with suppress(FileNotFoundError):
-            shutil.rmtree('dist/Music Caster', False)
+            shutil.rmtree('dist/Music Caster OneDir', False)
     except PermissionError:
-        print('Files in dist/Music caster are in use somehow')
+        print('Files in "dist/Music Caster OneDir" are in use somehow')
         sys.exit()
-    for dist_file in ('Music Caster.exe', f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+    main_file = 'Music Caster'
+    if platform.system() == 'Windows':
+        main_file += '.exe'
+    for dist_file in (main_file, f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
         with suppress(FileNotFoundError):
             dist_file = os.path.join('dist', dist_file)
             print(f'Removing {dist_file}')
@@ -258,66 +249,91 @@ if not args.dry and not args.skip_build:
     additional_args = '--log=DEBUG' if args.debug else ''
     if args.clean:
         additional_args += ' --clean'
-    s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}')
+    # TODO: do not run if on Linux
+    if platform.system() == 'Windows':
+        s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
+    else:
+        s1 = None
     try:
         # build Updater
         # install go dependencies
         check_call('go install github.com/akavel/rsrc@latest')
         check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
         check_call('go build -ldflags "-H windowsgui" -o dist/Updater.exe')
-    except RuntimeWarning as e:
+    except Exception as e:
         print(f'WARNING: {e}')
-    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}')
+    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
     try:
-        s4 = Popen('iscc build_files/setup_script.iss')
+        if platform.system() == 'Windows':
+            s4 = Popen('iscc build_files/setup_script.iss')
+        else:
+            s4 = None
     except FileNotFoundError:
         s4 = None
         print('WARNING: could not create an installer because iscc is not installed or is not on PATH')
-    portable_failed = s1.wait()
+
+    try:
+        portable_failed = s1.wait()
+    except AttributeError:
+        portable_failed = False
     if args.debug: set_spec_debug(False)
     if portable_failed:
         print('Portable installation failed')
         print(s1.communicate()[1])
         sys.exit()
 
-    for folder in {'dist/static', 'dist/templates'}:
-        with suppress(OSError): os.mkdir(folder)
+    # Portable
+    if platform.system() == 'Windows':
+        for folder in {'dist/static', 'dist/templates'}:
+            with suppress(OSError): os.mkdir(folder)
+        shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
+        shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
 
-    copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
-    copytree('languages', 'dist/languages', dirs_exist_ok=True)
-
-    res_files = ['static/style.css', 'templates/index.html']
-    for res_file in res_files:
-        shutil.copyfile(res_file, 'dist/' + res_file)
-    lang_packs = glob.glob('languages/*.txt')
-    # noinspection PyTypeChecker
-    portable_files = [('dist/Music Caster.exe', 'Music Caster.exe'),
-                      ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
-                      ('dist/Updater.exe', 'Updater.exe')]
-    portable_files.extend(res_files + glob.glob('vlc_lib/**/*.*', recursive=True))
-    portable_files.extend(lang_packs)
-    print('Creating dist/Portable.zip')
-    create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
+        res_files = ['static/style.css', 'templates/index.html']
+        for res_file in res_files:
+            shutil.copyfile(res_file, 'dist/' + res_file)
+        lang_packs = glob.glob('languages/*.txt')
+        music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
+        updater_portable = ('dist/Updater.exe', 'Updater.exe')
+        portable_files = [music_caster_portable,
+                        ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
+                        updater_portable]
+        vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
+        portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
+        portable_files.extend(lang_packs)
+        print('Creating dist/Portable.zip')
+        create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
+    # zip directory for Linux or Darwin
+    elif platform.system() == 'Darwin':
+        pass
+    else:
+        linux_dist = 'dist/Music Caster (Linux)'
+        print(f'Creating {linux_dist}.zip')
+        shutil.make_archive(linux_dist, 'zip', 'dist/Music Caster OneDir')
     print('Creating dist/Source Files Condensed.zip')
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py'])
     with suppress(AttributeError): s4.wait()  # Wait for inno script to finish
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit id: ' + getoutput('git log --format="%H" -n 1'))
 
-dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
+if platform.system() == 'Windows':
+    dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
+elif platform.system() == 'Darwin':
+    dist_files = ('Music Caster (OSX).zip', 'Source Files Condensed.zip')
+else:
+    dist_files = ('Music Caster (Linux).zip', 'Source Files Condensed.zip')
 
 # check if all files were built
 tests_passed = True
 for dist_file in dist_files:
-    file_name = f'dist/{dist_file}'
-    file_exists = os.path.exists(file_name)
-    file_exists_str = 'EXISTS' if file_exists else 'DOES NOT EXIST!'
-    if file_exists:
-        file_size = os.path.getsize(file_name) // 1000  # KB
-        file_exists_str += f' {file_size:,} KB'.rjust(12)
-    output_string = (dist_file + ':').ljust(30) + file_exists_str
-    print(output_string)
-    if not file_exists: tests_passed = False
+    dist_file_path = f'dist/{dist_file}'
+    if os.path.exists(dist_file_path):
+        file_size = os.path.getsize(dist_file_path) // 1000  # KB
+        file_exists_str = f'EXISTS {file_size:,} KB'.rjust(12)
+    else:
+        file_exists_str = 'DOES NOT EXIST!'
+        tests_passed = False
+    print((dist_file + ':').ljust(30) + file_exists_str)
 
 
 if tests_passed:
@@ -351,12 +367,12 @@ if not args.dry and not args.skip_tests and tests_passed:
     except AssertionError as e:
         print('TESTS FAILED: test_helpers()')
         raise e
-    # Test if executable can be run [disables auto update or some shit]
-    p = Popen('"dist/Music Caster/Music Caster.exe" -m --debug', shell=True)
-    time.sleep(2)
+    # Test if executable can be run
+    p = Popen('"dist/Music Caster OneDir/Music Caster" -m --debug', shell=True)
+    time.sleep(4)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
     time.sleep(2)
-    test('Music Caster Exit API', lambda: requests.get('http://[::1]:2001/exit'))
+    test('Music Caster Exit API', lambda: requests.post('http://[::1]:2001/exit'))
     time.sleep(2)
     test('Music Caster Should Have Exited', lambda: not is_already_running(), True)
 

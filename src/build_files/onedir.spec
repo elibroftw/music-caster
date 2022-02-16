@@ -7,10 +7,13 @@ from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
 # noinspection PyPackageRequirements
 from PyInstaller.config import CONF
+import platform
 
 CONF['distpath'] = './dist'
 block_cipher = None
-vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('vlc_lib/**/*.*', recursive=True)]
+# TODO: test on MAC OSX
+vlc_ext = 'dll' if platform.system() == 'Windows' else 'so*'
+vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob(f'vlc_lib/**/*.{vlc_ext}', recursive=True)]
 lang_packs = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('languages/*.txt')]
 tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
 data_files = [('Music Caster.VisualElementsManifest.xml', '.'),
@@ -47,4 +50,4 @@ coll = COLLECT(exe,
                a.datas,
                strip=False,
                upx=False,
-               name='Music Caster')
+               name='Music Caster OneDir')

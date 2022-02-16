@@ -37,7 +37,7 @@ Hibernar computadora
 INFO
 Entrada no válida (ingrese minutos o HH: MM)
 URL invalida.  La URL debe comenzar con http:// o https://
-ERROR: Se seleccionó un archivo de audio no válido
+Se seleccionó un archivo de audio no válido
 Mantenga el modo mini en la parte superior
 Iniciar el modo mini
 Controles de música en lado izquierdo
@@ -48,6 +48,7 @@ Audio del Sistema
 Dispositivo local
 localizar seleccionado
 Modo Mini en la parte superior
+Conexión perdida a $DEVICE, cambio a dispositivo local
 Más
 mover hacia abajo
 Pasar al siguiente
@@ -65,6 +66,7 @@ No ha iniciado sesión en deezer.com
 Nada Reproduciéndose
 Notificaciones
 Detener solo la Reproducción
+Abierta
 Pausa
 Cola persistente
 Reproducir
@@ -80,7 +82,7 @@ Reproducir URL Siguiente
 Reproduciendo
 Nombre lista reprod.
 Listas de Reproducción
-Menú de Listas de Reproducción
+Pestaña Listas de Reproducción
 Rellenar cola al inicio
 Llena la cola de las carpetas al inicio
 pista anterior
@@ -147,7 +149,7 @@ Use cover.* Para la carátula en lugar de la carátula del álbum del archivo
 cover.* la imagen anula la portada del archivo
 GUI vertical
 Ver enlaces de origen de archivos de audio
-Código QR de la GUI web (haga clic o escanee)
+Interfaz GUI Web Abierta
 nueva lista de reproducción
 exportar lista de reproducción
 eliminar lista de reproducción
@@ -188,3 +190,5 @@ Retraso de audio del sistema:
 segundos
 localizar pista
 Cambiar a dispositivo local
+Formato de Pista:
+No se pudo obtener el audio para $URL

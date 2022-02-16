@@ -1,46 +1,38 @@
-from deezer import TrackFormats
-from mutagen.oggvorbis import OggVorbis  # 0.259 seconds because of requests
-from b64_images import *
-import base64
 import audioop
-from queue import LifoQueue, Empty
+import base64
 from contextlib import suppress
 from configparser import MissingSectionHeaderError
 import ctypes
 import ctypes.wintypes
-import datetime
+from datetime import datetime
+from deezer import TrackFormats
 from functools import wraps, lru_cache
 import glob
 import io
 from itertools import cycle, repeat, chain
-import ujson as json
 import locale
+import logging
 from math import floor, ceil
 import os
 from pathlib import Path
 import platform
+from queue import LifoQueue, Empty
 from random import getrandbits
 import re
 import socket
-import time
+import sys
+from subprocess import Popen
 from threading import Thread
+import time
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
-import winreg as wr
-import sys
-import logging
+
+from b64_images import *
 
 # 3rd party imports
-import pypresence
 import deemix.utils.localpaths as __lp
 __lp.musicdata = '/dz'
-# without dz imports:
-# helpers: 0.5212428569793701
-# Done importing: 4.07397723197937
-# with dz imports:
-# helpers: 1.3634579181671143
-# Done importing: 4.319329738616943
 import mutagen
 from mutagen import MutagenError
 from mutagen.aac import AAC
@@ -53,12 +45,13 @@ from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import HeaderNotFoundError
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easyid3 import EasyID3
-from mutagen.easymp4 import EasyMP4
 import pyaudio
+import pypresence
 import pyqrcode
-import PySimpleGUI as Sg  # 0.11 seconds
-from PIL import Image, ImageFile, ImageDraw, ImageFont
+import PySimpleGUI as Sg
+from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
+import ujson as json
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 
 
@@ -78,8 +71,6 @@ SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
-keybd_event = ctypes.windll.user32.keybd_event
-alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
 
 
 class Shared:
@@ -182,11 +173,13 @@ class SystemAudioRecorder:
         self.alive = False
 
     def start(self):
-        if not self.alive:
-            if self.pa is None: self.pa = pyaudio.PyAudio()
-            # initialization process takes ~0.2 seconds
-            Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
-
+        if platform.system() == 'Windows':
+            if not self.alive:
+                if self.pa is None: self.pa = pyaudio.PyAudio()
+                # initialization process takes ~0.2 seconds
+                Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
+        else:
+            print('TODO: SystemAudioRecorder')
 
 class InvalidAudioFile(Exception): pass
 
@@ -317,7 +310,8 @@ class DiscordPresence:
     @classmethod
     @exception_wrapper
     def close(cls):
-        cls.rich_presence.close()
+        if cls.rich_presence is not None:
+            cls.rich_presence.close()
 
 
 def get_file_name(file_path): return Path(file_path).stem
@@ -373,8 +367,11 @@ def get_lang_pack(lang):
 
 
 def get_display_lang():
-    windll = ctypes.windll.kernel32
-    return locale.windows_locale[windll.GetUserDefaultUILanguage()].split('_')[0]
+    if platform.system() == 'Windows':
+        kernal32 = ctypes.windll.kernel32
+        return locale.windows_locale[kernal32.GetUserDefaultUILanguage()].split('_', 1)[0]
+    else:
+        return os.environ['LANG'].split('_', 1)[0]
 
 
 def get_translation(string, lang='', as_title=False):
@@ -468,9 +465,9 @@ def set_metadata(file_path: str, metadata: dict):
             for k in tuple(audio.keys()):
                 if 'APIC:' in k: audio.pop(k)
     elif isinstance(audio, MP4):
-        if title: audio['@nam'] = [title]
-        if artists: audio['@ART'] = artists
-        if album: audio['@alb'] = [album]
+        if title: audio['©nam'] = [title]
+        if artists: audio['©ART'] = artists
+        if album: audio['©alb'] = [album]
         audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
         audio['rtng'] = [int(rating)]
         if metadata['art'] is not None:
@@ -523,7 +520,9 @@ def set_metadata(file_path: str, metadata: dict):
 
 
 def get_metadata(file_path: str):
-    file_path = file_path.lower()
+    """
+    TODO: do not depend on file endings
+    """
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
     try:
@@ -532,9 +531,11 @@ def get_metadata(file_path: str):
             _audio = mutagen.File(file_path)
             audio['rating'] = _audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', ['0']))
         elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
-            audio = dict(EasyMP4(file_path))
-            _audio = mutagen.File(file_path)
-            audio['rating'] = _audio.get('rtng', ['0'])
+            audio = dict(mutagen.File(file_path))
+            audio['rating'] = audio.get('rtng', [0])
+            for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
+                if tag in audio:
+                    audio[normalized] = audio.pop(tag)
         elif file_path.endswith('.wav'):
             a = WavInfoReader(file_path).info.to_dict()
             audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
@@ -544,6 +545,7 @@ def get_metadata(file_path: str):
             if file_path.endswith('.wma'):
                 audio = {k: [audio[k][0].value] for k in audio}
     except TypeError as e:
+        logging.getLogger('music_caster').error(repr(e))
         logging.getLogger('music_caster').info(f'Could not open {file_path} as audio file')
         raise InvalidAudioFile(f'Is {file_path} a valid audio file?') from e
     except (ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
@@ -664,7 +666,7 @@ def better_shuffle(seq, first=0, last=-1):
             size = last - i + 1
             j = getrandbits(size.bit_length()) % size + i
             seq[i], seq[j] = seq[j], seq[i]
-        return seq
+    return seq
 
 
 def create_qr_code():
@@ -694,7 +696,12 @@ def dz():
 @lru_cache(maxsize=2)
 def ydl(proxy=None):
     from youtube_dl import YoutubeDL  # 2 seconds!
-    return YoutubeDL() if proxy is None else YoutubeDL({'proxy': proxy})
+    opts = {
+        'quiet': True
+    }
+    if proxy is not None:
+        opts['proxy'] = proxy
+    return YoutubeDL(opts)
 
 
 def ydl_extract_info(url):
@@ -740,6 +747,7 @@ def is_os_64bit(): return platform.machine().endswith('64')
 
 
 def delete_sub_key(root, current_key):
+    import winreg as wr
     access = wr.KEY_ALL_ACCESS | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_ALL_ACCESS
     with suppress(FileNotFoundError):
         with wr.OpenKeyEx(root, current_key, 0, access) as parent_key:
@@ -754,6 +762,7 @@ def delete_sub_key(root, current_key):
 def add_reg_handlers(path_to_exe, add_folder_context=True):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
+    import winreg as wr
     path_to_exe = path_to_exe.replace('/', '\\')
     classes_path = 'SOFTWARE\\Classes\\'
     mc_file = 'MusicCaster_file'
@@ -783,7 +792,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\open\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
 
     # create queue context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\queue', 0, write_access) as key:
@@ -792,7 +801,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\queue\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
 
     # create play next context
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\play_next', 0, write_access) as key:
@@ -801,7 +810,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
     command_path = f'{classes_path}{mc_file}\\shell\\play_next\\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n "%1"')
+        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
 
     # set file handlers
     for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
@@ -827,19 +836,19 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play with Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
         # set "queue folder in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Queue in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
         # set "play folder next in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_next_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, gt('Play next in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_next_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n "%1"')
+            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
     else:
         # remove commands for folders
         delete_sub_key(wr.HKEY_CURRENT_USER, play_folder_key_path)
@@ -849,6 +858,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
 
 def get_default_output_device():
     """ returns the PyAudio formatted name of the default output device """
+    import winreg as wr
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
     audio_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
     audio_key = wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, audio_path, 0, read_access)
@@ -870,10 +880,17 @@ def get_default_output_device():
     return active_device_name
 
 
-def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
+def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
-    img_data = io.BytesIO(b64decode(base64data))
-    art_img: Image = Image.open(img_data)
+
+    try:
+        img_data = io.BytesIO(b64decode(base64data))
+        art_img: Image = Image.open(img_data)
+    except UnidentifiedImageError as e:
+        if default_art is None:
+            raise OSError from e
+        img_data = io.BytesIO(b64decode(default_art))
+        art_img: Image = Image.open(img_data)
     w, h = art_img.size
     if w == h:
         # resize a square
@@ -893,8 +910,8 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL) -> bytes:
 
 
 def export_playlist(playlist_name, uris):
-    # location should be downloads folder
-    playlist_name = re.sub(r'(?u)[^-\w.]', '', playlist_name)  # clean name
+    # exports uris to ~/Downloads/safe(playlist_name).m3u
+    playlist_name = re.sub(r'(?u)[^-\w. ]', '', playlist_name)  # clean name
     playlist_path = Path.home() / 'Downloads'
     playlist_path.mkdir(parents=True, exist_ok=True)
     playlist_path /= f'{playlist_name}.m3u'
@@ -1119,7 +1136,7 @@ def parse_deezer_track(track_obj) -> dict:
         metadata['file_url'] = file_url
         metadata['bf_key'] = bf_key
         expiry_time = time.time() + 1800  # 30 minute expiry
-        metadata['expired'] = lambda: time.time() > expiry_time
+        metadata['expiry'] = expiry_time
     return metadata
 
 
@@ -1434,7 +1451,7 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
 
 
 def create_main(queue, listbox_selected, playing_status, settings, version, timer, music_lib,
-                title=gt('Nothing Playing'), artist='', album='', album_art_data: str = '',
+                title=gt('Nothing Playing'), artist='', album='', album_art_data: bytes = b'',
                 track_length=0, track_position=0):
     if settings['mini_mode']:
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
@@ -1604,11 +1621,12 @@ def create_settings(version, settings):
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
-         Sg.Text('🌐', tooltip=gt('language', True)),
+         Sg.Text('🌐' if platform.system() == 'Windows' else 'g', tooltip=gt('language', True)),
          Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
                   enable_events=True, tooltip=gt('language'))],
         [Sg.Text(gt('System Audio Delay:')),
-         Sg.Input(settings['delay'], size=(10, 1), key='delay', tooltip=gt('seconds'), border_width=1, pad=(70, 1))]
+         Sg.Input(settings['sys_audio_delay'], size=(10, 1), key='sys_audio_delay', tooltip=gt('seconds'),
+                  border_width=1, pad=(70, 1), enable_events=True)]
     ], background_color=bg)
     queuing_tab = Sg.Tab(gt('Queueing'), [
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),
@@ -1625,7 +1643,10 @@ def create_settings(version, settings):
         [create_checkbox(gt('Show album art'), 'show_album_art', settings),
          create_checkbox(gt('Mini mode on top'), 'mini_on_top', settings, True)],
         [create_checkbox(gt('Use cover.* for album art'), 'folder_cover_override', settings),
-         create_checkbox(gt('Show index in queue'), 'show_queue_index', settings, True)]
+         create_checkbox(gt('Show index in queue'), 'show_queue_index', settings, True)],
+        [Sg.Text(gt('Track Format:'), tooltip='&alb, &trck, &artist, &title'),
+         Sg.Input(settings['track_format'], size=(30, 1), key='track_format', enable_events=True,
+                  border_width=1, pad=(70, 1), tooltip='&alb, &trck, &artist, &title')]
     ], background_color=bg)
     settings_tab_group = Sg.TabGroup([[general_tab, queuing_tab, ui_tab]], title_color=fg,
                                      border_width=0, selected_background_color=accent_color, font=FONT_TAB,
@@ -1662,7 +1683,7 @@ def create_timer(settings, timer):
     do_nothing = not (shut_down or hibernate or sleep)
     # if timer is valid
     if time.time() < timer:
-        timer_date = datetime.datetime.fromtimestamp(timer)
+        timer_date = datetime.fromtimestamp(timer)
         timer_date = timer_date.strftime('%#I:%M %p')
         timer_text = gt('Timer set for $TIME').replace('$TIME', timer_date)
     else:
@@ -1704,20 +1725,25 @@ def create_metadata_tab(settings):
 
 
 def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
+    # raises TclError [window_is_foreground]
     # use bring to fron when frozen, in Python use other method
-    if is_frozen and window_is_foreground(window):
-        window.bring_to_front()
-    else:
-        keybd_event(alt_key, 0, extended_key | 0, 0)
-        ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
-        ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
-        keybd_event(alt_key, 0, extended_key | key_up, 0)
-    if window.TKroot.state() == 'iconic':
-        window.normal()
-    window.force_focus()
+    if platform.system() == 'Windows':
+        if is_frozen and window_is_foreground(window):
+            window.bring_to_front()
+        else:
+            keybd_event = ctypes.windll.user32.keybd_event
+            alt_key, extended_key, key_up = 0x12, 0x0001, 0x0002
+            keybd_event(alt_key, 0, extended_key | 0, 0)
+            ctypes.windll.user32.SetForegroundWindow.argtypes = (ctypes.wintypes.HWND,)
+            ctypes.windll.user32.SetForegroundWindow(window.TKroot.winfo_id())
+            keybd_event(alt_key, 0, extended_key | key_up, 0)
+        if window.TKroot.state() == 'iconic':
+            window.normal()
+        window.force_focus()
 
 
 def window_is_foreground(window: Sg.Window):
+    # raises TclError
     width, height = window.TKroot.winfo_width(), window.TKroot.winfo_height()
     x, y = window.TKroot.winfo_rootx(), window.TKroot.winfo_rooty()
     if (width, height, x, y) != (1, 1, 0, 0):
@@ -1758,3 +1784,47 @@ def get_cut_text(window, key):
         if i >= len(new_text) or v != new_text[i]: cut_text += v
         else: i += 1
     return cut_text
+
+
+def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
+    from win32comext.shell import shell, shellcon
+    from win32com.universal import com_error
+    import pythoncom
+    import win32com.client
+    app_log = logging.getLogger('music_caster')
+    app_log.info('create_shortcut called')
+    startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
+    shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if is_debug else ''}.lnk"
+    with suppress(com_error):
+        shortcut_exists = os.path.exists(shortcut_path)
+        if run_on_startup or is_debug:
+            # noinspection PyUnresolvedReferences
+            pythoncom.CoInitialize()
+            _shell = win32com.client.Dispatch('WScript.Shell')
+            shortcut = _shell.CreateShortCut(shortcut_path)
+            if is_frozen:
+                target = f'{working_dir}\\Music Caster.exe'
+            else:
+                target = f'{working_dir}\\music_caster.bat'
+                if os.path.exists(target):
+                    with open('music_caster.bat', 'w') as f:
+                        f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
+                shortcut.IconLocation = f'{working_dir}\\resources\\Music Caster Icon.ico'
+            shortcut.Targetpath = target
+            shortcut.Arguments = '-m'
+            shortcut.WorkingDirectory = working_dir
+            shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
+            shortcut.save()
+            if is_debug:
+                time.sleep(1)
+                os.remove(shortcut_path)
+        elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
+
+
+def startfile(file):
+    if platform.system() == 'Windows':
+        return os.startfile(file)
+    elif platform.system() == 'Darwin':
+        return Popen(['open', file])
+    # Linux
+    return Popen(['xdg-open', file])

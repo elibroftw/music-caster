@@ -1,5 +1,115 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.19
+- [Fix] URL casting
+
+5.1.18
+- [Fix] Youtube Playlist Web
+
+5.1.17
+- [Fix] Portable
+
+5.1.16
+- [Fix] Corner cases
+
+5.1.15
+- [Fix] URL Metadata
+
+5.1.14
+- [Fix] Encoding
+
+5.1.13
+- [Fix] Metadata
+
+5.1.12
+- [Fix] Startup
+
+5.1.11
+- [Fix] GUI
+
+5.1.10
+- [Fix] URL Metadata
+
+5.1.9
+- [Fix] URL Metadata
+
+5.1.8
+- [Fix] URL Metadata
+
+5.1.7
+- [Fix] URL Metadata
+
+5.1.6
+- [Fix] start_playing
+
+5.1.5
+- [Fix] Spelling
+
+5.1.4
+- [Fix] Chromecast connection
+
+5.1.3
+- [Fix] GUI Listbox
+
+5.1.2
+- [Optimization] Faster startup
+- [Fix] Queue from explorer
+- [Fix] Prev track
+- [Fix] Cast updates
+
+5.1.1
+- [Fix] Override track format
+- [Fix] URL Metadata
+
+5.1.0
+- [UI] Override track format
+- [Fix] Dialog blocking
+
+5.0.13
+- [Fix] Long track names
+
+5.0.12
+- [Fix] M4A files
+
+5.0.11
+- [Fix] Setting png as cover art
+
+5.0.10
+- [Fix] Performance
+
+5.0.9
+- [Fix] TCLError Mini-mode
+
+5.0.8
+- [Fix] Temp TCLError fix
+
+5.0.7
+- [Fix] Prev track with next queue
+
+5.0.6
+- [Fix] Chromecast
+- [Fix] URL metadata
+
+5.0.5
+- [Fix] Dependencies
+
+5.0.4
+- [Fix] Catch errors
+
+5.0.3
+- [Fix] Smart queue
+- [Fix] Logging
+- [Fix] Tray device names
+
+5.0.2
+- [Fix] TKdnd error
+
+5.0.1
+- [Fix] Better end of list behaviour
+
+5.0.0
+- [New] Using Python 3.10 64-bit
+
 4.90.157
 - [Fix] Invalid audio file error
 
@@ -31,97 +141,6 @@ Music Caster by Elijah Lopez Changelog
 4.90.148
 - [Fix] Keyboard
 - [Fix] Chromecast errors
-
-4.90.147
-- [Fix] URL
-
-4.90.146
-- [Fix] Fix URL
-- [Fix] Chromecast errors
-
-4.90.145
-- [Fix] Next/Previous track from queue
-
-4.90.144
-- [Fix] Handle chromecast disconnect
-
-4.90.143
-- [Fix] Previous track
-
-4.90.142
-- [Fix] Web GUI
-
-4.90.141
-- [Fix] Dutch
-
-4.90.140
-- [Fix] Change Chromecast
-
-4.90.139
-- [Fix] IPv6
-
-4.90.138
-- [Fix] Import playlist
-
-4.90.137
-- [Fix] Timer
-- [Fix] Export playlist
-- [UI] Added Dutch translation
-
-4.90.136
-- [Fix] URL support
-
-4.90.135
-- [Fix] get ipv4
-
-4.90.134
-- [Feature] Mobile playback
-- [Fix] URL local muted playback
-
-4.90.133
-- [Fix] GUI activation
-
-4.90.132
-- [Fix] URL support
-
-4.90.131
-- [Fix] Metadata Tab
-- [Fix] Discord Presence
-
-4.90.130
-- [Fix] GUI activation
-
-4.90.129
-- [Fix] APIs
-
-4.90.128
-- [Fix] YouTube and GUI focus
-
-4.90.127
-- [Fix] ComboBox button color
-
-4.90.126
-- [UX] Support music.youtube.com
-- [UI] Added link to GitHub
-- [UX] Flash border of mini-mode
-
-4.90.125
-- [Fix] Improved pause and resume logging
-
-4.90.124
-- [Fix] Log file location
-
-4.90.123
-- [Fix] Tray not closing
-
-4.90.122
-- [Fix] Move track down
-
-4.90.121
-- [Fix] Focus on first window creation
-
-4.90.120
-- [Fix] json serialization
 
 4.90.147
 - [Fix] URL
