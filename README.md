@@ -47,6 +47,7 @@ Here are Music Caster specific keyboard shortcuts aside from the global media ho
 | Ctrl + Shift + Alt + M | Global     | Activate Main Window           |
 | Ctrl + (Shift) + }     | Main       | Toggle mini-mode               |
 | Esc                    | Main       | Close Window                   |
+| Ctrl + Shift + Q       | Main       | Exit Program                   |
 | Scroll                 | Main       | Volume and Progress Bar        |
 | ⬆/A                    | Main       | Decrease Volume by 5%          |
 | ⬇/D                    | Main       | Increase Volume by 5%          |
