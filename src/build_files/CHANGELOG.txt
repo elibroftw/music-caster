@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.20
+- [Feature] --device=<device> option added to specify the device to use
+- [Feature] Ctrl + Shift + Q in GUI to exit program
+
 5.1.19
 - [Fix] URL casting
 
