@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.19'
+VERSION = latest_version = '5.1.20'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
     parser.add_argument('--position', default=0, help='position to start at if resume_playing')
     parser.add_argument('--shell', default=False, action='store_true', help='if from shell/explorer')
+    parser.add_argument('--device', action='store', help='device to use', default=None)
     # freeze_support() adds the following
     parser.add_argument('--multiprocessing-fork', default=False, action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -1155,13 +1156,17 @@ if __name__ == '__main__':
             with suppress(AttributeError):
                 if cast.uuid == new_uuid:
                     # do not change device if same cast is selected
-                    return False
-            new_device = pychromecast.get_chromecast_from_cast_info(cast_browser.devices.get(new_uuid, None), zconf)
+                    return True
+            if new_uuid not in cast_browser.devices:
+                return False
+            cast_info = cast_browser.devices[new_uuid]
+            new_device = pychromecast.get_chromecast_from_cast_info(cast_info, zconf)
         except ValueError:
+            # local device selected (any non uuid string)
             new_device = None
         if cast == new_device:
             # do not change device if local device is selected again
-            return False
+            return True
         # cache information
         current_pos = 0
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
@@ -1188,6 +1193,7 @@ if __name__ == '__main__':
             if cast is not None:
                 cast.wait(timeout=WAIT_TIMEOUT)
             update_volume(0 if settings['muted'] else settings['volume'])
+        return True
 
 
     def un_shuffle_queue():
@@ -2282,7 +2288,7 @@ if __name__ == '__main__':
         main_window['progress_bar'].bind('<Leave>', '_mouse_leave')
         main_window.TKroot.bind('<Configure> ', save_window_position, add='+')
         main_window.bind('<Control-braceright>', 'mini_mode')
-        main_window.bind('<Control-q>', 'q:81')
+        main_window.bind('<Control-Q>', 'exit_program')
         main_window.bind('<Control-r>', 'repeat')
         main_window.bind('<Control-s>', 's:83')
         main_window.bind('<Control-m>', 'mute')
@@ -2984,7 +2990,7 @@ if __name__ == '__main__':
                 main_window['playlist_combo'].update(value=pl_name, values=playlist_names)
             save_settings()
             refresh_tray()
-        elif (main_event in ('pl_rm_items', 'q:81') and main_values['pl_tracks']
+        elif (main_event == 'pl_rm_items' and main_values['pl_tracks']
               and main_values.get('tab_group') == 'tab_playlists'):
             # remove items from playlist
             # remove bottom to top to avoid dynamic indices
@@ -3128,6 +3134,8 @@ if __name__ == '__main__':
                     main_window['metadata_msg'].update(value=error, text_color='red')
                 main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
                 main_window['title'].update(' ' + main_window['title'].DisplayText + ' ')  # try updating now playing
+        elif main_event == 'exit_program':
+            exit_program()
         # other GUI updates
         if main_window.metadata['update_listboxes'] and not settings['mini_mode']:
             main_window.metadata['update_listboxes'] = False
@@ -3381,10 +3389,14 @@ if __name__ == '__main__':
         except StopIteration:
             app_log.info('Could not get LAN IPV6 address')
         DiscordPresence.connect(settings['discord_rpc'])
+        if args.device is not None:
+            end_time = time.monotonic() + WAIT_TIMEOUT
+            while not change_device(args.device) and time.monotonic() < end_time:
+                time.sleep(0.3)
         if args.uris or args.start_playing:
             # wait until previous device has been found or cannot be found
             end_time = time.monotonic() + WAIT_TIMEOUT
-            while cast is None and time.monotonic() < end_time and settings['previous_device']:
+            while not change_device(settings['previous_device']) and time.monotonic() < end_time:
                 time.sleep(0.3)
         if args.uris:
             play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
