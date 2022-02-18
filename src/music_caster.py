@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.20'
+VERSION = latest_version = '5.1.21'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1152,7 +1152,7 @@ if __name__ == '__main__':
         global cast
         app_log.info(f'change_device({new_uuid})')
         try:
-            new_uuid = UUID(new_uuid)
+            new_uuid = UUID(hex=new_uuid)
             with suppress(AttributeError):
                 if cast.uuid == new_uuid:
                     # do not change device if same cast is selected
