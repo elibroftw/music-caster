@@ -1161,7 +1161,7 @@ if __name__ == '__main__':
                 return False
             cast_info = cast_browser.devices[new_uuid]
             new_device = pychromecast.get_chromecast_from_cast_info(cast_info, zconf)
-        except ValueError:
+        except (ValueError, TypeError):
             # local device selected (any non uuid string)
             new_device = None
         if cast == new_device:

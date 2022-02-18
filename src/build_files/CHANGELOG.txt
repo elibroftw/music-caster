@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 5.1.21
-- [Fix] --device=<device> 
+- [Fix] command line arguments
 
 5.1.20
 - [Feature] --device=<device> option added to specify the device to use
