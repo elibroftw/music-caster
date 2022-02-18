@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.1.22
+- [Fix] Open settings.json
+
 5.1.21
 - [Fix] command line arguments
 

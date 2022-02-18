@@ -1822,9 +1822,11 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
 
 def startfile(file):
     if platform.system() == 'Windows':
-        return os.startfile(file)
+        try:
+            return os.startfile(file)
+        except OSError:
+            Popen(f'explorer "{fix_path(file)}"')
     elif platform.system() == 'Darwin':
         return Popen(['open', file])
     # Linux
     return Popen(['xdg-open', file])
-    

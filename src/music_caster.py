@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.21'
+VERSION = latest_version = '5.1.22'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
