@@ -38,6 +38,7 @@ INFO
 Entrada no válida (ingrese minutos o HH: MM)
 URL invalida.  La URL debe comenzar con http:// o https://
 Se seleccionó un archivo de audio no válido
+Archivo de audio no válido $FILE
 Mantenga el modo mini en la parte superior
 Iniciar el modo mini
 Controles de música en lado izquierdo

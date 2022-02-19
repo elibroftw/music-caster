@@ -999,7 +999,7 @@ def get_spotify_headers():
     return {'Authorization': f'Bearer {access_token}'}
 
 
-def parse_spotify_track(track_obj) -> dict:
+def parse_spotify_track(track_obj, parent_url='') -> dict:
     """
     Returns a metadata dict for a given Spotify track
     """
@@ -1010,7 +1010,10 @@ def parse_spotify_track(track_obj) -> dict:
     title = track_obj['name']
     is_explicit = track_obj['explicit']
     album = track_obj['album']['name']
-    src_url = track_obj['external_urls']['spotify']
+    try:
+        src_url = track_obj['external_urls']['spotify']
+    except:
+        src_url = parent_url
     track_number = str(track_obj['track_number'])
     sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
     sort_key = sort_key.replace('&trck', track_number).lower()
@@ -1033,19 +1036,21 @@ def get_spotify_track(url):
 
 def get_spotify_album(url):
     album_id = urlparse(url).path.split('/album/', 1)[1]
-    r = requests.get(f'{SPOTIFY_API}/albums/{album_id}', headers=get_spotify_headers()).json()
-    return [parse_spotify_track({**track, 'album': r}) for track in r['tracks']['items']]
+    api_url = f'{SPOTIFY_API}/albums/{album_id}'
+    r = requests.get(api_url, headers=get_spotify_headers()).json()
+    return [parse_spotify_track({**track, 'album': r}, parent_url=url) for track in r['tracks']['items']]
 
 
 def get_spotify_playlist(url):
     playlist_id = urlparse(url).path.split('/playlist/', 1)[1]
-    response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks', headers=get_spotify_headers()).json()
+    api_url = f'{SPOTIFY_API}/playlists/{playlist_id}/tracks'
+    response = requests.get(api_url, headers=get_spotify_headers()).json()
     results = response['items']
     while len(results) < response['total']:
-        response = requests.get(f'{SPOTIFY_API}/playlists/{playlist_id}/tracks?offset={len(results)}',
+        response = requests.get(f'{api_url}/tracks?offset={len(results)}',
                                 headers=get_spotify_headers()).json()
         results.extend(response['items'])
-    return [parse_spotify_track(result['track']) for result in results if isinstance(result['track'], dict)]
+    return [parse_spotify_track(result['track'], url) for result in results if isinstance(result['track'], dict)]
 
 
 @lru_cache

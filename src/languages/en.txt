@@ -38,6 +38,7 @@ INFO
 Invalid Input (enter minutes or HH:MM)
 Invalid URL. URL's need to start with http:// or https://
 Invalid audio file selected
+Invalid audio file $FILE
 Keep mini mode on top
 Launch mini mode
 Left-side music controls

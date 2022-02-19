@@ -38,6 +38,7 @@ INFO
 Input non valido (inserire minuti o HH:MM)
 URL non valido. Gli URL devono iniziare con http:// o https://
 Selezionato file audio non valido
+File audio $FILE non valido
 Mantenere il modo mini in alto
 Avvia il modo mini
 Controlli musicali a sinistra

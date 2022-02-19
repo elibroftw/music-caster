@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.22'
+VERSION = latest_version = '5.1.23'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -1510,6 +1510,8 @@ if __name__ == '__main__':
                 else:
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
                     youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
+                    if metadata['src'] == '':
+                        metadata['src'] = youtube_metadata['src']
                 if youtube_metadata:
                     youtube_metadata = youtube_metadata[0]
                     # these are the only fields we need to update since they actually expire
@@ -1537,6 +1539,8 @@ if __name__ == '__main__':
                         youtube_metadata = youtube_metadata[0]
                         # expiry, url, and audio_url are not overwritten here
                         metadata = {**youtube_metadata, **metadata}
+                        if metadata['src'] == '':
+                            metadata['src'] = youtube_metadata['src']
                         url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                         # if url is a spotify track, set its metadata
                         if len(spotify_tracks) == 1: url_metadata[url] = metadata
@@ -1658,7 +1662,8 @@ if __name__ == '__main__':
             track_length = get_length(uri)
         except InvalidAudioFile:
             done_queue.append(music_queue.popleft())
-            tray_notify(f"ERROR: can't play {uri}")
+            msg = gt('ERROR') + ': ' + gt('Invalid audio file $FILE').replace('$FILE', uri)
+            tray_notify(msg)
             if music_queue: play()
             return
         metadata = get_metadata_wrapped(uri)
@@ -2392,9 +2397,13 @@ if __name__ == '__main__':
                 else:
                     uri = ''
             if uri.startswith('http'):
-                if uri.startswith('http'): Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
-            elif os.path.exists(uri):
+                Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
+                return True
+            if os.path.exists(uri):
                 Popen(f'explorer /select,"{fix_path(uri)}"')
+                return True
+        # tray_notify(gt('ERROR') + ':' + gt('Could not locate URI'))
+        return False
 
 
     def exit_program(quick_exit=False):
@@ -2598,7 +2607,8 @@ if __name__ == '__main__':
                 values = create_track_list()
                 dq_len = len(done_queue)
                 main_window['queue'].update(values=values, set_to_index=dq_len, scroll_to_index=dq_len)
-        elif main_event == 'album' and playing_status.busy(): locate_uri()
+        elif main_event == 'album' and playing_status.busy():
+            locate_uri()
         elif main_event == 'locate_uri':
             if not settings['mini_mode'] and main_values['queue']:
                 for index in main_window['queue'].get_indexes(): locate_uri(index - len(done_queue))

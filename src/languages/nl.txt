@@ -38,6 +38,7 @@ INFO
 Verkeerde ingave (geef aantal minuten in of UU:MM)
 Ongeldige URL. URL's moeten beginnen met http:// of https://
 Ongeldig audiobestand geselecteerd
+Ongeldig audiobestand $FILE
 Houdt mini modus zichtbaar
 Start mini modus
 Muziekbediening aan de linkerkant
