@@ -1,6 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
 5.1.23
+- [Fix] Single instance
+
+5.1.23
 - [Fix] Spotify playlists local files
 
 5.1.22

@@ -29,6 +29,7 @@ flask~=2.0
 deezer-py~=1.2
 deemix~=3.5
 six~=1.16
+portalocker~=2.4.0
 # pyinstaller dependencies
 setuptools==60.5.0
 altgraph

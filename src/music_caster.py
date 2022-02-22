@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.1.23'
+VERSION = latest_version = '5.1.24'
 UPDATE_MESSAGE = """
 [New] Override track format
 [MSG] Language translators wanted
@@ -14,10 +14,16 @@ from itertools import islice
 import io
 import multiprocessing as mp
 import os
+import platform
 import threading
 from subprocess import Popen, PIPE, DEVNULL
 # noinspection PyUnresolvedReferences
 import re
+
+
+MUTEX_NAME = 'MusicCasterMutex{{FBE8A652-58D6-482D-B6A9-B3D7931CC9C5}'
+PID_FILENAME = 'music_caster.pid'
+LOCK_FILENAME = 'music_caster.lock'
 
 
 def get_running_processes(look_for='', pid=None, add_exe=True):
@@ -39,15 +45,125 @@ def get_running_processes(look_for='', pid=None, add_exe=True):
 
 
 def is_already_running(look_for='Music Caster', threshold=1, pid=None) -> bool:
-    for _ in get_running_processes(look_for=look_for, pid=pid):
-        threshold -= 1
-        if threshold < 0:
-            return True
+    """
+    Returns True if more processes than `threshold` were found
+    # TODO: threshold feature for Linux
+    """
+    if platform.system() == 'Windows':
+        for _ in get_running_processes(look_for=look_for, pid=pid):
+            threshold -= 1
+            if threshold < 0:
+                return True
+    else:  # Linux
+        p = Popen(['ps', 'h', '-C', look_for, '-o', 'comm'], stdout=PIPE, stdin=PIPE, stderr=DEVNULL, text=True)
+        return p.stdout.readline().strip() != ''
     return False
 
 
+def create_pid_file(port=None):
+    with open(PID_FILENAME, 'w', encoding='utf-8') as f:
+        f.write(str(os.getpid()))
+        if port is not None:
+            f.write(f'\n{port}')
+
+
+def parse_pid_file() -> (int, int):
+    with suppress(FileNotFoundError):
+        with open(PID_FILENAME, encoding='utf-8') as f:
+            pid = int(f.readline().strip())
+            try:
+                port = int(f.readline().strip())
+            except ValueError:
+                port = 2001
+            return pid, port
+    return None, 2001
+
+
+class SingleInstance:
+    # alternative to ensure_single_instance
+
+    def __init__(self, is_debug=False):
+        self.is_debug = is_debug
+        if platform.system() == 'Windows':
+            from win32event import CreateMutex
+            from win32api import GetLastError
+            from winerror import ERROR_ALREADY_EXISTS
+            self.mutex = CreateMutex(None, False, MUTEX_NAME)
+            if GetLastError() == ERROR_ALREADY_EXISTS:
+                self.on_already_running()
+            else:
+                self.on_lock(is_debug=is_debug)
+        else:
+            import portalocker
+            from portalocker.exceptions import LockException
+            self.file = open(LOCK_FILENAME, 'w+', encoding='utf-8')
+            try:
+                portalocker.lock(self.file, portalocker.LockFlags.NON_BLOCKING)
+                self.on_lock(is_debug=is_debug)
+            except LockException:
+                self.on_already_running()
+
+    def on_lock(self, is_debug=False):
+        create_pid_file()
+        if is_debug:
+            print(f'Locked {LOCK_FILENAME} pid = {os.getpid()}')
+
+    def on_already_running(self):
+        # single instance is apparently running, so wait for pid file to be written
+        time.sleep(0.1)
+        pid, port = parse_pid_file()
+        look_for = 'Music Caster' if IS_FROZEN else 'python'
+        # double check if it's already running
+        # if more than one instance, there's definitely >3 processes
+        threshold = 3 if pid is None else 0
+        if is_already_running(threshold=threshold, look_for=look_for, pid=pid):
+            if not is_debug:
+                activate_instance(port=port, timeout=5)
+                sys.exit()
+            else:
+                print('not exiting because we are DEBUGGING')
+        else:
+            print('ERROR: locking mechanic broken')
+
+    def release(self):
+        if platform.system() == 'Windows':
+            from win32api import CloseHandle
+            CloseHandle(self.mutex)
+        else:
+            import portalocker
+            portalocker.unlock(self.file)
+
+
+def ensure_single_instance(is_debug=False):
+    file = open(LOCK_FILENAME, 'w+', encoding='utf-8')
+    # no old running instances found, try locking file
+    try:
+        # exclusively locked
+        portalocker.lock(file, portalocker.LockFlags.NON_BLOCKING)
+        create_pid_file()
+        if is_debug:
+            print(f'Locked {LOCK_FILENAME} pid = {os.getpid()}')
+    except LockException:
+        # another instance is probably running
+        # wait a bit for pid to be written to file
+        time.sleep(0.1)
+        pid, port = parse_pid_file()
+        look_for = 'Music Caster' if IS_FROZEN else 'python'
+        # double check if it's already running
+        # if more than one instance, there's definitely >3 processes
+        threshold = 3 if pid is None else 0
+        if is_already_running(threshold=threshold, look_for=look_for, pid=pid):
+            if is_debug:
+                print('not exiting because we are DEBUGGING')
+            else:
+                activate_instance(port=port, timeout=5)
+                sys.exit()
+        else:
+            print('instance not found, lock broken?')
+    return file
+
+
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
-    import platform
     from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
     if platform.system() == 'Linux':
         os.environ['PYSTRAY_BACKEND'] = 'appindicator'
@@ -115,30 +231,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     tray.run()
 
 
-def lock_file(overwrite=False, port=None):
-    with open('music_caster.lock', 'w' if overwrite else 'x', encoding='utf-8') as f:
-        f.write(str(os.getpid()))
-        if port is not None:
-            f.write(f'\n{port}')
-
-
-def activate_from_lock_file():
-    with suppress(FileNotFoundError):
-        with open('music_caster.lock', 'r', encoding='utf-8') as f:
-            pid = int(f.readline().strip())
-            if os.getpid() == pid:
-                return
-            look_for = 'Music Caster' if IS_FROZEN else 'python'
-            if is_already_running(threshold=0, look_for=look_for, pid=pid):
-                try:
-                    port = int(f.readline().strip())
-                except ValueError:
-                    port = 2001
-                if not DEBUG:
-                    activate_instance(port=port, timeout=3)
-                    sys.exit()
-
-
 if __name__ == '__main__':
     mp.freeze_support()
     import argparse
@@ -147,6 +239,10 @@ if __name__ == '__main__':
     from urllib.request import pathname2url, urlopen, Request
     from urllib.parse import urlencode
     from urllib.error import URLError
+
+    import portalocker
+    from portalocker.exceptions import LockException
+
     parser = argparse.ArgumentParser(description='Music Caster')
     parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
     parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
@@ -176,6 +272,8 @@ if __name__ == '__main__':
         sys.exit()
     DEBUG = args.debug
     IS_FROZEN = getattr(sys, 'frozen', False)
+    working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    os.chdir(working_dir)
 
 
     def activate_instance(port=2001, timeout=0.5, to_port=2004):
@@ -197,10 +295,7 @@ if __name__ == '__main__':
             port += 1
         return False
 
-
-    working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    os.chdir(working_dir)
-    activate_from_lock_file()
+    lock_file = ensure_single_instance(is_debug=DEBUG)
 
     UNINSTALLER = 'unins000.exe'
     WAIT_TIMEOUT = 5
@@ -2422,6 +2517,7 @@ if __name__ == '__main__':
             save_queues()
             with suppress(RuntimeError):
                 save_queue_thread.join()
+        portalocker.unlock(lock_file)
         sys.exit()
 
 
@@ -3384,10 +3480,11 @@ if __name__ == '__main__':
                         Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
                         break
                 Shared.PORT += 1  # port in use or failed to bind to port
-        # if Shared.PORT > 2001, good chance there's already an instance running
-        if Shared.PORT > 2001:
-            activate_from_lock_file()
-        lock_file(overwrite=True, port=Shared.PORT)
+        with suppress(PermissionError):
+            if is_debug:
+                # only want to store PID of original instance
+                lock_file.read()
+            create_pid_file(port=Shared.PORT)
         tray_process = mp.Process(target=system_tray, name='Music Caster Tray',
                                   args=(daemon_commands, tray_process_queue), daemon=True)
         tray_process.start()
