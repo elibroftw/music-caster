@@ -1,6 +1,6 @@
 Music Caster by Elijah Lopez Changelog
 
-5.1.23
+5.1.24
 - [Fix] Single instance
 
 5.1.23
