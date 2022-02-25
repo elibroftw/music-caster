@@ -1,6 +1,6 @@
 VERSION = latest_version = '5.2.0'
 UPDATE_MESSAGE = """
-[UI] Smoking hot web UI
+[UI] Smoking hot new web UI
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
