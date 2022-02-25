@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.2.1'
+VERSION = latest_version = '5.2.2'
 UPDATE_MESSAGE = """
 [UI] Smoking hot new web UI
 [MSG] Language translators wanted
@@ -520,7 +520,7 @@ if __name__ == '__main__':
         return mail_to
 
 
-    def handle_exception(e, restart_program=False) -> False:
+    def handle_exception(e: Exception, restart_program=False) -> False:
         current_time = str(datetime.now())
         trace_back_msg = traceback.format_exc().replace('\\', '/')
         exc_type, exc_tb = sys.exc_info()[0], sys.exc_info()[2]
@@ -1141,6 +1141,9 @@ if __name__ == '__main__':
 
     def refresh_devices():
         device_names.clear()
+        # account for case where user is connected to device not detectable
+        if cast is not None and cast.uuid not in cast_browser.devices:
+            cast_browser.devices[cast.uuid] = cast.cast_info
         # sort CastInfos objects
         lo_cis = sorted(cast_browser.devices.values(), key=cast_info_sorter)
         for i, ci in enumerate(chain(['Local device'], lo_cis)):
@@ -1173,11 +1176,8 @@ if __name__ == '__main__':
             """Called when a cast has been lost (MDNS info expired or host down)."""
             global cast
             if cast is not None and cast.uuid == uuid:
-                # lost connection to current chromecast, therefore use local
-                error_msg = gt('Lost connection to $DEVICE, switching to local device')
-                error_msg = error_msg.replace('$DEVICE', cast.name)
-                tray_notify(gt('ERROR') + ': ' + error_msg)
-                change_device()
+                # lost connection to connected device
+                app_log.info(f'Lost connection to {cast.name} ({uuid}), switching to local device')
             refresh_devices()
 
         def update_cast(self, uuid, _service):
@@ -1436,6 +1436,7 @@ if __name__ == '__main__':
         except OSError:
             tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
         except PyChromecastError as e:
+            app_log.error(f'play_sys_audio failed to cast {repr(e)}')
             if show_error:
                 tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (psa)')
                 change_device()
@@ -1669,6 +1670,7 @@ if __name__ == '__main__':
                         time.sleep(0.2)
                     if track_length is None: mc.play()
                 except (PyChromecastError, OSError) as e:
+                    app_log.error(f'play_url failed to cast {repr(e)}')
                     if show_error:
                         not_connected_error = gt('Could not connect to cast device')
                         tray_notify(gt('ERROR') + ': ' + not_connected_error + ' (play_url)')
@@ -1730,6 +1732,7 @@ if __name__ == '__main__':
                     time.sleep(0.05)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (PyChromecastError, OSError, RuntimeError) as e:
+                app_log.error(f'play failed to cast {repr(e)}')
                 if show_error:
                     tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (play)')
                     change_device()
@@ -1747,7 +1750,7 @@ if __name__ == '__main__':
         TODO: make thread safe
         Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
             which is shuffled if shuffled is enabled in settings, and then extends music_queue.
-            Note: file/folder paths take precedence over playlist names
+            Note: valid filesystem paths take precedence over playlist names
         If queue_only is false, the music queue and done queue are cleared,
             before files are added to the music_queue
         play_next has priority over queue_uris
@@ -2008,26 +2011,24 @@ if __name__ == '__main__':
         does not check if playing_status is busy
         """
         global track_start, track_end, track_position, track_length, playing_url
-        app_log.info(f'stop({stopped_from}, stop_cast={stop_cast})')
+        app_log.info(f'stopped from {stopped_from}, stop_cast={stop_cast}')
         # allow Windows to go to sleep
         if platform.system() == 'Windows':
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         playing_status.stop()
         sar.alive = playing_url = False
         DiscordPresence.clear(settings['discord_rpc'])
-        if cast is not None:
-            if cast.app_id == APP_MEDIA_RECEIVER:
-                mc = cast.media_controller
-                if stop_cast:
-                    with suppress(PyChromecastError):
-                        mc.stop()
-                        block_until = time.monotonic() + 5  # 5 seconds
-                        status = mc.status
-                        while ((status.player_is_playing or status.player_is_paused)
-                               and time.monotonic() > block_until): time.sleep(0.1)
-                        if status.player_is_playing or status.player_is_paused: cast.quit_app()
-        else:
+        if cast is None:
             audio_player.stop()
+        elif cast.app_id == APP_MEDIA_RECEIVER and stop_cast:
+            mc = cast.media_controller
+            with suppress(PyChromecastError):
+                mc.stop()
+                block_until = time.monotonic() + 5  # 5 seconds
+                status = mc.status
+                while ((status.player_is_playing or status.player_is_paused)
+                       and time.monotonic() > block_until): time.sleep(0.1)
+                if status.player_is_playing or status.player_is_paused: cast.quit_app()
         track_start = track_position = track_end = track_length = 0
         if not main_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
         refresh_tray()
