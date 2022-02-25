@@ -266,7 +266,7 @@ if not args.dry and not args.skip_build:
     except FileNotFoundError:
         s4 = None
         print('WARNING: could not create an installer because iscc is not installed or is not on PATH')
-    
+
     try:
         portable_failed = s1.wait()
     except AttributeError:
@@ -331,7 +331,7 @@ for dist_file in dist_files:
     print((dist_file + ':').ljust(30) + file_exists_str)
 
 
-if tests_passed:
+if tests_passed and platform.system() == 'Windows':
     with zipfile.ZipFile('dist/Portable.zip') as portable_zip:
         if 'Updater.exe' in portable_zip.namelist():
             print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
