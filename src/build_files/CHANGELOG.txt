@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.2.1
+- [Fix] PyInstaller
+
 5.2.0
 - [UI] New Web UI layout
 - [OS] Better Linux support

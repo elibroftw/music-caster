@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.2.0'
+VERSION = latest_version = '5.2.1'
 UPDATE_MESSAGE = """
 [UI] Smoking hot new web UI
 [MSG] Language translators wanted
