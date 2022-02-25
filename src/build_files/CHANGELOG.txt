@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.2.0
+- [UI] New Web UI layout
+- [OS] Better Linux support
+
 5.1.24
 - [Fix] Single instance
 

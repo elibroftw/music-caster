@@ -13,14 +13,14 @@
 <meta name="msapplication-config" content="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/browserconfig.xml">
 <meta name="theme-color" content="#ededed">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<div id="wrapper">
-    <div class="player__container">
-        <div class="player__body">
-            <div class="body__cover">
-                <img src="{{art|safe}}" alt="Artwork" style="text-align: center" />
-            </div>
-            <!-- TODO: progress bar -->
-            <div class="body__info">
+<body>
+    <div id="player-container" class="center">
+        <div class="cover-art-container">
+            <img src="{{art|safe}}" alt="Artwork" style="text-align: center" />
+        </div>
+        <!-- TODO: progress bar -->
+        <div id="body-container">
+            <div class="body-info">
                 <div id="info__album">{{metadata['album'] if metadata['album'] else '<br>'|safe}}</div>
                 <div id="info__track">{{metadata['title']}}</div>
                 <div id="info__artist">{{metadata['artist'] if metadata['artist'] else '<br>'|safe}}</div>
@@ -43,175 +43,178 @@
                     <li><a href="?shuffle" title="{{ gt('shuffle') }}" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
                 </ul>
             </div>
-        </div>
-        <div class="player__footer">
-            <div id="volControl">
-                <svg width="20" height="20" viewBox="0 0 480 512">
-                    <path fill="black" d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zM480 256c0-63.53-32.06-121.94-85.77-156.24-11.19-7.14-26.03-3.82-33.12 7.46s-3.78 26.21 7.41 33.36C408.27 165.97 432 209.11 432 256s-23.73 90.03-63.48 115.42c-11.19 7.14-14.5 22.07-7.41 33.36 6.51 10.36 21.12 15.14 33.12 7.46C447.94 377.94 480 319.53 480 256zm-141.77-76.87c-11.58-6.33-26.19-2.16-32.61 9.45-6.39 11.61-2.16 26.2 9.45 32.61C327.98 228.28 336 241.63 336 256c0 14.38-8.02 27.72-20.92 34.81-11.61 6.41-15.84 21-9.45 32.61 6.43 11.66 21.05 15.8 32.61 9.45 28.23-15.55 45.77-45 45.77-76.88s-17.54-61.32-45.78-76.86z" class=""></path>
-                </svg>
-                <input id="volRange" value="{{settings['volume']}}" type="range" min="0" max="100" step="1"
-                       oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
+
+            <!-- <div class="player__footer"> -->
+                <div id="volControl">
+                    <svg width="20" height="20" viewBox="0 0 480 512">
+                        <path fill="black" d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zM480 256c0-63.53-32.06-121.94-85.77-156.24-11.19-7.14-26.03-3.82-33.12 7.46s-3.78 26.21 7.41 33.36C408.27 165.97 432 209.11 432 256s-23.73 90.03-63.48 115.42c-11.19 7.14-14.5 22.07-7.41 33.36 6.51 10.36 21.12 15.14 33.12 7.46C447.94 377.94 480 319.53 480 256zm-141.77-76.87c-11.58-6.33-26.19-2.16-32.61 9.45-6.39 11.61-2.16 26.2 9.45 32.61C327.98 228.28 336 241.63 336 256c0 14.38-8.02 27.72-20.92 34.81-11.61 6.41-15.84 21-9.45 32.61 6.43 11.66 21.05 15.8 32.61 9.45 28.23-15.55 45.77-45 45.77-76.88s-17.54-61.32-45.78-76.86z" class=""></path>
+                    </svg>
+                    <input id="volRange" value="{{settings['volume']}}" type="range" min="0" max="100" step="1"
+                            oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
+                </div>
                 {% if stream_url %}
-                <audio controls autoplay id="streamedAudio">
+                <audio controls autoplay id="audioStream">
                     <source src="{{stream_url}}" type="audio/mpeg">
                 </audio>
+                {% else %}
+                <div class="row-filler" style="padding: 1em; height: 1em"></div>
                 {% endif %}
-            </div>
-            <select name="devices" id="devices" onchange="changeDevice()">
-                {% for device_name, uuid in devices %}
-                    <option value="{{ uuid }}" {{ 'selected' if loop.index0 == device_index else '' }}>{{ device_name }}</option>
+                <select name="devices" id="devices" onchange="changeDevice()">
+                    {% for device_name, uuid in devices %}
+                        <option value="{{ uuid }}" {{ 'selected' if loop.index0 == device_index else '' }}>{{ device_name }}</option>
+                    {% endfor %}
+                </select>
+                <ul class="list list--footer">
+                    <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
+                    <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
+                        <svg width="20" height="20">
+                            <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z"
+                                    class="style-scope yt-icon"></path>
+                        </svg>
+                    </a></li>
+                    <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file-audio"></i></a></li>
+                    <li><a onclick="showModal('playlists')" href="/#playlists" class="list__link">
+                        <svg width="17" height="17" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.92 21.87">
+                            <path d="M21.45,4.07V15.85A5.94,5.94,0,0,0,18.37,15a5.47,5.47,0,1,0,0,10.93A5.54,5.54,0,0,0,24,20.47h0V6.8h3.42V4.07Zm-2.91,19.3a2.91,2.91,0,1,1,2.91-2.9A3,3,0,0,1,18.54,23.37Z" transform="translate(-3.51 -4.07)"/>
+                            <rect width="16.23" height="2.56"/>
+                            <rect y="6.15" width="16.23" height="2.56"/>
+                            <rect y="12.47" width="8.37" height="2.56"/>
+                            <circle cx="15.04" cy="16.4" r="3.25"/>
+                        </svg>
+                    </a></li>
+                    <li><a onclick="showModal('more')" href="/#more" class="list__link"><i class="fas fa-ellipsis-h"></i></a></li>
+                </ul>
+            <!-- </div> -->
+        </div>
+
+    </div>
+    <!-- MODALS -->
+    <div id="queue-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">{{ gt('Queue') }}</h2>
+
+            {% for track in queue %}
+                <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
+                href="{{'?prev&ignore_timestamps&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
+                        '?next&ignore_timestamps&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="files-modal" class="modal">
+        <div id="tracks-list" class="modal-content">
+            <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
+                placeholder="{{ gt('Search for music...') }}" title="Type in artist/tracks">
+            {% for track in list_of_tracks %}
+                <div class="trackRow">
+                    <a class="playLink" title="play {{track.text}}" href="/play?uri={{track.filename}}">{{track.text}}</a>
+                    <a style="float: right;" title="download file" href="/file?path={{track.filename}}" class="downloadTrack">
+                        <i class="fas fa-download"></i>
+                    </a>
+                    <a style="float: right;" title="play file next" href="/play?play_next=true&uri={{track.filename}}" class="playNext">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" height="18" viewBox="0 0 23.67 22.8">
+                            <path d="M26.83,8.8,16.88,3.6l-.05,3.3c-9,2.45-14.9,13.15-13.45,19.5l4.1-1.1.6-.15,3.5-.95c-.95-4.25-.2-11.1,5.2-13.65L16.68,14Z" transform="translate(-3.17 -3.6)"/>
+                        </svg>
+                    </a>
+                    <a style="float: right;" title="queue file" href="/play?queue=true&uri={{track.filename}}" class="queueTrack">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="playlists-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">{{ gt('Playlists') }}</h2>
+            {% for playlist in settings['playlists'] %}
+                <div class="trackRow">
+                    <a class="playLink" title="play {{ playlist }}" href="/play?uri={{ playlist|urlencode|replace('/', '%2F') }}">{{playlist}}</a>
+                    <a style="float: right;" title="play file next" href="/play?play_next=true&uri={{playlist|urlencode|replace('/', '%2F')}}" class="playNext">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" height="18" viewBox="0 0 23.67 22.8">
+                            <path d="M26.83,8.8,16.88,3.6l-.05,3.3c-9,2.45-14.9,13.15-13.45,19.5l4.1-1.1.6-.15,3.5-.95c-.95-4.25-.2-11.1,5.2-13.65L16.68,14Z" transform="translate(-3.17 -3.6)"/>
+                        </svg>
+                    </a>
+                    <a style="float: right;" title="queue file" href="/play?queue=true&uri={{playlist|urlencode|replace('/', '%2F')}}" class="queueTrack">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">{{ gt('Settings') }} (v{{version}})</h2>
+            <ul style="list-style: none">
+                <!-- data-key, title, [inner-text] -->
+                {% set setting_toggles=(
+                    ('auto_update', gt('Auto update')),
+                    ('notifications', gt('Notifications')),
+                    ('discord_rpc', gt('Discord presence')),
+                    ('run_on_startup', gt('Run on startup')),
+                    ('save_window_positions', gt('Save window positions')),
+                    ('populate_queue_startup', gt('Populates queue from folders on startup'), gt('Populate queue on startup')),
+                    ('persistent_queue', gt('Save queue between sessions'), gt('Persistent queue')),
+                    ('flip_main_window', gt('Move track content to the left')),
+                    ('vertical_gui', gt('Vertical GUI')),
+                    ('show_album_art', gt('Show album art in GUI')),
+                    ('mini_on_top', gt('Keep mini mode on top')),
+                    ('folder_cover_override', gt("Use cover.* for art instead of file's album art"), gt("cover.* image overrides file cover")),
+                    ('folder_context_menu', gt('Add Music Caster to folder context menu'), gt('Folder context menu')),
+                    ('show_track_number', gt('Show track number in queue'), gt('Show track number')),
+                    ('reversed_play_next', gt('Reverse play next behaviour'), gt('Reversed play next')),
+                    ('scan_folders', gt('Scan folders'), gt('Scan folders')),
+                    ('show_queue_index', gt('Show index in queue')),
+                    ('queue_library', gt('Always queue library')),
+                    ('use_last_folder', gt('Remember last folder')),
+                    ('smart_queue', gt('Smart queue'))
+                ) %}
+                {% for setting_toggle in setting_toggles %}
+                <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">
+                    {{ setting_toggle[1] if setting_toggle|length == 2 else setting_toggle[2] }}
+                    <label class="switch">
+                        <input type="checkbox" {{'checked' if settings[setting_toggle[0]] else ''}}>
+                        <span class="slider round"></span>
+                    </label>
+                </li>
                 {% endfor %}
-            </select>
-            <ul class="list list--footer">
-                <li><a onclick="showModal('settings')" href="/#settings" class="list__link"><i class="fas fa-cog"></i></a></li>
-                <li><a onclick="showModal('queue')" href="/#queue" class="list__link">
-                    <svg width="20" height="20">
-                        <path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z"
-                              class="style-scope yt-icon"></path>
-                    </svg>
-                </a></li>
-                <li><a onclick="showModal('files')" href="/#files" class="list__link"><i class="fa fa-file-audio"></i></a></li>
-                <li><a onclick="showModal('playlists')" href="/#playlists" class="list__link">
-                    <svg width="17" height="17" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.92 21.87">
-                        <path d="M21.45,4.07V15.85A5.94,5.94,0,0,0,18.37,15a5.47,5.47,0,1,0,0,10.93A5.54,5.54,0,0,0,24,20.47h0V6.8h3.42V4.07Zm-2.91,19.3a2.91,2.91,0,1,1,2.91-2.9A3,3,0,0,1,18.54,23.37Z" transform="translate(-3.51 -4.07)"/>
-                        <rect width="16.23" height="2.56"/>
-                        <rect y="6.15" width="16.23" height="2.56"/>
-                        <rect y="12.47" width="8.37" height="2.56"/>
-                        <circle cx="15.04" cy="16.4" r="3.25"/>
-                    </svg>
-                </a></li>
-                <li><a onclick="showModal('more')" href="/#more" class="list__link"><i class="fas fa-ellipsis-h"></i></a></li>
             </ul>
         </div>
     </div>
-</div>
-<!-- MODALS -->
-<div id="queue-modal" class="modal">
-    <div class="modal-content">
-        <h2 class="modal-title">{{ gt('Queue') }}</h2>
-
-        {% for track in queue %}
-            <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
-               href="{{'?prev&ignore_timestamps&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
-                       '?next&ignore_timestamps&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
-        {% endfor %}
+    <div id="more-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">{{ gt('More') }}</h2>
+            <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">{{ gt('Rescan Library') }}</p>
+            <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">{{ gt('Refresh Devices') }}</p>
+            <h2>{{ gt('Timer') }}</h2>
+            <ul style="list-style: none">
+                {% for timer_toggle in (('timer_shut_down', gt('Shut Down Computer')),
+                                        ('timer_sleep', gt('Sleep Computer')),
+                                        ('timer_hibernate', gt('Hibernate Computer')),
+                                        ('timer_stop', gt('Only Stop Playback'))) %}
+                <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
+                    {{ timer_toggle[1] }}
+                    <label class="switch">
+                        <input type="radio" id="{{ timer_toggle[0] }}" name="timerOption">
+                        <span class="slider round"></span>
+                    </label>
+                </li>
+                {% endfor %}
+                <li class="modalRow">
+                    <label title="Enter HH:MM or minutes">{{ gt('Enter Time') }}</label>
+                    <input id="timerMinutes" title="HH:MM or minutes" type="text">
+                    <button id="setTimer" onclick="setTimer()">{{ gt('Set') }}</button>
+                    <button id="cancelTimer" onclick="cancelTimer()">{{ gt('Cancel') }}</button>
+                </li>
+            </ul>
+            {% if settings['upload_pw'] %}
+            <form class="modalRow" action="/upload/" method="post" enctype="multipart/form-data">
+                <input type="file" name="files" required multiple>
+                <input type="password" name="password" required placeholder="server password">
+                <button type="submit">Upload</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
-</div>
-<div id="files-modal" class="modal">
-    <div id="tracks-list" class="modal-content">
-        <input type="text" id="searchBar" onkeyup="filterTracks()" onfocus="this.value = this.value;"
-               placeholder="{{ gt('Search for music...') }}" title="Type in artist/tracks">
-        {% for track in list_of_tracks %}
-            <div class="trackRow">
-                <a class="playLink" title="play {{track.text}}" href="/play?uri={{track.filename}}">{{track.text}}</a>
-                <a style="float: right;" title="download file" href="/file?path={{track.filename}}" class="downloadTrack">
-                    <i class="fas fa-download"></i>
-                </a>
-                <a style="float: right;" title="play file next" href="/play?play_next=true&uri={{track.filename}}" class="playNext">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" height="18" viewBox="0 0 23.67 22.8">
-                        <path d="M26.83,8.8,16.88,3.6l-.05,3.3c-9,2.45-14.9,13.15-13.45,19.5l4.1-1.1.6-.15,3.5-.95c-.95-4.25-.2-11.1,5.2-13.65L16.68,14Z" transform="translate(-3.17 -3.6)"/>
-                    </svg>
-                </a>
-                <a style="float: right;" title="queue file" href="/play?queue=true&uri={{track.filename}}" class="queueTrack">
-                    <i class="fas fa-plus"></i>
-                </a>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-<div id="playlists-modal" class="modal">
-    <div class="modal-content">
-        <h2 class="modal-title">{{ gt('Playlists') }}</h2>
-        {% for playlist in settings['playlists'] %}
-            <div class="trackRow">
-                <a class="playLink" title="play {{ playlist }}" href="/play?uri={{ playlist|urlencode|replace('/', '%2F') }}">{{playlist}}</a>
-                <a style="float: right;" title="play file next" href="/play?play_next=true&uri={{playlist|urlencode|replace('/', '%2F')}}" class="playNext">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" height="18" viewBox="0 0 23.67 22.8">
-                        <path d="M26.83,8.8,16.88,3.6l-.05,3.3c-9,2.45-14.9,13.15-13.45,19.5l4.1-1.1.6-.15,3.5-.95c-.95-4.25-.2-11.1,5.2-13.65L16.68,14Z" transform="translate(-3.17 -3.6)"/>
-                    </svg>
-                </a>
-                <a style="float: right;" title="queue file" href="/play?queue=true&uri={{playlist|urlencode|replace('/', '%2F')}}" class="queueTrack">
-                    <i class="fas fa-plus"></i>
-                </a>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-<div id="settings-modal" class="modal">
-    <div class="modal-content">
-        <h2 class="modal-title">{{ gt('Settings') }} (v{{version}})</h2>
-        <ul style="list-style: none">
-            <!-- data-key, title, [inner-text] -->
-            {% set setting_toggles=(
-                ('auto_update', gt('Auto update')),
-                ('notifications', gt('Notifications')),
-                ('discord_rpc', gt('Discord presence')),
-                ('run_on_startup', gt('Run on startup')),
-                ('save_window_positions', gt('Save window positions')),
-                ('populate_queue_startup', gt('Populates queue from folders on startup'), gt('Populate queue on startup')),
-                ('persistent_queue', gt('Save queue between sessions'), gt('Persistent queue')),
-                ('flip_main_window', gt('Move track content to the left')),
-                ('vertical_gui', gt('Vertical GUI')),
-                ('show_album_art', gt('Show album art in GUI')),
-                ('mini_on_top', gt('Keep mini mode on top')),
-                ('folder_cover_override', gt("Use cover.* for art instead of file's album art"), gt("cover.* image overrides file cover")),
-                ('folder_context_menu', gt('Add Music Caster to folder context menu'), gt('Folder context menu')),
-                ('show_track_number', gt('Show track number in queue'), gt('Show track number')),
-                ('reversed_play_next', gt('Reverse play next behaviour'), gt('Reversed play next')),
-                ('scan_folders', gt('Scan folders'), gt('Scan folders')),
-                ('show_queue_index', gt('Show index in queue')),
-                ('queue_library', gt('Always queue library')),
-                ('use_last_folder', gt('Remember last folder')),
-                ('smart_queue', gt('Smart queue'))
-            ) %}
-            {% for setting_toggle in setting_toggles %}
-            <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">
-                {{ setting_toggle[1] if setting_toggle|length == 2 else setting_toggle[2] }}
-                <label class="switch">
-                    <input type="checkbox" {{'checked' if settings[setting_toggle[0]] else ''}}>
-                    <span class="slider round"></span>
-                </label>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
-<div id="more-modal" class="modal">
-    <div class="modal-content">
-        <h2 class="modal-title">{{ gt('More') }}</h2>
-        <p class="modalRow" title="rescan folders" onclick="rescanLibrary()">{{ gt('Rescan Library') }}</p>
-        <p class="modalRow" title="search for chromecasts" onclick="refreshDevices()">{{ gt('Refresh Devices') }}</p>
-        <h2>{{ gt('Timer') }}</h2>
-        <ul style="list-style: none">
-            {% for timer_toggle in (('timer_shut_down', gt('Shut Down Computer')),
-                                    ('timer_sleep', gt('Sleep Computer')),
-                                    ('timer_hibernate', gt('Hibernate Computer')),
-                                    ('timer_stop', gt('Only Stop Playback'))) %}
-            <li data-key='{{ timer_toggle[0] }}' title="{{ timer_toggle[1] }}" class="modalRow timerSetting" onclick="toggleSetting(this)">
-                {{ timer_toggle[1] }}
-                <label class="switch">
-                    <input type="radio" id="{{ timer_toggle[0] }}" name="timerOption">
-                    <span class="slider round"></span>
-                </label>
-            </li>
-            {% endfor %}
-            <li class="modalRow">
-                <label title="Enter HH:MM or minutes">{{ gt('Enter Time') }}</label>
-                <input id="timerMinutes" title="HH:MM or minutes" type="text">
-                <button id="setTimer" onclick="setTimer()">{{ gt('Set') }}</button>
-                <button id="cancelTimer" onclick="cancelTimer()">{{ gt('Cancel') }}</button>
-            </li>
-        </ul>
-        {% if settings['upload_pw'] %}
-        <form class="modalRow" action="/upload/" method="post" enctype="multipart/form-data">
-            <input type="file" name="files" required multiple>
-            <input type="password" name="password" required placeholder="server password">
-            <button type="submit">Upload</button>
-        </form>
-        {% endif %}
-    </div>
-</div>
-<div id="toast"></div>
+    <div id="toast"></div>
 <script>
     // Flask sends the settings (dict)
     const settingsFromServer = {{settings | tojson}};
@@ -229,7 +232,7 @@
     function showModal(option) {
         modals[option].style.display = 'block';
         if (option === 'files') {
-            if (getComputedStyle(document.getElementById('wrapper')).marginTop == '0px') {
+            if (getComputedStyle(document.getElementById('player-container')).marginTop == '0px') {
                 searchBar.focus();
             }
             filterTracks();
@@ -249,13 +252,13 @@
             playingTrack.scrollIntoView();
             document.getElementById('queue-modal').scrollTop -= 20;
         }
-        document.getElementById('wrapper').style.filter = 'blur(6px)'
+        document.getElementById('player-container').style.filter = 'blur(6px)'
     }
 
     function closeModals() {
         for (const option in modals) modals[option].style.display = 'none';
         history.replaceState('', document.title, window.location.pathname + window.location.search);
-        document.getElementById('wrapper').style.filter = '';
+        document.getElementById('player-container').style.filter = '';
     }
 
     function getHash() {
@@ -398,7 +401,7 @@
                     const currentAlbum = document.getElementById('info__album').textContent;
                     const currentVol = document.getElementById('volRange').value;
                     const queueTracks = modals['queue'].getElementsByClassName('track');
-                    const streamedAudio = document.getElementById('streamedAudio')
+                    const audioStream = document.getElementById('audioStream')
                     const trackPosition = response['track_position']
                     if (response['title'] !== currentTitle ||
                         response['artist'] !== currentArtist ||
@@ -410,16 +413,16 @@
                         window.location.reload();
                     } else if (Math.round(response['volume']) != Math.round(currentVol)) {
                         document.getElementById('volRange').value = response['volume']
-                    } else if (response['status'] === 'PLAYING' && trackPosition && streamedAudio) {
+                    } else if (response['status'] === 'PLAYING' && trackPosition && audioStream) {
                         // update position
-                        const currentTime = streamedAudio.currentTime;
+                        const currentTime = audioStream.currentTime;
                         if (trackPosition < currentTime -1 || trackPosition > currentTime + 1) {
-                            document.getElementById('streamedAudio').currentTime = trackPosition;
+                            document.getElementById('audioStream').currentTime = trackPosition;
                         }
                     }
-                    if (streamedAudio) {
-                        sessionStorage.setItem('streamMuted', streamedAudio.muted);
-                        sessionStorage.setItem('streamVolume', streamedAudio.volume);
+                    if (audioStream) {
+                        sessionStorage.setItem('streamMuted', audioStream.muted);
+                        sessionStorage.setItem('streamVolume', audioStream.volume);
                     }
                 }
             ).catch(error => {
@@ -437,17 +440,17 @@
         try { showModal(getHash()); } catch (TypeError) {}
 
         try {
-            const streamedAudio = document.getElementById('streamedAudio');
-            streamedAudio.currentTime = {{ stream_time }};
+            const audioStream = document.getElementById('audioStream');
+            audioStream.currentTime = {{ stream_time }};
             if (!sessionStorage.getItem('streamVolume')) {
-                streamedAudio.volume = 0.1;
+                audioStream.volume = 0.1;
             } else {
-                streamedAudio.volume = sessionStorage.getItem('streamVolume');
+                audioStream.volume = sessionStorage.getItem('streamVolume');
             }
             if (sessionStorage.getItem('streamMuted') === 'false') {
-                streamedAudio.muted = false;
+                audioStream.muted = false;
             } else {
-                streamedAudio.muted = true;
+                audioStream.muted = true;
             }
         } catch (TypeError) {}
 
@@ -468,3 +471,4 @@
         reloadOnChange();
     };
 </script>
+</body>

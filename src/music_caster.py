@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.1.24'
+VERSION = latest_version = '5.2.0'
 UPDATE_MESSAGE = """
-[New] Override track format
+[UI] Smoking hot web UI
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
@@ -79,76 +79,21 @@ def parse_pid_file() -> (int, int):
     return None, 2001
 
 
-class SingleInstance:
-    # alternative to ensure_single_instance
-
-    def __init__(self, is_debug=False):
-        self.is_debug = is_debug
-        if platform.system() == 'Windows':
-            from win32event import CreateMutex
-            from win32api import GetLastError
-            from winerror import ERROR_ALREADY_EXISTS
-            self.mutex = CreateMutex(None, False, MUTEX_NAME)
-            if GetLastError() == ERROR_ALREADY_EXISTS:
-                self.on_already_running()
-            else:
-                self.on_lock(is_debug=is_debug)
-        else:
-            import portalocker
-            from portalocker.exceptions import LockException
-            self.file = open(LOCK_FILENAME, 'w+', encoding='utf-8')
-            try:
-                portalocker.lock(self.file, portalocker.LockFlags.NON_BLOCKING)
-                self.on_lock(is_debug=is_debug)
-            except LockException:
-                self.on_already_running()
-
-    def on_lock(self, is_debug=False):
-        create_pid_file()
-        if is_debug:
-            print(f'Locked {LOCK_FILENAME} pid = {os.getpid()}')
-
-    def on_already_running(self):
-        # single instance is apparently running, so wait for pid file to be written
-        time.sleep(0.1)
-        pid, port = parse_pid_file()
-        look_for = 'Music Caster' if IS_FROZEN else 'python'
-        # double check if it's already running
-        # if more than one instance, there's definitely >3 processes
-        threshold = 3 if pid is None else 0
-        if is_already_running(threshold=threshold, look_for=look_for, pid=pid):
-            if not is_debug:
-                activate_instance(port=port, timeout=5)
-                sys.exit()
-            else:
-                print('not exiting because we are DEBUGGING')
-        else:
-            print('ERROR: locking mechanic broken')
-
-    def release(self):
-        if platform.system() == 'Windows':
-            from win32api import CloseHandle
-            CloseHandle(self.mutex)
-        else:
-            import portalocker
-            portalocker.unlock(self.file)
-
-
 def ensure_single_instance(is_debug=False):
     file = open(LOCK_FILENAME, 'w+', encoding='utf-8')
     # no old running instances found, try locking file
     try:
         # exclusively locked
-        portalocker.lock(file, portalocker.LockFlags.NON_BLOCKING)
+        portalocker.lock(file, portalocker.LockFlags.EXCLUSIVE | portalocker.LockFlags.NON_BLOCKING)
         create_pid_file()
         if is_debug:
             print(f'Locked {LOCK_FILENAME} pid = {os.getpid()}')
-    except LockException:
+    except LockException as e:
         # another instance is probably running
         # wait a bit for pid to be written to file
         time.sleep(0.1)
         pid, port = parse_pid_file()
-        look_for = 'Music Caster' if IS_FROZEN else 'python'
+        look_for = 'Music Caster' if IS_FROZEN else Path(sys.executable).name
         # double check if it's already running
         # if more than one instance, there's definitely >3 processes
         threshold = 3 if pid is None else 0
@@ -159,7 +104,7 @@ def ensure_single_instance(is_debug=False):
                 activate_instance(port=port, timeout=5)
                 sys.exit()
         else:
-            print('instance not found, lock broken?')
+            print('instance not found, lock broken?', repr(e))
     return file
 
 
@@ -235,6 +180,7 @@ if __name__ == '__main__':
     mp.freeze_support()
     import argparse
     from inspect import currentframe
+    from pathlib import Path
     import sys
     from urllib.request import pathname2url, urlopen, Request
     from urllib.parse import urlencode
@@ -316,7 +262,6 @@ if __name__ == '__main__':
     import logging
     from logging.handlers import RotatingFileHandler
     from math import log10
-    from pathlib import Path
     import pprint
     from random import shuffle
     from shutil import copyfileobj, rmtree

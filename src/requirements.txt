@@ -2,6 +2,7 @@ build_files/pyinstaller-4.8-py3-none-any.whl
 build_files/PyAudio-0.2.11-cp310-cp310-win_amd64.whl; sys_platform == 'win32'
 pyaudio; sys_platform != 'win32'
 pgi; sys_platform == 'linux'
+testresources; sys_platform == 'linux'
 ujson==5.1.0
 pycparser==2.14
 mutagen~=1.45.1

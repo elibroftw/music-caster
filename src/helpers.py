@@ -1744,6 +1744,9 @@ def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
         if window.TKroot.state() == 'iconic':
             window.normal()
         window.force_focus()
+    else:
+        window.force_focus()
+        window.bring_to_front()
 
 
 def window_is_foreground(window: Sg.Window):
