@@ -319,7 +319,7 @@ else:
     dist_files = ('Music Caster (Linux).zip', 'Source Files Condensed.zip')
 
 # check if all files were built
-tests_passed = True
+dist_files_exist = True
 for dist_file in dist_files:
     dist_file_path = f'dist/{dist_file}'
     if os.path.exists(dist_file_path):
@@ -327,17 +327,17 @@ for dist_file in dist_files:
         file_exists_str = f'EXISTS {file_size:,} KB'.rjust(12)
     else:
         file_exists_str = 'DOES NOT EXIST!'
-        tests_passed = False
+        dist_files_exist = False
     print((dist_file + ':').ljust(30) + file_exists_str)
 
 
-if tests_passed and platform.system() == 'Windows':
+if dist_files_exist and platform.system() == 'Windows':
     with zipfile.ZipFile('dist/Portable.zip') as portable_zip:
         if 'Updater.exe' in portable_zip.namelist():
             print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
         else:
             print('Portable.zip/Updater.exe:'.ljust(30) + 'DOES NOT EXIST!')
-            tests_passed = False
+            dist_files_exist = False
 
 
 def test(title, fn, assert_statement=False):
@@ -354,7 +354,7 @@ def test(title, fn, assert_statement=False):
         raise _e
 
 
-if not args.dry and not args.skip_tests and tests_passed:
+if not args.dry and not args.skip_tests and dist_files_exist:
     try:
         sys.argv = sys.argv[:1]
         from test_harness import run_tests
@@ -417,9 +417,9 @@ def local_install():
     Popen(cmd, shell=True)
 
 
-tests_passed = tests_passed and not args.dry and not args.debug and not args.skip_tests
+dist_files_exist = dist_files_exist and not args.dry and not args.debug and not args.skip_tests
 
-if args.upload and tests_passed:
+if args.upload and dist_files_exist:
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
@@ -472,6 +472,6 @@ if args.upload and tests_passed:
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
-elif not args.no_install and (tests_passed or args.force_install):
+elif not args.no_install and (dist_files_exist or args.force_install):
     print('Installing Music Caster [Will Launch After]')
     local_install()
