@@ -14,8 +14,10 @@ from itertools import islice
 import io
 import multiprocessing as mp
 import os
+# noinspection PyUnresolvedReferences
 import platform
 import threading
+# noinspection PyUnresolvedReferences
 from subprocess import Popen, PIPE, DEVNULL
 # noinspection PyUnresolvedReferences
 import re
