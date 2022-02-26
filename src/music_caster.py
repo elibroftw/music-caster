@@ -3314,7 +3314,7 @@ if __name__ == '__main__':
                     # sync track position with chromecast, also allows scrubbing from external apps
                     with suppress(IndexError):
                         buffer = 2 if music_queue[0].startswith('http') else 0.5
-                        if abs(media_controller.status.adjusted_current_time - track_position) > 0.5:
+                        if abs(media_controller.status.adjusted_current_time - track_position) > buffer:
                             track_position = media_controller.status.adjusted_current_time
                             track_start = time.monotonic() - track_position
                             if not is_live: track_end = track_start + track_length
