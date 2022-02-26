@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.2.2'
+VERSION = latest_version = '5.2.3'
 UPDATE_MESSAGE = """
 [UI] Smoking hot new web UI
 [MSG] Language translators wanted
@@ -1399,6 +1399,10 @@ if __name__ == '__main__':
             main_window.metadata['update_listboxes'] = True
             daemon_commands.put('__UPDATE_GUI__')
         cast_last_checked = time.monotonic() + 2
+        if cast is not None:
+            # for some reason, cast is slow to update
+            if cast.media_controller.status.player_is_playing != autoplay:
+                cast_last_checked = time.monotonic() + 5
         return True
 
 
@@ -1728,8 +1732,8 @@ if __name__ == '__main__':
                 ext = uri.split('.')[-1]
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
-                mc.block_until_active(WAIT_TIMEOUT + 1)
-                block_until = time.monotonic() + 5
+                mc.block_until_active(WAIT_TIMEOUT)
+                block_until = time.monotonic() + WAIT_TIMEOUT
                 while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
                     time.sleep(0.05)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
@@ -1938,7 +1942,7 @@ if __name__ == '__main__':
         can be called from a non-main thread
         """
         global track_position
-        app_log.info(f'pause() called, playing status = {playing_status}')
+        app_log.info(f'pause({source}), playing status = {playing_status}')
         if playing_status.playing():
             if platform.system() == 'Windows':
                 ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
@@ -1946,9 +1950,9 @@ if __name__ == '__main__':
                 if cast is None:
                     track_position = time.monotonic() - track_start
                     if audio_player.pause():
-                        app_log.info(f'{source}. paused local audio player')
+                        app_log.info('paused local audio player')
                     else:
-                        app_log.info(f'{source}. could not pause local audio player')
+                        app_log.info('could not pause local audio player')
                 else:
                     mc = cast.media_controller
                     mc.update_status()
@@ -3314,13 +3318,15 @@ if __name__ == '__main__':
                             track_position = media_controller.status.adjusted_current_time
                             track_start = time.monotonic() - track_position
                             if not is_live: track_end = track_start + track_length
-                if media_controller.status.player_is_paused and playing_status.playing(): pause('main loop')
-                elif media_controller.status.player_is_playing and playing_status.paused(): resume('main loop')
+                if media_controller.status.player_is_paused and playing_status.playing():
+                    pause('cast_monitor')
+                elif media_controller.status.player_is_playing and playing_status.paused():
+                    resume('cast_monitor')
                 elif (is_stopped and playing_status.busy() and
                         not is_live and time.monotonic() - track_end > 1):
                     # if cast says nothing is playing, only stop if we are not at the end of the track
                     #  this will prevent false positives
-                    stop('main loop', False)
+                    stop('cast_monitor', False)
                 cast_volume = round(cast.status.volume_level * 100, 1)
                 if settings['volume'] != cast_volume:
                     if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
@@ -3329,7 +3335,7 @@ if __name__ == '__main__':
                             change_settings('muted', False)
                         main_window.metadata['update_volume_slider'] = True
             elif playing_status.playing():
-                stop('main loop; app not running')
+                stop('cast_monitor. app was not running')
         except NotConnected:  # don't care
             pass
         except UnsupportedNamespace:  # known error

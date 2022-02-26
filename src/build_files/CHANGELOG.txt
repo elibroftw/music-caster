@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.2.3
+- [Fix] Cast pausing after playing
+
 5.2.2
 - [Fix] Unexpected behaviour after turning off cast
 
