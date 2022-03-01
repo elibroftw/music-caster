@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.2.4'
+VERSION = latest_version = '5.2.5'
 UPDATE_MESSAGE = """
 [UI] Smoking hot new web UI
 [MSG] Language translators wanted
@@ -1604,7 +1604,7 @@ if __name__ == '__main__':
                 # login cookie not found
                 # first time open the browser
                 if not deezer_opened:
-                    Thread(target=webbrowser.open, daemon=True, args=['https://www.deezer.com/login']).start()
+                    Thread(target=webbrowser.open, daemon=True, args=('https://www.deezer.com/login',)).start()
                     tray_notify(gt('ERROR') + ': ' + gt('Not logged into deezer.com'))
                     deezer_opened = True
                 # fallback to deezer -> youtube
@@ -2909,7 +2909,13 @@ if __name__ == '__main__':
         elif main_event == 'settings_file':
             startfile(SETTINGS_FILE)
         elif main_event == 'changelog_file':
-            startfile('CHANGELOG.txt')
+            try:
+                if not os.path.exists('CHANGELOG.txt'):
+                    raise FileNotFoundError
+                startfile('CHANGELOG.txt')
+            except FileNotFoundError:
+                changelog_url = 'https://github.com/elibroftw/music-caster/blob/master/src/build_files/CHANGELOG.txt'
+                Thread(target=webbrowser.open, daemon=True, args=(changelog_url,)).start()
         elif main_event == 'music_folders':
             with suppress(IndexError):
                 Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')

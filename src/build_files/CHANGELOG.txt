@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.2.5
+- [Fix] Viewing changelog in python or portable mode
+
 5.2.4
 - [Fix] Race conditions
 
