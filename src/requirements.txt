@@ -7,7 +7,7 @@ ujson==5.1.0
 pycparser==2.14
 mutagen~=1.45.1
 Pillow~=9.0
-https://github.com/elibroftw/pychromecast/archive/master.zip
+pychromecast~=10.3.0
 protobuf==3.19.1
 zeroconf~=0.37
 pynput~=1.4.5

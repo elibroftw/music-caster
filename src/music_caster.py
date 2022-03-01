@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.2.3'
+VERSION = latest_version = '5.2.4'
 UPDATE_MESSAGE = """
 [UI] Smoking hot new web UI
 [MSG] Language translators wanted
@@ -517,7 +517,7 @@ if __name__ == '__main__':
         except FileNotFoundError:
             log_lines = []
         log_lines = '%0D%0A'.join(log_lines)
-        email_body = f'body=%0D%0A%23%20Last%20Few%20Lines%20of%20the%20Log%0D%0A%0D%0A{log_lines}'
+        email_body = f'body=%0D%0A%23%20Tail%20of%20Log%0D%0A%0D%0A{log_lines}'
         mail_to = f'mailto:{EMAIL}?subject=Regarding%20Music%20Caster%20v{VERSION}&{email_body}'
         return mail_to
 
@@ -1398,11 +1398,10 @@ if __name__ == '__main__':
         if not main_window.was_closed():
             main_window.metadata['update_listboxes'] = True
             daemon_commands.put('__UPDATE_GUI__')
-        cast_last_checked = time.monotonic() + 2
+        cast_last_checked = time.monotonic() + 5
         if cast is not None:
-            # for some reason, cast is slow to update
-            if cast.media_controller.status.player_is_playing != autoplay:
-                cast_last_checked = time.monotonic() + 5
+            if cast.app_id != APP_MEDIA_RECEIVER or cast.media_controller.status.player_is_playing != autoplay:
+                cast_last_checked += 5
         return True
 
 
@@ -1663,17 +1662,11 @@ if __name__ == '__main__':
                     cast.wait(timeout=WAIT_TIMEOUT)
                     cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
                     mc = cast.media_controller
-                    if mc.status.player_is_playing or mc.status.player_is_paused:
-                        mc.stop()
-                        mc.block_until_active(WAIT_TIMEOUT)
                     _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
                     stream_type = 'LIVE' if track_length is None else 'BUFFERED'
                     mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
                                   current_time=position, autoplay=autoplay, stream_type=stream_type)
                     mc.block_until_active(WAIT_TIMEOUT)
-                    block_until = time.monotonic() + 5
-                    while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
-                        time.sleep(0.2)
                     if track_length is None: mc.play()
                 except (PyChromecastError, OSError) as e:
                     app_log.error(f'play_url failed to cast {repr(e)}')
@@ -1733,9 +1726,6 @@ if __name__ == '__main__':
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
                 mc.block_until_active(WAIT_TIMEOUT)
-                block_until = time.monotonic() + WAIT_TIMEOUT
-                while mc.status.player_state not in {'PLAYING', 'PAUSED'} and time.monotonic() < block_until:
-                    time.sleep(0.05)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (PyChromecastError, OSError, RuntimeError) as e:
                 app_log.error(f'play failed to cast {repr(e)}')

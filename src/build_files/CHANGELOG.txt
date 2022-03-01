@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.2.4
+- [Fix] Race conditions
+
 5.2.3
 - [Fix] Cast pausing after playing
 
