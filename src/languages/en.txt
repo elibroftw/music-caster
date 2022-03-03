@@ -193,3 +193,4 @@ locate track
 Switching to local device
 Track Format:
 Could not fetch audio for $URL
+Exit app on GUI close

@@ -193,3 +193,4 @@ localizar pista
 Cambiar a dispositivo local
 Formato de Pista:
 No se pudo obtener el audio para $URL
+Salir de la aplicación al cerrar la GUI

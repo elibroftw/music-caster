@@ -1607,11 +1607,12 @@ def create_playlists_tab(settings):
     return Sg.Tab(gt('Playlists'), layout, key='tab_playlists')
 
 
-def create_checkbox(name, key, settings, on_right=False):
+def create_checkbox(name, key, settings, on_right=False, tooltip=''):
     bg = settings['theme']['background']
     size = (23, 5) if on_right else (23, 5)
+    tooltip = tooltip or name
     checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
-    return Sg.Checkbox(name, default=settings[key], key=key, tooltip=name, size=size, **checkbox)
+    return Sg.Checkbox(name, default=settings[key], key=key, tooltip=tooltip, size=size, **checkbox)
 
 
 def create_settings(version, settings):
@@ -1625,12 +1626,13 @@ def create_settings(version, settings):
         [create_checkbox(gt('Folder context menu'), 'folder_context_menu', settings),
          create_checkbox(gt('Scan folders'), 'scan_folders', settings, True)],
         [create_checkbox(gt('Remember last folder'), 'use_last_folder', settings),
-         Sg.Text('🌐' if platform.system() == 'Windows' else 'g', tooltip=gt('language', True)),
-         Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang', readonly=True,
-                  enable_events=True, tooltip=gt('language'))],
+         create_checkbox(gt('Exit app on GUI close'), 'gui_exits_app', settings, True)],
         [Sg.Text(gt('System Audio Delay:')),
          Sg.Input(settings['sys_audio_delay'], size=(10, 1), key='sys_audio_delay', tooltip=gt('seconds'),
-                  border_width=1, pad=(70, 1), enable_events=True)]
+                  border_width=1, pad=(70, 1), enable_events=True),
+         Sg.Text('🌐' if platform.system() == 'Windows' else 'g', tooltip=gt('language', True)),
+         Sg.Combo(values=get_languages(), size=(3, 1), default_value=settings['lang'], key='lang',
+                  readonly=True, enable_events=True, tooltip=gt('language'))]
     ], background_color=bg)
     queuing_tab = Sg.Tab(gt('Queueing'), [
         [create_checkbox(gt('Reversed play next'), 'reversed_play_next', settings),

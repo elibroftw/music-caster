@@ -1,10 +1,11 @@
-VERSION = latest_version = '5.2.5'
+VERSION = latest_version = '5.3.0'
 UPDATE_MESSAGE = """
-[UI] Smoking hot new web UI
+[NEW] Exit app on GUI close
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
+from doctest import FAIL_FAST
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
@@ -328,7 +329,7 @@ if __name__ == '__main__':
                            'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang',
                            'smart_queue', 'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui',
                            'use_last_folder', 'show_album_art', 'reversed_play_next', 'scan_folders',
-                           'show_queue_index', 'queue_library'}
+                           'show_queue_index', 'queue_library', 'show_queue_length', 'show_queue_time', 'gui_exits_app'}
     AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
     AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
     IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
@@ -353,15 +354,15 @@ if __name__ == '__main__':
     DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
     default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings = {  # default settings
-        'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {},
+        'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
         'auto_update': default_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
         'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'mini_on_top': True,
         'populate_queue_startup': False, 'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5,
         'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
         'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False,
-        'scan_folders': True, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
+        'gui_exits_app': False, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'sys_audio_delay': 0,
-        'theme': DEFAULT_THEME.copy(), 'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER,
+        'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER, 'scan_folders': True,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
         'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
     default_settings = deepcopy(settings)
@@ -2500,6 +2501,8 @@ if __name__ == '__main__':
         if (main_event in {None, 'Escape:27', ''} and main_window.metadata['main_last_event'] not in ignore_events
                 or main_values is None):
             main_window.close()
+            if settings['gui_exits_app']:
+                exit_program()
             return False
         if settings['mini_mode']:
             main_window.TKroot.update_idletasks()
