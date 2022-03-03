@@ -1,6 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
 5.3.0
+- [UI] Update Web UI settings modal
+
+5.3.0
 - [Feature] Exit app on GUI close
 
 5.2.5

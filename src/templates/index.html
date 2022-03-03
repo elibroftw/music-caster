@@ -150,22 +150,25 @@
                     ('notifications', gt('Notifications')),
                     ('discord_rpc', gt('Discord presence')),
                     ('run_on_startup', gt('Run on startup')),
-                    ('save_window_positions', gt('Save window positions')),
+                    ('folder_context_menu', gt('Add Music Caster to folder context menu'), gt('Folder context menu')),
+                    ('scan_folders', gt('Scan folders'), gt('Scan folders')),
+                    ('use_last_folder', gt('Remember last folder')),
+                    ('gui_exits_app', gt('Exit app on GUI close')),
+
+                    ('reversed_play_next', gt('Reverse play next behaviour'), gt('Reversed play next')),
+                    ('queue_library', gt('Always queue library')),
                     ('populate_queue_startup', gt('Populates queue from folders on startup'), gt('Populate queue on startup')),
                     ('persistent_queue', gt('Save queue between sessions'), gt('Persistent queue')),
+                    ('smart_queue', gt('Smart queue')),
+
+                    ('save_window_positions', gt('Save window positions')),
+                    ('show_track_number', gt('Show track number in queue'), gt('Show track number')),
                     ('flip_main_window', gt('Move track content to the left')),
                     ('vertical_gui', gt('Vertical GUI')),
                     ('show_album_art', gt('Show album art in GUI')),
                     ('mini_on_top', gt('Keep mini mode on top')),
                     ('folder_cover_override', gt("Use cover.* for art instead of file's album art"), gt("cover.* image overrides file cover")),
-                    ('folder_context_menu', gt('Add Music Caster to folder context menu'), gt('Folder context menu')),
-                    ('show_track_number', gt('Show track number in queue'), gt('Show track number')),
-                    ('reversed_play_next', gt('Reverse play next behaviour'), gt('Reversed play next')),
-                    ('scan_folders', gt('Scan folders'), gt('Scan folders')),
-                    ('show_queue_index', gt('Show index in queue')),
-                    ('queue_library', gt('Always queue library')),
-                    ('use_last_folder', gt('Remember last folder')),
-                    ('smart_queue', gt('Smart queue'))
+                    ('show_queue_index', gt('Show index in queue'))
                 ) %}
                 {% for setting_toggle in setting_toggles %}
                 <li data-key='{{ setting_toggle[0] }}' title="{{ setting_toggle[1] }}" class="modalRow setting" onclick="toggleSetting(this)">

@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.3.0'
+VERSION = latest_version = '5.3.1'
 UPDATE_MESSAGE = """
 [NEW] Exit app on GUI close
 [MSG] Language translators wanted
