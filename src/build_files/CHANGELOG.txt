@@ -1,6 +1,6 @@
 Music Caster by Elijah Lopez Changelog
 
-5.3.0
+5.3.1
 - [UI] Update Web UI settings modal
 
 5.3.0
