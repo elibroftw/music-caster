@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 5.3.0
-- [Feature] Quit tray on GUI close (run_in_background=False)
+- [Feature] Exit app on GUI close
 
 5.2.5
 - [Fix] Viewing changelog in python or portable mode
