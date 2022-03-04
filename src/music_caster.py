@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.3.1'
+VERSION = latest_version = '5.4.0'
 UPDATE_MESSAGE = """
-[NEW] Exit app on GUI close
+[NEW] Select device in GUI
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
@@ -354,7 +354,7 @@ if __name__ == '__main__':
     DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
     default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings = {  # default settings
-        'previous_device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
+        'device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
         'auto_update': default_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
         'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'mini_on_top': True,
         'populate_queue_startup': False, 'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5,
@@ -410,8 +410,16 @@ if __name__ == '__main__':
         return settings.get('DEBUG', DEBUG)
 
 
-    def refresh_tray():
-        tray_folders = [gt('Select Folder(s)')]
+    def refresh_tray(refresh_devices=False):
+        if refresh_devices:
+            device_names.clear()
+            # account for case where user is connected to device not detectable
+            if cast is not None and cast.uuid not in cast_browser.devices:
+                cast_browser.devices[cast.uuid] = cast.cast_info
+            for device in get_devices():
+                device_names.append(device.as_tray_item(settings['device']))
+            daemon_commands.put('__UPDATE_GUI__')
+        tray_folders = [gt('Select Folder')]
         for i, folder in enumerate(music_folders):
             folder = Path(folder)
             folder = ('../' + '/'.join(folder.parts[-2:])) if len(folder.parts) > 2 else folder.as_posix()
@@ -424,7 +432,7 @@ if __name__ == '__main__':
                              [gt('Play'), gt('System Audio'),
                               [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                               [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
-                              [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
+                              [gt('Select Files'), gt('Play Files'), gt('Queue Files'), gt('Play Files Next')],
                               gt('Play All')], (gt('Exit'), '__EXIT__')]
         tray_menu_playing = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
                              [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
@@ -433,7 +441,7 @@ if __name__ == '__main__':
                              [gt('Play'), gt('System Audio'),
                               [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                               [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
-                              [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
+                              [gt('Select Files'), gt('Play Files'), gt('Queue Files'), gt('Play Files Next')],
                               gt('Play All')], (gt('Exit'), '__EXIT__')]
         tray_menu_paused = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
                             [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
@@ -443,7 +451,7 @@ if __name__ == '__main__':
                              [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
                              [gt('Folders'), *tray_folders],
                              [gt('Playlists'), *tray_playlists],
-                             [gt('Select File(s)'), gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')],
+                             [gt('Select Files'), gt('Play Files'), gt('Queue Files'), gt('Play Files Next')],
                              gt('Play All')], (gt('Exit'), '__EXIT__')]
         if platform.system() == 'Linux':
             # more so for applicationindicator
@@ -771,6 +779,9 @@ if __name__ == '__main__':
                 settings['populate_queue_startup'] = False
                 _save_settings = True
 
+            # backwards compatible 'previous_device' -> 'device'
+            if 'previous_device' in settings:
+                settings['device'] = settings.pop('previous_device')
             Shared.lang = settings['lang']
             Shared.track_format = settings['track_format']
             fg, bg, accent = theme['text'], theme['background'], theme['accent']
@@ -852,7 +863,7 @@ if __name__ == '__main__':
             if devices[0].startswith(CHECK_MARK):
                 device_index = i
                 break
-        formatted_devices = [('Local Device', '0')]
+        formatted_devices = [('Local device', '0')]
         stream_url, stream_time = None, track_position
         if playing_status.playing() and music_queue:
             metadata = get_current_metadata()
@@ -976,7 +987,7 @@ if __name__ == '__main__':
 
     @app.route('/refresh-devices/')
     def api_refresh_devices():
-        refresh_devices()
+        refresh_tray(True)
         return 'true'
 
 
@@ -990,11 +1001,11 @@ if __name__ == '__main__':
     def api_get_devices():
         friendly = 'friendly' in request.values
         if not friendly:
-            devices = {'0': 'Local Device'}
+            devices = {'0': 'Local device'}
             for _uuid, cast_info in cast_browser.devices.items():
                 devices[str(_uuid)] = cast_info.friendly_name
         else:
-            devices = ['Local Device::0']
+            devices = ['Local device::0']
             for cast_info in sorted(cast_browser.devices.values(), key=cast_info_sorter):
                 devices.append(f'{cast_info.friendly_name}::{cast_info.uuid}')
         return jsonify(devices)
@@ -1142,24 +1153,11 @@ if __name__ == '__main__':
         return -1
 
 
-    def refresh_devices():
-        device_names.clear()
-        # account for case where user is connected to device not detectable
-        if cast is not None and cast.uuid not in cast_browser.devices:
-            cast_browser.devices[cast.uuid] = cast.cast_info
-        # sort CastInfos objects
+    def get_devices():
         lo_cis = sorted(cast_browser.devices.values(), key=cast_info_sorter)
-        for i, ci in enumerate(chain(['Local device'], lo_cis)):
-            ci: CastInfo | str
-            device_name = ci if i == 0 else ci.friendly_name
-            device_id = None if i == 0 else str(ci.uuid)
-            if device_id == settings['previous_device']:
-                tray_device_name = f'{CHECK_MARK} {device_name}'
-            else:
-                tray_device_name = f'    {device_name}'
-            tray_device_key = f'device:{ci.uuid}' if i else 'device:0'
-            device_names.append((tray_device_name, tray_device_key))
-        refresh_tray()
+        lo_devices = [Device()]
+        lo_devices.extend((Device(cast_info) for cast_info in lo_cis))
+        return lo_devices
 
 
     class MyCastListener(pychromecast.discovery.AbstractCastListener):
@@ -1169,11 +1167,11 @@ if __name__ == '__main__':
             """Called when a new cast has been discovered."""
             global cast
             cast_info = cast_browser.devices[uuid]
-            if str(cast_info.uuid) == settings['previous_device']:
+            if str(cast_info.uuid) == settings['device']:
                 self.found_prev_device = True
                 cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
                 cast.wait()
-            refresh_devices()
+            refresh_tray(True)
 
         def remove_cast(self, uuid, _service, cast_info):
             """Called when a cast has been lost (MDNS info expired or host down)."""
@@ -1181,11 +1179,11 @@ if __name__ == '__main__':
             if cast is not None and cast.uuid == uuid:
                 # lost connection to connected device
                 app_log.info(f'Lost connection to {cast.name} ({uuid}), switching to local device')
-            refresh_devices()
+            refresh_tray(True)
 
         def update_cast(self, uuid, _service):
             """Called when a cast has been updated (MDNS info renewed or changed)."""
-            refresh_devices()
+            refresh_tray(True)
 
 
     def change_device(new_uuid='local'):
@@ -1225,8 +1223,8 @@ if __name__ == '__main__':
             current_pos = audio_player.stop()
 
         cast = new_device
-        change_settings('previous_device', None if cast is None else str(cast.uuid))
-        refresh_devices()
+        change_settings('device', None if cast is None else str(cast.uuid))
+        refresh_tray(True)
         if playing_status.busy() and (music_queue or sar.alive):
             if not sar.alive:
                 play(position=current_pos, autoplay=playing_status.playing(), switching_device=True)
@@ -1356,7 +1354,10 @@ if __name__ == '__main__':
                     track_number = metadata['track_number']
                     title = f'{track_number}. {title}'
         if settings['mini_mode']: title = truncate_title(title)
-        else: main_window['album'].update(album)
+        else:
+            default_device = None if cast is None else cast.cast_info
+            main_window['devices'].update(value=Device(default_device), values=get_devices())
+            main_window['album'].update(album)
         main_window['title'].update(title)
         main_window['artist'].update(artist)
         image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
@@ -1850,21 +1851,21 @@ if __name__ == '__main__':
 
     def file_action(action='pf'):
         """
-        action = {'pf': 'Play File(s)', 'pfn': 'Play File(s) Next', 'qf': 'Queue File(s)'}
-        :param action: one of {'pf': 'Play File(s)', 'pfn': 'Play File(s) Next', 'qf': 'Queue File(s)'}
+        action = {'pf': 'Play Files', 'pfn': 'Play Files Next', 'qf': 'Queue Files'}
+        :param action: one of {'pf': 'Play Files', 'pfn': 'Play Files Next', 'qf': 'Queue Files'}
         :return:
         """
-        paths = open_dialog(gt('Select Music File(s)'), filetypes=AUDIO_FILE_TYPES, multiple=True)
+        paths = open_dialog(gt('Select Audio Files'), filetypes=AUDIO_FILE_TYPES, multiple=True)
         if paths:
             settings['last_folder'] = os.path.dirname(paths[-1])
             app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
-            if action in {gt('Play File(s)'), 'pf'}:
+            if action in {gt('Play'), 'pf'}:
                 if settings['queue_library']:
                     return play_all(starting_files=paths)
                 return play_uris(paths)
-            if action in {gt('Queue File(s)'), 'qf'}:
+            if action in {gt('Queue'), 'qf'}:
                 return play_uris(paths, queue_uris=True)
-            if action in {gt('Play File(s) Next'), 'pfn'}:
+            if action in {gt('Play Next'), 'pfn'}:
                 return play_uris(paths, play_next=True)
             raise ValueError(f'file_action expected something else. Got {action}')
         main_window.metadata['main_last_event'] = 'file_action'
@@ -1896,19 +1897,19 @@ if __name__ == '__main__':
             if not temp_queue:
                 if settings['notifications']:
                     tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
-            elif action in {gt('Play Folder'), 'pf'}:
+            elif action in {gt('Play'), 'pf'}:
                 music_queue.clear()
                 done_queue.clear()
                 music_queue.extend(temp_queue)
                 play()
-            elif action in {gt('Play Folder Next'), 'pfn'}:
+            elif action in {gt('Play Next'), 'pfn'}:
                 if settings['reversed_play_next']: next_queue.extendleft(reversed(temp_queue))
                 else: next_queue.extend(temp_queue)
                 if playing_status.stopped() and not music_queue and next_queue:
                     if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
                     playing_status.play()
                     next_track()
-            elif action in {gt('Queue Folder'), 'qf'}:
+            elif action in {gt('Queue'), 'qf'}:
                 music_queue.extend(temp_queue)
                 if len(temp_queue) == len(music_queue) and not sar.alive: play()
             else: raise ValueError(f'folder_action expected something else. Got {action}')
@@ -2366,8 +2367,9 @@ if __name__ == '__main__':
             metadata = get_current_metadata()
             title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
             position = get_track_position()
+            # TODO: send devices
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
-                                          all_tracks, title, artist, album, track_length=track_length,
+                                          all_tracks, get_devices(), title, artist, album, track_length=track_length,
                                           album_art_data=album_art_data, track_position=position)
             window_metadata: dict = {'main_last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
                                      'library': {'sort_by': 0, 'ascending': True, 'region': 'cell', 'column': 1},
@@ -2484,7 +2486,7 @@ if __name__ == '__main__':
             with suppress(ValueError): change_device(device_uuid)
         elif _tray_item.startswith('PL:'):  # playlist
             playlist_action(_tray_item[3:])
-        elif _tray_item == gt('Select Folder(s)'):
+        elif _tray_item == gt('Select Folder'):
             folder_action()
         elif _tray_item.startswith('PF:'):  # play folder
             folder_index = int(re.search(r'\d+', _tray_item).group())
@@ -2595,6 +2597,8 @@ if __name__ == '__main__':
             next_track()
         elif main_event == 'prev' and playing_status.busy():
             prev_track()
+        elif main_event == 'devices':
+            change_device(main_value.id)
         elif main_event == 'sys_audio_delay':
             with suppress(ValueError):
                 change_settings('sys_audio_delay', int(main_value))
@@ -2773,16 +2777,13 @@ if __name__ == '__main__':
                     values = create_track_list()
                     new_i = min(len(values), index_to_remove)
                     main_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-        elif main_event == 'file_option':  # combo box input
-            main_window['file_action'].update(text=main_values['file_option'])
-        elif main_event == 'folder_option':
-            main_window['folder_action'].update(text=main_values['folder_option'])
-        elif main_event == 'file_action':
+        elif main_event == 'select_files':
             Thread(target=file_action, name='FileAction', daemon=True,
-                   args=[main_values['file_option']]).start()
-        elif main_event == 'folder_action':
+                   args=[main_values['fs_action']]).start()
+        elif main_event == 'select_folders':
             Thread(target=folder_action, name='FolderAction', daemon=True,
-                   args=[main_values['folder_option']]).start()
+                   args=[main_values['fs_action']]).start()
+
         elif main_event == 'playlist_action':
             playlist_action(main_values['playlists'])
         elif main_event == 'play_all':
@@ -2895,7 +2896,7 @@ if __name__ == '__main__':
                 Shared.lang = main_value
                 main_window.close()
                 activate_main_window('tab_settings')
-                refresh_tray()
+                refresh_tray(True)
         elif main_event == 'remove_music_folder' and main_values['music_folders']:
             with suppress(ValueError):
                 for selected_item in main_values['music_folders']:
@@ -3060,7 +3061,7 @@ if __name__ == '__main__':
                     main_window['pl_tracks'].update(new_values, set_to_index=to_remove, scroll_to_index=scroll_to_index)
         elif main_event == 'pl_add_tracks':
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
-            file_paths = Sg.popup_get_file('Select Music File(s)', no_window=True, initial_folder=initial_folder,
+            file_paths = Sg.popup_get_file('Select Audio Files', no_window=True, initial_folder=initial_folder,
                                            multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
             if file_paths:
                 pl_tracks = main_window.metadata['pl_tracks']
@@ -3355,7 +3356,7 @@ if __name__ == '__main__':
             # from tray menu
             gt('Exit'): exit_program,
             gt('Rescan Library'): index_all_tracks,
-            gt('Refresh Devices'): refresh_devices,
+            gt('Refresh Devices'): lambda: refresh_tray(True),
             # isdigit should be an if statement
             gt('Settings'): lambda: activate_main_window('tab_settings'),
             gt('Playlists Tab'): lambda: activate_main_window('tab_playlists'),
@@ -3366,9 +3367,9 @@ if __name__ == '__main__':
             gt('Play URL'): lambda: activate_main_window('tab_url', 'url_play'),
             gt('Queue URL'): lambda: activate_main_window('tab_url', 'url_queue'),
             gt('Play URL Next'): lambda: activate_main_window('tab_url', 'url_play_next'),
-            gt('Play File(s)'): file_action,
-            gt('Queue File(s)'): lambda: file_action('qf'),
-            gt('Play File(s) Next'): lambda: file_action('pfn'),
+            gt('Play Files'): file_action,
+            gt('Queue Files'): lambda: file_action('qf'),
+            gt('Play Files Next'): lambda: file_action('pfn'),
             gt('Play All'): play_all,
             gt('Pause'): pause,
             gt('Resume'): resume,
@@ -3456,7 +3457,7 @@ if __name__ == '__main__':
         if args.uris or args.start_playing:
             # wait until previous device has been found or cannot be found
             end_time = time.monotonic() + WAIT_TIMEOUT
-            while not change_device(settings['previous_device']) and time.monotonic() < end_time:
+            while not change_device(settings['device']) and time.monotonic() < end_time:
                 time.sleep(0.3)
         if args.uris:
             play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)

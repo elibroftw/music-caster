@@ -45,6 +45,7 @@ from mutagen.mp3 import HeaderNotFoundError
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easyid3 import EasyID3
 import pyaudio
+from pychromecast import CastInfo
 import pypresence
 import pyqrcode
 import PySimpleGUI as Sg
@@ -311,6 +312,54 @@ class DiscordPresence:
     def close(cls):
         if cls.rich_presence is not None:
             cls.rich_presence.close()
+
+
+class Device:
+    CHECK_MARK = '✓'
+
+    def __init__(self, cast_info_or_none: None | CastInfo = None):
+        self.__device = cast_info_or_none
+        self.is_cast_info = isinstance(self.__device, CastInfo)
+
+    @property
+    def id(self):
+        return str(self.__device.uuid) if isinstance(self.__device, CastInfo) else None
+
+    # noinspection PyPep8Naming
+    @classmethod
+    def LOCAL_DEVICE(cls):
+        return gt('Local device')
+
+    @property
+    def name(self):
+        if self.is_cast_info:
+            return self.__device.friendly_name
+        return self.LOCAL_DEVICE()
+
+    def as_tray_name(self, active_id):
+        if active_id == self.id:
+            return f'{self.CHECK_MARK} {self.name}'
+        return f'    {self.name}'
+
+    @property
+    def tray_key(self):
+        return f'device:{self.id}' if self.is_cast_info else 'device:0'
+
+    @property
+    def gui_key(self):
+        return f'device::{self.id}' if self.is_cast_info else 'device::0'
+
+    def as_tray_item(self, active_id) -> tuple:
+        return self.as_tray_name(active_id), self.tray_key
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f'Device(id={self.id}, name={self.name})'
 
 
 def get_file_name(file_path): return Path(file_path).stem
@@ -1455,8 +1504,9 @@ def create_mini_mode(playing_status, settings, title, artist, album_art_data, tr
 
 
 def create_main(queue, listbox_selected, playing_status, settings, version, timer, music_lib,
-                title=gt('Nothing Playing'), artist='', album='', album_art_data: bytes = b'',
+                devices, title=gt('Nothing Playing'), artist='', album='', album_art_data: bytes = b'',
                 track_length=0, track_position=0):
+    # devices: device_names list of (name, device_key)
     if settings['mini_mode']:
         return create_mini_mode(playing_status, settings, title, artist, album_art_data, track_length, track_position)
     accent_color, fg, bg = settings['theme']['accent'], settings['theme']['text'], settings['theme']['background']
@@ -1467,8 +1517,12 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
     if not settings['show_album_art']: album_art_data = ''
     info_top_pad = 10 + 60 * (not album_art_data) - 30 * (vertical_gui and not album_art_data)
     # 10, 110, or 0
-    info_bot_pad = 10 + 40 * (not album_art_data) - 20 * (not album_art_data and vertical_gui)
+    info_bot_pad = 10 + 40 * (not album_art_data) - 20 * (vertical_gui and not album_art_data)
     # 10 or 30
+    # default_device = []
+    default_device = next(filter(lambda device: device.id == settings['device'], devices), Device())
+    combo_devices = [Sg.Combo(devices, key='devices', readonly=True, background_color=bg, expand_x=True,
+                              default_value=default_device, enable_events=True, pad=((5, 10), 10))]
     left_pad = settings['vertical_gui'] * 95 + 5
     main_part = Sg.Column([
         [Sg.Image(data=album_art_data, pad=(0, 0), size=COVER_NORMAL, key='artwork')] if album_art_data else [],
@@ -1478,23 +1532,26 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
                  size=(30, 2), justification='center')],
         [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)), enable_events=True,
                  size=(30, 0), justification='center')],
-        music_controls, progress_bar_layout], element_justification='center', pad=((left_pad, 5), 5 * vertical_gui))
+        music_controls, progress_bar_layout, combo_devices], element_justification='center', pad=((left_pad, 5), 5 * vertical_gui))
     # tabs side is for music queue, queue controls, and later, the music library
     # tab 1 is the queue, tab 2 will be the library
-    file_options = [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')]
-    folder_opts = [gt('Play Folder'), gt('Queue Folder'), gt('Play Folder Next')]
-    biggest_word = len(max(*file_options, *folder_opts, key=len))
+    # file_options = [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')]
+    # folder_opts = [gt('Play Folder'), gt('Queue Folder'), gt('Play Folder Next')]
+    fs_actions = [gt('Play'), gt('Queue'), gt('Play Next')]
+    select_files = gt('Select Files')
+    select_folder = gt('Select Folder')
+    biggest_word = len(max(*fs_actions, select_files, select_folder, key=len))
     combo_w = ceil(biggest_word * 0.95)
-    queue_controls = [
-        Sg.Column([[Sg.Combo(file_options, default_value=file_options[0], key='file_option', size=(combo_w, 5),
-                             font=FONT_NORMAL, enable_events=True, pad=(5, (5, 0)), readonly=True)],
-                   [Sg.Combo(folder_opts, default_value=folder_opts[0], key='folder_option', size=(combo_w, 5),
-                             font=FONT_NORMAL, enable_events=True, pad=(5, (10, 0)), readonly=True)]]),
-        Sg.Column([[round_btn(file_options[0], accent_color, bg, key='file_action',
-                              button_width=biggest_word, pad=(5, (7, 5)))],
-                   [round_btn(folder_opts[0], accent_color, bg, key='folder_action',
-                              button_width=biggest_word)]]),
-    ]
+    queue_controls = [Sg.Column([[
+        # fs stands for file system here
+        Sg.Combo(fs_actions, default_value=fs_actions[0], key='fs_action', size=(combo_w, 5),
+                 enable_events=False, pad=(5, (6, 4)), readonly=True),
+        round_btn(select_files, accent_color, bg, key='select_files',
+                  button_width=biggest_word, pad=(5, (7, 5))),
+        round_btn(select_folder, accent_color, bg, key='select_folders',
+                  button_width=biggest_word),
+    ]], justification='center')]
+
     move_to_next_up = {'image_data': PLAY_NEXT_ICON, 'button_color': (bg, bg), 'tooltip': gt('Move to next up')}
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, button_color=(bg, bg), tooltip=gt('Launch mini mode'))],
@@ -1507,13 +1564,13 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         [icon_btn(X_ICON, 'remove_track', gt('remove'), bg)],
         [icon_btn(DOWN_ICON, 'move_down', gt('move down'), bg)]
     ]
-    listbox_height = 18 - 5 * settings['vertical_gui']
-    queue_tab_layout = [queue_controls, [
-        Sg.Listbox(queue, default_values=listbox_selected, size=(64, listbox_height),
-                   select_mode=Sg.SELECT_MODE_EXTENDED,
-                   text_color=fg, key='queue', font=FONT_NORMAL,
-                   bind_return_key=True),
-        Sg.Column(listbox_controls, pad=(0, 0))]]
+    listbox_height = 21 - 7 * (settings['vertical_gui'] or not settings['show_album_art'])
+    queue_tab_layout = [[
+        Sg.Column([[Sg.Listbox(queue, default_values=listbox_selected, size=(64, listbox_height),
+                               select_mode=Sg.SELECT_MODE_EXTENDED,
+                               text_color=fg, key='queue', font=FONT_NORMAL,
+                               bind_return_key=True)], queue_controls]),
+        Sg.Column(listbox_controls, pad=(0, 0), vertical_alignment='center')]]
     queue_tab = Sg.Tab(gt('Queue'), queue_tab_layout, key='tab_queue')
     url_tab = create_url_tab(accent_color, bg)
     # library tab will be good to use once I'm using Python 3.10 which will have tk 8.10
@@ -1527,7 +1584,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         library_height = listbox_height
         col_widths = [25, 12, 12]
     else:
-        library_height = 14 - 3 * settings['vertical_gui']
+        library_height = 15 - 4 * (settings['vertical_gui'] or not settings['show_album_art'])
         col_widths = [20, 15, 15]
 
     library_layout = [[Sg.Table(values=lib_data, headings=lib_headings, row_height=30, auto_size_columns=False,
@@ -1580,7 +1637,7 @@ def create_playlists_tab(settings):
     url_input = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
     add_url = [round_btn(gt('Add URL'), accent, bg, key='pl_add_url', button_width=13)]
     add_tracks = [round_btn(gt('Add tracks'), accent, bg, key='pl_add_tracks', button_width=13)]
-    lb_height = 14 - 3 * settings['vertical_gui']
+    lb_height = 14 - 3 * (settings['vertical_gui'] or not settings['show_album_art'])
     pl_name_text = gt('Playlist name')
     name_text_w = max(13, len(pl_name_text))
     layout = [[Sg.Column(playlist_selector, pad=(5, 20))],

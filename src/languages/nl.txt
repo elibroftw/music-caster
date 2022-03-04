@@ -72,10 +72,8 @@ Pause
 Aanhoudende wachtrij
 Afspelen
 Speel alles af
-Speel bestand(en)
-Speel volgende bestand(en)
-Speel map
-Speel volgende map
+Speel bestanden
+Speel volgende bestanden
 Speel meteen
 Speel volgende
 Speel URL
@@ -89,8 +87,7 @@ Vult wachtrij uit mappen bij opstarten
 vorige nummer
 Wachtrij
 alles naar de wachtrij
-Bestand(en)naar wachtrij
-Map naar wachtrij
+Bestanden naar wachtrij
 URL naar wachtrij
 Ververs apparaten
 Onthoud laatste map
@@ -115,10 +112,10 @@ scroll muiswiel
 Muziek aan het zoeken...
 Selecteer apparaat
 Selecteer map
-Selecteer map(pen)
-Selecteer bestand(en)
+Selecteer mappen
+Selecteer bestanden
 Selecteer bestand
-Selecteer Muziek bestand(en)
+Selecteer Audio bestanden
 Stuur een e-mail
 set DEBUG = true in `settings.json` om deze pagina in te schakelen
 Stel Timer in

@@ -72,10 +72,8 @@ Pausa
 Coda persistente
 Riproduci
 Riproduci Tutto
-Riproduci File(s)
-Riproduci File(s) Dopo
-Riproduci Cartella
-Riproduci Cartella Dopo
+Riproduci Files
+Riproduci Files Dopo
 Riproduci Immediatamente
 Riproduci Prossimo
 Riproduci URL
@@ -89,8 +87,7 @@ Riempi la coda dalle cartelle all'avvio
 traccia precedente
 Coda
 Metti tutti in coda
-Metti in coda File(s)
-Metti in coda Cartella
+Metti in coda Files
 Metti in coda URL
 Aggiornare i Dispositivi
 Ricorda ultima cartella
@@ -115,10 +112,10 @@ scorrere la rotella del mouse
 Cerca la musica...
 Seleziona Dispositivo
 Seleziona Cartella
-Seleziona Cartella(e)
-Seleziona File(s)
+Seleziona Cartellae
+Seleziona Files
 Seleziona File
-Seleziona File(s) Musicali
+Seleziona Files Audio
 Inviami un'e-mail
 imposta DEBUG = true in `settings.json` per abilitare questa pagina
 Imposta Timer

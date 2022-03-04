@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.4.0
+- [UI] Add device selection
+- [UI] Simplified file/folder actions
+- [UI] Fix Listbox height when artwork is off
+
 5.3.1
 - [UI] Update Web UI settings modal
 

@@ -72,10 +72,8 @@ Pause
 Persistent queue
 Play
 Play All
-Play File(s)
-Play File(s) Next
-Play Folder
-Play Folder Next
+Play Files
+Play Files Next
 Play Immediately
 Play Next
 Play URL
@@ -89,8 +87,7 @@ Populates queue from folders on startup
 previous track
 Queue
 queue all
-Queue File(s)
-Queue Folder
+Queue Files
 Queue URL
 Refresh Devices
 Remember last folder
@@ -115,10 +112,10 @@ scroll mousewheel
 Search for music...
 Select Device
 Select Folder
-Select Folder(s)
-Select File(s)
+Select Folders
+Select Files
 Select File
-Select Music File(s)
+Select Audio Files
 Send me an email
 set DEBUG = true in `settings.json` to enable this page
 Set Timer
