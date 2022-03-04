@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.4.2
+- [Fix] Playlist Listbox
+
 5.4.1
 - [Fix] GUI
 

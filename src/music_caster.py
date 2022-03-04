@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.1'
+VERSION = latest_version = '5.4.2'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted

@@ -1637,7 +1637,7 @@ def create_playlists_tab(settings):
     url_input = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
     add_url = [round_btn(gt('Add URL'), accent, bg, key='pl_add_url', button_width=13)]
     add_tracks = [round_btn(gt('Add tracks'), accent, bg, key='pl_add_tracks', button_width=13)]
-    lb_height = 14 - 3 * (settings['vertical_gui'] or not settings['show_album_art'])
+    lb_height = 17 - 6 * (settings['vertical_gui'] or not settings['show_album_art'])
     pl_name_text = gt('Playlist name')
     name_text_w = max(13, len(pl_name_text))
     layout = [[Sg.Column(playlist_selector, pad=(5, 20))],
