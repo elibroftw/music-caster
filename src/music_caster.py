@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.0'
+VERSION = latest_version = '5.4.1'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -2544,9 +2544,10 @@ if __name__ == '__main__':
                 main_window.refresh()
         # change/select tabs
         if main_event != '__TIMEOUT__':
-            el = main_window.find_element_with_focus()
-            if el is not None and el.Key in {'track_format', 'sys_audio_delay'}:
-                main_event, main_value = el.Key, main_values.get(el.Key)
+            with suppress(KeyError):
+                el = main_window.find_element_with_focus()
+                if el is not None and el.Key in {'track_format', 'sys_audio_delay'}:
+                    main_event, main_value = el.Key, main_values.get(el.Key)
         if main_event == '__TIMEOUT__': pass  # avoids checking multiple if statements
         elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
             main_window['tab_queue'].select()
