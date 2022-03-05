@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.4.4
+- [Fix] Casting race conditions
+
 5.4.3
 - [Fix] Playback after startup race condition
 
