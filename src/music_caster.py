@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.2'
+VERSION = latest_version = '5.4.3'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -1132,6 +1132,7 @@ if __name__ == '__main__':
 
 
     def cast_try_reconnect():
+        app_log.info('cast_try_reconnect() started')
         global cast_browser, zconf
         cast_browser.stop_discovery()
         zconf = zeroconf.Zeroconf()
@@ -1140,6 +1141,7 @@ if __name__ == '__main__':
         wait_until = time.monotonic() + WAIT_TIMEOUT
         while cast is None and time.monotonic() < wait_until:
             time.sleep(0.2)
+        app_log.info('cast_try_reconnect() finished')
 
 
     @cmp_to_key
@@ -1161,16 +1163,19 @@ if __name__ == '__main__':
 
 
     class MyCastListener(pychromecast.discovery.AbstractCastListener):
-        found_prev_device = False
 
         def add_cast(self, uuid, _service):
             """Called when a new cast has been discovered."""
             global cast
             cast_info = cast_browser.devices[uuid]
             if str(cast_info.uuid) == settings['device']:
-                self.found_prev_device = True
-                cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
-                cast.wait()
+                # if currently connected to local device or another cast, change device
+                if cast is None or cast.uuid != cast_info.uuid:
+                    change_device(cast_info.uuid)
+                else:
+                    # otherwise, update the cast variable
+                    cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
+                    cast.wait()
             refresh_tray(True)
 
         def remove_cast(self, uuid, _service, cast_info):
@@ -1193,7 +1198,8 @@ if __name__ == '__main__':
         global cast
         app_log.info(f'change_device({new_uuid})')
         try:
-            new_uuid = UUID(hex=new_uuid)
+            if not isinstance(new_uuid, UUID):
+                new_uuid = UUID(hex=new_uuid)
             with suppress(AttributeError):
                 if cast.uuid == new_uuid:
                     # do not change device if same cast is selected
