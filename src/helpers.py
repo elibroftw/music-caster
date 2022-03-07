@@ -592,6 +592,8 @@ def get_metadata(file_path: str):
             audio = {k.lower(): audio[k] for k in audio}
             if file_path.endswith('.wma'):
                 audio = {k: [audio[k][0].value] for k in audio}
+            if 'trkn' in audio:
+                audio['tracknumber'] = audio.pop('trkn')
     except TypeError as e:
         logging.getLogger('music_caster').error(repr(e))
         logging.getLogger('music_caster').info(f'Could not open {file_path} as audio file')
