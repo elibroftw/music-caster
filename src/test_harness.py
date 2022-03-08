@@ -211,7 +211,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
             'https://www.deezer.com/playlist/1963962142',  # deezer playlist
             'https://deezer.page.link/URU2yh1GX1wyaoZy9'
     ):
-        print('testing ', streaming_url)
+        print('testing', streaming_url)
         if 'spotify' in streaming_url:
             try:
                 metadata_list = get_spotify_tracks(streaming_url)
