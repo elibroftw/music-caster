@@ -41,9 +41,10 @@ import mutagen.flac
 # noinspection PyProtectedMember
 from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
-from mutagen.mp3 import HeaderNotFoundError
+from mutagen.mp3 import HeaderNotFoundError, EasyMP3, MP3
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easyid3 import EasyID3
+from mutagen.wave import WAVE
 import pyaudio
 from pychromecast import CastInfo
 import pypresence
@@ -490,7 +491,7 @@ def set_metadata(file_path: str, metadata: dict):
     if '/' not in track_place:
         tracks = max(1, int(track_place))
         track_place = f'{track_place}/{tracks}'
-    if ext in {'.mp3', '.wav'}:
+    if isinstance(audio, (MP3, mutagen.wave.WAVE)) or ext in {'.mp3', '.wav'}:
         if title:
             audio['TIT2'] = mutagen.id3.TIT2(text=metadata['title'])
         if artists:
@@ -524,7 +525,7 @@ def set_metadata(file_path: str, metadata: dict):
             audio['covr'] = [MP4Cover(img_data, imageformat=image_format)]
         elif 'covr' in audio:
             del audio['covr']
-    elif isinstance(audio, OggOpus) or isinstance(audio, OggVorbis):
+    elif isinstance(audio, (OggOpus, OggVorbis)):
         if title: audio['title'] = [title]
         if artists: audio['artist'] = artists
         if album: audio['album'] = [album]
@@ -568,32 +569,35 @@ def set_metadata(file_path: str, metadata: dict):
 
 
 def get_metadata(file_path: str):
-    """
-    TODO: do not depend on file endings
-    """
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
     try:
-        if file_path.endswith('.mp3'):
-            audio = dict(EasyID3(file_path))
-            _audio = mutagen.File(file_path)
-            audio['rating'] = _audio.get('TXXX:RATING', _audio.get('TXXX:ITUNESADVISORY', ['0']))
-        elif file_path.endswith('.m4a') or file_path.endswith('.mp4'):
+        a = mutagen.File(file_path)
+        if isinstance(a, MP3):
+            audio = dict(EasyMP3(file_path))
+            audio['rating'] = a.get('TXXX:RATING', a.get('TXXX:ITUNESADVISORY', ['0']))
+        elif isinstance(a, MP4):
             audio = dict(mutagen.File(file_path))
             audio['rating'] = audio.get('rtng', [0])
             for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
                 if tag in audio:
                     audio[normalized] = audio.pop(tag)
-        elif file_path.endswith('.wav'):
-            a = WavInfoReader(file_path).info.to_dict()
-            audio = {'title': [a['title']], 'artist': [a['artist']], 'album': [a['product']]}
-        else:
-            audio = dict(mutagen.File(file_path))
+        elif isinstance(a, (OggOpus, OggVorbis)):
+            audio = dict(a)
+            if 'rtng' in audio:
+                audio['rating'] = audio.pop('rtng')
+            if 'trkn' in audio:
+                audio['tracknumber'] = audio.pop('trkn')
+        elif isinstance(a, WAVE) or file_path.endswith('.wav'):
+            audio = WavInfoReader(file_path).info.to_dict()
+            audio = {'title': [audio['title']], 'artist': [audio['artist']], 'album': [audio['product']]}
+        elif a is not None:
+            audio = dict(a)
             audio = {k.lower(): audio[k] for k in audio}
             if file_path.endswith('.wma'):
                 audio = {k: [audio[k][0].value] for k in audio}
-            if 'trkn' in audio:
-                audio['tracknumber'] = audio.pop('trkn')
+        else:
+            audio = {}
     except TypeError as e:
         logging.getLogger('music_caster').error(repr(e))
         logging.getLogger('music_caster').info(f'Could not open {file_path} as audio file')
@@ -1785,7 +1789,7 @@ def create_metadata_tab(settings):
          round_btn(gt('Select artwork'), accent, bg, key='metadata_select_art', pad=(5, 10)),
          round_btn(gt('Search artwork'), accent, bg, key='metadata_search_art', pad=(5, 10)),
          round_btn(gt('Remove artwork'), accent, bg, key='metadata_remove_art', pad=(5, 10))],
-        [Sg.Text('', key='metadata_msg', text_color='green', size=(30, 1))]]
+        [Sg.Text('', key='metadata_msg', text_color='green', size=(60, 1))]]
     return Sg.Tab(gt('Metadata'), [[Sg.Column(layout, pad=(5, 5))]], key='tab_metadata')
 
 

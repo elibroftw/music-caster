@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.5'
+VERSION = latest_version = '5.4.6'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -3196,7 +3196,7 @@ if __name__ == '__main__':
                     set_metadata(main_window['metadata_file'].get(), new_metadata)
                     main_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
                 except Exception as e:  # e.g. ValueError track number incorrectly entered
-                    print(e)
+                    print(repr(e))
                     error = gt('ERROR') + ': ' + repr(e)
                     main_window['metadata_msg'].update(value=error, text_color='red')
                 main_window.TKroot.after(2000, lambda: main_window['metadata_msg'].update(value=''))
