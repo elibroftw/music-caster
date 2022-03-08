@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 5.4.6
 - [Fix] Reading Metadata
+- [Fix] Spotify Playlists
 
 5.4.5
 - [Fix] Opus track number

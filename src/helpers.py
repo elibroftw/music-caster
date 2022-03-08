@@ -1101,9 +1101,8 @@ def get_spotify_playlist(url):
     api_url = f'{SPOTIFY_API}/playlists/{playlist_id}/tracks'
     response = requests.get(api_url, headers=get_spotify_headers()).json()
     results = response['items']
-    while len(results) < response['total']:
-        response = requests.get(f'{api_url}/tracks?offset={len(results)}',
-                                headers=get_spotify_headers()).json()
+    while response['next'] is not None:
+        response = requests.get(response['next'], headers=get_spotify_headers()).json()
         results.extend(response['items'])
     return [parse_spotify_track(result['track'], url) for result in results if isinstance(result['track'], dict)]
 
