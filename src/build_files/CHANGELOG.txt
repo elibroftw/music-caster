@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.4.7
+- [Fix] Better error handling
+
 5.4.6
 - [Fix] Reading Metadata
 - [Fix] Spotify Playlists

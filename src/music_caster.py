@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.6'
+VERSION = latest_version = '5.4.7'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -543,7 +543,7 @@ if __name__ == '__main__':
                 playing_uri = music_queue[0]
         try:
             with open('music_caster.log', encoding='utf-8') as f:
-                log_lines = f.read().splitlines(keepends=False)[-5:]  # get last 5 lines of the log
+                log_lines = f.read().splitlines(keepends=False)[-10:]  # get last 10 lines of the log
         except FileNotFoundError:
             log_lines = []
         device = 'local' if cast is None else 'cast'
@@ -1646,7 +1646,12 @@ if __name__ == '__main__':
             # fetch and cache artwork for first url
             metadata = metadata_list[0]
             if 'art' in metadata and 'art_data' not in metadata:
-                url_metadata[metadata['src']]['art_data'] = base64.b64encode(requests.get(metadata['art']).content)
+                art_url = metadata['art']
+                try:
+                    url_metadata[metadata['src']]['art_data'] = base64.b64encode(requests.get(art_url).content)
+                except requests.RequestException as e:
+                    app_log.info(f'Could not fetch art url {art_url}')
+                    handle_exception(e)
         return metadata_list
 
 
@@ -1681,11 +1686,15 @@ if __name__ == '__main__':
                                   current_time=position, autoplay=autoplay, stream_type=stream_type)
                     mc.block_until_active(WAIT_TIMEOUT)
                     if track_length is None: mc.play()
+                except NotConnected:
+                    app_log.error('play_url failed to cast because cast was not connected')
+                    tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' (play_url)')
+                    change_device()
+                    return False
                 except (PyChromecastError, OSError) as e:
                     app_log.error(f'play_url failed to cast {repr(e)}')
                     if show_error:
-                        not_connected_error = gt('Could not connect to cast device')
-                        tray_notify(gt('ERROR') + ': ' + not_connected_error + ' (play_url)')
+                        tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' (play_url)')
                         return handle_exception(e)
                     cast_try_reconnect()
                     return play_url(position, autoplay, switching_device, show_error=True)
@@ -1739,6 +1748,22 @@ if __name__ == '__main__':
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
                 mc.block_until_active(WAIT_TIMEOUT)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
+            except NotConnected:
+                app_log.error('play could not cast because cast is not connected')
+                """
+                2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009] Failed to connect to service ServiceInfo(type='mdns', data='Google-Home-Mini-$HASH._googlecast._tcp.local.'), retrying in 5.0s
+                Traceback (most recent call last):
+                  File "music_caster.py", line 1733, in play
+                  File "pychromecast/controllers/receiver.py", line 181, in set_volume
+                  File "pychromecast/controllers/__init__.py", line 95, in send_message
+                  File "pychromecast/controllers/__init__.py", line 99, in send_message_nocheck
+                  File "pychromecast/socket_client.py", line 930, in send_platform_message
+                  File "pychromecast/socket_client.py", line 924, in send_message
+                pychromecast.error.NotConnected: Chromecast 192.168.1.9:8009 is connecting...
+                """
+                tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (play)')
+                change_device()
+                return False
             except (PyChromecastError, OSError, RuntimeError) as e:
                 app_log.error(f'play failed to cast {repr(e)}')
                 if show_error:
