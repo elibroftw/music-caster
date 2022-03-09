@@ -35,14 +35,18 @@ parser.add_argument('--skip-build', default=False, action='store_true',
                     help='Skip to testing / uploading')
 parser.add_argument('--skip-tests', '--st', default=False, action='store_true',
                     help='Skip testing')
-parser.add_argument('--force-install', '-f', default=False, action='store_true', help='Force install')
-parser.add_argument('--dry', default=False, action='store_true', help='skips the building part')
+parser.add_argument('--force-install', '-f', default=False, action='store_true', help='Force install after build')
+parser.add_argument('--deps', '--dry', default=False, action='store_true', help='does not modify anything')
 parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
 parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
 parser.add_argument('--no-install', default=False, action='store_true', help='do not install after building')
 parser.add_argument('--ytdl', default=False, action='store_true', help='version++ if new youtube-dl available')
+parser.add_argument('--keep-finals', default=False, action='store_true', help='keep final pre-packaged files after packaging them')
 args = parser.parse_args()
-if args.dry: print('Dry Build')
+if args.deps:
+    print('Building Music Caster (only install dependencies)')
+else:
+    print('Building Music Caster (only install dependencies)')
 
 
 def update_versions():
@@ -123,19 +127,20 @@ if 'ModuleNotFoundError' not in VERSION:
     if args.ver_update: sys.exit()
     pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt'
 else:
-    args.dry = True
-    args.skip_deps = args.skip_build = False
+    args.deps = True
     pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt --force-reinstall --force'
-    print('Warning: could not get version, will install modules')
-if not args.skip_build and not args.skip_deps:
-    print('Installing / Updating dependencies...')
+    print('INFO: could not get version, this build will only install the required modules')
+if args.deps or (not args.skip_build and not args.skip_deps):
+    print('Installing and/or upgrading dependencies...')
     if platform.system() == 'Windows':
         # install tkdnd custom way
         sys_dir_name = os.path.dirname(sys.executable)
         shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
         shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
-    if args.dry:
+    if args.deps:
         Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
+        print('Finished installing dependencies. Try something else if errors occurred.')
+        sys.exit()
     else:
         # suppress output if not dry
         getoutput(pip_cmd)
@@ -201,19 +206,18 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 
 args.upload = args.upload and not args.test_autoupdate
 player_state = {}
-if not args.dry:
-    with suppress(requests.exceptions.RequestException):
-        player_state = requests.get('http://[::1]:2001/state').json()
-        requests.get('http://[::1]:2001/exit')
-        time.sleep(1)  # wait for MC to exit
-    for process in get_running_processes('Music Caster.exe'):
-        # force close any other instances of MC
-        pid = process['pid']
-        os.kill(pid, 9)
-if args.debug and not args.dry: set_spec_debug(True)
+with suppress(requests.exceptions.RequestException):
+    player_state = requests.get('http://[::1]:2001/state').json()
+    requests.get('http://[::1]:2001/exit')
+    time.sleep(1)  # wait for MC to exit
+for process in get_running_processes('Music Caster.exe'):
+    # force close any other instances of MC
+    pid = process['pid']
+    os.kill(pid, 9)
+if args.debug: set_spec_debug(True)
 else: set_spec_debug(False)
-if args.upload and not args.dry: print('Will upload to GitHub after building')
-if args.test_autoupdate and not args.dry: print("This test should test auto update and won't publish to GitHub")
+if args.upload: print('Will upload to GitHub after building')
+if args.test_autoupdate: print("This test should test auto update and won't publish to GitHub")
 
 if not args.skip_build:
     # remove existing builds
@@ -239,7 +243,7 @@ if args.clean:
     for file in glob.iglob('*.log'):
         os.remove(file)
 
-if not args.dry and not args.skip_build:
+if not args.skip_build:
     print(f'building executables with debug={args.debug}')
     additional_args = '--log=DEBUG' if args.debug else ''
     if args.clean:
@@ -279,14 +283,7 @@ if not args.dry and not args.skip_build:
 
     # Portable
     if platform.system() == 'Windows':
-        for folder in {'dist/static', 'dist/templates'}:
-            with suppress(OSError): os.mkdir(folder)
-        shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
-        shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
-
         res_files = ['static/style.css', 'templates/index.html']
-        for res_file in res_files:
-            shutil.copyfile(res_file, 'dist/' + res_file)
         lang_packs = glob.glob('languages/*.txt')
         music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
         updater_portable = ('dist/Updater.exe', 'Updater.exe')
@@ -298,6 +295,18 @@ if not args.dry and not args.skip_build:
         portable_files.extend(lang_packs)
         print('Creating dist/Portable.zip')
         create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
+        if args.keep_finals:
+            for res_file in res_files:
+                dst_file = f'dist/{res_file}'
+                os.mkdir(os.path.dirname(dst_file), exist_ok=True)
+                shutil.copyfile(res_file, dst_file)
+            shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
+            shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
+        else:
+            for file in (music_caster_portable, updater_portable):
+                os.remove(file[0])
+            for directory in ('vlc_lib', 'languages', 'static', 'templates'):
+                shutil.rmtree(f'dist/{directory}', ignore_errors=True)
     # zip directory for Linux or Darwin
     elif platform.system() == 'Darwin':
         pass
@@ -309,7 +318,7 @@ if not args.dry and not args.skip_build:
     create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py'])
     with suppress(AttributeError): s4.wait()  # Wait for inno script to finish
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
-    print('Last commit id: ' + getoutput('git log --format="%H" -n 1'))
+    print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
 
 if platform.system() == 'Windows':
     dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
@@ -354,7 +363,7 @@ def test(title, fn, assert_statement=False):
         raise _e
 
 
-if not args.dry and not args.skip_tests and dist_files_exist:
+if not args.skip_tests and dist_files_exist:
     try:
         sys.argv = sys.argv[:1]
         from test_harness import run_tests
@@ -370,6 +379,8 @@ if not args.dry and not args.skip_tests and dist_files_exist:
     test('Music Caster Exit API', lambda: requests.post('http://[::1]:2001/exit'))
     time.sleep(2)
     test('Music Caster Should Have Exited', lambda: not is_already_running(), True)
+if not args.keep_finals:
+    shutil.rmtree('dist/Music Caster OneDir', ignore_errors=True)
 
 
 class ProgressUpload:
@@ -417,9 +428,14 @@ def local_install():
     Popen(cmd, shell=True)
 
 
-dist_files_exist = dist_files_exist and not args.dry and not args.debug and not args.skip_tests
-
-if args.upload and dist_files_exist:
+if args.debug or not dist_files_exist:
+    print('Exiting early to avoid upload or installation of possibly broken build')
+    sys.exit()
+print(f'Build v{VERSION} complete')
+print('Time taken:', round(time.time() - start_time, 2), 'seconds')
+print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
+if args.upload and not args.skip_tests:
+    print('Will try to upload to GitHub')
     # upload to GitHub
     github = read_env()['github']
     headers = {'Authorization': f'token {github}', 'Accept': 'application/vnd.github.v3+json'}
@@ -472,6 +488,6 @@ if args.upload and dist_files_exist:
     print(f'Published Release v{VERSION}')
     print(f'v{VERSION} Total Time Taken:', round(time.time() - start_time, 2), 'seconds')
     t.join()
-elif not args.no_install and (dist_files_exist or args.force_install):
-    print('Installing Music Caster [Will Launch After]')
+elif not args.no_install and (not args.skip_tests or args.force_install):
+    print('Installing Music Caster and it will be launched after installation.')
     local_install()
