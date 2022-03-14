@@ -298,7 +298,7 @@ if not args.skip_build:
         if args.keep_finals:
             for res_file in res_files:
                 dst_file = f'dist/{res_file}'
-                os.mkdir(os.path.dirname(dst_file), exist_ok=True)
+                os.makedirs(os.path.dirname(dst_file), exist_ok=True)
                 shutil.copyfile(res_file, dst_file)
             shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
             shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)

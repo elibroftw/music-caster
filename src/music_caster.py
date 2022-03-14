@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.7'
+VERSION = latest_version = '5.4.8'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -505,7 +505,8 @@ if __name__ == '__main__':
         """new_vol: float[0, 100]"""
         main_window.metadata['update_volume_slider'] = True
         new_vol = new_vol / 100
-        audio_player.set_volume(new_vol)
+        with suppress(NameError):
+            audio_player.set_volume(new_vol)
         if cast is not None:
             with suppress(NotConnected): cast.set_volume(new_vol)
 
@@ -1233,7 +1234,7 @@ if __name__ == '__main__':
                     if mc.is_playing or mc.is_paused: mc.stop()
             with suppress(NotConnected):
                 cast.quit_app()
-        elif cast is None and audio_player.is_busy():
+        elif cast is None and 'audio_player' in globals() and audio_player.is_busy():
             current_pos = audio_player.stop()
         autoplay = playing_status.playing()
         was_busy = playing_status.busy()
@@ -3449,7 +3450,11 @@ if __name__ == '__main__':
         zconf = zeroconf.Zeroconf()
         cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
         cast_browser.start_discovery()
-        audio_player = AudioPlayer()
+        try:
+            audio_player = AudioPlayer()
+        except Exception as e:
+            tray_notify(gt('WARNING: Failed to start audio player. Do not play on local device.'))
+            handle_exception(e)
         # find a port to bind to
         socket_timeout = 0.5 if args.shell else 0.1
         while True:

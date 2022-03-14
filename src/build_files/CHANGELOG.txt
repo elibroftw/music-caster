@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.4.8
+- [Fix] VLC Race Condition
+
 5.4.7
 - [Fix] Better error handling
 
