@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.4.9
+- [Fix] Web GUI settings
+- [Fix] Background errors
+
 5.4.8
 - [Fix] VLC Race Condition
 

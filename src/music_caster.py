@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.8'
+VERSION = latest_version = '5.4.9'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -3364,7 +3364,7 @@ if __name__ == '__main__':
                         # if cast says nothing is playing, only stop if we are not at the end of the track
                         #  this will prevent false positives
                         stop('cast_monitor', False)
-                    cast_volume = round(cast.status.volume_level * 100, 1)
+                    cast_volume = round(media_controller.status.volume_level * 100, 1)
                     if settings['volume'] != cast_volume:
                         if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
                             # if volume was changed via Google Home App
