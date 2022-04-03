@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.9'
+VERSION = latest_version = '5.4.10'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -501,8 +501,9 @@ if __name__ == '__main__':
             save_queue_thread.start()
 
 
-    def update_volume(new_vol):
+    def update_volume(new_vol, _from=''):
         """new_vol: float[0, 100]"""
+        app_log.info(f'update_volume: {new_vol} {_from}')
         main_window.metadata['update_volume_slider'] = True
         new_vol = new_vol / 100
         with suppress(NameError):
@@ -979,7 +980,7 @@ if __name__ == '__main__':
                     for timer_setting in timer_settings.difference({setting_key, 'timer_stop'}):
                         change_settings(timer_setting, False)
                 if setting_key == 'volume':
-                    update_volume(0 if settings['muted'] else settings['volume'])
+                    update_volume(0 if settings['muted'] else settings['volume'], 'api')
             return 'true'
         return 'false'
 
@@ -1250,7 +1251,7 @@ if __name__ == '__main__':
         else:
             if cast is not None:
                 cast.wait(timeout=WAIT_TIMEOUT)
-            update_volume(0 if settings['muted'] else settings['volume'])
+            update_volume(0 if settings['muted'] else settings['volume'], 'change_device')
         return True
 
 
@@ -2566,7 +2567,7 @@ if __name__ == '__main__':
                 new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
                 change_settings('volume', new_volume)
                 change_settings('muted', False)
-                update_volume(new_volume)
+                update_volume(new_volume, 'mouse_wheel')
         elif main_event in {'j', 'l'} and (main_values.get('tab_group', 'tab_queue') == 'tab_queue'):
             if playing_status.busy() and track_length is not None:
                 delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
@@ -2653,7 +2654,7 @@ if __name__ == '__main__':
             change_settings('volume', new_volume)
             # un-mute if volume slider was moved
             change_settings('muted', False)
-            update_volume(new_volume)
+            update_volume(new_volume, 'volume_slider')
         elif main_event in {'Up:38', 'Down:40'}:
             focused_element = main_window.FindElementWithFocus()
             if settings['mini_mode'] or focused_element not in {main_window['queue'], main_window['pl_tracks'],
@@ -2663,9 +2664,9 @@ if __name__ == '__main__':
                 change_settings('volume', new_volume)
                 # un-mute if volume slider was moved
                 change_settings('muted', False)
-                update_volume(new_volume)
+                update_volume(new_volume, 'Up:38')
         elif main_event == 'mute':  # toggle mute
-            update_volume(0 if change_settings('muted', not settings['muted']) else settings['volume'])
+            update_volume(0 if change_settings('muted', not settings['muted']) else settings['volume'], 'mute')
         elif main_event in {'Prior:33', 'Next:34'} and not settings['mini_mode']:  # page up, page down
             focused_element = main_window.FindElementWithFocus()
             move = {'Prior:33': -3, 'Next:34': 3}[main_event]
@@ -3341,10 +3342,12 @@ if __name__ == '__main__':
             return
         try:
             if msg is None and playing_status.busy():
+                # block/monitor in background thread
                 return cast.media_controller.update_status(callback_function_param=cast_monitor)
             if cast.app_id == APP_MEDIA_RECEIVER:
                 with cast_monitor_lock:
                     media_controller = cast.media_controller
+                    media_controller.status.update()
                     is_stopped = media_controller.status.player_is_idle
                     is_live = track_length is None
                     if not is_stopped and playing_status.busy():
@@ -3366,7 +3369,10 @@ if __name__ == '__main__':
                         stop('cast_monitor', False)
                     cast_volume = round(media_controller.status.volume_level * 100, 1)
                     if settings['volume'] != cast_volume:
-                        if cast_volume > 0.5 or cast_volume <= 0.5 and not settings['muted']:
+                        diff = abs(settings['volume'] - cast_volume)
+                        print(diff)
+                        if diff > 0.05 and not settings['muted']:
+                            print(cast_volume)
                             # if volume was changed via Google Home App
                             if change_settings('volume', cast_volume) and settings['muted']:
                                 change_settings('muted', False)
