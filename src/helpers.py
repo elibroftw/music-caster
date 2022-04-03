@@ -1049,8 +1049,7 @@ def get_proxy(add_local=True):
 def get_spotify_headers():
     # access token key expires in ~1 hour
     r = requests.get('https://open.spotify.com/', headers={'user-agent': USER_AGENT})
-    m = re.search('"accessToken":"[^"]*', r.text)
-    access_token = m.group().split(':"')[1]
+    access_token = re.search('"accessToken":"([^"]*)', r.text).group(1)
     return {'Authorization': f'Bearer {access_token}'}
 
 

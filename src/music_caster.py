@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.4.10'
+VERSION = latest_version = '5.4.11'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
@@ -3347,7 +3347,6 @@ if __name__ == '__main__':
             if cast.app_id == APP_MEDIA_RECEIVER:
                 with cast_monitor_lock:
                     media_controller = cast.media_controller
-                    media_controller.status.update()
                     is_stopped = media_controller.status.player_is_idle
                     is_live = track_length is None
                     if not is_stopped and playing_status.busy():
@@ -3367,7 +3366,7 @@ if __name__ == '__main__':
                         # if cast says nothing is playing, only stop if we are not at the end of the track
                         #  this will prevent false positives
                         stop('cast_monitor', False)
-                    cast_volume = round(media_controller.status.volume_level * 100, 1)
+                    cast_volume = round(cast.status.volume_level * 100, 1)
                     if settings['volume'] != cast_volume:
                         diff = abs(settings['volume'] - cast_volume)
                         print(diff)
