@@ -57,6 +57,7 @@ from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wa
 
 
 # CONSTANTS
+AUDIO_EXTS = {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
 FONT_NORMAL = 'Segoe UI', 11
 FONT_SMALL = 'Segoe UI', 10
 FONT_LINK = 'Segoe UI', 11, 'underline'
@@ -737,8 +738,7 @@ def valid_audio_file(uri) -> bool:
     check if uri has a valid audio extension
     uri does not have to be a file that exists
     """
-    ext = os.path.splitext(os.path.basename(uri))[1].lower()
-    return ext in {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
+    return Path(uri).suffix.lower() in AUDIO_EXTS
 
 
 @lru_cache(maxsize=1)

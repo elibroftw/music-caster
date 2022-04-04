@@ -90,7 +90,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
         assert isinstance(unknown_title >= 'unknown title', bool)
 
     # test get length
-    for file in TEST_MUSIC_FILES:
+    for file in chain(TEST_MUSIC_FILES, ['https://audio.tv', 'https://audio.com', 'audio.mp3', 'https://audio.mp4']):
         try:
             assert get_length(file) > 0
             assert valid_audio_file(file)
