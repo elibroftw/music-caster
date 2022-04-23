@@ -1472,12 +1472,11 @@ if __name__ == '__main__':
     def url_expired(uri, default=False):
         """ Returns if URI is a URL that has expired """
         default_expiry_time = time.time() + 3 if default else 0
-        print(url_metadata.get(uri))
         expiry_time = url_metadata.get(uri, {}).get('expiry', default_expiry_time)
         return expiry_time < time.time()
 
 
-    def ydl_get_metadata(item):
+    def ydl_get_metadata(item, duration_helper=True):
         if 'formats' in item:
             audio_url = max(item['formats'], key=lambda item: item.get('tbr', 0) * (item.get('vcodec', 'none') == 'none'))['url']
             formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
@@ -1486,17 +1485,15 @@ if __name__ == '__main__':
         else:
             ext = item['ext']
             _url = audio_url = item['url']
-        if 'duration' in item:
-            length = item['duration']
-        else:
+        if 'duration' not in item and duration_helper:
             helper_ap = AudioPlayer()
             helper_ap.play(audio_url, False)
-            length = helper_ap.get_length()
-        expiry_time = time.time() + max(1800, length)
-        metadata = {'title': item.get('track', item['title']), 'artist': item.get('artist', item['uploader']),
-                    'expiry': expiry_time, 'otherid': item['id'], 'album': item.get('album', item['extractor_key']),
-                    'length': length, 'ext': ext, 'url': _url,
-                    'audio_url': audio_url, 'src': item['webpage_url']}
+            item['duration'] = helper_ap.get_length()
+        expiry_time = time.time() + max(1800, item['duration'])
+        length = item['duration'] if item['duration'] else None
+        metadata = {'title': item.get('track', item['title']), 'artist': item.get('artist', item['uploader']), 'url': _url,
+                    'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': item['webpage_url'],
+                    'album': item.get('album', item.get('playlist', item['extractor_key'])), 'length': length}
         if 'thumbnail' in item:
             metadata['art'] = item['thumbnail']
         return metadata
@@ -1559,33 +1556,16 @@ if __name__ == '__main__':
                 r = ydl_extract_info(url)
                 if 'entries' in r:
                     for entry in r['entries']:
-                        # filter(lambda item: item['vcodec'] == 'none', entry['formats'])
-                        audio_url = max(entry['formats'],
-                                        key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
-                        formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                        _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                        expiry_time = time.time() + max(1800, r.get('duration', 0))  # expire in at least 30 minutes
-                        album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
-                        length = entry['duration'] if entry['duration'] != 0 else None
-                        metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
-                                    'album': album, 'length': length, 'ext': _f['ext'],
-                                    'expiry': expiry_time, 'ytid': entry['id'],
-                                    'src': entry['webpage_url'], 'url': _f['url'], 'audio_url': audio_url}
+                        metadata = ydl_get_metadata(entry, duration_helper=False)
+                        metadata['ytid'] = entry['id']
                         # if duration > 10 minutes, try to parse out timestamps for track from comment section
                         if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry)
                         for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
                         metadata_list.append(metadata)
                 else:
                     # single video
-                    audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
-                    formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
-                    _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                    expiry_time = time.time() + max(1800, r.get('duration', 0))  # expire in at least 30 minutes
-                    length = r['duration'] if r['duration'] != 0 else None
-                    metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
-                                'expiry': expiry_time, 'ytid': r['id'],
-                                'album': r.get('album', 'YouTube'), 'length': length, 'ext': _f['ext'],
-                                'art': r['thumbnail'], 'url': _f['url'], 'audio_url': audio_url, 'src': url}
+                    metadata = ydl_get_metadata(r, duration_helper=False)
+                    metadata['ytid'] = r['id']
                     # if duration > 10 minutes, try to parse out timestamps for track from comment section
                     if r['duration'] > 600: metadata['timestamps'] = get_video_timestamps(r)
                     for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
