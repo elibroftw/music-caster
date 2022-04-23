@@ -1,5 +1,5 @@
 """
-AudioPlayer v2.3.5
+AudioPlayer v2.3.6
 Author: Elijah Lopez
 Make sure VLC .dll files are located in "vlc_lib/"
 """
@@ -154,8 +154,8 @@ class AudioPlayer:
     def unmute(self):
         self.player.audio_set_mute(False)
 
-    def get_length(self):
-        return self.player.get_length()
+    def get_length(self, unit=AudioPlayerUnit.SECOND):
+        return self.player.get_length() / unit
 
     def get_sample_rate(self):
         return self.player.get_rate()

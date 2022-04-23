@@ -1,10 +1,11 @@
-VERSION = latest_version = '5.4.11'
+VERSION = latest_version = '5.4.12'
 UPDATE_MESSAGE = """
 [NEW] Select device in GUI
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
+from importlib.metadata import metadata
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
@@ -1471,8 +1472,35 @@ if __name__ == '__main__':
     def url_expired(uri, default=False):
         """ Returns if URI is a URL that has expired """
         default_expiry_time = time.time() + 3 if default else 0
+        print(url_metadata.get(uri))
         expiry_time = url_metadata.get(uri, {}).get('expiry', default_expiry_time)
         return expiry_time < time.time()
+
+
+    def ydl_get_metadata(item):
+        if 'formats' in item:
+            audio_url = max(item['formats'], key=lambda item: item.get('tbr', 0) * (item.get('vcodec', 'none') == 'none'))['url']
+            formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
+            _f = max(formats, key=lambda _f: (_f['height'], _f.get('tbr', 0)))
+            ext, _url = _f['ext'], _f['url']
+        else:
+            ext = item['ext']
+            _url = audio_url = item['url']
+        if 'duration' in item:
+            length = item['duration']
+        else:
+            helper_ap = AudioPlayer()
+            helper_ap.play(audio_url, False)
+            length = helper_ap.get_length()
+        expiry_time = time.time() + max(1800, length)
+        metadata = {'title': item.get('track', item['title']), 'artist': item.get('artist', item['uploader']),
+                    'expiry': expiry_time, 'otherid': item['id'], 'album': item.get('album', item['extractor_key']),
+                    'length': length, 'ext': ext, 'url': _url,
+                    'audio_url': audio_url, 'src': item['webpage_url']}
+        if 'thumbnail' in item:
+            metadata['art'] = item['thumbnail']
+        return metadata
+
 
     # noinspection PyTypeChecker
     def get_url_metadata(url, fetch_art=True) -> list:
@@ -1536,7 +1564,7 @@ if __name__ == '__main__':
                                         key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                         formats = [_f for _f in entry['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                         _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                        expiry_time = time.time() + 3600  # expire in one hour
+                        expiry_time = time.time() + max(1800, r.get('duration', 0))  # expire in at least 30 minutes
                         album = entry.get('album', r.get('title', entry.get('playlist', 'YouTube')))
                         length = entry['duration'] if entry['duration'] != 0 else None
                         metadata = {'title': entry['title'], 'artist': entry['uploader'], 'art': entry['thumbnail'],
@@ -1552,7 +1580,7 @@ if __name__ == '__main__':
                     audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                     formats = [_f for _f in r['formats'] if _f['acodec'] != 'none' and _f['vcodec'] != 'none']
                     _f = max(formats, key=lambda _f: (_f['width'], _f['tbr']))
-                    expiry_time = time.time() + 3600  # expire in one hour
+                    expiry_time = time.time() + max(1800, r.get('duration', 0))  # expire in at least 30 minutes
                     length = r['duration'] if r['duration'] != 0 else None
                     metadata = {'title': r.get('track', r['title']), 'artist': r.get('artist', r['uploader']),
                                 'expiry': expiry_time, 'ytid': r['id'],
@@ -1644,6 +1672,16 @@ if __name__ == '__main__':
                             url_metadata[deezer_track['src']] = deezer_track
                             uris_to_scan.put(deezer_track['src'])
                             metadata_list.append(deezer_track)
+        else:
+            with suppress(IOError):
+                r = ydl_extract_info(url)
+                if 'entries' in r:
+                    for entry in r['entries']:
+                        url_metadata[entry['webpage_url']] = metadata = ydl_get_metadata(entry)
+                        metadata_list.append(metadata)
+                else:
+                    url_metadata[url] = url_metadata[r['webpage_url']] = metadata = ydl_get_metadata(r)
+                    metadata_list.append(metadata)
         if metadata_list and fetch_art:
             # fetch and cache artwork for first url
             metadata = metadata_list[0]
