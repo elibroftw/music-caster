@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.5.0
+- [Feature] Support more URLs
+
 5.4.11
 - [Fix] Volume
 

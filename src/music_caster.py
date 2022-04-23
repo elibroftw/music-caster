@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.4.12'
+VERSION = latest_version = '5.5.0'
 UPDATE_MESSAGE = """
-[NEW] Select device in GUI
+[NEW] Support for more URLs
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
