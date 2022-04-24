@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.5.1
+- [Fix] Volume GUI shortcut
+
 5.5.0
 - [Feature] Support more URLs
 

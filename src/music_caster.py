@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.5.0'
+VERSION = latest_version = '5.5.1'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
@@ -2661,12 +2661,12 @@ if __name__ == '__main__':
         elif main_event == 'shuffle':
             change_settings('shuffle', not settings['shuffle'])
         elif main_event == 'repeat': cycle_repeat()
-        elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdigit())
+        elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdecimal())
                                                 and (main_values.get('tab_group') in {'tab_queue', None}))):
             # User scrubbed volume bar or pressed a, d, #
-            if main_event.isdigit():
+            try:
                 new_volume = int(main_event) * 10
-            else:
+            except ValueError:
                 delta = {'a': -settings['volume_delta'], 'd': settings['volume_delta']}.get(main_event, 0)
                 new_volume = main_values['volume_slider'] + delta
             change_settings('volume', new_volume)
