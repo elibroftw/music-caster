@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.5.2'
+VERSION = latest_version = '5.5.3'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
@@ -9,7 +9,7 @@ from importlib.metadata import metadata
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
-from contextlib import suppress, contextmanager
+from contextlib import suppress
 from itertools import islice
 # noinspection PyUnresolvedReferences
 import io
@@ -1312,6 +1312,7 @@ if __name__ == '__main__':
             title, artist = metadata['title'], metadata['artist']
             if artist == Unknown('Artist') or title == Unknown('Title'): raise KeyError
             formatted = settings['track_format'].replace('&artist', artist).replace('&title', title)
+            formatted = formatted.replace('&alb', metadata['album'])
             number = metadata.get('track_number', '')
             if '&trck' in formatted:
                 formatted = formatted.replace('&trck', number)
