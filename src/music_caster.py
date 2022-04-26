@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.5.1'
+VERSION = latest_version = '5.5.2'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
@@ -1479,9 +1479,13 @@ if __name__ == '__main__':
     def ydl_get_metadata(item, duration_helper=True):
         if 'formats' in item:
             audio_url = max(item['formats'], key=lambda item: item.get('tbr', 0) * (item.get('vcodec', 'none') == 'none'))['url']
-            formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
-            _f = max(formats, key=lambda _f: (_f['height'], _f.get('tbr', 0)))
-            ext, _url = _f['ext'], _f['url']
+            try:
+                formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
+                _f = max(formats, key=lambda _f: (_f['height'], _f.get('tbr', 0)))
+                ext, _url = _f['ext'], _f['url']
+            except ValueError:
+                # url is audio only
+                ext, _url = item['ext'] if item['ext'] != 'unknown_video' else item['format_id'], audio_url
         else:
             ext = item['ext']
             _url = audio_url = item['url']
@@ -1491,8 +1495,12 @@ if __name__ == '__main__':
             item['duration'] = helper_ap.get_length()
         expiry_time = time.time() + max(1800, item['duration'])
         length = item['duration'] if item['duration'] else None
-        metadata = {'title': item.get('track', item['title']), 'artist': item.get('artist', item['uploader']), 'url': _url,
-                    'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': item['webpage_url'],
+        src_url = item['webpage_url']
+        split_url = src_url.rsplit('/', 2)
+        backup_artist = split_url[-1] if split_url[-1] != '' else split_url[-2]
+        artist = item.get('artist', item.get('uploader', backup_artist))
+        metadata = {'title': item.get('track', item['title']), 'artist': artist, 'url': _url,
+                    'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': src_url,
                     'album': item.get('album', item.get('playlist', item['extractor_key'])), 'length': length}
         if 'thumbnail' in item:
             metadata['art'] = item['thumbnail']
@@ -1507,6 +1515,7 @@ if __name__ == '__main__':
         Supports: YouTube, Soundcloud, any url ending with a valid audio extension
         """
         global deezer_opened
+        print(url)
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
         if url in url_metadata and not url_expired(url): return [url_metadata[url]]
