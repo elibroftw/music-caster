@@ -681,7 +681,8 @@ def get_ipv6():
     # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))
     if platform.system() == 'Linux':
         for logical_name in os.listdir('/sys/class/net'):
-            p = Popen(f"ip addr show dev {logical_name} | awk '{{if ($1==\"inet6\") {{print $2}}'", shell=True,
+            cmd = f"ip addr show dev {logical_name} | awk '{{if ($1==\"inet6\") {{print $2}}}}'"
+            p = Popen(cmd, shell=True,
                       stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
             ip = p.stdout.readline().strip()
             if ip != '':
@@ -985,11 +986,10 @@ def export_playlist(playlist_name, uris):
 
 
 def parse_m3u(playlist_file):
-    playlist_file = playlist_file.replace('\\', '/')
     with open(playlist_file, errors='ignore', encoding='utf-8') as f:
         for line in iter(lambda: f.readline(), ''):
             if not line.startswith('#'):
-                line = line.lstrip('file:').lstrip('/').rstrip().replace('\\', '/')
+                line = line.lstrip('file:').lstrip('/').rstrip()
                 # an m3u file cannot contain itself
                 if line != playlist_file: yield line
 
@@ -1276,8 +1276,13 @@ def custom_art(text):
             fnt = ImageFont.truetype('gadugib.ttf', 80)
             shift = -5
         except OSError:
-            fnt = ImageFont.truetype('arial.ttf', 80)
-            shift = 0
+            try:
+                fnt = ImageFont.truetype('arial.ttf', 80)
+                shift = 0
+            except OSError:
+                # Linux
+                fnt = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMono.ttf', 80, encoding='unic')
+                shift = 0
     d.rounded_rectangle((x0, y0, x1, y1), fill='#cc1a21', radius=7)
     d.text(((x0 + x1) / 2, (y0 + y1) / 2 + shift), text, fill='#fff', font=fnt, align='center', anchor='mm')
     data = io.BytesIO()
