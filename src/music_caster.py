@@ -2503,7 +2503,18 @@ if __name__ == '__main__':
                 Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
                 return True
             if os.path.exists(uri):
-                Popen(f'explorer /select,"{fix_path(uri)}"')
+                if platform.system() == 'Windows':
+                    Popen(f'explorer /select,"{fix_path(uri)}"')
+                elif platform.system() == 'Linux':
+                    try:
+                        Popen(['nautilus', uri])
+                    except FileNotFoundError:
+                        try:
+                            # fallback 1
+                            Popen(['dolphin', uri])
+                        except FileNotFoundError:
+                            # fallback 2
+                            Popen(['xdg-open', Path(uri).parent])
                 return True
         # tray_notify(gt('ERROR') + ':' + gt('Could not locate URI'))
         return False
