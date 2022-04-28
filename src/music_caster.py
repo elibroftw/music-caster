@@ -332,7 +332,7 @@ if __name__ == '__main__':
     AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
     IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
     uris_to_scan = Queue()
-    SETTINGS_FILE = 'settings.json'
+    SETTINGS_FILE = Path('settings.json').absolute()
     PRESSED_KEYS = set()
     settings_file_lock = threading.Lock()
     last_play_command = settings_last_modified = 0
