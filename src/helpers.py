@@ -20,7 +20,7 @@ from random import getrandbits
 import re
 import socket
 import sys
-from subprocess import Popen
+from subprocess import Popen, PIPE, DEVNULL
 from threading import Thread
 import time
 import unicodedata
@@ -319,7 +319,7 @@ class DiscordPresence:
 class Device:
     CHECK_MARK = '✓'
 
-    def __init__(self, cast_info_or_none: None | CastInfo = None):
+    def __init__(self, cast_info_or_none=None):
         self.__device = cast_info_or_none
         self.is_cast_info = isinstance(self.__device, CastInfo)
 
@@ -671,7 +671,7 @@ def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime
     return 'image/jpeg', DEFAULT_ART
 
 
-def fix_path(path, by_os=True): return str(Path(path)) if by_os else Path(path).as_posix()
+def fix_path(path, by_os=True): return str(Path(path)) if by_os else path.replace('\\', '/')
 
 
 def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
@@ -679,6 +679,13 @@ def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
 
 def get_ipv6():
     # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))
+    if platform.system() == 'Linux':
+        for logical_name in os.listdir('/sys/class/net'):
+            p = Popen(f"ip addr show dev {logical_name} | awk '{{if ($1==\"inet6\") {{print $2}}'", shell=True,
+                      stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
+            ip = p.stdout.readline().strip()
+            if ip != '':
+                return ip
     with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
         try:
             # doesn't even have to be reachable

@@ -6,6 +6,7 @@ build/
 dist/
 images/
 test_files/
+src/.flatpak-builder
 .env
 settings.json
 settings.json.bak

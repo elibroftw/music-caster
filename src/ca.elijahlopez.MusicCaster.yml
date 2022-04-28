@@ -1,0 +1,18 @@
+app-id: ca.elijahlopez.MusicCaster
+runtime: org.freedesktop.Platform
+runtime-version: '21.08'
+sdk: org.freedesktop.Sdk
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --device=all
+  - --filesystem=host
+command: python3 music_caster.py
+modules:
+  - name: music-caster
+    buildsystem: simple
+    build-commands:
+      - pip3 install -r requirements.txt
+# flatpak-builder dist/flatpak ca.elijahlopez.MusicCaster.yml --force-clean

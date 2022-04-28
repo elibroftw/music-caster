@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 from contextlib import suppress
 from datetime import datetime
@@ -248,7 +249,6 @@ if not args.skip_build:
     additional_args = '--log=DEBUG' if args.debug else ''
     if args.clean:
         additional_args += ' --clean'
-    # TODO: do not run if on Linux
     if platform.system() == 'Windows':
         s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
     else:
@@ -311,6 +311,7 @@ if not args.skip_build:
     elif platform.system() == 'Darwin':
         pass
     else:
+        shutil.rmtree('dist/Music Caster OneDir/share/')
         linux_dist = 'dist/Music Caster (Linux)'
         print(f'Creating {linux_dist}.zip')
         shutil.make_archive(linux_dist, 'zip', 'dist/Music Caster OneDir')
