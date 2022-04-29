@@ -1,0 +1,6 @@
+# See README.md for instructions on how to use
+[Desktop Entry]
+Type=Application
+Name=Music Caster
+Exec=sh -c "python3 $HOME/bin/music-caster/src/music_caster.py" 
+Icon=music_caster.png
