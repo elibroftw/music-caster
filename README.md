@@ -22,6 +22,18 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 - If Music Caster gets auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
 - [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 
+## Linux
+
+It is not straight forward to package, so you can use this short script instead. No sudo needed!
+
+```bash
+mkdir -p ~/bin && git clone https://github.com/elibroftw/music-caster.git ~/bin/music-caster
+cp ~/bin/music-caster/resources/favicons/android-chrome-256x256.png ~/Downloads
+mkdir -p ~/.icons
+mv ~/Downloads/android-chrome-256x256.png ~/.icons/music_caster.png
+cp ~/bin/music-caster/music_caster.desktop ~/.local/share/applications
+```
+
 <a href="https://www.youtube.com/watch?v=5xwHkLPgvtQ" title="Music Caster Video Demo">
   <p align="center">
     <img width=75% src="https://img.youtube.com/vi/5xwHkLPgvtQ/maxresdefault.jpg" alt="Music Caster Video Demo Thumbnail"/>
