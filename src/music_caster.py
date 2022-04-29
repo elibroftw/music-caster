@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.5.3'
+VERSION = latest_version = '5.5.4'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
@@ -2345,6 +2345,10 @@ if __name__ == '__main__':
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
+        def dnd_queue(event):
+            for item in tk_lb.tk.splitlist(event.data):
+                play_uris(item, queue_uris=True)
+
         def report_callback_exception(exc, _, __):
             if exc == KeyboardInterrupt:
                 raise KeyboardInterrupt
@@ -2373,7 +2377,7 @@ if __name__ == '__main__':
                 # drag and drop callbacks
                 tk_lb = main_window['queue'].TKListbox
                 drop_target_register(tk_lb, DND_ALL)
-                dnd_bind(tk_lb, '<<Drop>>', lambda event: play_uris(tk_lb.tk.splitlist(event.data), queue_uris=True))
+                dnd_bind(tk_lb, '<<Drop>>', dnd_queue)
 
                 tk_lb = main_window['pl_tracks'].TKListbox
                 drop_target_register(tk_lb, DND_ALL)
@@ -2624,13 +2628,14 @@ if __name__ == '__main__':
                 main_values['progress_bar'] = new_position
                 main_event = 'progress_bar'
                 main_window.refresh()
-        # change/select tabs
+        # override keypress events
         if main_event != '__TIMEOUT__':
             with suppress(KeyError):
                 el = main_window.find_element_with_focus()
                 if el is not None and el.Key in {'track_format', 'sys_audio_delay'}:
                     main_event, main_value = el.Key, main_values.get(el.Key)
         if main_event == '__TIMEOUT__': pass  # avoids checking multiple if statements
+        # change/select tabs
         elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
             main_window['tab_queue'].select()
         elif (main_event == '2:50' and not settings['mini_mode'] or  # URL tab [Ctrl + 2]

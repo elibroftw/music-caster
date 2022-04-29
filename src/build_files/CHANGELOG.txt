@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.5.4
+- [Fix] YouTube comment parsing
+- [Fix] Queue multiple folders
+
 5.5.3
 - [Feature] &alb format
 
