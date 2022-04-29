@@ -2,5 +2,28 @@
 [Desktop Entry]
 Type=Application
 Name=Music Caster
+Comment=A modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
 Exec=sh -c "python3 $HOME/bin/music-caster/src/music_caster.py" 
 Icon=music_caster.png
+Terminal=false
+MimeType=application/x-ogg;application/ogg;audio/x-vorbis+ogg;audio/vorbis;audio/x-vorbis;audio/x-scpls;audio/x-mp3;audio/x-mpeg;audio/mpeg;audio/x-mpegurl;audio/x-flac;audio/mp4;
+Categories=Audio;Player;
+Keywords=Audio;Song;Track;MP3;Playlist;YouTube;Cast;URL;
+Actions=PlayPause;Next;Previous;StopQuit;
+X-GNOME-UsesNotifications=true
+
+# [Desktop Action PlayPause]
+# Name=Play/Pause
+# Exec=XXX --play-pause
+
+# [Desktop Action Next]
+# Name=Next
+# Exec=XXX --next
+
+# [Desktop Action Previous]
+# Name=Previous
+# Exec=XXX --previous
+
+# [Desktop Action StopQuit]
+# Name=Stop & Quit
+# Exec=XXX --quit
