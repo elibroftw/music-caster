@@ -28,10 +28,7 @@ It is not straight forward to package, so you can use this short script instead.
 
 ```bash
 mkdir -p ~/bin && git clone https://github.com/elibroftw/music-caster.git ~/bin/music-caster
-cp ~/bin/music-caster/resources/favicons/android-chrome-256x256.png ~/Downloads
-mkdir -p ~/.icons
-mv ~/Downloads/android-chrome-256x256.png ~/.icons/music_caster.png
-cp ~/bin/music-caster/music_caster.desktop ~/.local/share/applications
+~/bin/music-caster/linux_install.sh
 ```
 
 <a href="https://www.youtube.com/watch?v=5xwHkLPgvtQ" title="Music Caster Video Demo">
