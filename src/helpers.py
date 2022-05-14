@@ -54,7 +54,7 @@ from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
 import ujson as json
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-
+from youtube_comment_downloader import YoutubeCommentDownloader
 
 # CONSTANTS
 AUDIO_EXTS = {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
@@ -72,6 +72,8 @@ USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/59
 SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 SPOTIFY_API = 'https://api.spotify.com/v1'
+SORT_BY_POPULAR = 0
+YTCommentDLer = YoutubeCommentDownloader()
 # for stealing focus when bring window to front
 
 
@@ -1300,77 +1302,9 @@ def search_dict(partial: [dict, list], key):
         for item in partial: yield from search_dict(item, key)
 
 
-def get_youtube_comments(url, limit=-1):
-    """
-    raises ValueError if comments are disabled
-    Modified from https://github.com/egbertbouman/youtube-comment-downloader
-    """
-    session = requests.Session()
-    YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
-    YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(' \
-                         r'?:var\s+meta|</script|\n)'
-    renderer = None
-    proxies = get_proxy()
-    for _ in range(6):
-        with suppress(AttributeError):
-            res = session.get(url, headers={'User-Agent': USER_AGENT, 'referer': 'https://google.com/'},
-                              proxies=proxies)
-            ytcfg = json.loads(re.search(YT_CFG_RE, res.text).group(1))
-            if ytcfg:
-                data = json.loads(re.search(YT_INITIAL_DATA_RE, res.text).group(1))
-                section = next(search_dict(data['contents'], 'itemSectionRenderer'), None)
-                renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
-                break
-            proxies = get_proxy()
-    if not isinstance(renderer, dict): return  # Comments disabled?
-
-    continuations = [renderer['continuationEndpoint']]
-    while continuations:
-        continuation = continuations.pop()
-        response = {}
-        comments_url = 'https://www.youtube.com' + continuation['commandMetadata']['webCommandMetadata']['apiUrl']
-        # noinspection PyUnboundLocalVariable
-        data = {'context': ytcfg['INNERTUBE_CONTEXT'], 'continuation': continuation['continuationCommand']['token']}
-        for _ in range(5):  # 5 retries
-            try:
-                response = session.post(comments_url, params={'key': ytcfg['INNERTUBE_API_KEY']}, proxies=proxies,
-                                        json=data)
-                if response.status_code == 200:
-                    response = response.json()
-                    break
-                elif response.status_code in {403, 413}:
-                    response = {}
-                    break
-                else: time.sleep(20)
-            except requests.exceptions.ProxyError:
-                proxies = get_proxy()
-        if not response: break
-        with suppress(StopIteration):
-            raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
-        actions = chain(search_dict(response, 'reloadContinuationItemsCommand'),
-                        search_dict(response, 'appendContinuationItemsAction'))
-        for action in actions:
-            for item in action.get('continuationItems', []):
-                if action['targetId'] == 'comments-section':
-                    # Process continuations for comments and replies.
-                    continuations[:0] = [ep for ep in search_dict(item, 'continuationEndpoint')]
-                if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
-                    # Process the 'Show more replies' button
-                    continuations.append(next(search_dict(item, 'buttonRenderer'))['command'])
-        for comment in reversed(list(search_dict(response, 'commentRenderer'))):
-            yield {'cid': comment['commentId'],
-                   'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
-                   'time': comment['publishedTimeText']['runs'][0]['text'],
-                   'author': comment.get('authorText', {}).get('simpleText', ''),
-                   'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
-                   'votes': comment.get('voteCount', {}).get('simpleText', '0'),
-                   'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
-                   'heart': next(search_dict(comment, 'isHearted'), False)}
-            limit -= 1
-            if limit == 0:
-                continuations.clear()
-                break
-        time.sleep(0.1)
+def get_youtube_comments(url, limit=-1):  # -> generator
+    # TODO: use proxies = get_proxy()
+    return YTCommentDLer.get_comments_from_url(url, sort_by=SORT_BY_POPULAR, limit=limit)
 
 
 def parse_timestamps(text):

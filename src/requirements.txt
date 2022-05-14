@@ -31,6 +31,7 @@ deezer-py~=1.2
 deemix~=3.5
 six~=1.16
 portalocker~=2.4.0
+git+https://github.com/elibroftw/youtube-comment-downloader.git
 # pyinstaller dependencies
 setuptools==60.5.0
 altgraph
