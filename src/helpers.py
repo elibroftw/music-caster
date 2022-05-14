@@ -1318,7 +1318,7 @@ def get_youtube_comments(url, limit=-1):
             ytcfg = json.loads(re.search(YT_CFG_RE, res.text).group(1))
             if ytcfg:
                 data = json.loads(re.search(YT_INITIAL_DATA_RE, res.text).group(1))
-                section = next(search_dict(data, 'itemSectionRenderer'), None)
+                section = next(search_dict(data['contents'], 'itemSectionRenderer'), None)
                 renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
                 break
             proxies = get_proxy()
