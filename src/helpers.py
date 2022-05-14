@@ -1908,7 +1908,7 @@ def startfile(file):
         try:
             return os.startfile(file)
         except OSError:
-            Popen(f'explorer "{fix_path(file)}"')
+            return Popen(f'explorer "{fix_path(file)}"')
     elif platform.system() == 'Darwin':
         return Popen(['open', file])
     # Linux

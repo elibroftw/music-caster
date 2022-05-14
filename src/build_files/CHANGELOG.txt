@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.5.5
+- [Fix] Open settings file
+
 5.5.4
 - [Fix] YouTube comment parsing
 - [Fix] Queue multiple folders

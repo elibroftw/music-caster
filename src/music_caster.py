@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.5.4'
+VERSION = latest_version = '5.5.5'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
