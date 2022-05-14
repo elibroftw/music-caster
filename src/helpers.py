@@ -1292,16 +1292,6 @@ def custom_art(text):
     return b64encode(data.getvalue())
 
 
-def search_dict(partial: [dict, list], key):
-    """ Searches for `key` in a dict/list `partial` """
-    if isinstance(partial, dict):
-        for k, v in partial.items():
-            if k == key: yield v
-            else: yield from search_dict(v, key)
-    elif isinstance(partial, list):
-        for item in partial: yield from search_dict(item, key)
-
-
 def get_youtube_comments(url, limit=-1):  # -> generator
     # TODO: use proxies = get_proxy()
     return YTCommentDLer.get_comments_from_url(url, sort_by=SORT_BY_POPULAR, limit=limit)

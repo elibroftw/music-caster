@@ -285,9 +285,8 @@ if __name__ == '__main__':
     import webbrowser
     import zipfile
 
-    # modules take 0.17 seconds to import
-    from helpers import *
     from audio_player import AudioPlayer
+    from helpers import *
 
     # 3rd party imports take 0.22 seconds to import
     # flask takes 0.14 seconds
