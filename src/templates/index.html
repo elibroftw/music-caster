@@ -53,7 +53,7 @@
                             oninput="setVolume(this.value)" onchange="setVolume(this.value)"/>
                 </div>
                 {% if stream_url %}
-                <audio controls autoplay id="audioStream">
+                <audio controls autoplay id="audioStream" onpause="muteStream()">
                     <source src="{{stream_url}}" type="audio/mpeg">
                 </audio>
                 {% else %}
@@ -436,6 +436,12 @@
             });
         // check every 1.5 seconds
         setTimeout(reloadOnChange, 1500);
+    }
+
+    function muteStream() {
+        // in order to improve UX, we mute the stream when the user clicks the pause button
+        const audioStream = document.getElementById('audioStream');
+        audioStream.muted = true;
     }
 
     window.onload = () => {

@@ -1,11 +1,10 @@
-VERSION = latest_version = '5.5.5'
+VERSION = latest_version = '5.5.6'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
-from importlib.metadata import metadata
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
