@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.5.6'
+VERSION = latest_version = '5.5.7'
 UPDATE_MESSAGE = """
 [NEW] Support for more URLs
 [MSG] Language translators wanted
@@ -618,7 +618,7 @@ if __name__ == '__main__':
             if uri in url_metadata:
                 return url_metadata[uri]
             return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
-                    'album': Unknown('Title'), 'sort_key': uri, 'track_number': '0'}
+                    'album': Unknown('Album'), 'sort_key': uri, 'track_number': '0'}
         if uri in all_tracks:
             return all_tracks[uri]
         # uri is probably a file that has not been cached yet
@@ -1334,7 +1334,7 @@ if __name__ == '__main__':
                 lo = middle - cut_out
                 formatted = formatted[:lo] + '...' + formatted[ro:]
             return formatted
-        except (TypeError, KeyError):
+        except (TypeError, KeyError) as e:
             if uri.startswith('http'): return uri
             return os.path.splitext(os.path.basename(uri))[0]
 
@@ -1506,9 +1506,12 @@ if __name__ == '__main__':
         split_url = src_url.rsplit('/', 2)
         backup_artist = split_url[-1] if split_url[-1] != '' else split_url[-2]
         artist = item.get('artist', item.get('uploader', backup_artist))
+        album = item.get('album', item.get('playlist'))
+        if album is None:
+            album = item['extractor_key']
         metadata = {'title': item.get('track', item['title']), 'artist': artist, 'url': _url,
                     'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': src_url,
-                    'album': item.get('album', item.get('playlist', item['extractor_key'])), 'length': length}
+                    'album': album, 'length': length}
         if 'thumbnail' in item:
             metadata['art'] = item['thumbnail']
         return metadata
@@ -1522,7 +1525,6 @@ if __name__ == '__main__':
         Supports: YouTube, Soundcloud, any url ending with a valid audio extension
         """
         global deezer_opened
-        print(url)
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
         if url in url_metadata and not url_expired(url): return [url_metadata[url]]
