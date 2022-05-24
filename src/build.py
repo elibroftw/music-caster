@@ -435,7 +435,7 @@ if args.debug or not dist_files_exist:
 print(f'Build v{VERSION} complete')
 print('Time taken:', round(time.time() - start_time, 2), 'seconds')
 print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
-if args.upload and not args.skip_tests:
+if args.upload:
     print('Will try to upload to GitHub')
     # upload to GitHub
     github = read_env()['github']
