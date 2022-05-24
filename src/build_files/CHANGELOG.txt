@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.0
+- [Feature] Save queue also saves position
+
 5.5.7
 - [Fix] YouTube URL Metadata
 

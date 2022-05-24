@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.5.7'
+VERSION = latest_version = '5.6.0'
 UPDATE_MESSAGE = """
-[NEW] Support for more URLs
+[NEW] Save queues also saves position
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
@@ -368,7 +368,7 @@ if __name__ == '__main__':
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'sys_audio_delay': 0,
         'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER, 'scan_folders': True,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
-        'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}}
+        'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}, 'position': 0}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
     playing_status = PlayingStatus()
@@ -480,7 +480,7 @@ if __name__ == '__main__':
         tray_process_queue.put({'menu': menu, 'tooltip': _tooltip, **icon})
 
 
-    def change_settings(settings_key, new_value):
+    def update_settings(settings_key, new_value):
         """ can be called from non-main thread """
         if settings[settings_key] != new_value:
             settings[settings_key] = new_value
@@ -523,7 +523,7 @@ if __name__ == '__main__':
         """ :return: new repeat value """
         # Repeat Off (None) becomes All (False) becomes One (True) becomes Off
         new_repeat_setting = {None: False, True: None, False: True}[settings['repeat']]
-        return change_settings('repeat', new_repeat_setting)
+        return update_settings('repeat', new_repeat_setting)
 
 
     def create_email_url():
@@ -845,7 +845,7 @@ if __name__ == '__main__':
                 cycle_repeat()
                 api_msg = 'cycled repeat to ' + {None: 'off', True: 'one', False: 'all'}[settings['repeat']]
             elif 'shuffle' in request.values:
-                shuffle_enabled = change_settings('shuffle', not settings['shuffle'])
+                shuffle_enabled = update_settings('shuffle', not settings['shuffle'])
                 api_msg = f'shuffle set to {shuffle_enabled}'
             elif 'activate' in request.values:
                 daemon_commands.put('__ACTIVATED__')  # tell main thread to show GUI
@@ -980,12 +980,12 @@ if __name__ == '__main__':
             setting_key = request.json['setting_name']
             if setting_key in settings or setting_key == 'timer_stop':
                 val = request.json['value']
-                change_settings(setting_key, val)
+                update_settings(setting_key, val)
                 timer_settings = {'timer_hibernate', 'timer_sleep',
                                   'timer_shut_down', 'timer_stop'}
                 if val and setting_key in timer_settings:
                     for timer_setting in timer_settings.difference({setting_key, 'timer_stop'}):
-                        change_settings(timer_setting, False)
+                        update_settings(timer_setting, False)
                 if setting_key == 'volume':
                     update_volume(0 if settings['muted'] else settings['volume'], 'api')
             return 'true'
@@ -1248,7 +1248,7 @@ if __name__ == '__main__':
         was_busy = playing_status.busy()
         playing_status.stop()
         cast = new_device
-        change_settings('device', None if cast is None else str(cast.uuid))
+        update_settings('device', None if cast is None else str(cast.uuid))
         refresh_tray(True)
         if was_busy and (music_queue or sar.alive):
             if not sar.alive:
@@ -2148,7 +2148,7 @@ if __name__ == '__main__':
                 save_settings()
             # if repeat all or repeat is off or empty queue or manual next
             if settings['repeat'] in {False, None} or not music_queue or not from_timeout:
-                if settings['repeat']: change_settings('repeat', False)
+                if settings['repeat']: update_settings('repeat', False)
                 for _ in range(times):
                     if music_queue: done_queue.append(music_queue.popleft())
                     if next_queue: music_queue.appendleft(next_queue.popleft())
@@ -2192,7 +2192,7 @@ if __name__ == '__main__':
                     if new_position != -1: return set_pos(new_position)
             if done_queue:
                 for _ in range(times):
-                    if settings['repeat']: change_settings('repeat', False)
+                    if settings['repeat']: update_settings('repeat', False)
                     track = done_queue.pop()
                     # if there's a next queue, move mq[0] to top of next_queue
                     if music_queue and next_queue:
@@ -2468,7 +2468,7 @@ if __name__ == '__main__':
             set_callbacks()
         elif settings['mini_mode']:
             if selected_tab:
-                change_settings('mini_mode', not settings['mini_mode'])
+                update_settings('mini_mode', not settings['mini_mode'])
                 main_window.close()
                 return activate_main_window(selected_tab)
             else:
@@ -2616,8 +2616,8 @@ if __name__ == '__main__':
             elif main_window.metadata['mouse_hover'] in {'', 'volume_slider'}:  # not in another scroll view
                 delta = {'Up': settings['volume_delta'], 'Down': -settings['volume_delta']}.get(main_event, 0)
                 new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
-                change_settings('volume', new_volume)
-                change_settings('muted', False)
+                update_settings('volume', new_volume)
+                update_settings('muted', False)
                 update_volume(new_volume, 'mouse_wheel')
         elif main_event in {'j', 'l'} and (main_values.get('tab_group', 'tab_queue') == 'tab_queue'):
             if playing_status.busy() and track_length is not None:
@@ -2689,11 +2689,11 @@ if __name__ == '__main__':
             change_device(main_value.id)
         elif main_event == 'sys_audio_delay':
             with suppress(ValueError):
-                change_settings('sys_audio_delay', int(main_value))
+                update_settings('sys_audio_delay', int(main_value))
         elif main_event == 'track_format':
-            change_settings('track_format', main_value)
+            update_settings('track_format', main_value)
         elif main_event == 'shuffle':
-            change_settings('shuffle', not settings['shuffle'])
+            update_settings('shuffle', not settings['shuffle'])
         elif main_event == 'repeat': cycle_repeat()
         elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdecimal())
                                                 and (main_values.get('tab_group') in {'tab_queue', None}))):
@@ -2703,9 +2703,9 @@ if __name__ == '__main__':
             except ValueError:
                 delta = {'a': -settings['volume_delta'], 'd': settings['volume_delta']}.get(main_event, 0)
                 new_volume = main_values['volume_slider'] + delta
-            change_settings('volume', new_volume)
+            update_settings('volume', new_volume)
             # un-mute if volume slider was moved
-            change_settings('muted', False)
+            update_settings('muted', False)
             update_volume(new_volume, 'volume_slider')
         elif main_event in {'Up:38', 'Down:40'}:
             focused_element = main_window.FindElementWithFocus()
@@ -2713,12 +2713,12 @@ if __name__ == '__main__':
                                                                 main_window['music_folders']}:
                 delta = settings['volume_delta'] if main_event == 'Up:38' else -settings['volume_delta']
                 new_volume = main_values['volume_slider'] + delta
-                change_settings('volume', new_volume)
+                update_settings('volume', new_volume)
                 # un-mute if volume slider was moved
-                change_settings('muted', False)
+                update_settings('muted', False)
                 update_volume(new_volume, 'Up:38')
         elif main_event == 'mute':  # toggle mute
-            update_volume(0 if change_settings('muted', not settings['muted']) else settings['volume'], 'mute')
+            update_volume(0 if update_settings('muted', not settings['muted']) else settings['volume'], 'mute')
         elif main_event in {'Prior:33', 'Next:34'} and not settings['mini_mode']:  # page up, page down
             focused_element = main_window.FindElementWithFocus()
             move = {'Prior:33': -3, 'Next:34': 3}[main_event]
@@ -2879,7 +2879,7 @@ if __name__ == '__main__':
                 Thread(target=play_all, name='PlayAll', daemon=True).start()
         elif main_event == 'queue_all': queue_all()
         elif main_event == 'mini_mode':
-            change_settings('mini_mode', not settings['mini_mode'])
+            update_settings('mini_mode', not settings['mini_mode'])
             main_window.close()
             activate_main_window()
         elif main_event == 'clear_queue':
@@ -2941,17 +2941,17 @@ if __name__ == '__main__':
             Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_lan_ip()}:{Shared.PORT}']).start()
         # toggle settings
         elif main_event in TOGGLEABLE_SETTINGS:
-            change_settings(main_event, main_value)
+            update_settings(main_event, main_value)
             if main_event == 'run_on_startup':
                 create_shortcut()
             elif main_event == 'persistent_queue':
                 if main_value: save_queues()
-                else: change_settings('queues', {'done': [], 'music': [], 'next': []})
-                change_settings('populate_queue_startup', False)
+                else: update_settings('queues', {'done': [], 'music': [], 'next': []})
+                update_settings('populate_queue_startup', False)
                 main_window['populate_queue_startup'].update(value=False)
             elif main_event in 'populate_queue_startup':
                 main_window['persistent_queue'].update(value=False)
-                change_settings('persistent_queue', False)
+                update_settings('persistent_queue', False)
             elif main_event == 'discord_rpc':
                 with suppress(Exception):
                     if main_value:
@@ -3073,9 +3073,9 @@ if __name__ == '__main__':
                     main_window.read(10)
                 main_window['timer_input'].set_focus()
         elif main_event in {'shut_down', 'hibernate', 'sleep', 'timer_stop'}:
-            change_settings('timer_hibernate', main_values['hibernate'])
-            change_settings('timer_sleep', main_values['sleep'])
-            change_settings('timer_shut_down', main_values['shut_down'])
+            update_settings('timer_hibernate', main_values['hibernate'])
+            update_settings('timer_sleep', main_values['sleep'])
+            update_settings('timer_shut_down', main_values['shut_down'])
         # playlists tab
         elif main_event == 'playlist_combo':
             # user selected a playlist from the drop-down
@@ -3332,7 +3332,7 @@ if __name__ == '__main__':
                     if not is_os_64bit():
                         tray_notify(f"The update v{latest_ver}, is 64-bit only")
                         tray_notify("I've turned off auto-update for you, so you don't have to worry")
-                        return change_settings('auto_update', False)
+                        return update_settings('auto_update', False)
                 if is_debug() or not setup_dl_link:
                     return app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
                 if IS_FROZEN:
@@ -3374,7 +3374,7 @@ if __name__ == '__main__':
                             if e == errno.ECANCELED:
                                 # user cancelled update, don't try auto-updating again
                                 # inform user what we were trying to do though
-                                change_settings('auto_update', False)
+                                update_settings('auto_update', False)
                                 tray_notify('update_available', context=latest_ver)
                     else:
                         # unins000.exe or updater.exe was deleted; better to inform user there is an update available
@@ -3425,8 +3425,8 @@ if __name__ == '__main__':
                         if diff > 0.05 and not settings['muted']:
                             print(cast_volume)
                             # if volume was changed via Google Home App
-                            if change_settings('volume', cast_volume) and settings['muted']:
-                                change_settings('muted', False)
+                            if update_settings('volume', cast_volume) and settings['muted']:
+                                update_settings('muted', False)
                             main_window.metadata['update_volume_slider'] = True
             elif playing_status.playing() and cast.media_controller.is_idle:
                 stop('cast_monitor. app was not running')
@@ -3470,9 +3470,9 @@ if __name__ == '__main__':
             gt('next track', 1): next_track,
             gt('previous track', 1): prev_track,
             gt('Stop'): lambda: stop('tray'),
-            gt('Repeat One'): lambda: change_settings('repeat', True),
-            gt('Repeat All'): lambda: change_settings('repeat', False),
-            gt('Repeat Off'): lambda: change_settings('repeat', None),
+            gt('Repeat One'): lambda: update_settings('repeat', True),
+            gt('Repeat All'): lambda: update_settings('repeat', False),
+            gt('Repeat Off'): lambda: update_settings('repeat', None),
             gt('locate track', 1): locate_uri
         }
         actions.get(action, lambda: other_tray_actions(action))()
@@ -3489,11 +3489,11 @@ if __name__ == '__main__':
                     tray_notify(''.join(two_lined_info), title='Music Caster - Important Information')
                     two_lined_info.clear()
             tray_notify(''.join(two_lined_info), title='Music Caster - Important Information')
-            change_settings('important_message', IMPORTANT_INFORMATION)
+            update_settings('important_message', IMPORTANT_INFORMATION)
         if settings['update_message'] == '': tray_notify(WELCOME_MSG)
         elif settings['update_message'] != UPDATE_MESSAGE and settings['notifications']: tray_notify(UPDATE_MESSAGE)
         # show important information regardless of notification settings
-        change_settings('update_message', UPDATE_MESSAGE)
+        update_settings('update_message', UPDATE_MESSAGE)
 
         # set file handlers only if installed from the setup (Not a portable installation)
         if os.path.exists(UNINSTALLER):
@@ -3566,6 +3566,10 @@ if __name__ == '__main__':
                     if valid_audio_file(file_or_url) or file_or_url.startswith('http'):
                         queue.append(file_or_url)
                         uris_to_scan.put(file_or_url)
+            # position = args.position || previous session's position
+            position = args.position
+            if position == 0 and settings['position'] > 0:
+                position = settings['position']
             if args.start_playing:
                 if not music_queue:
                     if next_queue:
@@ -3574,7 +3578,10 @@ if __name__ == '__main__':
                         music_queue.extend(done_queue)
                         done_queue.clear()
                 if music_queue:
-                    play(position=args.position, autoplay=not args.queue)
+                    play(position=position, autoplay=not args.queue)
+            elif position and music_queue:
+                # restore position
+                play(position=position, autoplay=False)
         elif settings['populate_queue_startup'] or args.start_playing:
             try:
                 indexing_tracks_thread.join()
@@ -3587,6 +3594,7 @@ if __name__ == '__main__':
         TIME_TO_START = time.monotonic() - start_time
         app_log.info(f'Time to start (excluding imports) is {TIME_TO_START:.2f} seconds')
         app_log.info(f'Time to start (including imports) is {TIME_TO_START + TIME_TO_IMPORT:.2f} seconds')
+        last_position_save = time.monotonic()
         while True:
             while not daemon_commands.empty(): handle_action(daemon_commands.get())
             if playing_status.playing() and track_length is not None and time.monotonic() > track_end:
@@ -3605,6 +3613,9 @@ if __name__ == '__main__':
                 if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
             except FileNotFoundError:
                 load_settings(first_load=True)
+            if settings['persistent_queue'] and time.monotonic() - last_position_save > 2.5:
+                update_settings('position', get_track_position())
+                last_position_save = time.monotonic()
             if cast is not None:
                 cast_monitor()
             time.sleep(0.2) if main_window.was_closed() else read_main_window()
