@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.1
+- [Fix] ujson security update
+
 5.6.0
 - [Feature] Save queue also saves position
 

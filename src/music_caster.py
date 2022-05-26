@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.0'
+VERSION = latest_version = '5.6.1'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
