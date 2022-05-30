@@ -126,10 +126,10 @@ if 'ModuleNotFoundError' not in VERSION:
         update_versions()
     print('Updated versions of build files')
     if args.ver_update: sys.exit()
-    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt'
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt -r requirements-dev.txt'
 else:
     args.deps = True
-    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt --force-reinstall --force'
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt -r requirements-dev.txt --force-reinstall --force'
     print('INFO: could not get version, this build will only install the required modules')
 if args.deps or (not args.skip_build and not args.skip_deps):
     print('Installing and/or upgrading dependencies...')

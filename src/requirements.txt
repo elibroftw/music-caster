@@ -1,4 +1,3 @@
-build_files/pyinstaller-4.9-py3-none-any.whl
 build_files/PyAudio-0.2.11-cp310-cp310-win_amd64.whl; sys_platform == 'win32'
 pyaudio; sys_platform != 'win32'
 pgi; sys_platform == 'linux'
@@ -32,16 +31,4 @@ deemix~=3.5
 six~=1.16
 portalocker~=2.4.0
 git+https://github.com/elibroftw/youtube-comment-downloader.git
-# pyinstaller dependencies
-setuptools==60.5.0
-altgraph
-pyinstaller-hooks-contrib >= 2020.11
-pefile; sys_platform == 'win32'
-pywin32-ctypes; sys_platform == 'win32'
-pypiwin32; sys_platform == 'win32'
-macholib; sys_platform == 'darwin'
 python-tkdnd; sys_platform != 'win32'
-# dev
-GitPython~=3.1
-autopep8
-requirements-parser

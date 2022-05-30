@@ -6,6 +6,7 @@ build/
 dist/
 images/
 test_files/
+venv/
 src/.flatpak-builder
 .env
 settings.json
