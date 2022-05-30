@@ -24,7 +24,7 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 
 ## Linux
 
-It is not straight forward to package, so you can use this short script instead. No sudo needed!
+It is not straight forward to package, so you can invoke a sudo-free [install script](linux_install.sh).
 
 ```bash
 mkdir -p ~/bin && git clone --depth 1 https://github.com/elibroftw/music-caster.git ~/bin/music-caster
