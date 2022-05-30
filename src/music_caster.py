@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.1'
+VERSION = latest_version = '5.6.2'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -962,8 +962,9 @@ if __name__ == '__main__':
     @app.route('/running/', methods=['GET', 'POST', 'OPTIONS'])
     def api_running():
         response = make_response('true')
-        http_origin = ('https://elijahlopez.herokuapp.com', 'http://elijahlopez.herokuapp.com')
-        if request.environ.get('HTTP_ORIGIN') in http_origin:
+        http_origins = ('https://elijahlopez.herokuapp.com', 'http://elijahlopez.herokuapp.com',
+                        'https://elijahlopez.ca', 'http://elijahlopez.ca')
+        if request.environ.get('HTTP_ORIGIN') in http_origins:
             response.headers.add('Access-Control-Allow-Origin', request.environ['HTTP_ORIGIN'])
         return response
 

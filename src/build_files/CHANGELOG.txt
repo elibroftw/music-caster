@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.2
+- [Fix] Website integration
+
 5.6.1
 - [Fix] ujson security update
 
