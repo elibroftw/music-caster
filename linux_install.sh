@@ -9,6 +9,6 @@ python -m pip install -r requirements.txt
 # restore
 cd -
 mkdir -p ~/.icons
-cp ~/bin/music-caster/resources/favicons/android-chrome-256x256.png ~/Downloads
-mv ~/Downloads/android-chrome-256x256.png ~/.icons/music_caster.png
-cp ~/bin/music-caster/music_caster.desktop ~/.local/share/applications
+cp -rf ~/bin/music-caster/resources/favicons/android-chrome-256x256.png ~/Downloads
+mv -f ~/Downloads/android-chrome-256x256.png ~/.icons/music_caster.png
+cp -rf ~/bin/music-caster/music_caster.desktop ~/.local/share/applications
