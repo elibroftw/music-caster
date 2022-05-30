@@ -2,7 +2,7 @@
 # install virtualenv to avoid global dependdency issues
 # cd into our directory
 cd ~/bin/music-caster/src
-echo "(music-caster) creating Python virtual environment"
+echo "(music-caster) Creating Python virtual environment"
 python3 -m pip install virtualenv
 python3 -m virtualenv venv
 source venv/bin/activate
