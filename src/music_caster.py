@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.2'
+VERSION = latest_version = '5.6.3'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -1489,7 +1489,7 @@ if __name__ == '__main__':
             audio_url = max(item['formats'], key=lambda item: item.get('tbr', 0) * (item.get('vcodec', 'none') == 'none'))['url']
             try:
                 formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
-                _f = max(formats, key=lambda _f: (_f['height'], _f.get('tbr', 0)))
+                _f = max(formats, key=lambda _f: (_f.get('height', 0), _f.get('tbr', 0)))
                 ext, _url = _f['ext'], _f['url']
             except ValueError:
                 # url is audio only

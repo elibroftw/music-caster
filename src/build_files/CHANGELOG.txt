@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.3
+- [Fix] Audio only URLs
+
 5.6.2
 - [Fix] Website integration
 
