@@ -1,6 +1,5 @@
-<!-- markdownlint-disable-file MD033 -->
-<h1 align="left">
-<img width=30px src="https://raw.githubusercontent.com/elibroftw/music-caster/master/resources/favicons/favicon-32x32.png" alt="Logo" style="vertical-align: bottom; margin-bottom: -4px;">Music Caster</h1>
+
+<p align="center"><img src="https://user-images.githubusercontent.com/21298211/171323258-5818355a-2c55-444b-8d0d-b0e3feee36e4.png" /> </>
 
 [![GitHub Releases](https://img.shields.io/github/downloads/elibroftw/music-caster/latest/total?color=blue&label=github%20downloads%40latest&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases/latest)
 [![Source Forge](https://img.shields.io/sourceforge/dt/music-caster?color=orange&label=SourceForge%20downloads&style=for-the-badge)](https://sourceforge.net/projects/music-caster/)
