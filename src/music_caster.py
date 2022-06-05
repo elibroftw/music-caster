@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.3'
+VERSION = latest_version = '5.6.4'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -1486,10 +1486,10 @@ if __name__ == '__main__':
 
     def ydl_get_metadata(item, duration_helper=True):
         if 'formats' in item:
-            audio_url = max(item['formats'], key=lambda item: item.get('tbr', 0) * (item.get('vcodec', 'none') == 'none'))['url']
+            audio_url = max(item['formats'], key=lambda item: (item.get('tbr', 0) or 0) * (item.get('vcodec', 'none') == 'none'))['url']
             try:
                 formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
-                _f = max(formats, key=lambda _f: (_f.get('height', 0), _f.get('tbr', 0)))
+                _f = max(formats, key=lambda _f: ((_f.get('height', 0) or 0), (_f.get('tbr', 0) or 0)))
                 ext, _url = _f['ext'], _f['url']
             except ValueError:
                 # url is audio only
@@ -1942,7 +1942,7 @@ if __name__ == '__main__':
             if action in {gt('Play Next'), 'pfn'}:
                 return play_uris(paths, play_next=True)
             raise ValueError(f'file_action expected something else. Got {action}')
-        main_window.metadata['main_last_event'] = 'file_action'
+        main_window.metadata['last_event'] = 'file_action'
 
 
     def folder_action(action='pf'):
@@ -1951,7 +1951,7 @@ if __name__ == '__main__':
         """
         folder_path = open_dialog(gt('Select Folder'), for_dir=True)
         if folder_path:
-            main_window.metadata['main_last_event'] = Sg.TIMEOUT_KEY
+            main_window.metadata['last_event'] = Sg.TIMEOUT_KEY
             settings['last_folder'] = folder_path
             temp_queue = []
             # keep track of paths by (sub) folder
@@ -1989,7 +1989,7 @@ if __name__ == '__main__':
             else: raise ValueError(f'folder_action expected something else. Got {action}')
             main_window.metadata['update_listboxes'] = True
             save_queues()
-        else: main_window.metadata['main_last_event'] = 'folder_action'
+        else: main_window.metadata['last_event'] = 'folder_action'
 
 
     def get_track_position():
@@ -2447,7 +2447,7 @@ if __name__ == '__main__':
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
                                           all_tracks, get_devices(), title, artist, album, track_length=track_length,
                                           album_art_data=album_art_data, track_position=position)
-            window_metadata: dict = {'main_last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
+            window_metadata: dict = {'last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
                                      'library': {'sort_by': 0, 'ascending': True, 'region': 'cell', 'column': 1},
                                      'mouse_hover': '', 'url_input': '', 'pl_url_input': ''}
             pl_name = window_metadata['pl_name'] = next(iter(settings['playlists']), '')
@@ -2587,8 +2587,8 @@ if __name__ == '__main__':
         if main_event == 'KeyPress':
             e = main_window.user_bind_event
             main_event = e.char if e.char else str(e.keysym) + ':' + str(e.keycode)
-        if (main_event in {None, 'Escape:27', ''} and main_window.metadata['main_last_event'] not in ignore_events
-                or main_values is None):
+        if (main_values == Sg.WIN_CLOSED or
+            main_event in {'Escape:27', ''} and main_window.metadata['last_event'] not in ignore_events):
             main_window.close()
             if settings['gui_exits_app']:
                 exit_program()
@@ -2597,7 +2597,7 @@ if __name__ == '__main__':
             main_window.TKroot.update_idletasks()
         main_value = main_values.get(main_event)
         if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
-            main_window.metadata['main_last_event'] = main_event
+            main_window.metadata['last_event'] = main_event
         # update timer text if timer is old
         if not settings['mini_mode'] and timer == 0 and main_window['timer_text'].metadata:
             main_window['timer_text'].update('No Timer Set')
