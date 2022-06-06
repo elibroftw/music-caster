@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.4'
+VERSION = latest_version = '5.6.5'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -3156,11 +3156,12 @@ if __name__ == '__main__':
                 pl_tracks = main_window.metadata['pl_tracks']
                 pl_tracks.extend(get_audio_uris(file_paths))
                 settings['last_folder'] = os.path.dirname(file_paths[-1])
-                main_window.TKroot.focus_force()
-                main_window.normal()
-                new_values = format_pl_lb(pl_tracks)
-                new_i = len(new_values) - 1
-                main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+                with suppress(TclError):
+                    main_window.TKroot.focus_force()
+                    main_window.normal()
+                    new_values = format_pl_lb(pl_tracks)
+                    new_i = len(new_values) - 1
+                    main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
         elif main_event == 'pl_url_input':
             main_window.metadata['pl_url_input'] = main_value
         elif main_event == 'pl_url_input_cut':
