@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.5'
+VERSION = latest_version = '5.6.6'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -1931,7 +1931,7 @@ if __name__ == '__main__':
         """
         paths = open_dialog(gt('Select Audio Files'), filetypes=AUDIO_FILE_TYPES, multiple=True)
         if paths:
-            settings['last_folder'] = os.path.dirname(paths[-1])
+            update_settings('last_folder', os.path.dirname(paths[-1]))
             app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
             if action in {gt('Play'), 'pf'}:
                 if settings['queue_library']:
@@ -1952,7 +1952,7 @@ if __name__ == '__main__':
         folder_path = open_dialog(gt('Select Folder'), for_dir=True)
         if folder_path:
             main_window.metadata['last_event'] = Sg.TIMEOUT_KEY
-            settings['last_folder'] = folder_path
+            update_settings('last_folder', folder_path)
             temp_queue = []
             # keep track of paths by (sub) folder
             files_to_queue = defaultdict(list)
@@ -2341,7 +2341,7 @@ if __name__ == '__main__':
             file_paths = main_window.TKroot.tk.splitlist(event.data)
             pl_tracks = main_window.metadata['pl_tracks']
             pl_tracks.extend(get_audio_uris(file_paths))
-            settings['last_folder'] = os.path.dirname(file_paths[-1])
+            update_settings('last_folder', os.path.dirname(file_paths[-1]))
             new_values = format_pl_lb(pl_tracks)
             new_i = len(new_values) - 1
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
@@ -3155,7 +3155,7 @@ if __name__ == '__main__':
             if file_paths:
                 pl_tracks = main_window.metadata['pl_tracks']
                 pl_tracks.extend(get_audio_uris(file_paths))
-                settings['last_folder'] = os.path.dirname(file_paths[-1])
+                update_settings('last_folder', os.path.dirname(file_paths[-1]))
                 with suppress(TclError):
                     main_window.TKroot.focus_force()
                     main_window.normal()

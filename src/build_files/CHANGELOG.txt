@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.6
+- [Fix] Initial dir for dialog
+
 5.6.5
 - [Fix] TclError
 
