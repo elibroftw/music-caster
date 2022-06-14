@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.6'
+VERSION = latest_version = '5.6.7'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -2347,8 +2347,13 @@ if __name__ == '__main__':
             main_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
         def dnd_queue(event):
-            for item in tk_lb.tk.splitlist(event.data):
-                play_uris(item, queue_uris=True)
+            items = tk_lb.tk.splitlist(event.data)
+            files = filter(os.path.isfile, items)
+            dirs = filter(os.path.isdir, items)
+            play_uris(files, queue_uris=True)
+            for directory in dirs:
+                play_uris(directory, queue_uris=True)
+
 
         def report_callback_exception(exc, _, __):
             if exc == KeyboardInterrupt:
