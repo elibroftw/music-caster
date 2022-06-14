@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.8
+- [Fix] Locate track
+
 5.6.7
 - [Fix] Drag and drop files
 

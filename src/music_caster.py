@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.7'
+VERSION = latest_version = '5.6.8'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -2507,16 +2507,17 @@ if __name__ == '__main__':
 
 
     def locate_uri(selected_track_index=0, uri=None):
+        # negative: done_queue
         with suppress(IndexError):
             if uri is None:
                 if selected_track_index < 0:
                     uri = done_queue[selected_track_index]
-                elif (selected_track_index == 0 or selected_track_index > len(next_queue)) and music_queue:
-                    uri = music_queue[selected_track_index]
+                elif selected_track_index == 0:
+                    uri = music_queue[0]
                 elif 0 < selected_track_index <= len(next_queue):
                     uri = next_queue[selected_track_index - 1]
                 else:
-                    uri = ''
+                    uri = music_queue[selected_track_index - len(next_queue)]
             if uri.startswith('http'):
                 Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
                 return True
@@ -2750,7 +2751,8 @@ if __name__ == '__main__':
             locate_uri()
         elif main_event == 'locate_uri':
             if not settings['mini_mode'] and main_values['queue']:
-                for index in main_window['queue'].get_indexes(): locate_uri(index - len(done_queue))
+                for index in main_window['queue'].get_indexes():
+                    locate_uri(index - len(done_queue))
             else: locate_uri()
         elif main_event == 'move_to_next_up':
             for i, index_to_move in enumerate(main_window['queue'].get_indexes(), 1):
