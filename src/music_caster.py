@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.9'
+VERSION = latest_version = '5.6.10'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -1788,7 +1788,7 @@ if __name__ == '__main__':
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
                 mc.block_until_active(WAIT_TIMEOUT)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
-            except NotConnected:
+            except (NotConnected, AttributeError):
                 app_log.error('play could not cast because cast is not connected')
                 """
                 2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009] Failed to connect to service ServiceInfo(type='mdns', data='Google-Home-Mini-$HASH._googlecast._tcp.local.'), retrying in 5.0s
