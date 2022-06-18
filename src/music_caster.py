@@ -1,10 +1,11 @@
-VERSION = latest_version = '5.6.8'
+VERSION = latest_version = '5.6.9'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
+from genericpath import exists
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
@@ -1909,7 +1910,7 @@ if __name__ == '__main__':
 
 
     def open_dialog(title, for_dir=False, filetypes=None, multiple=True):
-        initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+        initial_folder = settings['last_folder'] if settings['use_last_folder'] and os.path.exists(settings['last_folder']) else DEFAULT_FOLDER
         _root = tkinter.Tk()
         _root.withdraw()
         if platform.system() != 'Linux':
