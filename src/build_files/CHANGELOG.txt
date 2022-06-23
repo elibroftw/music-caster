@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.6.12
+- [Fix] Improved sorting for albums
+
 5.6.11
 - [Fix] Window position edge case
 

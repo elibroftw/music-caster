@@ -135,7 +135,7 @@ namespace Music_Caster_Updater
             {
                 if (asset.GetProperty("name").ToString().Contains("exe"))
                     setupDownloadURL = asset.GetProperty("browser_download_url").ToString();
-                else if (asset.GetProperty("name").ToString().ToLower().Contains("portable"))
+                else if (asset.GetProperty("name").ToString().Tocasefold().Contains("portable"))
                     portableDownloadURL = asset.GetProperty("browser_download_url").ToString();
             }
             if (debugSetting)

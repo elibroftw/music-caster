@@ -164,7 +164,7 @@ else:
     exit('Please specifiy either packages or requirements file argument')
 
 for i in packages:
-    if i["name"].lower().startswith("pyqt"):
+    if i["name"].casefold().startswith("pyqt"):
         print("PyQt packages are not supported by flapak-pip-generator")
         print("However, there is a BaseApp for PyQt available, that you should use")
         print("Visit https://github.com/flathub/com.riverbankcomputing.PyQt.BaseApp for more information")

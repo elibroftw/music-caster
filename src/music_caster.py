@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.11'
+VERSION = latest_version = '5.6.12'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -613,6 +613,7 @@ if __name__ == '__main__':
 
 
     def get_uri_metadata(uri, read_file=True):
+        """ Uses cache to get metadata """
         # raises KeyError
         uri = uri.replace('\\', '/')
         if uri.startswith('http'):
@@ -908,8 +909,8 @@ if __name__ == '__main__':
     @app.route('/play/', methods=['GET', 'POST'])
     def api_play():
         global last_play_command
-        queue_only = request.values.get('queue', '').lower() == 'true'
-        play_next = request.values.get('play_next', '').lower() == 'true'
+        queue_only = request.values.get('queue', '').casefold() == 'true'
+        play_next = request.values.get('play_next', '').casefold() == 'true'
         merge_plays = time.monotonic() - last_play_command < 0.5
         # reset recent_api_plays
         if not merge_plays:
@@ -1065,7 +1066,7 @@ if __name__ == '__main__':
         if request.method == 'POST':
             val = request.data.decode()
             try:
-                return set_timer(val.lower())
+                return set_timer(val.casefold())
             except ValueError as e:
                 return str(e)
         else:  # GET request
@@ -1818,7 +1819,13 @@ if __name__ == '__main__':
         return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-    def play_uris(uris: Iterable, queue_uris=False, play_next=False, merge_tracks=0, sort_uris=True):
+    def metadata_key(filename):
+        """ Sort by (artist, album, trck num, title) """
+        m = get_uri_metadata(filename)
+        return (m['artist'].casefold(), m['album'].casefold(), int(m['track_number']), m['title'].casefold())
+
+
+    def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False, play_next=False, merge_tracks=0, natural_sort=True):
         """
         TODO: make thread safe
         Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
@@ -1831,6 +1838,8 @@ if __name__ == '__main__':
         If sort is False, shuffle being off does not sort items
         """
         temp_queue = list(get_audio_uris(uris))
+        if not temp_queue and return_if_empty:
+            return False
         # fresh play condition
         if not queue_uris and not play_next and merge_tracks == 0:
             music_queue.clear()
@@ -1854,8 +1863,11 @@ if __name__ == '__main__':
         # shuffle or sort
         if settings['shuffle']:
             shuffle(temp_queue)
-        elif sort_uris:
+        elif natural_sort:
             temp_queue.sort(key=natural_key_file)
+        else:
+            # do custom sort only if dir and not natural
+            temp_queue.sort(key=metadata_key)
         # add to next queue condition
         if play_next:
             if settings['reversed_play_next']:
@@ -1863,7 +1875,7 @@ if __name__ == '__main__':
             else:
                 next_queue.extend(temp_queue)
             gui_window.metadata['update_listboxes'] = True
-            return
+            return True
         # extend only if merge_tracks == 0 or we are queueing the tracks
         if queue_uris or merge_tracks == 0:
             music_queue.extend(temp_queue)
@@ -1871,12 +1883,15 @@ if __name__ == '__main__':
             music_queue.extendleft(reversed(temp_queue))
         if not queue_uris:
             if music_queue:
-                return play()
+                play()
+                return True
             elif next_queue:
                 playing_status.play()
-                return next_track()
+                next_track()
+                return True
         gui_window.metadata['update_listboxes'] = True
         save_queues()
+        return True
 
 
     def play_all(starting_files: Iterable = None, queue_only=False):
@@ -1931,18 +1946,17 @@ if __name__ == '__main__':
         :return:
         """
         paths = open_dialog(gt('Select Audio Files'), filetypes=AUDIO_FILE_TYPES, multiple=True)
-        if paths:
-            update_settings('last_folder', os.path.dirname(paths[-1]))
-            app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
-            if action in {gt('Play'), 'pf'}:
-                if settings['queue_library']:
-                    return play_all(starting_files=paths)
-                return play_uris(paths)
-            if action in {gt('Queue'), 'qf'}:
-                return play_uris(paths, queue_uris=True)
-            if action in {gt('Play Next'), 'pfn'}:
-                return play_uris(paths, play_next=True)
-            raise ValueError(f'file_action expected something else. Got {action}')
+        natural_sort=len(paths) > 20
+        update_settings('last_folder', os.path.dirname(paths[-1]))
+        app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
+        if action in {gt('Play'), 'pf'}:
+            if settings['queue_library']:
+                return play_all(starting_files=paths)
+            return play_uris(paths, natural_sort=natural_sort)
+        if action in {gt('Queue'), 'qf'}:
+            return play_uris(paths, queue_uris=True, natural_sort=natural_sort)
+        if action in {gt('Play Next'), 'pfn'}:
+            return play_uris(paths, play_next=True, natural_sort=natural_sort)
         gui_window.metadata['last_event'] = 'file_action'
 
 
@@ -1950,46 +1964,24 @@ if __name__ == '__main__':
         """
         :param action: one of {'pf': 'Play Folder', 'qf': 'Queue Folder', 'pfn': 'Play Folder Next'}
         """
-        folder_path = open_dialog(gt('Select Folder'), for_dir=True)
-        if folder_path:
+        directory = open_dialog(gt('Select Folder'), for_dir=True)
+        if directory:
             gui_window.metadata['last_event'] = Sg.TIMEOUT_KEY
-            update_settings('last_folder', folder_path)
-            temp_queue = []
-            # keep track of paths by (sub) folder
-            files_to_queue = defaultdict(list)
-            for file_path in get_audio_uris(folder_path):
-                path = Path(file_path)
-                files_to_queue[path.parent.as_posix()].append(path.as_posix())
-            if settings['shuffle']:
-                for files in files_to_queue.values(): temp_queue.extend(files)
-                shuffle(temp_queue)
-            else:
-                # extend files from each (sub) folder path to maintain sort order
-                for files in files_to_queue.values():
-                    files.sort(key=natural_key_file)
-                    temp_queue.extend(files)
-            app_log.info(f'folder_action: action={action}), len(lst) is {len(temp_queue)}')
-            if not temp_queue:
-                if settings['notifications']:
-                    tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
-            elif action in {gt('Play'), 'pf'}:
-                music_queue.clear()
-                done_queue.clear()
-                music_queue.extend(temp_queue)
-                play()
+            update_settings('last_folder', directory)
+            app_log.info(f'folder_action: action={action})')
+            if action in {gt('Play'), 'pf'}:
+                res = play_uris(directory, natural_sort=False)
             elif action in {gt('Play Next'), 'pfn'}:
-                if settings['reversed_play_next']: next_queue.extendleft(reversed(temp_queue))
-                else: next_queue.extend(temp_queue)
-                if playing_status.stopped() and not music_queue and next_queue:
-                    if cast is not None and cast.app_id != APP_MEDIA_RECEIVER: cast.wait(timeout=WAIT_TIMEOUT)
-                    playing_status.play()
-                    next_track()
+                res = play_uris(directory, play_next=True, natural_sort=False)
             elif action in {gt('Queue'), 'qf'}:
-                music_queue.extend(temp_queue)
-                if len(temp_queue) == len(music_queue) and not sar.alive: play()
-            else: raise ValueError(f'folder_action expected something else. Got {action}')
-            gui_window.metadata['update_listboxes'] = True
-            save_queues()
+                res = play_uris(directory, queue_uris=True, natural_sort=False)
+            else:
+                res = False
+            if res:
+                gui_window.metadata['update_listboxes'] = True
+                save_queues()
+            elif settings['notifications']:
+                tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
         else: gui_window.metadata['last_event'] = 'folder_action'
 
 
@@ -2356,11 +2348,12 @@ if __name__ == '__main__':
 
         def dnd_queue(event):
             items = tk_lb.tk.splitlist(event.data)
-            files = filter(os.path.isfile, items)
+            files = list(filter(os.path.isfile, items))
             dirs = filter(os.path.isdir, items)
-            play_uris(files, queue_uris=True)
+            play_uris(files, queue_uris=True, natural_sort=len(files) > 20)
             for directory in dirs:
-                play_uris(directory, queue_uris=True)
+                # assume album
+                play_uris(directory, queue_uris=True, natural_sort=False)
 
 
         def report_callback_exception(exc, _, __):
@@ -2926,7 +2919,7 @@ if __name__ == '__main__':
                     library_metadata['sort_by'] = col_index
                     reverse = library_metadata['ascending'] = True
                 library_items = gui_window['library'].Values
-                library_items.sort(key=lambda row: row[col_index - 1].lower(), reverse=not reverse)
+                library_items.sort(key=lambda row: row[col_index - 1].casefold(), reverse=not reverse)
                 gui_window['library'].update(library_items)
             elif main_event == 'Locate::library':
                 for index in main_values['library']:
@@ -3230,7 +3223,7 @@ if __name__ == '__main__':
         elif main_event in {'play_pl_selected', 'queue_pl_selected', 'add_next_pl_selected'}:
             uris = (gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes())
             play_uris(uris, queue_uris=main_event == 'queue_pl_selected',
-                      play_next=main_event == 'add_next_pl_selected', sort_uris=settings['shuffle'])
+                      play_next=main_event == 'add_next_pl_selected', natural_sort=settings['shuffle'])
         # metadata tab
         elif main_event in {'metadata_browse', 'metadata_file'}:
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
@@ -3241,7 +3234,7 @@ if __name__ == '__main__':
             selected_file = Sg.popup_get_file('Select image/audio file', no_window=True,
                                               file_types=IMG_FILE_TYPES, icon=WINDOW_ICON)
             if selected_file:
-                if os.path.splitext(selected_file)[1][1:].lower() in AUDIO_EXTS:
+                if os.path.splitext(selected_file)[1][1:].casefold() in AUDIO_EXTS:
                     mime, artwork = get_album_art(selected_file, settings['folder_cover_override'])
                 else:
                     img = Image.open(selected_file).convert('RGB')

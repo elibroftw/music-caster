@@ -182,7 +182,7 @@ def add_new_changes(prev_changes: str):
         print(f'CHANGELOG does not contain changes for {VERSION}...')
         input('Press enter to try again...')
         return add_new_changes(prev_changes)
-    return '\n'.join(sorted(changes, key=lambda item: item.lower()))
+    return '\n'.join(sorted(changes, key=lambda item: item.casefold()))
 
 
 def set_spec_debug(debug_option):

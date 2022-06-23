@@ -447,17 +447,17 @@ def get_length(file_path) -> int:
     :param file_path:
     :return: length in seconds """
     try:
-        if file_path.lower().endswith('.wav'):
+        if file_path.casefold().endswith('.wav'):
             a = WavInfoReader(file_path)
             length = a.data.frame_count / a.fmt.sample_rate
-        elif file_path.lower().endswith('.wma'):
+        elif file_path.casefold().endswith('.wma'):
             try:
                 audio_info = mutagen.File(file_path).info
                 length = audio_info.length
             except AttributeError:
                 audio_info = AAC(file_path).info
                 length = audio_info.length
-        elif file_path.lower().endswith('.opus'):
+        elif file_path.casefold().endswith('.opus'):
             audio_info = mutagen.File(file_path).info
             length = audio_info.length
         else:
@@ -468,10 +468,10 @@ def get_length(file_path) -> int:
         raise InvalidAudioFile(f'{file_path} is an invalid audio file') from e
 
 
-def natural_key_file(file_name):
-    file_name = unicodedata.normalize('NFKD', get_file_name(file_name).lower())
-    file_name = u''.join([c for c in file_name if not unicodedata.combining(c)])
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', file_name)]
+def natural_key_file(filename):
+    filename = unicodedata.normalize('NFKD', get_file_name(filename).casefold())
+    filename = u''.join([c for c in filename if not unicodedata.combining(c)])
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', filename)]
 
 
 def valid_color_code(code):
@@ -480,7 +480,7 @@ def valid_color_code(code):
 
 
 def set_metadata(file_path: str, metadata: dict):
-    ext = os.path.splitext(file_path)[1].lower()
+    ext = os.path.splitext(file_path)[1].casefold()
     audio = mutagen.File(file_path)
     title = metadata['title']
     artists = metadata['artist'].split(', ') if ', ' in metadata['artist'] else metadata['artist'].split(',')
@@ -596,7 +596,7 @@ def get_metadata(file_path: str):
             audio = {'title': [audio['title']], 'artist': [audio['artist']], 'album': [audio['product']]}
         elif a is not None:
             audio = dict(a)
-            audio = {k.lower(): audio[k] for k in audio}
+            audio = {k.casefold(): audio[k] for k in audio}
             if file_path.endswith('.wma'):
                 audio = {k: [audio[k][0].value] for k in audio}
         else:
@@ -633,7 +633,7 @@ def get_metadata(file_path: str):
         sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist)
         sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
-    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.lower(),
+    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.casefold(),
                 'track_number': '0' if track_number is None else track_number}
     return metadata
 
@@ -748,7 +748,7 @@ def valid_audio_file(uri) -> bool:
     check if uri has a valid audio extension
     uri does not have to be a file that exists
     """
-    return Path(uri).suffix.lower() in AUDIO_EXTS
+    return Path(uri).suffix.casefold() in AUDIO_EXTS
 
 
 @lru_cache(maxsize=1)
@@ -1079,7 +1079,7 @@ def parse_spotify_track(track_obj, parent_url='') -> dict:
         src_url = parent_url
     track_number = str(track_obj['track_number'])
     sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
-    sort_key = sort_key.replace('&trck', track_number).lower()
+    sort_key = sort_key.replace('&trck', track_number).casefold()
     metadata = {'src': src_url, 'title': title, 'artist': artist, 'album': album,
                 'explicit': is_explicit, 'sort_key': sort_key, 'track_number': track_number}
     with suppress(IndexError):
