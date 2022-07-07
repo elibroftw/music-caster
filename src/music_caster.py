@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.12'
+VERSION = latest_version = '5.6.13'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -620,7 +620,7 @@ if __name__ == '__main__':
             if uri in url_metadata:
                 return url_metadata[uri]
             return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
-                    'album': Unknown('Album'), 'sort_key': uri, 'track_number': '0'}
+                    'album': Unknown('Album'), 'sort_key': uri, 'track_number': '1'}
         if uri in all_tracks:
             return all_tracks[uri]
         # uri is probably a file that has not been cached yet
@@ -1822,7 +1822,7 @@ if __name__ == '__main__':
     def metadata_key(filename):
         """ Sort by (artist, album, trck num, title) """
         m = get_uri_metadata(filename)
-        return (m['artist'].casefold(), m['album'].casefold(), int(m['track_number']), m['title'].casefold())
+        return (m['artist'].casefold(), m['album'].casefold(), int(m.get('track_number', 1)), m['title'].casefold())
 
 
     def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False, play_next=False, merge_tracks=0, natural_sort=True):
