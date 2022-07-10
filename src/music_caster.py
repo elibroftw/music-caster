@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.6.13'
+VERSION = latest_version = '5.6.14'
 UPDATE_MESSAGE = """
 [NEW] Save queues also saves position
 [MSG] Language translators wanted
@@ -1367,46 +1367,50 @@ if __name__ == '__main__':
             return create_track_list()
 
 
-    def _update_gui():
+    def update_gui():
         if gui_window.was_closed():
             return
-        if playing_status.stopped():
-            gui_window['progress_bar'].update(0, disabled=True)
-        else:
-            value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
-            gui_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
-        metadata = get_current_metadata()
-        title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-        if playing_status.busy() and music_queue and not sar.alive:
-            if settings['show_track_number']:
-                with suppress(KeyError):
-                    track_number = metadata['track_number']
-                    title = f'{track_number}. {title}'
-        if settings['mini_mode']: title = truncate_title(title)
-        else:
-            default_device = None if cast is None else cast.cast_info
-            gui_window['devices'].update(value=Device(default_device), values=get_devices())
-            gui_window['album'].update(album)
-        gui_window['title'].update(title)
-        gui_window['artist'].update(artist)
-        image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
-        gui_window['pause/resume'].update(image_data=image_data)
-        if settings['show_album_art']:
-            size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
-            bg = settings['theme']['background']
-            try:
-                album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
-            except OSError as e:
-                handle_exception(e)
-                album_art_data = resize_img(DEFAULT_ART, bg, size)
-            gui_window['artwork'].update(data=album_art_data)
-        repeat_button: Sg.Button = gui_window['repeat']
-        repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
-        repeat_button.metadata = settings['repeat']
-        repeat_button.update(image_data=repeat_img)
-        repeat_button.set_tooltip(new_tooltip)
-        shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
-        gui_window['shuffle'].update(image_data=shuffle_image_data)
+        try:
+            if playing_status.stopped():
+                gui_window['progress_bar'].update(0, disabled=True)
+            else:
+                value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
+                gui_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
+            metadata = get_current_metadata()
+            title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
+            if playing_status.busy() and music_queue and not sar.alive:
+                if settings['show_track_number']:
+                    with suppress(KeyError):
+                        track_number = metadata['track_number']
+                        title = f'{track_number}. {title}'
+            if settings['mini_mode']: title = truncate_title(title)
+            else:
+                default_device = None if cast is None else cast.cast_info
+                gui_window['devices'].update(value=Device(default_device), values=get_devices())
+                gui_window['album'].update(album)
+            gui_window['title'].update(title)
+            gui_window['artist'].update(artist)
+            image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
+            gui_window['pause/resume'].update(image_data=image_data)
+            if settings['show_album_art']:
+                size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
+                bg = settings['theme']['background']
+                try:
+                    album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
+                except OSError as e:
+                    handle_exception(e)
+                    album_art_data = resize_img(DEFAULT_ART, bg, size)
+                gui_window['artwork'].update(data=album_art_data)
+            repeat_button: Sg.Button = gui_window['repeat']
+            repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
+            repeat_button.metadata = settings['repeat']
+            repeat_button.update(image_data=repeat_img)
+            repeat_button.set_tooltip(new_tooltip)
+            shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
+            gui_window['shuffle'].update(image_data=shuffle_image_data)
+        except TclError as e:
+            app_log.info(f'gui_window.was_closed() = {gui_window.was_closed()}')
+            handle_exception(e)
 
 
     def after_play(title, artists: str, autoplay, switching_device):
@@ -3455,7 +3459,7 @@ if __name__ == '__main__':
     def handle_action(action):
         actions = {
             '__ACTIVATED__': activate_gui,
-            '__UPDATE_GUI__': _update_gui,
+            '__UPDATE_GUI__': update_gui,
             '__EXIT__': exit_program,
             # from tray menu
             gt('Exit'): exit_program,
