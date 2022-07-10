@@ -24,7 +24,6 @@ from subprocess import Popen, PIPE, DEVNULL
 import re
 
 
-MUTEX_NAME = 'MusicCasterMutex{{FBE8A652-58D6-482D-B6A9-B3D7931CC9C5}'
 PID_FILENAME = 'music_caster.pid'
 LOCK_FILENAME = 'music_caster.lock'
 
