@@ -52,7 +52,6 @@ import pyqrcode
 import PySimpleGUI as Sg
 from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
-import ujson as json
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 from youtube_comment_downloader import YoutubeCommentDownloader
 
@@ -184,6 +183,7 @@ class SystemAudioRecorder:
                 Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
         else:
             print('TODO: SystemAudioRecorder')
+
 
 class InvalidAudioFile(Exception): pass
 
@@ -475,7 +475,7 @@ def natural_key_file(filename):
 
 
 def valid_color_code(code):
-    match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', code)
+    match = re.search(r'^#(?:[\da-fA-F]{3}){1,2}$', code)
     return match
 
 
@@ -633,8 +633,8 @@ def get_metadata(file_path: str):
         sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist)
         sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
-    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit, 'sort_key': sort_key.casefold(),
-                'track_number': '0' if track_number is None else track_number}
+    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
+                'sort_key': sort_key.casefold(), 'track_number': '0' if track_number is None else track_number}
     return metadata
 
 
@@ -1075,7 +1075,7 @@ def parse_spotify_track(track_obj, parent_url='') -> dict:
     album = track_obj['album']['name']
     try:
         src_url = track_obj['external_urls']['spotify']
-    except:
+    except KeyError:
         src_url = parent_url
     track_number = str(track_obj['track_number'])
     sort_key = Shared.track_format.replace('&title', title).replace('&artist', artist).replace('&album', str(album))
@@ -1472,7 +1472,8 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
                  size=(30, 2), justification='center')],
         [Sg.Text(artist, font=FONT_MID, key='artist', pad=((0, 0), (0, info_bot_pad)), enable_events=True,
                  size=(30, 0), justification='center')],
-        music_controls, progress_bar_layout, combo_devices], element_justification='center', pad=((left_pad, 5), 5 * vertical_gui))
+        music_controls, progress_bar_layout, combo_devices], element_justification='center',
+        pad=((left_pad, 5), 5 * vertical_gui))
     # tabs side is for music queue, queue controls, and later, the music library
     # tab 1 is the queue, tab 2 will be the library
     # file_options = [gt('Play File(s)'), gt('Queue File(s)'), gt('Play File(s) Next')]

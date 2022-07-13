@@ -206,11 +206,12 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 
 
 args.upload = args.upload and not args.test_autoupdate
-player_state = {}
-with suppress(requests.exceptions.RequestException):
+try:
     player_state = requests.get('http://[::1]:2001/state').json()
     requests.get('http://[::1]:2001/exit')
     time.sleep(1)  # wait for MC to exit
+except requests.exceptions.RequestException:
+    player_state = {}
 for process in get_running_processes('Music Caster.exe'):
     # force close any other instances of MC
     pid = process['pid']
@@ -288,8 +289,8 @@ if not args.skip_build:
         music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
         updater_portable = ('dist/Updater.exe', 'Updater.exe')
         portable_files = [music_caster_portable,
-                        ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
-                        updater_portable]
+                          ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
+                          updater_portable]
         vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
         portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
         portable_files.extend(lang_packs)

@@ -7,8 +7,7 @@ ujson==5.4.0
 pycparser==2.14
 mutagen~=1.45.1
 Pillow~=9.0
-pychromecast~=10.3.0
-protobuf==3.19.1
+pychromecast~=12.1
 zeroconf~=0.37
 pynput~=1.4.5
 pypng~=0.0.20

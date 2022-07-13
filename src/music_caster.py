@@ -5,7 +5,6 @@ UPDATE_MESSAGE = """
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
-from genericpath import exists
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
@@ -43,7 +42,7 @@ def get_running_processes(look_for='', pid=None, add_exe=True):
             m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
             if m is not None:
                 yield {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
-                    'session_num': m.group(4), 'mem_usage': m.group(5)}
+                       'session_num': m.group(4), 'mem_usage': m.group(5)}
     elif platform.system() == 'Linux':
         cmd = ['ps', 'h']
         if look_for:
@@ -259,7 +258,7 @@ if __name__ == '__main__':
     auto_updating = True
 
     if args.exit: sys.exit()
-    from collections import defaultdict, deque
+    from collections import deque
     from collections.abc import Iterable
     # noinspection PyUnresolvedReferences
     import encodings.idna  # DO NOT REMOVE
@@ -305,6 +304,7 @@ if __name__ == '__main__':
     except ImportError:
         # what about tkinterdnd2
         import tkinterDnD
+    import ujson as json
     import zeroconf
     TIME_TO_IMPORT = time.monotonic() - start_time
 
@@ -368,7 +368,8 @@ if __name__ == '__main__':
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'sys_audio_delay': 0,
         'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER, 'scan_folders': True,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
-        'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []}, 'position': 0}
+        'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []},
+        'position': 0}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
     playing_status = PlayingStatus()
@@ -1336,7 +1337,7 @@ if __name__ == '__main__':
                 lo = middle - cut_out
                 formatted = formatted[:lo] + '...' + formatted[ro:]
             return formatted
-        except (TypeError, KeyError) as e:
+        except (TypeError, KeyError):
             if uri.startswith('http'): return uri
             return os.path.splitext(os.path.basename(uri))[0]
 
@@ -1489,13 +1490,19 @@ if __name__ == '__main__':
         return expiry_time < time.time()
 
 
+    def tbr_audio_key(item):
+        return (item.get('tbr', 0) or 0) * (item.get('vcodec', 'none') == 'none')
+
+    def tbr_video_key(item):
+        return (item.get('height', 0) or 0), (item.get('tbr', 0) or 0)
+
     def ydl_get_metadata(item, duration_helper=True):
         if 'formats' in item:
-            audio_url = max(item['formats'], key=lambda item: (item.get('tbr', 0) or 0) * (item.get('vcodec', 'none') == 'none'))['url']
+            audio_url = max(item['formats'], key=tbr_audio_key)['url']
             try:
                 formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
-                _f = max(formats, key=lambda _f: ((_f.get('height', 0) or 0), (_f.get('tbr', 0) or 0)))
-                ext, _url = _f['ext'], _f['url']
+                selected_format = max(formats, key=tbr_video_key)
+                ext, _url = selected_format['ext'], selected_format['url']
             except ValueError:
                 # url is audio only
                 ext, _url = item['ext'] if item['ext'] != 'unknown_video' else item['format_id'], audio_url
@@ -1521,7 +1528,6 @@ if __name__ == '__main__':
         if 'thumbnail' in item:
             metadata['art'] = item['thumbnail']
         return metadata
-
 
     # noinspection PyTypeChecker
     def get_url_metadata(url, fetch_art=True) -> list:
@@ -1795,7 +1801,9 @@ if __name__ == '__main__':
             except (NotConnected, AttributeError):
                 app_log.error('play could not cast because cast is not connected')
                 """
-                2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009] Failed to connect to service ServiceInfo(type='mdns', data='Google-Home-Mini-$HASH._googlecast._tcp.local.'), retrying in 5.0s
+                2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009]
+                Failed to connect to service ServiceInfo(type='mdns',
+                data='Google-Home-Mini-$HASH._googlecast._tcp.local.'), retrying in 5.0s
                 Traceback (most recent call last):
                   File "music_caster.py", line 1733, in play
                   File "pychromecast/controllers/receiver.py", line 181, in set_volume
@@ -1825,10 +1833,11 @@ if __name__ == '__main__':
     def metadata_key(filename):
         """ Sort by (artist, album, trck num, title) """
         m = get_uri_metadata(filename)
-        return (m['artist'].casefold(), m['album'].casefold(), int(m.get('track_number', 1)), m['title'].casefold())
+        return m['artist'].casefold(), m['album'].casefold(), int(m.get('track_number', 1)), m['title'].casefold()
 
 
-    def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False, play_next=False, merge_tracks=0, natural_sort=True):
+    def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False,
+                  play_next=False, merge_tracks=0, natural_sort=True):
         """
         TODO: make thread safe
         Appends all music files in the provided uris (playlist names, folders, files, urls) to a temp list,
@@ -1927,8 +1936,11 @@ if __name__ == '__main__':
             Thread(target=play_all, kwargs={'queue_only': True}, daemon=True, name='PlayAll').start()
 
 
-    def open_dialog(title, for_dir=False, filetypes=None, multiple=True):
-        initial_folder = settings['last_folder'] if settings['use_last_folder'] and os.path.exists(settings['last_folder']) else DEFAULT_FOLDER
+    def open_dialog(title, for_dir=False, filetypes=None):
+        if settings['use_last_folder'] and os.path.exists(settings['last_folder']):
+            initial_folder = settings['last_folder']
+        else:
+            initial_folder = DEFAULT_FOLDER
         _root = tkinter.Tk()
         _root.withdraw()
         if platform.system() != 'Linux':
@@ -1936,8 +1948,8 @@ if __name__ == '__main__':
         if for_dir:
             paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
         else:
-            paths = fd.askopenfilename(title=title, parent=_root, initialdir=initial_folder,
-                                       filetypes=filetypes, multiple=multiple)
+            paths = fd.askopenfilenames(title=title, parent=_root, initialdir=initial_folder,
+                                        filetypes=filetypes)
         _root.destroy()
         return paths
 
@@ -1948,8 +1960,8 @@ if __name__ == '__main__':
         :param action: one of {'pf': 'Play Files', 'pfn': 'Play Files Next', 'qf': 'Queue Files'}
         :return:
         """
-        paths = open_dialog(gt('Select Audio Files'), filetypes=AUDIO_FILE_TYPES, multiple=True)
-        natural_sort=len(paths) > 20
+        paths = open_dialog(gt('Select Audio Files'), filetypes=AUDIO_FILE_TYPES)
+        natural_sort = len(paths) > 20
         update_settings('last_folder', os.path.dirname(paths[-1]))
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
         if action in {gt('Play'), 'pf'}:
@@ -2358,7 +2370,6 @@ if __name__ == '__main__':
                 # assume album
                 play_uris(directory, queue_uris=True, natural_sort=False)
 
-
         def report_callback_exception(exc, _, __):
             if exc == KeyboardInterrupt:
                 raise KeyboardInterrupt
@@ -2451,11 +2462,9 @@ if __name__ == '__main__':
                 album_art_data = None
             metadata = get_current_metadata()
             title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-            position = get_track_position()
-            # TODO: send devices
             main_gui_layout = create_main(lb_tracks, selected_value, playing_status, settings, VERSION, timer,
                                           all_tracks, get_devices(), title, artist, album, track_length=track_length,
-                                          album_art_data=album_art_data, track_position=position)
+                                          album_art_data=album_art_data, track_position=get_track_position())
             window_metadata: dict = {'last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
                                      'library': {'sort_by': 0, 'ascending': True, 'region': 'cell', 'column': 1},
                                      'mouse_hover': '', 'url_input': '', 'pl_url_input': ''}
@@ -2463,9 +2472,9 @@ if __name__ == '__main__':
             pl_tracks = window_metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
 
             gui_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
-                                    margins=(0, 0), finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
-                                    use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
-                                    location=window_location, metadata=window_metadata)
+                                   margins=(0, 0), finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
+                                   use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
+                                   location=window_location, metadata=window_metadata)
             if Shared.using_tcl_theme:
                 with suppress(TclError):
                     gui_window.TKroot.tk.call('source', SUN_VALLEY_TCL)
@@ -2590,15 +2599,18 @@ if __name__ == '__main__':
             Thread(target=play_uris, name='PlayFolder', daemon=True, args=[[music_folders[folder_index]]]).start()
 
 
+    def event_is_close(main_event, main_values):
+        ignore_events = {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
+        return (main_values == Sg.WIN_CLOSED or
+                main_event in {'Escape:27', ''} and gui_window.metadata['last_event'] not in ignore_events)
+
     def read_main_window():
         global track_position, track_start, track_end, timer, music_queue, done_queue
         main_event, main_values = gui_window.read(timeout=100)
-        ignore_events = {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
         if main_event == 'KeyPress':
             e = gui_window.user_bind_event
             main_event = e.char if e.char else str(e.keysym) + ':' + str(e.keycode)
-        if (main_values == Sg.WIN_CLOSED or
-            main_event in {'Escape:27', ''} and gui_window.metadata['last_event'] not in ignore_events):
+        if event_is_close(main_event, main_values):
             gui_window.close()
             if settings['gui_exits_app']:
                 exit_program()
@@ -2770,7 +2782,7 @@ if __name__ == '__main__':
                     if i == len(main_values['queue']):  # update gui after the last swap
                         values = create_track_list()
                         gui_window['queue'].update(values=values, set_to_index=len(done_queue) + len(next_queue),
-                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
+                                                   scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
                         save_queues()
                 elif index_to_move > dq_len + nq_len:
                     track = music_queue[index_to_move - dq_len - nq_len]
@@ -2780,7 +2792,7 @@ if __name__ == '__main__':
                     if i == len(main_values['queue']):  # update gui after the last swap
                         values = create_track_list()
                         gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
-                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
+                                                   scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
                         save_queues()
         elif main_event == 'move_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
@@ -3210,7 +3222,7 @@ if __name__ == '__main__':
                     if i == len(main_values['pl_tracks']):  # update gui after the last swap
                         new_values = format_pl_lb(pl_tracks)
                         gui_window['pl_tracks'].update(new_values, set_to_index=new_i,
-                                                        scroll_to_index=max(new_i - 3, 0))
+                                                       scroll_to_index=max(new_i - 3, 0))
         elif main_event == 'pl_move_down':
             # only allow moving down if 1 item is selected and pl_files is not empty
             for i, to_move in enumerate(gui_window['pl_tracks'].get_indexes(), 1):
@@ -3220,7 +3232,7 @@ if __name__ == '__main__':
                     pl_tracks.insert(new_i, pl_tracks.pop(to_move))
                     if i == len(main_values['pl_tracks']):  # update gui after the last swap
                         gui_window['pl_tracks'].update(format_pl_lb(pl_tracks), set_to_index=new_i,
-                                                        scroll_to_index=max(new_i - 3, 0))
+                                                       scroll_to_index=max(new_i - 3, 0))
         elif main_event in {'pl_locate_selected', 'pl_tracks'}:
             for i in gui_window['pl_tracks'].get_indexes(): locate_uri(uri=gui_window.metadata['pl_tracks'][i])
         elif main_event in {'play_pl_selected', 'queue_pl_selected', 'add_next_pl_selected'}:
@@ -3522,9 +3534,9 @@ if __name__ == '__main__':
         cast_browser.start_discovery()
         try:
             audio_player = AudioPlayer()
-        except Exception as e:
+        except Exception as exception:
             tray_notify(gt('WARNING: Failed to start audio player. Do not play on local device.'))
-            handle_exception(e)
+            handle_exception(exception)
         # find a port to bind to
         socket_timeout = 0.5 if args.shell else 0.1
         while True:
@@ -3580,9 +3592,9 @@ if __name__ == '__main__':
                         queue.append(file_or_url)
                         uris_to_scan.put(file_or_url)
             # position = args.position || previous session's position
-            position = args.position
-            if position == 0 and settings['position'] > 0:
-                position = settings['position']
+            track_position = args.position
+            if track_position == 0 and settings['position'] > 0:
+                track_position = settings['position']
             if args.start_playing:
                 if not music_queue:
                     if next_queue:
@@ -3591,10 +3603,10 @@ if __name__ == '__main__':
                         music_queue.extend(done_queue)
                         done_queue.clear()
                 if music_queue:
-                    play(position=position, autoplay=not args.queue)
-            elif position and music_queue:
+                    play(position=track_position, autoplay=not args.queue)
+            elif track_position and music_queue:
                 # restore position
-                play(position=position, autoplay=False)
+                play(position=track_position, autoplay=False)
         elif settings['populate_queue_startup'] or args.start_playing:
             try:
                 indexing_tracks_thread.join()
