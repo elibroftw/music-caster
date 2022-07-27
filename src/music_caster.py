@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.1'
+VERSION = latest_version = '5.7.2'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -1833,7 +1833,11 @@ if __name__ == '__main__':
     def metadata_key(filename):
         """ Sort by (artist, album, trck num, title) """
         m = get_uri_metadata(filename)
-        return m['artist'].casefold(), m['album'].casefold(), int(m.get('track_number', 1)), m['title'].casefold()
+        try:
+            tn = int(m.get('track_number'))
+        except ValueError:
+            tn = 1
+        return m['album'].casefold(), tn , m['artist'].casefold(), m['title'].casefold()
 
 
     def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False,
@@ -1983,7 +1987,7 @@ if __name__ == '__main__':
         if directory:
             gui_window.metadata['last_event'] = Sg.TIMEOUT_KEY
             update_settings('last_folder', directory)
-            app_log.info(f'folder_action: action={action})')
+            app_log.info(f'folder_action: action={action}')
             if action in {gt('Play'), 'pf'}:
                 res = play_uris(directory, natural_sort=False)
             elif action in {gt('Play Next'), 'pfn'}:

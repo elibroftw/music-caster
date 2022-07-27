@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.7.2
+- [Fix] Album sorting
+- [Fix] Files with no track number
+
 5.7.1
 - [Fix] Deutsch translation
 
