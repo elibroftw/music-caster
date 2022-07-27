@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.6.14'
+VERSION = latest_version = '5.7.0'
 UPDATE_MESSAGE = """
-[NEW] Save queues also saves position
+[NEW] Gutentag
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """

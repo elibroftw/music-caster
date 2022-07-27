@@ -1,0 +1,193 @@
+# Sprache: Deutsch
+# Credits: Bernd Miller
+# Jede Zeile, die mit einem # beginnt, wird ignoriert!
+# Wenn eine Zeile $X enthält, $X nicht übersetzen, sondern im Kontext behandeln.
+# z.B. "Update $VER ist verfügbar" wird dynamisch zu "Update v4.75.0 ist verfügbar"
+Ordner hinzufügen
+Music Caster zum Ordner-Kontext-Menü hinzufügen.
+Titel hinzufügen
+URL hinzufügen
+Ein Fehler ist aufgetreten, Neustart wird durchgeführt.
+Ein interner Serverfehler ist aufgetreten.
+Audio Auswahl
+Auto Update
+von
+abbrechen
+Zeitsteuerung abbrechen
+Warteschlange löschen
+Bedienelemente
+konnte nicht mit dem Castgerät verbinden
+konnte kein Ausgangsgerät zum Aufnehmen finden
+konnte $URL nicht abspielen
+konnte die Warteschlange nicht befüllen, da der Bibliotheksscan deaktiviert ist.
+konnte Zeitsteuerung nicht setzten.
+Discord-Präsenz
+lade Update $VER herunter
+Minuten oder HH:MM eingeben
+Zeit eingeben
+URL eingeben
+FEHLER
+verlassen
+Ordner Kontext Menue
+Ordner enthält keine Audio-Dateien
+Ordner
+allgemein
+Ruhezustand wenn die Zeitsteuerung abgelaufen ist.
+Computer in den Ruhezustand versetzen.
+INFO
+ungültige Eingabe (Minutes or HH:MM eingeben)
+ungültige URL. (URL's müssen mit http:// or https:// beginnen)
+ungültige Audio Datei ausgewählt
+ungültige Audio Datei $FILE
+Mini Mode immer sichtbar
+Mini Mode starten
+Musik-Bedienelemente links
+Bibliothek
+Indizierung der Bibliothek unvollständig, nur bereits analysierte Dateien wurden hinzugefügt.
+hören
+System Audio
+lokales Gerät
+lokalisiere Auswahl
+Verbindung zu $DEVICE verloren, schalte auf lokales Gerät um.
+Mini Mode immer oben
+mehr
+nach unten bewegen
+weiter zum nächsten
+Titelinhalt nach links verschieben
+nach oben bewegen
+Music Caster läuft in der Taskleiste.
+stummschalten
+neu
+nächster Titel
+nicht genügend Speicherplatz für automatisches Update auf dem Gerät verfügbar.
+Einstellungen können nicht gespeichert werden, da nicht genügend Speicherplatz auf dem Gerät verfügbar ist.
+keine Zeitsteuerung gesetzt
+nicht mit einem Castgerät verbunden
+nicht bei deezer.com angemeldet
+nichts wird abgespielt
+Benachrichtigungen
+nur die Wiedergabe anhalten
+öffnen
+Pause
+dauerhafte Warteschlange
+abspielen
+alles abspielen
+Dateien abspielen
+Dateien als nächstes abspielen
+sofort abspielen
+als nächstes abspielen
+URL abspielen
+URL als nächstes abspielen
+wird abgespielt
+Wiedergabelistenname
+Wiedergabelisten
+Wiedergabelisten Tab
+befüllt Warteschlange beim Start
+befüllt Warteschlange von Ordnern beim Start
+vorheriger Track
+Warteschlange
+alle Warteschlangen
+Datei Warteschlangen
+URL Warteschlangen
+Neueinlesen der Geräte
+merke letzten Ordner
+entferne selektierten Ordner
+entferne
+wiederhole
+wiederhole alles
+wiederholen aus
+wiederhole eins
+Wiederholoptionen
+Bibliothek einlesen
+lese Bibliothek ein
+fortsetzen
+kehre das Verhalten von "spiele nächstes" um
+Umgekehrtes "spiele nächstes"
+zusammen mit Betriebssystem starten
+speichere die Warteschlange zwischen Sitzungen
+speichere die Warteschlange als Wiedergabeliste
+speichere Fensterpositionen
+lese Ordner ein
+Blättern mit Mausrad
+Suche nach Musik...
+wähle Gerät
+wähle Ordner
+wähle Ordner
+wähle Dateien
+wähle Datei
+wähle Audio Dateien
+sende mir eine Email
+set DEBUG = true in `settings.json` um diese Seite zu aktivieren
+setze Zeitsteuerung
+setze
+Einstellungen
+zeige Albumcover
+zeige Albumcover im GUI
+zeige Index in Warteschlange
+zeige Titelnummer
+zeige Titelnummer in Warteschlange
+zufällige Reihenfolge
+Wenn die Zeitsteuerung abgelaufen ist herunterfahren.
+Computer herunterfahren
+Wenn die Zeitsteuerung abgelaufen ist Energie sparen.
+Computer Energie sparen aktivieren
+Stop
+übermitteln
+Vielen Dank, dass Sie Music Caster installiert haben.
+Zeitsteuerung
+Zeitsteuerung abgebrochen
+Zeitsteuerung auf $TIME setzen
+schreibe Artist/Titel
+Benutzerschnittstelle
+Stummschaltung aufheben
+Update $VER ist verfügbar
+URL
+benutze cover.* für Albumcover
+benutze cover.* für Bilder anstatt Albumcover der Datei
+cover.* Bild überschreibt Albumcover der Datei
+vertikales GUI
+zeige Audiodateiquellenverknüpfungen
+öffne Web GUI
+neue Wiedergabeliste
+exportiere Wiedergabeliste
+lösche Wiedergabeliste
+Wiedergabeliste abspielen
+Wiedergabeliste zur Warteschlange hinzufügen
+unbekannter Titel
+unbekannter Artist
+unbekanntes Album
+Bibliothek immer in die Warteschlange
+mit Music Caster abspielen
+zur Music Caster Warteschlange hinzufügen
+als nächstes in Music Caster abspielen
+anstehend
+intelligente Warteschlange
+als nächtes oben hinzufügen
+Metadaten
+speichere Metadaten
+Metadaten gespeichert
+speichern
+Titel
+Artist
+Album
+Track Nummer
+explizit
+wähle Albumcover
+suche Albumcover
+entferne Albumcover
+Albumcover gefunden
+kein Albumcover gefunden
+suche nach Albumcover...
+lade URL(s)
+hinzugefügte URL(s)
+Sprache
+spiele markiertes ab
+markiertes in die Warteschlange
+füge markiertes als nächstes oben ein
+System Audio Verzögerung:
+Sekunden
+Titel lokalisieren
+schalte auf lokales Gerät um
+Titelformat:
+konnte bei $URL kein Audio finden
+beende Anwendung wenn GUI geschlossen wird
