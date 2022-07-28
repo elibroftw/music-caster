@@ -21,6 +21,7 @@ import threading
 from subprocess import Popen, PIPE, DEVNULL
 # noinspection PyUnresolvedReferences
 import re
+import sys
 
 
 PID_FILENAME = 'music_caster.pid'
@@ -128,7 +129,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
 
     def create_menu(lst, root=True):
         # e.g. ['Item 1', ('Item 2 Display', 'item_2_key'), ['Sub Menu Title', ('Sub Menu Item 1 Display', 'KEY')]]
-        # TODO: checked/radio
         items = []
         if root: items.append(pystray.MenuItem('', get_tray_action('__ACTIVATED__'), default=True, visible=False))
         for element in lst:
@@ -178,6 +178,7 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         tray.visible = False
                     elif parent_cmd in {'close', 'exit', '__EXIT__'}:
                         tray.stop()
+                        sys.exit()
             time.sleep(0.1)
 
     tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
@@ -190,7 +191,6 @@ if __name__ == '__main__':
     import argparse
     from inspect import currentframe
     from pathlib import Path
-    import sys
     from urllib.request import pathname2url, urlopen, Request
     from urllib.parse import urlencode
     from urllib.error import URLError
