@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.2'
+VERSION = latest_version = '5.7.3'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -609,7 +609,7 @@ if __name__ == '__main__':
                 return all_tracks[Path(file_path).as_posix()]
             except KeyError:
                 return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
-                        'album': Unknown('Title'), 'sort_key': get_file_name(file_path), 'track_number': '0'}
+                        'album': Unknown('Title'), 'sort_key': get_file_name(file_path), 'track_number': '1'}
 
 
     def get_uri_metadata(uri, read_file=True):
@@ -3243,7 +3243,7 @@ if __name__ == '__main__':
             uris = (gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes())
             play_uris(uris, queue_uris=main_event == 'queue_pl_selected',
                       play_next=main_event == 'add_next_pl_selected', natural_sort=settings['shuffle'])
-        # metadata tab
+        # metadata editor tab
         elif main_event in {'metadata_browse', 'metadata_file'}:
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
             selected_file = Sg.popup_get_file('Select audio file', initial_folder=initial_folder, no_window=True,

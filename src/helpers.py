@@ -585,6 +585,7 @@ def get_metadata(file_path: str):
             for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
                 if tag in audio:
                     audio[normalized] = audio.pop(tag)
+            audio['tracknumber'] = str(audio.get('trkn', [('1', '1')])[0][0])
         elif isinstance(a, (OggOpus, OggVorbis)):
             audio = dict(a)
             if 'rtng' in audio:
@@ -634,7 +635,7 @@ def get_metadata(file_path: str):
         sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
-                'sort_key': sort_key.casefold(), 'track_number': '0' if track_number is None else track_number}
+                'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number}
     return metadata
 
 

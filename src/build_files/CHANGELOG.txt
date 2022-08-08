@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.7.3
+- [Fix] MP4/M4A track number
+
 5.7.2
 - [Fix] Album sorting
 - [Fix] Files with no track number
