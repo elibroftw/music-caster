@@ -6,7 +6,7 @@
 # Try to keep the same capitlization or lack of as in the English file
 add folder
 Add Music Caster to folder context menu
-Add tracks
+Add files
 Add URL
 An error occurred, restarting now
 An Internal Server Error occurred

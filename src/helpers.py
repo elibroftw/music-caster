@@ -1578,7 +1578,7 @@ def create_playlists_tab(settings):
     playlist_name = playlists_names[0] if playlists_names else ''
     url_input = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
     add_url = [round_btn(gt('Add URL'), accent, bg, key='pl_add_url', button_width=13)]
-    add_tracks = [round_btn(gt('Add tracks'), accent, bg, key='pl_add_tracks', button_width=13)]
+    add_tracks = [round_btn(gt('Add files'), accent, bg, key='pl_add_tracks', button_width=13)]
     lb_height = 17 - 6 * (settings['vertical_gui'] or not settings['show_album_art'])
     pl_name_text = gt('Playlist name')
     name_text_w = max(13, len(pl_name_text))
@@ -1587,7 +1587,7 @@ def create_playlists_tab(settings):
                Sg.Input(playlist_name, key='pl_name', size=(60 - name_text_w, 1), font=FONT_NORMAL,
                         pad=((22, 5), (5, 10)), border_width=1),
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S', button_color=(bg, bg))],
-              [Sg.Column([url_input, add_url, add_tracks]),
+              [Sg.Column([add_tracks, url_input, add_url]),
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                           key='pl_tracks', background_color=bg, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(
