@@ -2027,10 +2027,8 @@ if __name__ == '__main__':
             try:
                 if cast is None:
                     track_position = time.monotonic() - track_start
-                    if audio_player.pause():
-                        app_log.info('paused local audio player')
-                    else:
-                        app_log.info('could not pause local audio player')
+                    audio_player.pause()
+                    app_log.info('paused local audio player')
                 else:
                     mc = cast.media_controller
                     mc.pause()
@@ -2063,6 +2061,7 @@ if __name__ == '__main__':
             try:
                 if cast is None:
                     audio_player.resume()
+                    app_log.info('resumed local audio player')
                 else:
                     mc = cast.media_controller
                     mc.update_status()
