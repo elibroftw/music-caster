@@ -5,6 +5,7 @@ UPDATE_MESSAGE = """
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
+from stringprep import in_table_a1
 import time
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
@@ -2655,6 +2656,7 @@ if __name__ == '__main__':
                 main_event = 'progress_bar'
                 gui_window.refresh()
         # override keypress events
+        in_tab_queue = main_values.get('tab_group') in {'tab_queue', None}
         if main_event != '__TIMEOUT__':
             with suppress(KeyError):
                 el = gui_window.find_element_with_focus()
@@ -2702,14 +2704,14 @@ if __name__ == '__main__':
             if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
                 gui_window.grab_any_where_on()
             if main_event != 'volume_slider_mouse_leave': gui_window.metadata['mouse_hover'] = ''
-        elif main_event == 'pause/resume' or main_event == 'k' and main_values.get('tab_group') in {'tab_queue', None}:
+        elif main_event == 'pause/resume' or main_event == 'k' and in_tab_queue:
             if playing_status.paused(): resume('gui')
             elif playing_status.playing(): pause()
             elif music_queue: play()
             else: play_all()
-        elif main_event == 'next' and playing_status.busy():
+        elif (main_event == 'next' or main_event == 'N' and in_tab_queue) and playing_status.busy():
             next_track()
-        elif main_event == 'prev' and playing_status.busy():
+        elif (main_event == 'prev' or main_event == 'B' and in_tab_queue) and playing_status.busy():
             prev_track()
         elif main_event == 'devices':
             change_device(main_value.id)
@@ -2722,7 +2724,7 @@ if __name__ == '__main__':
             update_settings('shuffle', not settings['shuffle'])
         elif main_event == 'repeat': cycle_repeat()
         elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdecimal())
-                                                and (main_values.get('tab_group') in {'tab_queue', None}))):
+                                                and in_tab_queue)):
             # User scrubbed volume bar or pressed a, d, #
             try:
                 new_volume = int(main_event) * 10
