@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.7.4
+- [Fix] Cancel timer
+- [Feature] Window only keyboard shortcuts
+
 5.7.3
 - [Fix] MP4/M4A track number
 

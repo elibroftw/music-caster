@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.3'
+VERSION = latest_version = '5.7.4'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -3082,6 +3082,7 @@ if __name__ == '__main__':
             gui_window['timer_text'].metadata = False
             gui_window['timer_error'].update(visible=False)
             gui_window['cancel_timer'].update(visible=False)
+            cancel_timer()
         # handle enter/submit event
         elif main_event in SUBMIT_EVENTS and main_values.get('tab_group') == 'tab_timer':
             try:
@@ -3632,11 +3633,11 @@ if __name__ == '__main__':
             elif timer and time.time() > timer:
                 stop('timer')
                 timer = 0
-                if settings['timer_shut_down']:
+                if settings['timer_shut_down']:  # shut down
                     os.system('shutdown /p /f') if platform.system() == 'Windows' else os.system('shutdown -h now')
-                elif settings['timer_hibernate']:
+                elif settings['timer_hibernate']: # hibernate
                     if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-                elif settings['timer_sleep']:
+                elif settings['timer_sleep']: # sleep
                     if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
             # if settings.json was updated outside of Music Caster, reload settings
             try:
