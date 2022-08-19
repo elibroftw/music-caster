@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.7.5
+- [Fix] FLAC album art
+
 5.7.4
 - [Fix] Cancel timer
 - [Feature] Window only keyboard shortcuts

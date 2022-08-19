@@ -556,6 +556,7 @@ def set_metadata(file_path: str, metadata: dict):
                 pic.data = img_data
                 pic.type = 3
                 # noinspection PyUnresolvedReferences
+                audio.clear_pictures()
                 audio.add_picture(pic)
             else:
                 audio['APIC:'] = metadata['art']
