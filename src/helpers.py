@@ -56,7 +56,7 @@ from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wa
 from youtube_comment_downloader import YoutubeCommentDownloader
 
 # CONSTANTS
-AUDIO_EXTS = {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'}
+AUDIO_EXTS = {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav', '.m3u'}
 FONT_NORMAL = 'Segoe UI', 11
 FONT_SMALL = 'Segoe UI', 10
 FONT_LINK = 'Segoe UI', 11, 'underline'

@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.5'
+VERSION = latest_version = '5.7.6'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -1542,6 +1542,8 @@ if __name__ == '__main__':
         app_log.info('get_url_metadata: ' + url)
         if url in url_metadata and not url_expired(url): return [url_metadata[url]]
         app_log.info('get_url_metadata: url has expired')
+        if url.startswith('www'):
+            url = f'http://{url}'
         if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
             ext = url[::-1].split('.', 1)[0][::-1]
             url_frags = urlsplit(url)
@@ -1693,6 +1695,7 @@ if __name__ == '__main__':
                 else:
                     url_metadata[url] = url_metadata[r['webpage_url']] = metadata = ydl_get_metadata(r)
                     metadata_list.append(metadata)
+                pprint.pprint(metadata)
         if metadata_list and fetch_art:
             # fetch and cache artwork for first url
             metadata = metadata_list[0]
