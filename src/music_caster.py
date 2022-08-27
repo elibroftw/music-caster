@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.6'
+VERSION = latest_version = '5.7.7'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -1686,7 +1686,7 @@ if __name__ == '__main__':
                             uris_to_scan.put(deezer_track['src'])
                             metadata_list.append(deezer_track)
         else:
-            with suppress(IOError):
+            with suppress(IOError, TypeError):
                 r = ydl_extract_info(url)
                 if 'entries' in r:
                     for entry in r['entries']:
@@ -1695,11 +1695,10 @@ if __name__ == '__main__':
                 else:
                     url_metadata[url] = url_metadata[r['webpage_url']] = metadata = ydl_get_metadata(r)
                     metadata_list.append(metadata)
-                pprint.pprint(metadata)
         if metadata_list and fetch_art:
             # fetch and cache artwork for first url
             metadata = metadata_list[0]
-            if 'art' in metadata and 'art_data' not in metadata:
+            if metadata.get('art') is not None and 'art_data' not in metadata:
                 art_url = metadata['art']
                 try:
                     url_metadata[metadata['src']]['art_data'] = base64.b64encode(requests.get(art_url).content)
