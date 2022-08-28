@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.7'
+VERSION = latest_version = '5.7.8'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -1838,7 +1838,7 @@ if __name__ == '__main__':
         m = get_uri_metadata(filename)
         try:
             tn = int(m.get('track_number'))
-        except ValueError:
+        except (ValueError, TypeError):
             tn = 1
         return m['album'].casefold(), tn , m['artist'].casefold(), m['title'].casefold()
 
