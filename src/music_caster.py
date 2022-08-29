@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.8'
+VERSION = latest_version = '5.7.9'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -2160,6 +2160,7 @@ if __name__ == '__main__':
             # keep track of skips (used by smart queue feature)
             if music_queue and track_position < 5 and not from_timeout and playing_status.busy() and not forced:
                 settings['skips'][music_queue[0]] = settings['skips'].get(music_queue[0], 0) + 1
+                # save queue...
                 save_settings()
             # if repeat all or repeat is off or empty queue or manual next
             if settings['repeat'] in {False, None} or not music_queue or not from_timeout:
@@ -3635,12 +3636,14 @@ if __name__ == '__main__':
             elif timer and time.time() > timer:
                 stop('timer')
                 timer = 0
-                if settings['timer_shut_down']:  # shut down
-                    os.system('shutdown /p /f') if platform.system() == 'Windows' else os.system('shutdown -h now')
-                elif settings['timer_hibernate']: # hibernate
-                    if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-                elif settings['timer_sleep']: # sleep
-                    if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+                # use lock to prevent corrupting settings
+                with settings_file_lock:
+                    if settings['timer_shut_down']:  # shutdown computer
+                        os.system('shutdown /p /f') if platform.system() == 'Windows' else os.system('shutdown -h now')
+                    elif settings['timer_hibernate']: # hibernate computer
+                        if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
+                    elif settings['timer_sleep']: # sleep computer
+                        if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
             # if settings.json was updated outside of Music Caster, reload settings
             try:
                 if os.path.getmtime(SETTINGS_FILE) != settings_last_modified: load_settings()
