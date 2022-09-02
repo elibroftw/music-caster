@@ -259,7 +259,7 @@ if not args.skip_build:
         # install go dependencies
         check_call('go install github.com/akavel/rsrc@latest')
         check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
-        check_call('go build -ldflags "-H windowsgui" -o dist/Updater.exe')
+        check_call('go build -ldflags "-s -w -H windowsgui" -o dist/Updater.exe')
     except Exception as e:
         print(f'WARNING: {e}')
     check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
