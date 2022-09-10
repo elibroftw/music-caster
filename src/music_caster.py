@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.7.9'
+VERSION = latest_version = '5.7.10'
 UPDATE_MESSAGE = """
 [NEW] Gutentag
 [MSG] Language translators wanted
@@ -1541,7 +1541,6 @@ if __name__ == '__main__':
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
         if url in url_metadata and not url_expired(url): return [url_metadata[url]]
-        app_log.info('get_url_metadata: url has expired')
         if url.startswith('www'):
             url = f'http://{url}'
         if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
