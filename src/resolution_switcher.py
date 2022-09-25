@@ -88,7 +88,20 @@ def get_initial_dpi_scale():
     return 1
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=1)
+def get_all_refresh_rates():
+    i = 0
+    refresh_rates = set()
+    with suppress(Exception):
+        import win32api
+        while True:
+            ds = win32api.EnumDisplaySettings(None, i)
+            refresh_rates.add(ds.DisplayFrequency)
+            i += 1
+    return refresh_rates
+
+
+@lru_cache(maxsize=1)
 def get_all_resolutions():
     i = 0
     resolutions = []
@@ -134,7 +147,7 @@ def calc_dpi_scale(new_w, _):
     return dpi_scale
 
 
-def set_resolution(width: int, height: int, dpi_scale: int):
+def set_resolution(width: int, height: int, dpi_scale: int, refresh_rate: int=None):
     with suppress(ImportError):
         import pywintypes
         import win32api
@@ -144,6 +157,9 @@ def set_resolution(width: int, height: int, dpi_scale: int):
         devmode.PelsWidth = width
         devmode.PelsHeight = height
         devmode.Fields = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
+        if refresh_rate:
+            devmode.DisplayFrequency = refresh_rate
+            devmode.Fields |= win32con.DM_DISPLAYFREQUENCY
 
         win32api.ChangeDisplaySettings(devmode, 0)
 

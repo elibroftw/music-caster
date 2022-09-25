@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.8.0'
+VERSION = latest_version = '5.8.1'
 UPDATE_MESSAGE = """
 [MISC] Battery Resolution Switcher
 [MSG] Language translators wanted
@@ -8,7 +8,7 @@ IMPORTANT_INFORMATION = """
 from stringprep import in_table_a1
 import time
 
-from resolution_switcher import get_initial_res, is_plugged_in
+from resolution_switcher import get_all_refresh_rates, get_initial_res, is_plugged_in
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
 from contextlib import suppress
@@ -3676,12 +3676,14 @@ if __name__ == '__main__':
                     if is_plugged_in():
                         plugged_in_info = res_map[fmt_res(*settings['plugged_in_res'])]
                         if user32.GetSystemMetrics(0) * plugged_in_info['dpi_scale'] != settings['plugged_in_res'][0]:
-                            set_resolution(plugged_in_info['w'], plugged_in_info['h'], plugged_in_info['dpi_scale'])
+                            refresh_rate = max(get_all_refresh_rates())
+                            set_resolution(plugged_in_info['w'], plugged_in_info['h'], plugged_in_info['dpi_scale'], refresh_rate=refresh_rate)
                             refresh_tray_icon()
                     else:  # on battery
                         on_battery_info = res_map[fmt_res(*settings['on_battery_res'])]
                         if user32.GetSystemMetrics(0) * on_battery_info['dpi_scale'] != settings['on_battery_res'][0]:
-                            set_resolution(on_battery_info['w'], on_battery_info['h'], on_battery_info['dpi_scale'])
+                            refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
+                            set_resolution(on_battery_info['w'], on_battery_info['h'], on_battery_info['dpi_scale'], refresh_rate=refresh_rate)
                             refresh_tray_icon()
             time.sleep(0.2) if gui_window.was_closed() else read_main_window()
     except KeyboardInterrupt:
