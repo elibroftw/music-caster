@@ -945,10 +945,11 @@ def get_default_output_device():
             device_name = wr.QueryValueEx(properties, '{b3f8fa53-0004-438e-9003-51a46e139bfc},6')[0]
             device_type = wr.QueryValueEx(properties, '{a45c254e-df1c-4efd-8020-67d146a850e0},2')[0]
             pa_name = f'{device_type} ({device_name})'  # name shown in PyAudio
-            last_used = wr.QueryValueEx(device_key, 'Level:0')[0]
-            if last_used > active_last_used:  # the bigger the number, the more recent it was used
-                active_last_used = last_used
-                active_device_name = pa_name
+            with suppress(FileNotFoundError):
+                last_used = wr.QueryValueEx(device_key, 'Level:0')[0]
+                if last_used > active_last_used:  # the bigger the number, the more recent it was used
+                    active_last_used = last_used
+                    active_device_name = pa_name
     return active_device_name
 
 
