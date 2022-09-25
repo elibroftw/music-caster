@@ -475,7 +475,7 @@ if __name__ == '__main__':
             menu = tray_menu_playing if playing_status.playing() else tray_menu_paused
             metadata = get_current_metadata()
             title, artists = metadata['title'], metadata['artist']
-            _tooltip = f"{get_first_artist(artists)} - {title}".replace('&', '&&&')
+            _tooltip = f'{get_first_artist(artists)} - {title}'
         else:
             menu, _tooltip = tray_menu_default, 'Music Caster'
         if is_debug(): _tooltip += ' [DEBUG]'
