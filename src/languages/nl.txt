@@ -191,3 +191,5 @@ Overschakelen naar lokaal apparaat
 Trackformaat:
 Kan geen audio ophalen voor $URL
 Sluit app op GUI sluiten
+Op batterij resolutie
+Aangesloten resolutie

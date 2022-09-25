@@ -176,9 +176,9 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
 
     assert custom_art('SYS')
 
-    for option, expected in {None: (REPEAT_OFF_IMG, gt('Repeat All')),
-                             True: (REPEAT_ONE_IMG, gt('Repeat Off')),
-                             False: (REPEAT_ALL_IMG, gt('Repeat One'))}.items():
+    for option, expected in {None: (REPEAT_OFF_IMG, t('Repeat All')),
+                             True: (REPEAT_ONE_IMG, t('Repeat Off')),
+                             False: (REPEAT_ALL_IMG, t('Repeat One'))}.items():
         try:
             assert repeat_img_tooltip(option) == expected
         except AssertionError:

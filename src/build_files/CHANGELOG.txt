@@ -1,6 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
-5.7.10
+5.8.0
+- [Feature] Battery Resolution Switcher
 - [Fix] Upgrade dependencies
 
 5.7.9

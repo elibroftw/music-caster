@@ -191,3 +191,5 @@ Passaggio al dispositivo locale
 Formato Traccia:
 Impossibile recuperare l'audio per $URL
 Esci dall'app alla chiusura della GUI
+Sulla risoluzione della batteria
+Risoluzione inserita

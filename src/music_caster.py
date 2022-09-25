@@ -1,12 +1,14 @@
-VERSION = latest_version = '5.7.10'
+VERSION = latest_version = '5.8.0'
 UPDATE_MESSAGE = """
-[NEW] Gutentag
+[MISC] Battery Resolution Switcher
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
 """.strip()
 from stringprep import in_table_a1
 import time
+
+from resolution_switcher import get_initial_res, is_plugged_in
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
 from contextlib import suppress
@@ -286,6 +288,7 @@ if __name__ == '__main__':
 
     from audio_player import AudioPlayer
     from helpers import *
+    from resolution_switcher import set_resolution
 
     # 3rd party imports take 0.22 seconds to import
     # flask takes 0.14 seconds
@@ -326,7 +329,7 @@ if __name__ == '__main__':
     gui_window = Sg.Window('', metadata={})
     gui_window.close()
 
-    WELCOME_MSG = gt('Thanks for installing Music Caster.') + '\n' + gt('Music Caster is running in the tray.')
+    WELCOME_MSG = t('Thanks for installing Music Caster.') + '\n' + t('Music Caster is running in the tray.')
     STREAM_CHUNK = 1024
     EMAIL = 'elijahllopezz@gmail.com'
     SUBMIT_EVENTS = {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
@@ -347,9 +350,9 @@ if __name__ == '__main__':
     # noinspection PyTypeChecker
     cast: Chromecast = None
     all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
-    tray_playlists = [gt('Playlists Tab')]
+    tray_playlists = [t('Playlists Tab')]
     CHECK_MARK = '✓'
-    music_folders, device_names = [], [(f'{CHECK_MARK} ' + gt('Local device'), 'device:0')]
+    music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     playing_url = deezer_opened = False
     recent_api_plays = {'play': 0, 'queue': 0, 'play_next': 0}
@@ -370,7 +373,7 @@ if __name__ == '__main__':
         'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER, 'scan_folders': True,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
         'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []},
-        'position': 0}
+        'position': 0, 'plugged_in_res': get_initial_res(), 'on_battery_res': get_initial_res()}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
     playing_status = PlayingStatus()
@@ -390,7 +393,7 @@ if __name__ == '__main__':
     def tray_notify(message, title='Music Caster', context=''):
         """ A wrapper for tray_process_queue.put({ notify: {message: msg, title: title} }) """
         if message == 'update_available':
-            message = gt('Update $VER is available').replace('$VER', f'v{context}')
+            message = t('Update $VER is available').replace('$VER', f'v{context}')
         tray_process_queue.put({'notify': {'message': message, 'title': title}})
 
 
@@ -408,9 +411,9 @@ if __name__ == '__main__':
                 settings_last_modified = os.path.getmtime(SETTINGS_FILE)
             except OSError as e:
                 if e.errno == errno.ENOSPC:
-                    tray_notify(gt('ERROR') + ': ' + gt('No space left on device to save settings'))
+                    tray_notify(t('ERROR') + ': ' + t('No space left on device to save settings'))
                 else:
-                    tray_notify(gt('ERROR') + f': {e}')
+                    tray_notify(t('ERROR') + f': {e}')
 
 
     def is_debug():
@@ -426,47 +429,47 @@ if __name__ == '__main__':
             for device in get_devices():
                 device_names.append(device.as_tray_item(settings['device']))
             daemon_commands.put('__UPDATE_GUI__')
-        tray_folders = [gt('Select Folder')]
+        tray_folders = [t('Select Folder')]
         for i, folder in enumerate(music_folders):
             folder = Path(folder)
             folder = ('../' + '/'.join(folder.parts[-2:])) if len(folder.parts) > 2 else folder.as_posix()
             tray_folders.append((folder, f'PF:{i}'))
-        repeat_menu = [gt('Repeat All') + f' {CHECK_MARK}' * (settings['repeat'] is False),
-                       gt('Repeat One') + f' {CHECK_MARK}' * (settings['repeat'] is True),
-                       gt('Repeat Off') + f' {CHECK_MARK}' * (settings['repeat'] is None)]
-        tray_menu_default = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
-                             [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
-                             [gt('Play'), gt('System Audio'),
-                              [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
-                              [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
-                              [gt('Select Files'), gt('Play Files'), gt('Queue Files'), gt('Play Files Next')],
-                              gt('Play All')], (gt('Exit'), '__EXIT__')]
-        tray_menu_playing = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
-                             [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
-                             [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
-                              gt('previous track', 1), gt('next track', 1), gt('Pause')],
-                             [gt('Play'), gt('System Audio'),
-                              [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
-                              [gt('Folders'), *tray_folders], [gt('Playlists'), *tray_playlists],
-                              [gt('Select Files'), gt('Play Files'), gt('Queue Files'), gt('Play Files Next')],
-                              gt('Play All')], (gt('Exit'), '__EXIT__')]
-        tray_menu_paused = [gt('Settings'), gt('Rescan Library'), gt('Refresh Devices'),
-                            [gt('Select Device'), *device_names], [gt('Timer'), gt('Set Timer'), gt('Cancel Timer')],
-                            [gt('Controls'), gt('locate track', 1), [gt('Repeat Options'), *repeat_menu], gt('Stop'),
-                             gt('previous track', 1), gt('next track', 1), gt('Resume')],
-                            [gt('Play'), gt('System Audio'),
-                             [gt('URL'), gt('Play URL'), gt('Queue URL'), gt('Play URL Next')],
-                             [gt('Folders'), *tray_folders],
-                             [gt('Playlists'), *tray_playlists],
-                             [gt('Select Files'), gt('Play Files'), gt('Queue Files'), gt('Play Files Next')],
-                             gt('Play All')], (gt('Exit'), '__EXIT__')]
+        repeat_menu = [t('Repeat All') + f' {CHECK_MARK}' * (settings['repeat'] is False),
+                       t('Repeat One') + f' {CHECK_MARK}' * (settings['repeat'] is True),
+                       t('Repeat Off') + f' {CHECK_MARK}' * (settings['repeat'] is None)]
+        tray_menu_default = [t('Settings'), t('Rescan Library'), t('Refresh Devices'),
+                             [t('Select Device'), *device_names], [t('Timer'), t('Set Timer'), t('Cancel Timer')],
+                             [t('Play'), t('System Audio'),
+                              [t('URL'), t('Play URL'), t('Queue URL'), t('Play URL Next')],
+                              [t('Folders'), *tray_folders], [t('Playlists'), *tray_playlists],
+                              [t('Select Files'), t('Play Files'), t('Queue Files'), t('Play Files Next')],
+                              t('Play All')], (t('Exit'), '__EXIT__')]
+        tray_menu_playing = [t('Settings'), t('Rescan Library'), t('Refresh Devices'),
+                             [t('Select Device'), *device_names], [t('Timer'), t('Set Timer'), t('Cancel Timer')],
+                             [t('Controls'), t('locate track', 1), [t('Repeat Options'), *repeat_menu], t('Stop'),
+                              t('previous track', 1), t('next track', 1), t('Pause')],
+                             [t('Play'), t('System Audio'),
+                              [t('URL'), t('Play URL'), t('Queue URL'), t('Play URL Next')],
+                              [t('Folders'), *tray_folders], [t('Playlists'), *tray_playlists],
+                              [t('Select Files'), t('Play Files'), t('Queue Files'), t('Play Files Next')],
+                              t('Play All')], (t('Exit'), '__EXIT__')]
+        tray_menu_paused = [t('Settings'), t('Rescan Library'), t('Refresh Devices'),
+                            [t('Select Device'), *device_names], [t('Timer'), t('Set Timer'), t('Cancel Timer')],
+                            [t('Controls'), t('locate track', 1), [t('Repeat Options'), *repeat_menu], t('Stop'),
+                             t('previous track', 1), t('next track', 1), t('Resume')],
+                            [t('Play'), t('System Audio'),
+                             [t('URL'), t('Play URL'), t('Queue URL'), t('Play URL Next')],
+                             [t('Folders'), *tray_folders],
+                             [t('Playlists'), *tray_playlists],
+                             [t('Select Files'), t('Play Files'), t('Queue Files'), t('Play Files Next')],
+                             t('Play All')], (t('Exit'), '__EXIT__')]
         if platform.system() == 'Linux':
             # more so for applicationindicator
             for menu in tray_menu_default, tray_menu_paused, tray_menu_playing:
-                menu.append((gt('Open'), '__ACTIVATED__'))
+                menu.append((t('Open'), '__ACTIVATED__'))
         # refresh playlists
         tray_playlists.clear()
-        tray_playlists.append(gt('Playlists Tab'))
+        tray_playlists.append(t('Playlists Tab'))
         tray_playlists.extend([(f'{pl}'.replace('&', '&&&'), f'PL:{pl}') for pl in settings['playlists']])
         # tell tray process to update
         # icon = FILLED_ICON if playing_status.playing() else UNFILLED_ICON
@@ -480,6 +483,11 @@ if __name__ == '__main__':
             menu, _tooltip = tray_menu_default, 'Music Caster'
         if is_debug(): _tooltip += ' [DEBUG]'
         tray_process_queue.put({'menu': menu, 'tooltip': _tooltip, **icon})
+
+
+    def refresh_tray_icon():
+        icon = {'filled': None} if playing_status.playing() else {'unfilled': None}
+        tray_process_queue.put(icon)
 
 
     def update_settings(settings_key, new_value):
@@ -578,7 +586,7 @@ if __name__ == '__main__':
         if restart_program:
             close_tray()
             with suppress(Exception): stop('error handling')
-            tray_notify(gt('An error occurred, restarting now'))
+            tray_notify(t('An error occurred, restarting now'))
             # minimized = main_window.was_closed()
             if IS_FROZEN: startfile('Music Caster')
             else: raise e  # raise exception if running in script rather than executable
@@ -635,7 +643,7 @@ if __name__ == '__main__':
     def get_current_metadata() -> dict:
         if sar.alive: return url_metadata['SYSTEM_AUDIO']
         if music_queue and playing_status.busy(): return get_uri_metadata(music_queue[0])
-        return {'artist': '', 'title': gt('Nothing Playing'), 'album': ''}
+        return {'artist': '', 'title': t('Nothing Playing'), 'album': ''}
 
 
     def get_audio_uris(uris: Iterable, scan_uris=True, ignore_m3u=False, parsed_m3us=None, ignore_dir=False):
@@ -888,7 +896,7 @@ if __name__ == '__main__':
         try:
             return render_template('index.html', device_name=platform.node(), shuffle=shuffle_enabled, version=VERSION,
                                    repeat_enabled=repeat_enabled, playing_status=playing_status, metadata=metadata,
-                                   settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=gt,
+                                   settings=settings, list_of_tracks=list_of_tracks, repeat_option=repeat_option, gt=t,
                                    queue=_queue, playing_index=len(done_queue), device_index=device_index, art=art,
                                    devices=formatted_devices, stream_url=stream_url, stream_time=stream_time)
         except TemplateNotFound:
@@ -944,11 +952,11 @@ if __name__ == '__main__':
         if original is None:
             # direct 500 error, such as abort(500)
             handle_exception(_e)
-            return gt('An Internal Server Error occurred') + f': {_e}'
+            return t('An Internal Server Error occurred') + f': {_e}'
 
         # wrapped unhandled error
         handle_exception(original)
-        return gt('An Internal Server Error occurred') + f': {original}'
+        return t('An Internal Server Error occurred') + f': {original}'
 
 
     @app.route('/debug/')
@@ -959,7 +967,7 @@ if __name__ == '__main__':
                             'last_traceback': sys.exc_info(),
                             'threads': threads,
                             'mac': get_mac()})
-        return gt('set DEBUG = true in `settings.json` to enable this page')
+        return t('set DEBUG = true in `settings.json` to enable this page')
 
 
     @app.route('/running/', methods=['GET', 'POST', 'OPTIONS'])
@@ -1030,7 +1038,7 @@ if __name__ == '__main__':
     def cancel_timer():
         global timer
         timer = 0
-        if settings['notifications']: tray_notify(gt('Timer cancelled'))
+        if settings['notifications']: tray_notify(t('Timer cancelled'))
 
 
     def set_timer(val):
@@ -1230,7 +1238,7 @@ if __name__ == '__main__':
             new_device = None
         except UnboundLocalError as e:
             app_log.error('Could not connect to cast device', exc_info=e)
-            tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (cd)')
+            tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (cd)')
             return False
         if cast == new_device:
             # do not change device if local device is selected again
@@ -1422,14 +1430,14 @@ if __name__ == '__main__':
                 ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
             if settings['notifications'] and not switching_device and gui_window.was_closed():
                 # artists is comma separated string
-                tray_notify(gt('Playing') + f': {get_first_artist(artists)} - {title}')
+                tray_notify(t('Playing') + f': {get_first_artist(artists)} - {title}')
             playing_status.play()
         else:
             playing_status.pause()
         refresh_tray()
         save_queues()
-        DiscordPresence.update(settings['discord_rpc'], state=gt('By') + f': {artists}', details=title,
-                               large_text=gt('Listening'))
+        DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artists}', details=title,
+                               large_text=t('Listening'))
         if not gui_window.was_closed():
             gui_window.metadata['update_listboxes'] = True
             daemon_commands.put('__UPDATE_GUI__')
@@ -1439,7 +1447,7 @@ if __name__ == '__main__':
     def play_system_audio(switching_device=False, show_error=False):
         global track_position, track_start, track_end, track_length
         if cast is None:
-            tray_notify(gt('ERROR') + ': ' + gt('Not connected to a cast device'))
+            tray_notify(t('ERROR') + ': ' + t('Not connected to a cast device'))
             sar.alive = False
             return False
         try:
@@ -1470,11 +1478,11 @@ if __name__ == '__main__':
             after_play(title, artist, True, switching_device)
             return True
         except OSError:
-            tray_notify(gt('ERROR') + ': ' + gt('Could not find an output device to record'))
+            tray_notify(t('ERROR') + ': ' + t('Could not find an output device to record'))
         except PyChromecastError as e:
             app_log.error(f'play_sys_audio failed to cast {repr(e)}')
             if show_error:
-                tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (psa)')
+                tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (psa)')
                 change_device()
                 return handle_exception(e)
             cast_try_reconnect()
@@ -1622,7 +1630,7 @@ if __name__ == '__main__':
                     url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                     metadata_list.append(metadata)
                 else:
-                    error_msg = gt('ERROR') + ': ' + gt('Could not fetch audio for $URL').replace('$URL', url) + ' :('
+                    error_msg = t('ERROR') + ': ' + t('Could not fetch audio for $URL').replace('$URL', url) + ' :('
                     tray_notify(error_msg)
             else:
                 # get a list of spotify tracks from the track/album/playlist Spotify URL
@@ -1661,7 +1669,7 @@ if __name__ == '__main__':
                 # first time open the browser
                 if not deezer_opened:
                     Thread(target=webbrowser.open, daemon=True, args=('https://www.deezer.com/login',)).start()
-                    tray_notify(gt('ERROR') + ': ' + gt('Not logged into deezer.com'))
+                    tray_notify(t('ERROR') + ': ' + t('Not logged into deezer.com'))
                     deezer_opened = True
                 # fallback to deezer -> youtube
                 if url in url_metadata:
@@ -1740,13 +1748,13 @@ if __name__ == '__main__':
                     if track_length is None: mc.play()
                 except NotConnected:
                     app_log.error('play_url failed to cast because cast was not connected')
-                    tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' (play_url)')
+                    tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
                     change_device()
                     return False
                 except (PyChromecastError, OSError) as e:
                     app_log.error(f'play_url failed to cast {repr(e)}')
                     if show_error:
-                        tray_notify(gt('ERROR') + ': ' + gt('Could not connect to cast device') + ' (play_url)')
+                        tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
                         return handle_exception(e)
                     cast_try_reconnect()
                     return play_url(position, autoplay, switching_device, show_error=True)
@@ -1757,7 +1765,7 @@ if __name__ == '__main__':
             playing_url = True
             after_play(title, artist, autoplay, switching_device)
             return True
-        if settings['notifications']: tray_notify(gt('ERROR') + ': ' + gt('Could not play $URL').replace('$URL', url))
+        if settings['notifications']: tray_notify(t('ERROR') + ': ' + t('Could not play $URL').replace('$URL', url))
         return False
 
     def play(position=0, autoplay=True, switching_device=False, show_error=False):
@@ -1776,7 +1784,7 @@ if __name__ == '__main__':
             track_length = get_length(uri)
         except InvalidAudioFile:
             done_queue.append(music_queue.popleft())
-            msg = gt('ERROR') + ': ' + gt('Invalid audio file $FILE').replace('$FILE', uri)
+            msg = t('ERROR') + ': ' + t('Invalid audio file $FILE').replace('$FILE', uri)
             tray_notify(msg)
             if music_queue: play()
             return
@@ -1815,13 +1823,13 @@ if __name__ == '__main__':
                   File "pychromecast/socket_client.py", line 924, in send_message
                 pychromecast.error.NotConnected: Chromecast 192.168.1.9:8009 is connecting...
                 """
-                tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (play)')
+                tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (play)')
                 change_device()
                 return False
             except (PyChromecastError, OSError, RuntimeError) as e:
                 app_log.error(f'play failed to cast {repr(e)}')
                 if show_error:
-                    tray_notify(gt('ERROR') + f': ' + gt('Could not connect to cast device') + ' (play)')
+                    tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
                     return handle_exception(e)
                 cast_try_reconnect()
@@ -1924,8 +1932,8 @@ if __name__ == '__main__':
         music_queue.extend(starting_files)
         ignore_files = set(starting_files).union(music_queue).union(done_queue).union(next_queue)
         if indexing_tracks_thread is not None and indexing_tracks_thread.is_alive() and settings['notifications']:
-            info = gt('INFO')
-            tray_notify(f'{info}: ' + gt('Library indexing incomplete, only scanned files have been added'))
+            info = t('INFO')
+            tray_notify(f'{info}: ' + t('Library indexing incomplete, only scanned files have been added'))
         start_shuffle_from = len(music_queue)
         music_queue.extend(index_all_tracks(False, ignore_files).keys())
         better_shuffle(music_queue, start_shuffle_from)
@@ -1966,17 +1974,17 @@ if __name__ == '__main__':
         :param action: one of {'pf': 'Play Files', 'pfn': 'Play Files Next', 'qf': 'Queue Files'}
         :return:
         """
-        paths = open_dialog(gt('Select Audio Files'), filetypes=AUDIO_FILE_TYPES)
+        paths = open_dialog(t('Select Audio Files'), filetypes=AUDIO_FILE_TYPES)
         natural_sort = len(paths) > 20
         update_settings('last_folder', os.path.dirname(paths[-1]))
         app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
-        if action in {gt('Play'), 'pf'}:
+        if action in {t('Play'), 'pf'}:
             if settings['queue_library']:
                 return play_all(starting_files=paths)
             return play_uris(paths, natural_sort=natural_sort)
-        if action in {gt('Queue'), 'qf'}:
+        if action in {t('Queue'), 'qf'}:
             return play_uris(paths, queue_uris=True, natural_sort=natural_sort)
-        if action in {gt('Play Next'), 'pfn'}:
+        if action in {t('Play Next'), 'pfn'}:
             return play_uris(paths, play_next=True, natural_sort=natural_sort)
         gui_window.metadata['last_event'] = 'file_action'
 
@@ -1985,16 +1993,16 @@ if __name__ == '__main__':
         """
         :param action: one of {'pf': 'Play Folder', 'qf': 'Queue Folder', 'pfn': 'Play Folder Next'}
         """
-        directory = open_dialog(gt('Select Folder'), for_dir=True)
+        directory = open_dialog(t('Select Folder'), for_dir=True)
         if directory:
             gui_window.metadata['last_event'] = Sg.TIMEOUT_KEY
             update_settings('last_folder', directory)
             app_log.info(f'folder_action: action={action}')
-            if action in {gt('Play'), 'pf'}:
+            if action in {t('Play'), 'pf'}:
                 res = play_uris(directory, natural_sort=False)
-            elif action in {gt('Play Next'), 'pfn'}:
+            elif action in {t('Play Next'), 'pfn'}:
                 res = play_uris(directory, play_next=True, natural_sort=False)
-            elif action in {gt('Queue'), 'qf'}:
+            elif action in {t('Queue'), 'qf'}:
                 res = play_uris(directory, queue_uris=True, natural_sort=False)
             else:
                 res = False
@@ -2002,7 +2010,7 @@ if __name__ == '__main__':
                 gui_window.metadata['update_listboxes'] = True
                 save_queues()
             elif settings['notifications']:
-                tray_notify(gt('ERROR') + ': ' + gt('Folder does not contain audio files'))
+                tray_notify(t('ERROR') + ': ' + t('Folder does not contain audio files'))
         else: gui_window.metadata['last_event'] = 'folder_action'
 
 
@@ -2042,7 +2050,7 @@ if __name__ == '__main__':
                 if music_queue or sar.alive:
                     metadata = get_current_metadata()
                     title, artist = metadata['title'], metadata['artist']
-                    DiscordPresence.update(settings['discord_rpc'], state=gt('By') + f': {artist}', details=title,
+                    DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artist}', details=title,
                                            large_text='Paused')
             except UnsupportedNamespace:
                 stop('pause')
@@ -2076,8 +2084,8 @@ if __name__ == '__main__':
                 playing_status.play()
                 metadata = get_current_metadata()
                 title, artist = metadata['title'], get_first_artist(metadata['artist'])
-                DiscordPresence.update(settings['discord_rpc'], state=gt('By') + f': {artist}', details=title,
-                                       large_text=gt('Listening'))
+                DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artist}', details=title,
+                                       large_text=t('Listening'))
                 if platform.system() == 'Windows':
                     ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
                 if not gui_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
@@ -2323,7 +2331,7 @@ if __name__ == '__main__':
                     display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
                 gui_window['metadata_art'].update(data=display_art)
             except InvalidAudioFile:
-                error = gt('ERROR') + ': ' + gt('Invalid audio file selected')
+                error = t('ERROR') + ': ' + t('Invalid audio file selected')
                 gui_window['metadata_msg'].update(value=error, text_color='red')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
 
@@ -2598,7 +2606,7 @@ if __name__ == '__main__':
             with suppress(ValueError): change_device(device_uuid)
         elif _tray_item.startswith('PL:'):  # playlist
             playlist_action(_tray_item[3:])
-        elif _tray_item == gt('Select Folder'):
+        elif _tray_item == t('Select Folder'):
             folder_action()
         elif _tray_item.startswith('PF:'):  # play folder
             folder_index = int(re.search(r'\d+', _tray_item).group())
@@ -2722,6 +2730,14 @@ if __name__ == '__main__':
                 update_settings('sys_audio_delay', int(main_value))
         elif main_event == 'track_format':
             update_settings('track_format', main_value)
+        elif main_event == 'on_battery_res':
+            with suppress(KeyError):
+                res = get_all_resolutions()[main_value]
+                update_settings('on_battery_res', (res['w'], res['h']))
+        elif main_event == 'plugged_in_res':
+            with suppress(KeyError):
+                res = get_all_resolutions()[main_value]
+                update_settings('plugged_in_res', (res['w'], res['h']))
         elif main_event == 'shuffle':
             update_settings('shuffle', not settings['shuffle'])
         elif main_event == 'repeat': cycle_repeat()
@@ -2990,7 +3006,7 @@ if __name__ == '__main__':
                             metadata = url_metadata['SYSTEM_AUDIO'] if sar.alive else get_uri_metadata(music_queue[0])
                             title, artist = metadata['title'], get_first_artist(metadata['artist'])
                             DiscordPresence.connect()
-                            DiscordPresence.update(state=gt('By') + f': {artist}', details=title,
+                            DiscordPresence.update(state=t('By') + f': {artist}', details=title,
                                                    large_text='Listening')
                     elif not main_value:
                         DiscordPresence.clear()
@@ -3026,7 +3042,7 @@ if __name__ == '__main__':
                 if settings['scan_folders']: index_all_tracks()
         elif main_event == 'add_music_folder':
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
-            folder_path = Sg.popup_get_folder(gt('Select Folder'), initial_folder=initial_folder, no_window=True,
+            folder_path = Sg.popup_get_folder(t('Select Folder'), initial_folder=initial_folder, no_window=True,
                                               icon=WINDOW_ICON)
             if folder_path: add_music_folder([folder_path])
         elif main_event == 'settings_file':
@@ -3061,19 +3077,19 @@ if __name__ == '__main__':
             gui_window['url_input'].update(value='')
             if main_values['url_play'] or not music_queue:
                 music_queue.extendleft(reversed(urls_to_insert))
-                gui_window['url_msg'].update(gt('Loading URL(s)'), text_color='yellow')
+                gui_window['url_msg'].update(t('Loading URL(s)'), text_color='yellow')
                 gui_window.read(1)
                 play()
                 gui_window['url_msg'].update('')
                 urls_to_insert.pop(0)
             elif main_values['url_queue']:
                 music_queue.extend(urls_to_insert)
-                gui_window['url_msg'].update(gt('Added URL(s)'), text_color='green')
+                gui_window['url_msg'].update(t('Added URL(s)'), text_color='green')
                 gui_window.TKroot.after(2000, lambda: gui_window['url_msg'].update(value=''))
             else:  # add to next queue
                 if settings['reversed_play_next']: next_queue.extendleft(reversed(urls_to_insert))
                 else: next_queue.extend(urls_to_insert)
-                gui_window['url_msg'].update(gt('Added URL(s)'), text_color='green')
+                gui_window['url_msg'].update(t('Added URL(s)'), text_color='green')
                 gui_window.TKroot.after(2000, lambda: gui_window['url_msg'].update(value=''))
             for inserted_url in urls_to_insert: uris_to_scan.put(inserted_url)
             gui_window['url_input'].set_focus()
@@ -3219,7 +3235,7 @@ if __name__ == '__main__':
                     gui_window['pl_url_input'].update(value='')
                     gui_window['pl_url_input'].set_focus()
                 else:
-                    tray_notify(gt('ERROR') + ': ' + gt("Invalid URL. URL's need to start with http:// or https://"))
+                    tray_notify(t('ERROR') + ': ' + t("Invalid URL. URL's need to start with http:// or https://"))
         elif main_event == 'pl_move_up':
             # only allow moving up if 1 item is selected and pl_files is not empty
             for i, to_move in enumerate(gui_window['pl_tracks'].get_indexes(), 1):
@@ -3271,7 +3287,7 @@ if __name__ == '__main__':
                 gui_window['metadata_art'].update(data=display_art)
         elif main_event == 'metadata_search_art' and gui_window['metadata_file'].get():
             # search for artwork using spotify API
-            gui_window['metadata_msg'].update(value=gt('Searching for artwork...'), text_color='yellow')
+            gui_window['metadata_msg'].update(value=t('Searching for artwork...'), text_color='yellow')
             found_artwork = False
             for mkt in {'MX', 'CA', 'US', 'UK', 'HK'}:
                 title = main_values['metadata_title']
@@ -3289,10 +3305,10 @@ if __name__ == '__main__':
                         found_artwork = True
                         break
             if found_artwork:
-                gui_window['metadata_msg'].update(value=gt('Artwork found'), text_color='green')
+                gui_window['metadata_msg'].update(value=t('Artwork found'), text_color='green')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
             else:
-                gui_window['metadata_msg'].update(value=gt('No artwork found'), text_color='red')
+                gui_window['metadata_msg'].update(value=t('No artwork found'), text_color='red')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
         elif main_event == 'metadata_remove_art':
             gui_window['metadata_art'].metadata = (None, None)
@@ -3303,13 +3319,13 @@ if __name__ == '__main__':
                 new_metadata = {'title': main_values['metadata_title'], 'artist': main_values['metadata_artist'],
                                 'album': main_values['metadata_album'], 'explicit': main_values['metadata_explicit'],
                                 'track_number': main_values['metadata_track_num'], 'mime': mime, 'art': art}
-                gui_window['metadata_msg'].update(value=gt('Saving metadata'), text_color='yellow')
+                gui_window['metadata_msg'].update(value=t('Saving metadata'), text_color='yellow')
                 try:
                     set_metadata(gui_window['metadata_file'].get(), new_metadata)
-                    gui_window['metadata_msg'].update(value=gt('Metadata saved'), text_color='green')
+                    gui_window['metadata_msg'].update(value=t('Metadata saved'), text_color='green')
                 except Exception as e:  # e.g. ValueError track number incorrectly entered
                     print(repr(e))
-                    error = gt('ERROR') + ': ' + repr(e)
+                    error = t('ERROR') + ': ' + repr(e)
                     gui_window['metadata_msg'].update(value=error, text_color='red')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
                 gui_window['title'].update(' ' + gui_window['title'].DisplayText + ' ')  # try updating now playing
@@ -3329,7 +3345,7 @@ if __name__ == '__main__':
                 gui_window['library'].update(values=lib_data)
         if gui_window.metadata['update_volume_slider']:
             gui_window['mute'].update(image_data=VOLUME_MUTED_IMG if settings['muted'] else VOLUME_IMG)
-            gui_window['mute'].set_tooltip(gt('unmute') if settings['muted'] else gt('mute'))
+            gui_window['mute'].set_tooltip(t('unmute') if settings['muted'] else t('mute'))
             gui_window['volume_slider'].update(0 if settings['muted'] else settings['volume'])
             gui_window.metadata['update_volume_slider'] = False
         # update progress bar
@@ -3382,20 +3398,20 @@ if __name__ == '__main__':
                         if gui_window.was_closed() and not args.minimized:
                             cmd.append('-m')
                             # cmd += ' -m'
-                        download_update = gt('Downloading update $VER').replace('$VER', latest_ver)
+                        download_update = t('Downloading update $VER').replace('$VER', latest_ver)
                         tray_notify(download_update)
                         tray_tooltip = download_update
                         tray_process_queue.put({'tooltip': tray_tooltip})
                         try:
                             # download setup, close tray, run setup, and exit
                             download(setup_dl_link, 'mc_installer.exe')
-                            tray_notify(gt('Update downloaded, restarting now'))
+                            tray_notify(t('Update downloaded, restarting now'))
                             time.sleep(0.3)
                             Popen(cmd, shell=True)
                             daemon_commands.put('__EXIT__')  # tell main thread to exit
                         except OSError as e:
                             if e.errno == errno.ENOSPC:
-                                tray_notify(gt('ERROR') + ': ' + gt('No space left on device to auto-update'))
+                                tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
                         except Exception:
                             tray_notify('update_available', context=latest_ver)
                     elif os.path.exists('Updater.exe'):
@@ -3481,32 +3497,32 @@ if __name__ == '__main__':
             '__UPDATE_GUI__': update_gui,
             '__EXIT__': exit_program,
             # from tray menu
-            gt('Exit'): exit_program,
-            gt('Rescan Library'): index_all_tracks,
-            gt('Refresh Devices'): lambda: refresh_tray(True),
+            t('Exit'): exit_program,
+            t('Rescan Library'): index_all_tracks,
+            t('Refresh Devices'): lambda: refresh_tray(True),
             # isdigit should be an if statement
-            gt('Settings'): lambda: activate_gui('tab_settings'),
-            gt('Playlists Tab'): lambda: activate_gui('tab_playlists'),
+            t('Settings'): lambda: activate_gui('tab_settings'),
+            t('Playlists Tab'): lambda: activate_gui('tab_playlists'),
             # PL should be an if statement
-            gt('Set Timer'): lambda: activate_gui('tab_timer'),
-            gt('Cancel Timer'): cancel_timer,
-            gt('System Audio'): play_system_audio,
-            gt('Play URL'): lambda: activate_gui('tab_url', 'url_play'),
-            gt('Queue URL'): lambda: activate_gui('tab_url', 'url_queue'),
-            gt('Play URL Next'): lambda: activate_gui('tab_url', 'url_play_next'),
-            gt('Play Files'): file_action,
-            gt('Queue Files'): lambda: file_action('qf'),
-            gt('Play Files Next'): lambda: file_action('pfn'),
-            gt('Play All'): play_all,
-            gt('Pause'): pause,
-            gt('Resume'): resume,
-            gt('next track', 1): next_track,
-            gt('previous track', 1): prev_track,
-            gt('Stop'): lambda: stop('tray'),
-            gt('Repeat One'): lambda: update_settings('repeat', True),
-            gt('Repeat All'): lambda: update_settings('repeat', False),
-            gt('Repeat Off'): lambda: update_settings('repeat', None),
-            gt('locate track', 1): locate_uri
+            t('Set Timer'): lambda: activate_gui('tab_timer'),
+            t('Cancel Timer'): cancel_timer,
+            t('System Audio'): play_system_audio,
+            t('Play URL'): lambda: activate_gui('tab_url', 'url_play'),
+            t('Queue URL'): lambda: activate_gui('tab_url', 'url_queue'),
+            t('Play URL Next'): lambda: activate_gui('tab_url', 'url_play_next'),
+            t('Play Files'): file_action,
+            t('Queue Files'): lambda: file_action('qf'),
+            t('Play Files Next'): lambda: file_action('pfn'),
+            t('Play All'): play_all,
+            t('Pause'): pause,
+            t('Resume'): resume,
+            t('next track', 1): next_track,
+            t('previous track', 1): prev_track,
+            t('Stop'): lambda: stop('tray'),
+            t('Repeat One'): lambda: update_settings('repeat', True),
+            t('Repeat All'): lambda: update_settings('repeat', False),
+            t('Repeat Off'): lambda: update_settings('repeat', None),
+            t('locate track', 1): locate_uri
         }
         actions.get(action, lambda: other_tray_actions(action))()
 
@@ -3543,7 +3559,7 @@ if __name__ == '__main__':
         try:
             audio_player = AudioPlayer()
         except Exception as exception:
-            tray_notify(gt('WARNING: Failed to start audio player. Do not play on local device.'))
+            tray_notify(t('WARNING: Failed to start audio player. Do not play on local device.'))
             handle_exception(exception)
         # find a port to bind to
         socket_timeout = 0.5 if args.shell else 0.1
@@ -3620,7 +3636,7 @@ if __name__ == '__main__':
                 indexing_tracks_thread.join()
                 play_all(queue_only=not args.start_playing or args.queue)
             except RuntimeError:
-                tray_notify(gt('ERROR') + ':' + gt('Could not populate queue because library scan is disabled'))
+                tray_notify(t('ERROR') + ':' + t('Could not populate queue because library scan is disabled'))
         # open window if minimized argument not given
         if not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')
@@ -3653,6 +3669,20 @@ if __name__ == '__main__':
                 last_position_save = time.monotonic()
             if cast is not None:
                 cast_monitor()
+            if platform.system() == 'Windows':
+                if settings['on_battery_res'] != settings['plugged_in_res']:
+                    user32 = ctypes.windll.user32
+                    res_map = get_all_resolutions()
+                    if is_plugged_in():
+                        plugged_in_info = res_map[fmt_res(*settings['plugged_in_res'])]
+                        if user32.GetSystemMetrics(0) * plugged_in_info['dpi_scale'] != settings['plugged_in_res'][0]:
+                            set_resolution(plugged_in_info['w'], plugged_in_info['h'], plugged_in_info['dpi_scale'])
+                            refresh_tray_icon()
+                    else:  # on battery
+                        on_battery_info = res_map[fmt_res(*settings['on_battery_res'])]
+                        if user32.GetSystemMetrics(0) * on_battery_info['dpi_scale'] != settings['on_battery_res'][0]:
+                            set_resolution(on_battery_info['w'], on_battery_info['h'], on_battery_info['dpi_scale'])
+                            refresh_tray_icon()
             time.sleep(0.2) if gui_window.was_closed() else read_main_window()
     except KeyboardInterrupt:
         exit_program()

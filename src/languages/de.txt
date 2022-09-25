@@ -192,3 +192,5 @@ schalte auf lokales Gerät um
 Titelformat:
 konnte bei $URL kein Audio finden
 beende zusammen mit GUI
+Auf Batterieauflösung
+Eingesteckte Auflösung
