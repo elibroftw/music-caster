@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.8.1'
+VERSION = latest_version = '5.8.2'
 UPDATE_MESSAGE = """
 [MISC] Battery Resolution Switcher
 [MSG] Language translators wanted
@@ -3673,7 +3673,7 @@ if __name__ == '__main__':
                 if settings['on_battery_res'] != settings['plugged_in_res']:
                     user32 = ctypes.windll.user32
                     res_map = get_all_resolutions()
-                    if is_plugged_in():
+                    if is_plugged_in(throw_error=False):
                         plugged_in_info = res_map[fmt_res(*settings['plugged_in_res'])]
                         if user32.GetSystemMetrics(0) * plugged_in_info['dpi_scale'] != settings['plugged_in_res'][0]:
                             refresh_rate = max(get_all_refresh_rates())

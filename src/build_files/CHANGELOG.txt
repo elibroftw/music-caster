@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.8.2
+- [Fix] Memory leaks
+
 5.8.1
 - [Fix] Also dynamically update refresh rate
 
