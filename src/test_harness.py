@@ -2,8 +2,6 @@ from multiprocessing import freeze_support
 import sys
 if __name__ == '__main__':
     freeze_support()
-else:
-    sys.exit()
 from music_caster import get_running_processes, is_already_running, VERSION
 from helpers import *
 
