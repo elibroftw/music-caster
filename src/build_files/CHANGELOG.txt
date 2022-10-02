@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.8.3
+- [Fix] URL metadata
+- [Fix] Crashing when Cast NotConnected
+
 5.8.2
 - [Fix] Memory leaks
 

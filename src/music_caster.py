@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.8.2'
+VERSION = latest_version = '5.8.3'
 UPDATE_MESSAGE = """
 [MISC] Battery Resolution Switcher
 [MSG] Language translators wanted
@@ -598,7 +598,7 @@ if __name__ == '__main__':
         if playing_status.busy() and music_queue:
             uri = music_queue[0]
             if uri.startswith('http'):
-                if 'art' not in url_metadata.get(uri, {}): return custom_art('URL')
+                if url_metadata.get(uri, {}).get('art') in ('None', None): return custom_art('URL')
                 if 'art_data' in url_metadata[uri]: return url_metadata[uri]['art_data']
                 # use 'art_data' else download 'art' link and cache to 'art_data'
                 url_metadata[uri]['art_data'] = base64.b64encode(requests.get(url_metadata[uri]['art']).content)
@@ -1248,7 +1248,7 @@ if __name__ == '__main__':
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             if playing_status.busy():
                 mc = cast.media_controller
-                with suppress(UnsupportedNamespace):
+                with suppress(UnsupportedNamespace, NotConnected):
                     mc.update_status()  # Switch device without playback loss
                     current_pos = mc.status.adjusted_current_time
                     if mc.is_playing or mc.is_paused: mc.stop()
