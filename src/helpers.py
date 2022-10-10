@@ -1203,7 +1203,7 @@ def parse_deezer_track(track_obj) -> dict:
     is_explicit = track_obj['EXPLICIT_TRACK_CONTENT']['EXPLICIT_LYRICS_STATUS'] == '1'
     sng_id = track_obj['SNG_ID']
     metadata = {
-        'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str, 'album': album,
+        'art': art, 'title': title, 'ext': 'mp3', 'artist': artist_str or Unknown('Artist'), 'album': album,
         'length': length, 'sng_id': sng_id, 'explicit': is_explicit
     }
     with suppress(KeyError):
