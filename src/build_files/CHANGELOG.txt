@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.8.4
+- [Fix] Deezer URLs
+
 5.8.3
 - [Fix] URL metadata
 - [Fix] Crashing when Cast NotConnected

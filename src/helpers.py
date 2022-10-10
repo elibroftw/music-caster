@@ -1187,6 +1187,8 @@ def parse_deezer_track(track_obj) -> dict:
         main_artists = track_obj['SNG_CONTRIBUTORS']['main_artist']
     except KeyError:
         main_artists = track_obj['SNG_CONTRIBUTORS']['mainartist']
+    except TypeError:
+        main_artists = track_obj['SNG_CONTRIBUTORS']
     for artist in main_artists + track_obj['SNG_CONTRIBUTORS'].get('featuring', []):
         include = True
         for added_artist in artists:
