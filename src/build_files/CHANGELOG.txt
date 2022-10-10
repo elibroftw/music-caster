@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.8.5
+- [Fix] Update checker
+
 5.8.4
 - [Fix] Deezer URLs
 

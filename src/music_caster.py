@@ -2198,14 +2198,20 @@ if __name__ == '__main__':
                 settings['skips'].pop(music_queue[0], None)  # reset skip counter
                 play()
 
+    class UpdateChecker(threading.Timer):
+        latest_version = VERSION
 
-    def check_for_updates():
-        global latest_version
-        release = get_latest_release(latest_version, VERSION)
-        # never show a notification for the same latest version
-        if release:
-            latest_version = release['version']
-            if settings['notifications']: tray_notify('update_available', context=latest_version)
+        def __init__(self):
+            super().__init__(216000, self.check_for_updates)
+            self.daemon = True
+            self.start()
+
+        def check_for_updates(self):
+            release = get_latest_release(self.latest_version, VERSION)
+            if release:
+                # avoid showing a notification for the same latest version
+                self.latest_version = release['version']
+                if settings['notifications']: tray_notify('update_available', context=self.latest_version)
 
 
     def background_thread():
@@ -2229,9 +2235,7 @@ if __name__ == '__main__':
         global track_position, track_start, track_end
         if not is_debug(): send_info()
         create_shortcut()
-        update_checker = threading.Timer(216000, check_for_updates)
-        update_checker.daemon = True
-        update_checker.start()
+        UpdateChecker()
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
         p.name = 'pynputListener'
         p.start()
