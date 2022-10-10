@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 import argparse
-from contextlib import suppress
-from datetime import datetime
 import glob
 import math
 import os
 import platform
 import shutil
-from subprocess import check_call, Popen, getoutput, DEVNULL
 import sys
 import threading
 import time
 import zipfile
+from contextlib import suppress
+from datetime import datetime
+from subprocess import check_call, Popen, getoutput, DEVNULL
+
+from meta import VERSION
 
 start_time = time.time()
 starting_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -85,7 +87,6 @@ def update_versions():
         version_info_file.truncate()
 
 
-VERSION = getoutput(f'{sys.executable} music_caster.py --version')
 if 'ModuleNotFoundError' not in VERSION:
     if args.ytdl:
         import requests
@@ -375,7 +376,7 @@ if not args.skip_tests and dist_files_exist:
         raise e
     # Test if executable can be run
     p = Popen('"dist/Music Caster OneDir/Music Caster" -m --debug', shell=True)
-    time.sleep(4)
+    time.sleep(5)
     test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
     time.sleep(2)
     test('Music Caster Exit API', lambda: requests.post('http://[::1]:2001/exit'))

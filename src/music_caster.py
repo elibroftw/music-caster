@@ -1,13 +1,5 @@
-VERSION = latest_version = '5.8.4'
-UPDATE_MESSAGE = """
-[MISC] Battery Resolution Switcher
-[MSG] Language translators wanted
-""".strip()
-IMPORTANT_INFORMATION = """
-""".strip()
-from stringprep import in_table_a1
+from meta import *
 import time
-
 from resolution_switcher import get_all_refresh_rates, get_initial_res, is_plugged_in
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
@@ -25,10 +17,6 @@ from subprocess import Popen, PIPE, DEVNULL
 # noinspection PyUnresolvedReferences
 import re
 import sys
-
-
-PID_FILENAME = 'music_caster.pid'
-LOCK_FILENAME = 'music_caster.lock'
 
 
 def get_running_processes(look_for='', pid=None, add_exe=True):
@@ -254,9 +242,6 @@ if __name__ == '__main__':
         return False
 
     lock_file = ensure_single_instance(debugging=DEBUG)
-
-    UNINSTALLER = 'unins000.exe'
-    WAIT_TIMEOUT = 5
     daemon_commands, tray_process_queue = mp.Queue(), mp.Queue()
     auto_updating = True
 
@@ -330,17 +315,6 @@ if __name__ == '__main__':
     gui_window.close()
 
     WELCOME_MSG = t('Thanks for installing Music Caster.') + '\n' + t('Music Caster is running in the tray.')
-    STREAM_CHUNK = 1024
-    EMAIL = 'elijahllopezz@gmail.com'
-    SUBMIT_EVENTS = {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
-    TOGGLEABLE_SETTINGS = {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
-                           'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang',
-                           'smart_queue', 'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui',
-                           'use_last_folder', 'show_album_art', 'reversed_play_next', 'scan_folders',
-                           'show_queue_index', 'queue_library', 'show_queue_length', 'show_queue_time', 'gui_exits_app'}
-    AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
-    AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
-    IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
     uris_to_scan = Queue()
     SETTINGS_FILE = Path('settings.json').absolute()
     PRESSED_KEYS = set()
@@ -359,7 +333,6 @@ if __name__ == '__main__':
     # seconds but using time()
     track_position = timer = track_end = track_length = track_start = 0
     DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
-    DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
     default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings: dict = {  # default settings
         'device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
@@ -961,7 +934,7 @@ if __name__ == '__main__':
 
     @app.route('/debug/')
     def api_get_debug_info():
-        threads = [(t.name, t.is_alive()) for t in threading.enumerate()]
+        threads = [(thread.name, thread.is_alive()) for thread in threading.enumerate()]
         if is_debug():
             return jsonify({'pressed_keys': list(PRESSED_KEYS),
                             'last_traceback': sys.exc_info(),
