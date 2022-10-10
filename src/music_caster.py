@@ -2183,8 +2183,8 @@ if __name__ == '__main__':
                 timestamps = url_metadata.get(music_queue[0], {}).get('timestamps', [])
                 if track_length > 600 and timestamps and not ignore_timestamps:
                     # smart next track if playing a long URL with multiple tracks
-                    is_prev_chapter = lambda seconds: seconds < get_track_position() - 5
-                    new_position = next(filter(is_prev_chapter, reversed(timestamps)), -1)
+                    _track_position = get_track_position()
+                    new_position = next(filter(lambda secs: secs < _track_position - 5, reversed(timestamps)), -1)
                     if new_position != -1: return set_pos(new_position)
             if done_queue:
                 for _ in range(times):
