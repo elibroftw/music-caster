@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.8.7
+- [Fix] Resolution setter
+
 5.8.6
 - [Fix] Deezer URLs
 

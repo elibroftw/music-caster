@@ -3,6 +3,7 @@
 # Any line starting with a # is ignored!
 # If a line contains $X do not translate the $X, please use it in context
 # e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+# Try to keep the same capitalization or lack of as in the English file
 agregar carpeta
 Agregar Music Caster al menú contextual de la carpeta
 Agregar pistas
@@ -193,3 +194,4 @@ No se pudo obtener el audio para $URL
 Salir de la aplicación al cerrar la GUI
 Sobre la resolución de la batería
 Resolución enchufada
+No se pudo establecer la resolución

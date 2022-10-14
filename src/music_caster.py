@@ -1211,7 +1211,7 @@ if __name__ == '__main__':
             new_device = None
         except UnboundLocalError as e:
             app_log.error('Could not connect to cast device', exc_info=e)
-            tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (cd)')
+            tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (cd)')
             return False
         if cast == new_device:
             # do not change device if local device is selected again
@@ -3647,21 +3647,26 @@ if __name__ == '__main__':
             if cast is not None:
                 cast_monitor()
             if platform.system() == 'Windows':
-                if settings['on_battery_res'] != settings['plugged_in_res']:
-                    user32 = ctypes.windll.user32
-                    res_map = get_all_resolutions()
-                    if is_plugged_in(throw_error=False):
-                        plugged_in_info = res_map[fmt_res(*settings['plugged_in_res'])]
-                        if user32.GetSystemMetrics(0) * plugged_in_info['dpi_scale'] != settings['plugged_in_res'][0]:
-                            refresh_rate = max(get_all_refresh_rates())
-                            set_resolution(plugged_in_info['w'], plugged_in_info['h'], plugged_in_info['dpi_scale'], refresh_rate=refresh_rate)
-                            refresh_tray_icon()
-                    else:  # on battery
-                        on_battery_info = res_map[fmt_res(*settings['on_battery_res'])]
-                        if user32.GetSystemMetrics(0) * on_battery_info['dpi_scale'] != settings['on_battery_res'][0]:
-                            refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
-                            set_resolution(on_battery_info['w'], on_battery_info['h'], on_battery_info['dpi_scale'], refresh_rate=refresh_rate)
-                            refresh_tray_icon()
+                try:
+                    if settings['on_battery_res'] != settings['plugged_in_res']:
+                        user32 = ctypes.windll.user32
+                        res_map = get_all_resolutions()
+                        if is_plugged_in(throw_error=False):
+                            plugged_in_info = res_map[fmt_res(*settings['plugged_in_res'])]
+                            if user32.GetSystemMetrics(0) * plugged_in_info['dpi_scale'] != settings['plugged_in_res'][0]:
+                                refresh_rate = max(get_all_refresh_rates())
+                                set_resolution(plugged_in_info['w'], plugged_in_info['h'], plugged_in_info['dpi_scale'], refresh_rate=refresh_rate)
+                                refresh_tray_icon()
+                        else:  # on battery
+                            on_battery_info = res_map[fmt_res(*settings['on_battery_res'])]
+                            if user32.GetSystemMetrics(0) * on_battery_info['dpi_scale'] != settings['on_battery_res'][0]:
+                                refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
+                                set_resolution(on_battery_info['w'], on_battery_info['h'], on_battery_info['dpi_scale'], refresh_rate=refresh_rate)
+                                refresh_tray_icon()
+                except KeyError:
+                    update_settings('plugged_in_res', get_initial_res())
+                    update_settings('on_battery_res', get_initial_res())
+                    tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
             time.sleep(0.2) if gui_window.was_closed() else read_main_window()
     except KeyboardInterrupt:
         exit_program()

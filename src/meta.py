@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.8.6'
+VERSION = latest_version = '5.8.7'
 UPDATE_MESSAGE = """
 [MISC] Battery Resolution Switcher
 [MSG] Language translators wanted
