@@ -43,7 +43,6 @@ from mutagen.id3 import ID3NoHeaderError
 # noinspection PyProtectedMember
 from mutagen.mp3 import HeaderNotFoundError, EasyMP3, MP3
 from mutagen.mp4 import MP4, MP4Cover
-from mutagen.easyid3 import EasyID3
 from mutagen.wave import WAVE
 import pyaudio
 from pychromecast import CastInfo
@@ -1183,13 +1182,14 @@ def parse_deezer_page(url):
 def parse_deezer_track(track_obj) -> dict:
     from deemix.decryption import generateBlowfishKey, generateCryptedStreamURL
     artists = []
+    sng_contributors = track_obj['SNG_CONTRIBUTORS']
+    if isinstance(sng_contributors, list):
+        sng_contributors = {'main_artist': sng_contributors}
     try:
-        main_artists = track_obj['SNG_CONTRIBUTORS']['main_artist']
+        main_artists = sng_contributors['main_artist']
     except KeyError:
-        main_artists = track_obj['SNG_CONTRIBUTORS']['mainartist']
-    except TypeError:
-        main_artists = track_obj['SNG_CONTRIBUTORS']
-    for artist in main_artists + track_obj['SNG_CONTRIBUTORS'].get('featuring', []):
+        main_artists = sng_contributors['mainartist']
+    for artist in main_artists + sng_contributors.get('featuring', []):
         include = True
         for added_artist in artists:
             if added_artist in artist:
