@@ -2104,7 +2104,7 @@ if __name__ == '__main__':
         if cast is not None:
             try:
                 cast.media_controller.update_status()
-            except UnsupportedNamespace:
+            except PyChromecastError:
                 cast.wait()
             if cast.media_controller.is_idle and music_queue:
                 return play(position=new_position, autoplay=playing_status.playing())
@@ -3456,7 +3456,7 @@ if __name__ == '__main__':
                             gui_window.metadata['update_volume_slider'] = True
             elif playing_status.playing() and cast.media_controller.is_idle:
                 stop('cast_monitor. app was not running')
-        except NotConnected:  # don't care
+        except (NotConnected, AttributeError):  # don't care
             pass
         except UnsupportedNamespace:  # known error
             # File "pychromecast/controllers/media.py", line 359, in update_status
