@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.8.10
+- [Fix] Improve API
+
 5.8.9
 - [Fix] Cast errors
 

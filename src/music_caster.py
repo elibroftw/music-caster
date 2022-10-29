@@ -961,10 +961,11 @@ if __name__ == '__main__':
 
     @app.route('/change-setting/', methods=['POST'])
     def api_change_setting():
-        with suppress(KeyError):
-            setting_key = request.json['setting_name']
+        with suppress(KeyError, TypeError):
+            json_data = request.get_json(force=True, silent=True)
+            setting_key = json_data['setting_name']
             if setting_key in settings or setting_key == 'timer_stop':
-                val = request.json['value']
+                val = json_data['value']
                 update_settings(setting_key, val)
                 timer_settings = {'timer_hibernate', 'timer_sleep',
                                   'timer_shut_down', 'timer_stop'}
