@@ -1507,7 +1507,7 @@ if __name__ == '__main__':
             album = item['extractor_key']
         metadata = {'title': item.get('track', item['title']), 'artist': artist, 'url': _url,
                     'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': src_url,
-                    'album': album, 'length': length}
+                    'album': album, 'length': length, 'is_live': item.get('is_live', False)}
         print(src_url)
         print(audio_url)
         if 'thumbnail' in item:
@@ -1709,7 +1709,8 @@ if __name__ == '__main__':
             track_length = metadata['length']
             if cast is None:
                 volume = 0 if settings['muted'] else settings['volume'] / 100
-                audio_player.play(url, start_playing=autoplay, start_from=position, volume=volume)
+                if metadata.get('is_live', False):
+                    audio_player.play(url, start_playing=autoplay, start_from=position, volume=volume)
             else:
                 try:
                     app_log.info(f'cast.socket_client.is_alive(): {cast.socket_client.is_alive()}')
@@ -2013,7 +2014,7 @@ if __name__ == '__main__':
             try:
                 if cast is None:
                     track_position = time.monotonic() - track_start
-                    if get_current_metadata()['length'] is None:
+                    if get_current_metadata().get('is_live', False):
                         audio_player.stop()
                     else:
                         audio_player.pause()
@@ -2049,7 +2050,7 @@ if __name__ == '__main__':
                 play(position=track_position, autoplay=False)
             try:
                 if cast is None:
-                    if get_current_metadata()['length'] is None:
+                    if get_current_metadata().get('is_live', False):
                         play()
                     else:
                         audio_player.resume()
