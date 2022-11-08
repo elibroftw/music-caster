@@ -1492,12 +1492,12 @@ if __name__ == '__main__':
         else:
             ext = item['ext']
             _url = audio_url = item['url']
-        if 'duration' not in item and duration_helper:
+        if item.get('is_live', False) and 'duration' not in item and duration_helper:
             helper_ap = AudioPlayer()
             helper_ap.play(audio_url, False)
             item['duration'] = helper_ap.get_length()
-        expiry_time = time.time() + max(1800, item['duration'])
-        length = item['duration'] if item['duration'] else None
+        expiry_time = time.time() + max(1800, item.get('duration', 0))
+        length = item['duration'] if item.get('duration', 0) else None
         src_url = item['webpage_url']
         split_url = src_url.rsplit('/', 2)
         backup_artist = split_url[-1] if split_url[-1] != '' else split_url[-2]
@@ -1508,6 +1508,8 @@ if __name__ == '__main__':
         metadata = {'title': item.get('track', item['title']), 'artist': artist, 'url': _url,
                     'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': src_url,
                     'album': album, 'length': length}
+        print(src_url)
+        print(audio_url)
         if 'thumbnail' in item:
             metadata['art'] = item['thumbnail']
         return metadata
@@ -1573,7 +1575,7 @@ if __name__ == '__main__':
                         metadata = ydl_get_metadata(entry, duration_helper=False)
                         metadata['ytid'] = entry['id']
                         # if duration > 10 minutes, try to parse out timestamps for track from comment section
-                        if entry['duration'] > 600: metadata['timestamps'] = get_video_timestamps(entry)
+                        if entry.get('duration', 0) > 600: metadata['timestamps'] = get_video_timestamps(entry)
                         for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
                         metadata_list.append(metadata)
                 else:
@@ -1581,7 +1583,7 @@ if __name__ == '__main__':
                     metadata = ydl_get_metadata(r, duration_helper=False)
                     metadata['ytid'] = r['id']
                     # if duration > 10 minutes, try to parse out timestamps for track from comment section
-                    if r['duration'] > 600: metadata['timestamps'] = get_video_timestamps(r)
+                    if r.get('duration', 0) > 600: metadata['timestamps'] = get_video_timestamps(r)
                     for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
                     url_metadata[url] = metadata
                     metadata_list.append(metadata)
@@ -2011,7 +2013,10 @@ if __name__ == '__main__':
             try:
                 if cast is None:
                     track_position = time.monotonic() - track_start
-                    audio_player.pause()
+                    if get_current_metadata()['length'] is None:
+                        audio_player.stop()
+                    else:
+                        audio_player.pause()
                     app_log.info('paused local audio player')
                 else:
                     mc = cast.media_controller
@@ -2044,8 +2049,11 @@ if __name__ == '__main__':
                 play(position=track_position, autoplay=False)
             try:
                 if cast is None:
-                    audio_player.resume()
-                    app_log.info('resumed local audio player')
+                    if get_current_metadata()['length'] is None:
+                        play()
+                    else:
+                        audio_player.resume()
+                        app_log.info('resumed local audio player')
                 else:
                     mc = cast.media_controller
                     mc.update_status()

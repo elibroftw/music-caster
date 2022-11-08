@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.0
+- [Feature] YouTube livestreams
+
 5.8.10
 - [Fix] Improve API
 

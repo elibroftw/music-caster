@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.8.10'
+VERSION = latest_version = '5.9.0'
 UPDATE_MESSAGE = """
-[MISC] Battery Resolution Switcher
+[NEW] YouTube livestreams
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """
