@@ -1508,8 +1508,6 @@ if __name__ == '__main__':
         metadata = {'title': item.get('track', item['title']), 'artist': artist, 'url': _url,
                     'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': src_url,
                     'album': album, 'length': length, 'is_live': item.get('is_live', False)}
-        print(src_url)
-        print(audio_url)
         if 'thumbnail' in item:
             metadata['art'] = item['thumbnail']
         return metadata
@@ -1709,7 +1707,7 @@ if __name__ == '__main__':
             track_length = metadata['length']
             if cast is None:
                 volume = 0 if settings['muted'] else settings['volume'] / 100
-                if metadata.get('is_live', False):
+                if autoplay or not metadata.get('is_live', False):
                     audio_player.play(url, start_playing=autoplay, start_from=position, volume=volume)
             else:
                 try:
@@ -1952,18 +1950,19 @@ if __name__ == '__main__':
         :return:
         """
         paths = open_dialog(t('Select Audio Files'), filetypes=AUDIO_FILE_TYPES)
-        natural_sort = len(paths) > 20
-        update_settings('last_folder', os.path.dirname(paths[-1]))
-        app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
-        if action in {t('Play'), 'pf'}:
-            if settings['queue_library']:
-                return play_all(starting_files=paths)
-            return play_uris(paths, natural_sort=natural_sort)
-        if action in {t('Queue'), 'qf'}:
-            return play_uris(paths, queue_uris=True, natural_sort=natural_sort)
-        if action in {t('Play Next'), 'pfn'}:
-            return play_uris(paths, play_next=True, natural_sort=natural_sort)
-        gui_window.metadata['last_event'] = 'file_action'
+        if paths:
+            natural_sort = len(paths) > 20
+            update_settings('last_folder', os.path.dirname(paths[-1]))
+            app_log.info(f'file_action(action={action}), len(lst) is {len(paths)}')
+            if action in {t('Play'), 'pf'}:
+                if settings['queue_library']:
+                    return play_all(starting_files=paths)
+                return play_uris(paths, natural_sort=natural_sort)
+            if action in {t('Queue'), 'qf'}:
+                return play_uris(paths, queue_uris=True, natural_sort=natural_sort)
+            if action in {t('Play Next'), 'pfn'}:
+                return play_uris(paths, play_next=True, natural_sort=natural_sort)
+            gui_window.metadata['last_event'] = 'file_action'
 
 
     def folder_action(action='pf'):
@@ -3457,9 +3456,7 @@ if __name__ == '__main__':
                     cast_volume = round(cast.status.volume_level * 100, 1)
                     if settings['volume'] != cast_volume:
                         diff = abs(settings['volume'] - cast_volume)
-                        print(diff)
                         if diff > 0.05 and not settings['muted']:
-                            print(cast_volume)
                             # if volume was changed via Google Home App
                             if update_settings('volume', cast_volume) and settings['muted']:
                                 update_settings('muted', False)

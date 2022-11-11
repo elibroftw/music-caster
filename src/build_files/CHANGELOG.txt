@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.2
+- [Fix] No files selected
+- [Fix] Playing URLs
+
 5.9.1
 - [Fix] Audio playback
 
