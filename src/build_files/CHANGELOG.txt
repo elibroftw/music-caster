@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.3
+- [Fix] Cast volume
+
 5.9.2
 - [Fix] No files selected
 - [Fix] Playing URLs

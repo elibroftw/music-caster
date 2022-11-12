@@ -3455,8 +3455,8 @@ if __name__ == '__main__':
                         stop('cast_monitor', False)
                     cast_volume = round(cast.status.volume_level * 100, 1)
                     if settings['volume'] != cast_volume:
-                        diff = abs(settings['volume'] - cast_volume)
-                        if diff > 0.05 and not settings['muted']:
+                        if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
+                                                      abs(settings['volume'] - cast_volume) > 0.05):
                             # if volume was changed via Google Home App
                             if update_settings('volume', cast_volume) and settings['muted']:
                                 update_settings('muted', False)
