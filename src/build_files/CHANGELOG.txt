@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.4
+- [Fix] Volume
+
 5.9.3
 - [Fix] Cast volume
 

@@ -338,7 +338,7 @@ if __name__ == '__main__':
         'device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
         'auto_update': default_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
         'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'mini_on_top': True,
-        'populate_queue_startup': False, 'persistent_queue': False, 'volume': 50, 'muted': False, 'volume_delta': 5,
+        'populate_queue_startup': False, 'persistent_queue': False, 'volume': 20, 'muted': False, 'volume_delta': 5,
         'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
         'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False,
         'gui_exits_app': False, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
@@ -495,6 +495,8 @@ if __name__ == '__main__':
         """new_vol: float[0, 100]"""
         app_log.info(f'update_volume: {new_vol} {_from}')
         gui_window.metadata['update_volume_slider'] = True
+        if not isinstance(new_vol, (float, int)):
+            new_vol = update_settings('volume', 20)
         new_vol = new_vol / 100
         with suppress(NameError):
             audio_player.set_volume(new_vol)
@@ -973,7 +975,7 @@ if __name__ == '__main__':
                     for timer_setting in timer_settings.difference({setting_key, 'timer_stop'}):
                         update_settings(timer_setting, False)
                 if setting_key == 'volume':
-                    update_volume(0 if settings['muted'] else settings['volume'], 'api')
+                    update_volume(0 if settings['muted'] else val, 'api')
             return 'true'
         return 'false'
 
