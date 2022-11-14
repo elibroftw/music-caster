@@ -815,6 +815,7 @@ def get_yt_urls(video_id):
         yield f'{prefix}youtube.com/v/{video_id}'
 
 
+@lru_cache(maxsize=1)
 def is_os_64bit(): return platform.machine().endswith('64')
 
 
