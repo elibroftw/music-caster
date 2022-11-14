@@ -2228,7 +2228,8 @@ if __name__ == '__main__':
         latest_version = VERSION
 
         def __init__(self):
-            super().__init__(216000, self.check_for_updates)
+            # check for an update every 4 hours
+            super().__init__(14_400, self.check_for_updates)
             self.daemon = True
             self.start()
 
@@ -2491,7 +2492,7 @@ if __name__ == '__main__':
             gui_window = Sg.Window('Music Caster', main_gui_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
                                    margins=(0, 0), finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
                                    use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
-                                   location=window_location, metadata=window_metadata)
+                                   location=window_location, metadata=window_metadata, debugger_enabled=is_debug())
             if Shared.using_tcl_theme:
                 with suppress(TclError):
                     gui_window.TKroot.tk.call('source', SUN_VALLEY_TCL)

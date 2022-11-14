@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.6
+- [Fix] Long lived GUI bug
+
 5.9.5
 - [Optimization] YouTube playlists
 
