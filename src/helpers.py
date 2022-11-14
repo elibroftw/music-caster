@@ -789,6 +789,7 @@ def ydl_extract_info(url):
 
 
 # noinspection PyTypeChecker
+@lru_cache(maxsize=1)
 def get_yt_id(url, ignore_playlist=False):
     query = urlparse(url)
     if query.hostname == 'youtu.be': return query.path[1:]
