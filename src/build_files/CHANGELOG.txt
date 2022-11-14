@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.5
+- [Optimization] YouTube playlists
+
 5.9.4
 - [Fix] Volume
 

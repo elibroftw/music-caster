@@ -288,6 +288,7 @@ if __name__ == '__main__':
     from pychromecast.models import CastInfo
     import pyperclip
     import requests
+    import scrapetube
     try:
         from TkinterDnD2 import DND_FILES, DND_ALL
     except ImportError:
@@ -1567,26 +1568,40 @@ if __name__ == '__main__':
                                                     'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                     metadata_list.append(metadata)
         # youtube
-        elif get_yt_id(url) is not None or url.startswith('ytsearch:'):
-            with suppress(IOError, TypeError):  # type error in case video was deleted
-                r = ydl_extract_info(url)
-                if 'entries' in r:
-                    for entry in r['entries']:
-                        metadata = ydl_get_metadata(entry, duration_helper=False)
-                        metadata['ytid'] = entry['id']
-                        # if duration > 10 minutes, try to parse out timestamps for track from comment section
-                        if entry.get('duration', 0) > 600: metadata['timestamps'] = get_video_timestamps(entry)
-                        for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
+        elif (ytid := get_yt_id(url)) is not None or url.startswith('ytsearch:'):
+            # lazily get videos in the playlist
+            if ytid is not None and ytid.startswith('PL'):
+                videos = scrapetube.get_playlist(ytid)
+                for i, video in enumerate(videos):
+                    _url = f'https://www.youtube.com/watch?v={video["videoId"]}'
+                    if i == 0:
+                        metadata_list.extend(get_url_metadata(_url))
+                    else:
+                        metadata = {'title': video['title']['runs'][0]['text'], 'artist': video['shortBylineText']['runs'][0]['text'],
+                                    'album': 'YouTube', 'id': video['videoId'], 'src': _url}
+                        metadata['art'] = 'https://img.youtube.com/vi/y7fudcFIlZs/maxresdefault.jpg'
+                        url_metadata[_url] = metadata
                         metadata_list.append(metadata)
-                else:
-                    # single video
-                    metadata = ydl_get_metadata(r, duration_helper=False)
-                    metadata['ytid'] = r['id']
-                    # if duration > 10 minutes, try to parse out timestamps for track from comment section
-                    if r.get('duration', 0) > 600: metadata['timestamps'] = get_video_timestamps(r)
-                    for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
-                    url_metadata[url] = metadata
-                    metadata_list.append(metadata)
+            else:
+                with suppress(IOError, TypeError):  # type error in case video was deleted
+                    r = ydl_extract_info(url)
+                    if 'entries' in r:
+                        for entry in r['entries']:
+                            metadata = ydl_get_metadata(entry, duration_helper=False)
+                            metadata['ytid'] = entry['id']
+                            # if duration > 10 minutes, try to parse out timestamps for track from comment section
+                            if entry.get('duration', 0) > 600: metadata['timestamps'] = get_video_timestamps(entry)
+                            for webpage_url in get_yt_urls(entry['id']): url_metadata[webpage_url] = metadata
+                            metadata_list.append(metadata)
+                    else:
+                        # single video
+                        metadata = ydl_get_metadata(r, duration_helper=False)
+                        metadata['ytid'] = r['id']
+                        # if duration > 10 minutes, try to parse out timestamps for track from comment section
+                        if r.get('duration', 0) > 600: metadata['timestamps'] = get_video_timestamps(r)
+                        for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
+                        url_metadata[url] = metadata
+                        metadata_list.append(metadata)
         elif url.startswith('https://open.spotify.com'):
             # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):

@@ -1308,7 +1308,7 @@ def get_youtube_comments(url, limit=-1):  # -> generator
     return YTCommentDLer.get_comments_from_url(url, sort_by=SORT_BY_POPULAR, limit=limit)
 
 
-def parse_timestamps(text):
+def timestamp_to_time(text):
     times = re.findall(r'\d+:(?:\d+:)*\d+', text)
     times = sorted({sum(int(x) * 60 ** i for i, x in enumerate(reversed(_time.split(':')))) for _time in times})
     return times
@@ -1324,13 +1324,13 @@ def get_video_timestamps(video_info):
             times.add(chapter['end_time'])
         return sorted(times)
     # try parsing description
-    description_timestamps = parse_timestamps(video_info['description'])
+    description_timestamps = timestamp_to_time(video_info['description'])
     if len(description_timestamps) > 1: return description_timestamps
     # try parsing comments
     url = video_info['webpage_url']
     with suppress(ValueError, RuntimeError):
         for count, comment in enumerate(get_youtube_comments(url, limit=10)):
-            times = parse_timestamps(comment['text'])
+            times = timestamp_to_time(comment['text'])
             if len(times) > 2: return times
     return []
 
