@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.7
+- [Fix] Covert art
+
 5.9.6
 - [Fix] Long lived GUI bug
 
