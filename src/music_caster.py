@@ -1574,11 +1574,16 @@ if __name__ == '__main__':
                 videos = scrapetube.get_playlist(ytid)
                 for i, video in enumerate(videos):
                     _url = f'https://www.youtube.com/watch?v={video["videoId"]}'
+                    src_url = f'{_url}&list={ytid}'
                     if i == 0:
-                        metadata_list.extend(get_url_metadata(_url))
+                        m_lst = get_url_metadata(_url)
+                        if m_lst:
+                            m = m_lst[0]
+                            m['pl_src'] = src_url
+                            metadata_list.extend(m_lst)
                     else:
                         metadata = {'title': video['title']['runs'][0]['text'], 'artist': video['shortBylineText']['runs'][0]['text'],
-                                    'album': 'YouTube', 'id': video['videoId'], 'src': _url}
+                                    'album': 'YouTube', 'id': video['videoId'], 'src': _url, 'pl_src': src_url}
                         metadata['art'] = 'https://img.youtube.com/vi/y7fudcFIlZs/maxresdefault.jpg'
                         url_metadata[_url] = metadata
                         metadata_list.append(metadata)
@@ -2550,6 +2555,8 @@ if __name__ == '__main__':
                 else:
                     uri = music_queue[selected_track_index - len(next_queue)]
             if uri.startswith('http'):
+                if uri in url_metadata:
+                    uri = url_metadata[uri].get('pl_src', uri)
                 Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
                 return True
             if os.path.exists(uri):
