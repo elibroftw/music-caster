@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.9
+- [Fix] Covert art playlist videos
+
 5.9.8
 - [UX] YouTube source URL
 

@@ -1537,7 +1537,7 @@ if __name__ == '__main__':
             metadata_list.append(metadata)
         elif 'twitch.tv' in url:
             with suppress(StopIteration, IOError):
-                r = ydl_extract_info(url)
+                r = ydl_extract_info(url, quiet=not DEBUG)
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 metadata = {'title': r['description'], 'artist': r['uploader'], 'ext': r['ext'],
                             'expiry': time.time(), 'album': 'Twitch', 'length': None,
@@ -1546,7 +1546,7 @@ if __name__ == '__main__':
                 metadata_list.append(metadata)
         elif 'soundcloud.com' in url:
             with suppress(StopIteration, IOError):
-                r = ydl_extract_info(url)
+                r = ydl_extract_info(url, quiet=not DEBUG)
                 if 'entries' in r:
                     for entry in r['entries']:
                         parsed_url = parse_qs(urlparse(entry['url']).query)['Policy'][0].replace('_', '=')
@@ -1582,14 +1582,17 @@ if __name__ == '__main__':
                             m['pl_src'] = src_url
                             metadata_list.extend(m_lst)
                     else:
-                        metadata = {'title': video['title']['runs'][0]['text'], 'artist': video['shortBylineText']['runs'][0]['text'],
-                                    'album': 'YouTube', 'id': video['videoId'], 'src': _url, 'pl_src': src_url}
-                        metadata['art'] = 'https://img.youtube.com/vi/y7fudcFIlZs/maxresdefault.jpg'
+                        metadata = {'title': video['title']['runs'][0]['text'],
+                                    'artist': video['shortBylineText']['runs'][0]['text'], 'album': 'YouTube',
+                                    'id': video['videoId'], 'src': _url, 'pl_src': src_url,
+                                    'art': f'https://img.youtube.com/vi/{ytid}/maxresdefault.jpg'}
                         url_metadata[_url] = metadata
                         metadata_list.append(metadata)
             else:
-                with suppress(IOError, TypeError):  # type error in case video was deleted
-                    r = ydl_extract_info(url)
+                # type error in case video was deleted or unavailable
+                with suppress(IOError, TypeError):
+                    r = ydl_extract_info(url, quiet=not DEBUG)
+                    print(r)
                     if 'entries' in r:
                         for entry in r['entries']:
                             metadata = ydl_get_metadata(entry, duration_helper=False)
@@ -1690,7 +1693,7 @@ if __name__ == '__main__':
                             metadata_list.append(deezer_track)
         else:
             with suppress(IOError, TypeError):
-                r = ydl_extract_info(url)
+                r = ydl_extract_info(url, quiet=not DEBUG)
                 if 'entries' in r:
                     for entry in r['entries']:
                         url_metadata[entry['webpage_url']] = metadata = ydl_get_metadata(entry)

@@ -763,27 +763,27 @@ def dz():
 
 
 @lru_cache(maxsize=2)
-def ydl(proxy=None):
+def ydl(proxy=None, quiet=False):
     # from youtube_dl import YoutubeDL  # 2 seconds!
     from yt_dlp import YoutubeDL
     opts = {
-        'quiet': False
+        'quiet': quiet,
     }
     if proxy is not None:
         opts['proxy'] = proxy
     return YoutubeDL(opts)
 
 
-def ydl_extract_info(url):
+def ydl_extract_info(url, quiet=False):
     """
     Raises IOError instead of YoutubeDL's DownloadError, saving us time on imports
     """
     # from youtube_dl.utils import DownloadError
     from yt_dlp.utils import DownloadError
     with suppress(DownloadError):
-        return ydl().extract_info(url, download=False)
+        return ydl(quiet=quiet).extract_info(url, download=False)
     try:
-        return ydl(get_proxy(False)['https']).extract_info(url, download=False)
+        return ydl(get_proxy(False)['https'], quiet=quiet).extract_info(url, download=False)
     except DownloadError as e:
         raise IOError from e
 
