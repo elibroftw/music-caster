@@ -1537,7 +1537,7 @@ if __name__ == '__main__':
             metadata_list.append(metadata)
         elif 'twitch.tv' in url:
             with suppress(StopIteration, IOError):
-                r = ydl_extract_info(url, quiet=not DEBUG)
+                r = ydl_extract_info(url, quiet=not is_debug())
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
                 metadata = {'title': r['description'], 'artist': r['uploader'], 'ext': r['ext'],
                             'expiry': time.time(), 'album': 'Twitch', 'length': None,
@@ -1546,7 +1546,7 @@ if __name__ == '__main__':
                 metadata_list.append(metadata)
         elif 'soundcloud.com' in url:
             with suppress(StopIteration, IOError):
-                r = ydl_extract_info(url, quiet=not DEBUG)
+                r = ydl_extract_info(url, quiet=not is_debug())
                 if 'entries' in r:
                     for entry in r['entries']:
                         parsed_url = parse_qs(urlparse(entry['url']).query)['Policy'][0].replace('_', '=')
@@ -1591,8 +1591,7 @@ if __name__ == '__main__':
             else:
                 # type error in case video was deleted or unavailable
                 with suppress(IOError, TypeError):
-                    r = ydl_extract_info(url, quiet=not DEBUG)
-                    print(r)
+                    r = ydl_extract_info(url, quiet=not is_debug())
                     if 'entries' in r:
                         for entry in r['entries']:
                             metadata = ydl_get_metadata(entry, duration_helper=False)
@@ -1693,7 +1692,7 @@ if __name__ == '__main__':
                             metadata_list.append(deezer_track)
         else:
             with suppress(IOError, TypeError):
-                r = ydl_extract_info(url, quiet=not DEBUG)
+                r = ydl_extract_info(url, quiet=not is_debug())
                 if 'entries' in r:
                     for entry in r['entries']:
                         url_metadata[entry['webpage_url']] = metadata = ydl_get_metadata(entry)
@@ -1806,7 +1805,6 @@ if __name__ == '__main__':
                 ext = uri.split('.')[-1]
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
-                mc.block_until_active(WAIT_TIMEOUT)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError):
                 app_log.error('play could not cast because cast is not connected')
