@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.10
+- [Fix] Non existent files
+
 5.9.9
 - [Fix] Covert art playlist videos
 

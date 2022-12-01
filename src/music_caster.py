@@ -281,7 +281,9 @@ if __name__ == '__main__':
     from jinja2.exceptions import TemplateNotFound
     from werkzeug.exceptions import InternalServerError
     from PIL import Image
-    import pychromecast.controllers.media
+    import pychromecast
+    from pychromecast.controllers.media import MediaStatusListener
+    from pychromecast.controllers.receiver import CastStatusListener
     from pychromecast.error import PyChromecastError, UnsupportedNamespace, NotConnected
     from pychromecast.config import APP_MEDIA_RECEIVER
     from pychromecast import Chromecast
@@ -300,7 +302,8 @@ if __name__ == '__main__':
 
     # LOGS
     log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
-    log_handler = RotatingFileHandler('music_caster.log', maxBytes=5242880, backupCount=1, encoding='UTF-8')
+    # max 1 MB log file
+    log_handler = RotatingFileHandler('music_caster.log', maxBytes=1000000, backupCount=1, encoding='UTF-8')
     log_handler.setFormatter(log_format)
     app_log = logging.getLogger('music_caster')
     app_log.propagate = False  # disable console output
@@ -494,7 +497,7 @@ if __name__ == '__main__':
 
     def update_volume(new_vol, _from=''):
         """new_vol: float[0, 100]"""
-        app_log.info(f'update_volume: {new_vol} {_from}')
+        app_log.info(f'update_volume: set to {new_vol} from {_from}')
         gui_window.metadata['update_volume_slider'] = True
         if not isinstance(new_vol, (float, int)):
             new_vol = update_settings('volume', 20)
@@ -1158,6 +1161,28 @@ if __name__ == '__main__':
         return lo_devices
 
 
+    class StatusCastListener(CastStatusListener):
+        """Cast status listener"""
+
+        def __init__(self, _cast):
+            self.cast = _cast
+            self.name = _cast.name
+
+        def new_cast_status(self, status):
+            pass
+
+
+    class MediaCastListener(MediaStatusListener):
+        def __init__(self, _cast):
+            self.cast = _cast
+            self.name = _cast.name
+
+        def new_media_status(self, status):
+            pass
+
+        def load_media_failed(self, item, error_code):
+            pass
+
     class MyCastListener(pychromecast.discovery.AbstractCastListener):
 
         def add_cast(self, uuid, _service):
@@ -1172,6 +1197,8 @@ if __name__ == '__main__':
                     # otherwise, update the cast variable
                     cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
                     cast.wait()
+                    # cast.register_status_listener(StatusCastListener(cast))
+                    # cast.media_controller.register_status_listener(MediaCastListener(cast))
             refresh_tray(True)
 
         def remove_cast(self, uuid, _service, cast_info):
@@ -1528,6 +1555,9 @@ if __name__ == '__main__':
         if url in url_metadata and not url_expired(url): return [url_metadata[url]]
         if url.startswith('www'):
             url = f'http://{url}'
+        # short-circuit
+        if not url.startswith('http'):
+            return metadata_list
         if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
             ext = url[::-1].split('.', 1)[0][::-1]
             url_frags = urlsplit(url)
@@ -1716,6 +1746,8 @@ if __name__ == '__main__':
     def play_url(position=0, autoplay=True, switching_device=False, show_error=False) -> bool:
         global cast, playing_url, track_length, track_start, track_end, track_position
         url = music_queue[0]
+        if not url.startswith('http') and not url.startswith('www') and not url.startswith('//'):
+            return False
         metadata_list = get_url_metadata(url)
         if metadata_list:
             if len(metadata_list) > 1:
@@ -1772,13 +1804,14 @@ if __name__ == '__main__':
         uri = music_queue[0]
         while not os.path.exists(uri):
             if play_url(position, autoplay, switching_device): return
+            app_log.info(f'file not found: {uri}')
             done_queue.append(music_queue.popleft())
             if not music_queue: return
             uri, position = music_queue[0], 0
-        uri = Path(uri).as_posix()
+        uri_path = Path(uri)
+        uri = uri_path.as_posix()
         playing_url = sar.alive = False
-        shortened_uri = '$FILE.' + uri.rsplit('.')[-1]
-        app_log.info(f'Playing {shortened_uri} @{position}, autoplay={autoplay}, switching_device={switching_device})')
+        app_log.info(f'play: {uri_path.name} @{position}, autoplay={autoplay}, switching_device={switching_device}')
         try:
             track_length = get_length(uri)
         except InvalidAudioFile:
@@ -1845,7 +1878,7 @@ if __name__ == '__main__':
             tn = int(m.get('track_number'))
         except (ValueError, TypeError):
             tn = 1
-        return m['album'].casefold(), tn , m['artist'].casefold(), m['title'].casefold()
+        return m['album'].casefold(), tn, m['artist'].casefold(), m['title'].casefold()
 
 
     def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False,
@@ -1944,13 +1977,18 @@ if __name__ == '__main__':
 
 
     def queue_all():
-        if not any(filter(lambda t: t.name == 'PlayAll', threading.enumerate())):
+        if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
             Thread(target=play_all, kwargs={'queue_only': True}, daemon=True, name='PlayAll').start()
 
 
     def open_dialog(title, for_dir=False, filetypes=None):
-        if settings['use_last_folder'] and os.path.exists(settings['last_folder']):
-            initial_folder = settings['last_folder']
+        if settings['use_last_folder']:
+            prev_folder = initial_folder = settings['last_folder']
+            while not os.path.exists(initial_folder):
+                initial_folder = Path(initial_folder).parent.absolute()
+                if prev_folder == initial_folder:  # prevent infinite loop
+                    initial_folder = DEFAULT_FOLDER
+                    break
         else:
             initial_folder = DEFAULT_FOLDER
         _root = tkinter.Tk()
@@ -2203,7 +2241,7 @@ if __name__ == '__main__':
                     save_settings()
                 return play()
             # repeat is off (from timeout) or skip resulted in exhaustion of queue
-            stop('next track', stop_cast=not from_timeout)
+            stop('next track queue exhaustion', stop_cast=not from_timeout)
 
 
     def prev_track(times=1, forced=False, ignore_timestamps=False):
@@ -3665,9 +3703,9 @@ if __name__ == '__main__':
                 with settings_file_lock:
                     if settings['timer_shut_down']:  # shutdown computer
                         os.system('shutdown /p /f') if platform.system() == 'Windows' else os.system('shutdown -h now')
-                    elif settings['timer_hibernate']: # hibernate computer
+                    elif settings['timer_hibernate']:  # hibernate computer
                         if platform.system() == 'Windows': os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-                    elif settings['timer_sleep']: # sleep computer
+                    elif settings['timer_sleep']:  # sleep computer
                         if platform.system() == 'Windows': os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
             # if settings.json was updated outside of Music Caster, reload settings
             try:
