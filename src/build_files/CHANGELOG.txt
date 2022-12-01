@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.11
+- [Fix] Replaying queue from GUI
+
 5.9.10
 - [Fix] Non existent files
 

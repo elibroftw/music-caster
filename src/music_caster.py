@@ -1806,6 +1806,7 @@ if __name__ == '__main__':
             if play_url(position, autoplay, switching_device): return
             app_log.info(f'file not found: {uri}')
             done_queue.append(music_queue.popleft())
+            if next_queue: music_queue.appendleft(next_queue.popleft())
             if not music_queue: return
             uri, position = music_queue[0], 0
         uri_path = Path(uri)
@@ -2768,6 +2769,13 @@ if __name__ == '__main__':
             if playing_status.paused(): resume('gui')
             elif playing_status.playing(): pause()
             elif music_queue: play()
+            elif next_queue:
+                music_queue.appendleft(next_queue.popleft())
+                play()
+            elif done_queue:  # start from top again
+                music_queue.extend(done_queue)
+                done_queue.clear()
+                play()
             else: play_all()
         elif (main_event == 'next' or main_event == 'N' and in_tab_queue) and playing_status.busy():
             next_track()
