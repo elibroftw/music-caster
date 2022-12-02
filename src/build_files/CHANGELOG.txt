@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.9.12
+- [Fix] Resolution switcher
+
 5.9.11
 - [Fix] Replaying queue from GUI
 

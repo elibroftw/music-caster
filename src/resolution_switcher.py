@@ -123,11 +123,13 @@ def get_all_resolutions():
                         max_height = ds.PelsHeight
                     resolutions.append((ds.PelsWidth, ds.PelsHeight))
                 i += 1
-    aspect_ratio = get_aspect_ratio(max_width, max_height)
+    try:
+        aspect_ratio = get_aspect_ratio(max_width, max_height)
+    except ZeroDivisionError:
+        # no resolutions found
+        return {}
     # return resolutions with same aspect ratio as max resolution
-    lst = sorted(
-        filter(lambda res: get_aspect_ratio(*res) == aspect_ratio,
-               resolutions))
+    lst = sorted(filter(lambda res: get_aspect_ratio(*res) == aspect_ratio, resolutions))
     return {
         fmt_res(*res): {
             'w': res[0],
