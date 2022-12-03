@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.9.12'
+VERSION = latest_version = '5.9.13'
 UPDATE_MESSAGE = """
 [NEW] YouTube livestreams
 [MSG] Language translators wanted

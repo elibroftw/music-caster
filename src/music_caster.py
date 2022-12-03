@@ -1839,6 +1839,7 @@ if __name__ == '__main__':
                 ext = uri.split('.')[-1]
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
+                mc.block_until_active(WAIT_TIMEOUT)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError):
                 app_log.error('play could not cast because cast is not connected')
