@@ -195,3 +195,4 @@ Salir de la aplicación al cerrar la GUI
 Sobre la resolución de la batería
 Resolución enchufada
 No se pudo establecer la resolución
+copiar uris

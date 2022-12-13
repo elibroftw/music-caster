@@ -195,3 +195,4 @@ Sluit app op GUI sluiten
 Op batterij resolutie
 Aangesloten resolutie
 Kan resolutie niet instellen
+kopieer uri

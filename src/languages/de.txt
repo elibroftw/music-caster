@@ -194,3 +194,5 @@ konnte bei $URL kein Audio finden
 beende zusammen mit GUI
 Auf Batterieauflösung
 Eingesteckte Auflösung
+Auflösung konnte nicht eingestellt werden
+URIs kopieren

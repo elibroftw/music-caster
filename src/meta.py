@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.9.13'
+VERSION = latest_version = '5.10.0'
 UPDATE_MESSAGE = """
-[NEW] YouTube livestreams
+[NEW] Copy URIs (text only)
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """

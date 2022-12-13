@@ -297,7 +297,9 @@ class DiscordPresence:
     def connect(cls, confirm_connect=True):
         if confirm_connect:
             cls.set_rich_presence()
+            print('1')
             cls.rich_presence.connect()
+            print('2')
 
     @classmethod
     @exception_wrapper
@@ -1515,6 +1517,7 @@ def create_main(queue, listbox_selected, playing_status, settings, version, time
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, button_color=(bg, bg), tooltip=t('Clear the queue'))],
         [Sg.Button(key='save_queue', image_data=SAVE_IMG, button_color=(bg, bg), tooltip=t('Save queue to playlist'))],
         [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, button_color=(bg, bg), tooltip=t('locate track'))],
+        [Sg.Button(key='copy_uri', image_data=COPY_ICON, button_color=(bg, bg), tooltip=t('copy uris'))],
         [Sg.Button(key='move_to_next_up', **move_to_next_up)],
         [icon_btn(UP_ICON, 'move_up', t('move up'), bg)],
         [icon_btn(X_ICON, 'remove_track', t('remove'), bg)],

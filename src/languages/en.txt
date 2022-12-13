@@ -195,3 +195,4 @@ Exit app on GUI close
 On battery resolution
 Plugged in resolution
 Could not set resolution
+copy uris

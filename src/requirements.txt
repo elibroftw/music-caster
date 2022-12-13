@@ -12,7 +12,8 @@ pychromecast~=12.1
 zeroconf~=0.37
 pynput~=1.4.5
 pypng~=0.0.20
-pypresence~=4.0
+# pypresence~=4.0
+git+https://github.com/elibroftw/pypresence.git
 pyqrcode~=1.2.1
 PySimpleGUI~=4.60.0
 pystray~=0.19.1
@@ -21,6 +22,7 @@ urllib3~=1.26.7
 wavinfo==1.6
 youtube_dl
 scrapetube
+pyperclip~=1.8
 yt-dlp
 werkzeug~=2.0.2
 pyperclip~=1.8

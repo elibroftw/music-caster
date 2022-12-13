@@ -1,5 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.10.0
+- [Feature] Copy URIs (text only)
+- [Fix] Move track up
+- [Fix] Discord presence blocking
+
 5.9.13
 - [Fix] Play from stopped
 

@@ -2172,6 +2172,9 @@ if __name__ == '__main__':
 
 
     def set_pos(new_position):
+        """
+        sets position of audio player or cast to new_position
+        """
         global track_position, track_start, track_end
         if cast is not None:
             try:
@@ -2582,21 +2585,24 @@ if __name__ == '__main__':
         with suppress(TclError):
             focus_window(gui_window)
 
+    def uri_at_idx(idx=0):
+        # raises IndexError
+        if idx < 0:
+            uri = done_queue[idx]
+        elif idx == 0:
+            uri = music_queue[0]
+        elif 0 < idx <= len(next_queue):
+            uri = next_queue[idx - 1]
+        else:
+            uri = music_queue[idx - len(next_queue)]
+        return uri
 
     def locate_uri(selected_track_index=0, uri=None):
-        # negative: done_queue
         with suppress(IndexError):
-            if uri is None:
-                if selected_track_index < 0:
-                    uri = done_queue[selected_track_index]
-                elif selected_track_index == 0:
-                    uri = music_queue[0]
-                elif 0 < selected_track_index <= len(next_queue):
-                    uri = next_queue[selected_track_index - 1]
-                else:
-                    uri = music_queue[selected_track_index - len(next_queue)]
+            uri = uri_at_idx(idx=selected_track_index)
             if uri.startswith('http'):
                 if uri in url_metadata:
+                    # if source is from playlist...
                     uri = url_metadata[uri].get('pl_src', uri)
                 Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
                 return True
@@ -2852,6 +2858,9 @@ if __name__ == '__main__':
                 for index in gui_window['queue'].get_indexes():
                     locate_uri(index - len(done_queue))
             else: locate_uri()
+        elif main_event == 'copy_uri':
+            with suppress(IndexError):
+                pyperclip.copy(', '.join(( uri_at_idx(index) for index in gui_window['queue'].get_indexes())))
         elif main_event == 'move_to_next_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
                 dq_len = len(done_queue)
@@ -2884,9 +2893,9 @@ if __name__ == '__main__':
                 if index_to_move < dq_len and new_i >= 0:  # move within dq
                     # swap places
                     done_queue[index_to_move], done_queue[new_i] = done_queue[new_i], done_queue[index_to_move]
-                elif index_to_move == dq_len and done_queue:  # move index -1 to 1
+                elif index_to_move == dq_len and done_queue:  # move index -1 to 1 or top of next_queue
                     if next_queue:
-                        next_queue.insert(1, done_queue.pop())
+                        next_queue.insert(0, done_queue.pop())
                     else:
                         music_queue.insert(1, done_queue.pop())
                 elif index_to_move == dq_len + 1:  # move 1 to -1
