@@ -297,9 +297,7 @@ class DiscordPresence:
     def connect(cls, confirm_connect=True):
         if confirm_connect:
             cls.set_rich_presence()
-            print('1')
             cls.rich_presence.connect()
-            print('2')
 
     @classmethod
     @exception_wrapper
