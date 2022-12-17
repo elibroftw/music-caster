@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.10.0'
+VERSION = latest_version = '5.10.1'
 UPDATE_MESSAGE = """
 [NEW] Copy URIs (text only)
 [MSG] Language translators wanted

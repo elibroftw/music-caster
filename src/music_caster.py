@@ -648,7 +648,7 @@ if __name__ == '__main__':
                 yield from get_audio_uris(glob.iglob(f'{glob.escape(uri)}/**/*.*', recursive=True), ignore_dir=True,
                                           scan_uris=scan_uris, ignore_m3u=True, parsed_m3us=parsed_m3us)
             elif os.path.isfile(uri):
-                uri = uri.replace('\\', '/')
+                uri = Path(uri).absolute().as_posix()
                 if not ignore_m3u and (uri.endswith('.m3u') or uri.endswith('.m3u8')) and uri not in parsed_m3us:
                     parsed_m3us.add(uri)
                     yield from get_audio_uris(parse_m3u(uri), parsed_m3us=parsed_m3us)
