@@ -35,5 +35,8 @@ deezer-py~=1.2
 deemix~=3.5
 six~=1.16
 portalocker~=2.4.0
+numpy~=1.21
+matplotlib~=3.6
+soundfile~=0.11
 git+https://github.com/elibroftw/youtube-comment-downloader.git
 python-tkdnd; sys_platform != 'win32'
