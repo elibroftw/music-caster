@@ -246,6 +246,7 @@ if __name__ == '__main__':
     auto_updating = True
 
     if args.exit: sys.exit()
+    import asyncio
     from collections import deque
     from collections.abc import Iterable
     # noinspection PyUnresolvedReferences
@@ -2628,7 +2629,7 @@ if __name__ == '__main__':
         gui_window.close()
         close_tray()
         # stop any active scanning
-        with suppress(NameError):
+        with suppress(NameError, asyncio.TimeoutError):
             cast_browser.stop_discovery()
         with suppress(PyChromecastError):
             if cast is None:
