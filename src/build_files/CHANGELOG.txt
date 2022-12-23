@@ -1,7 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.10.2
+- [Fix] Exit program after sleeping
+
 5.10.1
-- [Fix?] Relative audio files in Portable mode
+- [Fix] Relative audio files in Portable mode
 
 5.10.0
 - [Feature] Copy URIs (text only)
