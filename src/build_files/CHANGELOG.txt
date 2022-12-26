@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.10.4
+- [Fix] locate uri
+
 5.10.3
 - [Fix] Volume sync with chromecast
 

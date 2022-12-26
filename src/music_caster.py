@@ -2601,7 +2601,8 @@ if __name__ == '__main__':
 
     def locate_uri(selected_track_index=0, uri=None):
         with suppress(IndexError):
-            uri = uri_at_idx(idx=selected_track_index)
+            if uri is None:
+                uri = uri_at_idx(idx=selected_track_index)
             if uri.startswith('http'):
                 if uri in url_metadata:
                     # if source is from playlist...
@@ -3330,7 +3331,9 @@ if __name__ == '__main__':
                         gui_window['pl_tracks'].update(format_pl_lb(pl_tracks), set_to_index=new_i,
                                                        scroll_to_index=max(new_i - 3, 0))
         elif main_event in {'pl_locate_selected', 'pl_tracks'}:
-            for i in gui_window['pl_tracks'].get_indexes(): locate_uri(uri=gui_window.metadata['pl_tracks'][i])
+            for i in gui_window['pl_tracks'].get_indexes():
+                print(gui_window.metadata['pl_tracks'][i])
+                locate_uri(uri=gui_window.metadata['pl_tracks'][i])
         elif main_event in {'play_pl_selected', 'queue_pl_selected', 'add_next_pl_selected'}:
             uris = (gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes())
             play_uris(uris, queue_uris=main_event == 'queue_pl_selected',
