@@ -360,7 +360,8 @@ if __name__ == '__main__':
     app.jinja_env.lstrip_blocks = app.jinja_env.trim_blocks = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     os.environ['FLASK_SKIP_DOTENV'] = '1'
-    cast_monitor_lock = threading.Lock()
+    # if time.time() > SYNC_WITH_CHROMECAST good to sync from chromecast
+    SYNC_WITH_CHROMECAST = 0
 
 
     def get_line_number():
@@ -2678,7 +2679,7 @@ if __name__ == '__main__':
                 main_event in {'Escape:27', ''} and gui_window.metadata['last_event'] not in ignore_events)
 
     def read_main_window():
-        global track_position, track_start, track_end, timer, music_queue, done_queue
+        global track_position, track_start, track_end, timer, music_queue, done_queue, SYNC_WITH_CHROMECAST
         main_event, main_values = gui_window.read(timeout=100)
         if main_event == 'KeyPress':
             e = gui_window.user_bind_event
@@ -2702,6 +2703,7 @@ if __name__ == '__main__':
         if main_event.startswith('MouseWheel'):
             main_event = main_event.split(':', 1)[1]
             if gui_window.metadata['mouse_hover'] == 'progress_bar':
+                SYNC_WITH_CHROMECAST = time.time() + 0.25
                 delta = {'Up': settings['scrubbing_delta'], 'Down': -settings['scrubbing_delta']}.get(main_event, 0)
                 if playing_status.busy() and track_length is not None:
                     get_track_position()
@@ -2710,6 +2712,7 @@ if __name__ == '__main__':
                     main_values['progress_bar'] = new_position
                     main_event = 'progress_bar'
             elif gui_window.metadata['mouse_hover'] in {'', 'volume_slider'}:  # not in another scroll view
+                SYNC_WITH_CHROMECAST = time.time() + 0.25
                 delta = {'Up': settings['volume_delta'], 'Down': -settings['volume_delta']}.get(main_event, 0)
                 new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
                 update_settings('volume', new_volume)
@@ -3514,36 +3517,35 @@ if __name__ == '__main__':
             if msg is None and playing_status.busy():
                 # block/monitor in background thread
                 return cast.media_controller.update_status(callback_function_param=cast_monitor)
-            if cast.app_id == APP_MEDIA_RECEIVER:
-                with cast_monitor_lock:
-                    media_controller = cast.media_controller
-                    is_stopped = media_controller.status.player_is_idle
-                    is_live = track_length is None
-                    if not is_stopped and playing_status.busy():
-                        # sync track position with chromecast, also allows scrubbing from external apps
-                        with suppress(IndexError):
-                            buffer = 2 if music_queue[0].startswith('http') else 0.5
-                            if abs(media_controller.status.adjusted_current_time - track_position) > buffer:
-                                track_position = media_controller.status.adjusted_current_time
-                                track_start = time.monotonic() - track_position
-                                if not is_live: track_end = track_start + track_length
-                    if media_controller.status.player_is_paused and playing_status.playing():
-                        pause('cast_monitor')
-                    elif media_controller.status.player_is_playing and playing_status.paused():
-                        resume('cast_monitor')
-                    elif (is_stopped and playing_status.busy() and
-                          not is_live and time.monotonic() - track_end > 1):
-                        # if cast says nothing is playing, only stop if we are not at the end of the track
-                        #  this will prevent false positives
-                        stop('cast_monitor', False)
-                    cast_volume = round(cast.status.volume_level * 100, 1)
-                    if settings['volume'] != cast_volume:
-                        if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
-                                                      abs(settings['volume'] - cast_volume) > 0.05):
-                            # if volume was changed via Google Home App
-                            if update_settings('volume', cast_volume) and settings['muted']:
-                                update_settings('muted', False)
-                            gui_window.metadata['update_volume_slider'] = True
+            if cast.app_id == APP_MEDIA_RECEIVER and time.time() > SYNC_WITH_CHROMECAST:
+                media_controller = cast.media_controller
+                is_stopped = media_controller.status.player_is_idle
+                is_live = track_length is None
+                if not is_stopped and playing_status.busy():
+                    # sync track position with chromecast, also allows scrubbing from external apps
+                    with suppress(IndexError):
+                        buffer = 2 if music_queue[0].startswith('http') else 0.5
+                        if abs(media_controller.status.adjusted_current_time - track_position) > buffer:
+                            track_position = media_controller.status.adjusted_current_time
+                            track_start = time.monotonic() - track_position
+                            if not is_live: track_end = track_start + track_length
+                if media_controller.status.player_is_paused and playing_status.playing():
+                    pause('cast_monitor')
+                elif media_controller.status.player_is_playing and playing_status.paused():
+                    resume('cast_monitor')
+                elif (is_stopped and playing_status.busy() and
+                        not is_live and time.monotonic() - track_end > 1):
+                    # if cast says nothing is playing, only stop if we are not at the end of the track
+                    #  this will prevent false positives
+                    stop('cast_monitor', False)
+                cast_volume = round(cast.status.volume_level * 100, 1)
+                if settings['volume'] != cast_volume:
+                    if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
+                                                    abs(settings['volume'] - cast_volume) > 0.05):
+                        # if volume was changed via Google Home App
+                        if update_settings('volume', cast_volume) and settings['muted']:
+                            update_settings('muted', False)
+                        gui_window.metadata['update_volume_slider'] = True
             elif playing_status.playing() and cast.media_controller.is_idle:
                 stop('cast_monitor. app was not running')
         except (NotConnected, AttributeError):  # don't care
