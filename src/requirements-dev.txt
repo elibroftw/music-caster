@@ -2,7 +2,7 @@ GitPython~=3.1
 autopep8
 requirements-parser
 # pyinstaller dependencies
-setuptools==60.5.0
+setuptools==65.5.1
 altgraph
 pyinstaller-hooks-contrib >= 2020.11
 pefile; sys_platform == 'win32'
