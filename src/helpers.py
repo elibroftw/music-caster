@@ -1616,7 +1616,10 @@ def create_playlists_tab(settings):
                     [Sg.Button(image_data=PLAY_NEXT_ICON, key='add_next_pl_selected',
                                tooltip=t('add selected to next up'), button_color=(bg, bg))],
                     [Sg.Button(image_data=LOCATE_FILE, key='pl_locate_selected', button_color=(bg, bg),
-                               tooltip=t('locate selected'), size=(2, 1))]],
+                               tooltip=t('locate selected'), size=(2, 1))],
+                    [Sg.Button(image_data=COPY_ICON, key='pl_copy_selected', button_color=(bg, bg),
+                               tooltip=t('copy uris'), size=(2, 1))]
+                    ],
                    background_color=bg)]]
     return Sg.Tab(t('Playlists'), layout, key='tab_playlists')
 

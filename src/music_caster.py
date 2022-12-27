@@ -2865,7 +2865,8 @@ if __name__ == '__main__':
             else: locate_uri()
         elif main_event == 'copy_uri':
             with suppress(IndexError):
-                pyperclip.copy(', '.join(( uri_at_idx(index) for index in gui_window['queue'].get_indexes())))
+                text_to_copy = ', '.join(( uri_at_idx(index) for index in gui_window['queue'].get_indexes()))
+                if text_to_copy: pyperclip.copy(text_to_copy)
         elif main_event == 'move_to_next_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
                 dq_len = len(done_queue)
@@ -3334,6 +3335,10 @@ if __name__ == '__main__':
             for i in gui_window['pl_tracks'].get_indexes():
                 print(gui_window.metadata['pl_tracks'][i])
                 locate_uri(uri=gui_window.metadata['pl_tracks'][i])
+        elif main_event == 'pl_copy_selected':
+            with suppress(IndexError):
+                text_to_copy = ', '.join(( gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes()))
+                if text_to_copy: pyperclip.copy(text_to_copy)
         elif main_event in {'play_pl_selected', 'queue_pl_selected', 'add_next_pl_selected'}:
             uris = (gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes())
             play_uris(uris, queue_uris=main_event == 'queue_pl_selected',

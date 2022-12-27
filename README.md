@@ -17,8 +17,8 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 - **IMPORTANT INFORMATION:** The tray icon will be in the tray, so you will need to move it to your taskbar
 - Command line installation: `winget install "Music Caster"` (auto-updates on launch)
 - [Screenshots](https://elijahlopez.ca/music-caster/)
-- [VirusTotal scan](https://www.virustotal.com/gui/file/df937f2126e238dab63bac891260f4e2528cd35ea9f97b1a80eaf006582942da)
-- If Music Caster gets auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
+- [VirusTotal scan](https://www.virustotal.com/gui/file/40a1c61e5cb2c5eed714eb70bb84f138e9fd9742076ea665b4ac85fc8f372abf)
+  - If Music Caster gets auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
 - [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 
 ## Linux
