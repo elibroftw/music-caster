@@ -28,19 +28,19 @@
             <div class="body__buttons">
                 <ul class="list list--buttons">
                     <!-- Repeat -->
-                    <li><a href="?repeat" class="list__link {{repeat_enabled}}">
+                    <li><a href="/action/repeat" class="list__link {{repeat_enabled}}">
                     <span id="repeat-one">{{1 if repeat_option else ''}}</span>
                     <i class="fa fa-undo {{repeat_enabled}}"></i></a></li>
                     <!-- End repeat -->
 
-                    <li><a href="?prev" id="prev-btn" title="{{ gt('previous track') }}" class="list__link ctrl-btn"><i class="fa fa-step-backward"></i></a></li>
+                    <li><a href="/action/prev" id="prev-btn" title="{{ gt('previous track') }}" class="list__link ctrl-btn"><i class="fa fa-step-backward"></i></a></li>
                     <li>
-                        <a href="?{{'pause' if playing_status.playing() else 'play'}}" id="play-pause-btn" class="list__link ctrl-btn">
+                        <a href="/action/{{'pause' if playing_status.playing() else 'play'}}" id="play-pause-btn" class="list__link ctrl-btn">
                             <i class="fa fa-{{'pause' if playing_status.playing() else 'play'}}"></i>
                         </a>
                     </li>
-                    <li><a href="?next" id="next-btn" title="{{ gt('next track') }}" class="list__link ctrl-btn"><i class="fa fa-step-forward"></i></a></li>
-                    <li><a href="?shuffle" title="{{ gt('shuffle') }}" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
+                    <li><a href="/action/next" id="next-btn" title="{{ gt('next track') }}" class="list__link ctrl-btn"><i class="fa fa-step-forward"></i></a></li>
+                    <li><a href="/action/shuffle" title="{{ gt('shuffle') }}" class="list__link {{shuffle}}"><i class="fa fa-random {{shuffle}}"></i></a></li>
                 </ul>
             </div>
 
@@ -95,8 +95,8 @@
 
             {% for track in queue %}
                 <a class="track {{ 'cyan' if loop.index0 == playing_index else '' }}"
-                href="{{'?prev&ignore_timestamps&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
-                        '?next&ignore_timestamps&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
+                href="{{'/action/prev?ignore_timestamps&times=' ~ (playing_index - loop.index0) if loop.index0 < playing_index else
+                        '/action/next?ignore_timestamps&times=' ~ (loop.index0 - playing_index)}}">{{track}}</a>
             {% endfor %}
         </div>
     </div>

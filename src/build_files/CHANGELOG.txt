@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.12.1
+- [Fix] queue action accuracy
+- [Note] new API
+
 5.12.0
 - [Feature] alternative UI (Settings > Misc > Experimental features)
 - [Feature] Edit metadata of a queue track

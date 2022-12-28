@@ -1,6 +1,5 @@
 from meta import *
 import time
-from resolution_switcher import get_all_refresh_rates, get_initial_res, is_plugged_in
 start_time = time.monotonic()
 # noinspection PyUnresolvedReferences
 from contextlib import suppress
@@ -68,7 +67,7 @@ def create_pid_file(port=None):
             f.write(f'\n{port}')
 
 
-def parse_pid_file() -> (int, int):
+def parse_pid_file():
     with suppress(FileNotFoundError):
         with open(PID_FILENAME, encoding='utf-8') as f:
             pid = int(f.readline().strip())
@@ -102,7 +101,7 @@ def ensure_single_instance(debugging=False):
             if debugging:
                 print('not exiting because we are DEBUGGING')
             else:
-                activate_instance(port=port, timeout=5)
+                activate_instance(port=port, default_timeout=5)
                 sys.exit()
         else:
             print('instance not found, lock broken?', repr(e))
@@ -188,13 +187,14 @@ if __name__ == '__main__':
 
     import portalocker
     from portalocker.exceptions import LockException
+    import ujson as json
 
     parser = argparse.ArgumentParser(description='Music Caster')
     parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
     parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
     parser.add_argument('--queue', '-q', default=False, action='store_true', help='uris are queued not played')
     parser.add_argument('--playnext', '-n', default=False, action='store_true', help='paths are added to next up')
-    parser.add_argument('--urlprotocol', '-p', default=False, action='store_true', help='launched using uri protocol')
+    parser.add_argument('--urlprotocol', default=False, action='store_true', help='launched using uri protocol')
     parser.add_argument('--update', '-u', default=False, action='store_true', help='update MC even if --args provided')
     parser.add_argument('--nupdate', default=False, action='store_true', help='start without auto-update')
     parser.add_argument('--exit', '-x', default=False, action='store_true',
@@ -210,33 +210,49 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # if from url protocol, re-parse arguments
     if args.urlprotocol:
-        new_args = args.uris[0].replace('music-caster://', '', 1).replace('music-caster:', '')
+        new_args = args.uris[0].replace('music-caster://', '', 1).replace('music-caster:', '').replace('music-caster', '')
         if new_args: new_args = new_args.split(';')
         args = parser.parse_args(new_args)
     if args.version:
         print(VERSION)
         sys.exit()
     DEBUG = args.debug
+    print(f'DEBUG: {DEBUG}')
     IS_FROZEN = getattr(sys, 'frozen', False)
     working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     os.chdir(working_dir)
+    SETTINGS_FILE = Path('settings.json').absolute()
 
+    def json_dumps(d):
+        return json.dumps(d).encode('utf-8')
 
-    def activate_instance(port=2001, timeout=0.5, to_port=2004):
+    def activate_instance(port=2001, default_timeout=0.5, to_port=2004):
         # by default activates if running already
-        r, local_ipv6, local_ipv4 = '', 'http://[::1]:', 'http://127.0.0.1:'
-        while port < to_port and r == '':
+        response, local_ipv6, local_ipv4 = '', 'http://[::1]:', 'http://127.0.0.1:'
+        try:
+            with open(SETTINGS_FILE, encoding='utf-8') as json_file:
+                api_key = json.load(json_file).get('api_key', '')
+        except (FileNotFoundError, ValueError):
+            api_key = ''
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+        data = {'api_key': api_key}
+        while port < to_port and response == '':
             for localhost in (local_ipv4, local_ipv6):
+                timeout = default_timeout
                 with suppress(URLError):
                     if args.exit:  # --exit argument
-                        r = urlopen(Request(f'{localhost}{port}/exit/', method='POST'), timeout=timeout).read()
+                        req = Request(f'{localhost}{port}/exit/', data=json_dumps(data))
                     elif args.uris:  # MC was supplied at least one path to a folder/file
-                        data = {'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext}
-                        data = urlencode(data, doseq=True).encode()
-                        r = urlopen(Request(f'{localhost}{port}/play/', data=data), timeout=timeout + 0.5).read()
+                        uri_data = json_dumps({**data, 'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext})
+                        req = Request(f'{localhost}{port}/play/', data=uri_data, headers=headers)
+                        timeout + 0.5
                     else:  # neither --exit nor paths was supplied
-                        r = urlopen(Request(f'{localhost}{port}/?activate', method='POST'), timeout=timeout).read()
-                if r:
+                        req = Request(f'{localhost}{port}/action/activate', data=json_dumps(data))
+                    response = urlopen(req, timeout=timeout).read()
+                if response:
                     return True
             port += 1
         return False
@@ -262,6 +278,7 @@ if __name__ == '__main__':
     from random import shuffle
     from shutil import copyfileobj, rmtree
     from queue import Queue
+    import secrets
     import tkinter
     from tkinter import filedialog as fd
     from tkinter import TclError
@@ -276,11 +293,11 @@ if __name__ == '__main__':
     from utils import *
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import PySimpleGUI as Sg
-    from resolution_switcher import set_resolution
+    from resolution_switcher import set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in
 
-    # 3rd party imports take 0.22 seconds to import
-    # flask takes 0.14 seconds
+    # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
+    import waitress
     from jinja2.exceptions import TemplateNotFound
     from werkzeug.exceptions import InternalServerError
     from PIL import Image
@@ -299,7 +316,6 @@ if __name__ == '__main__':
     except ImportError:
         # what about tkinterdnd2
         import tkinterDnD
-    import ujson as json
     import zeroconf
     TIME_TO_IMPORT = time.monotonic() - start_time
 
@@ -323,7 +339,6 @@ if __name__ == '__main__':
 
     WELCOME_MSG = t('Thanks for installing Music Caster.') + '\n' + t('Music Caster is running in the tray.')
     uris_to_scan = Queue()
-    SETTINGS_FILE = Path('settings.json').absolute()
     PRESSED_KEYS = set()
     settings_file_lock = threading.Lock()
     last_play_command = settings_last_modified = 0
@@ -353,7 +368,8 @@ if __name__ == '__main__':
         'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER, 'scan_folders': True,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
         'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []},
-        'position': 0, 'plugged_in_res': get_initial_res(), 'on_battery_res': get_initial_res(), 'experimental_features': False}
+        'position': 0, 'plugged_in_res': None, 'on_battery_res': None, 'experimental_features': False,
+        'api_key': secrets.token_urlsafe(16)}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
     playing_status = PlayingStatus()
@@ -812,10 +828,14 @@ if __name__ == '__main__':
                 file.save(Path.home() / 'Downloads' / file.filename)
         return redirect('/#more')
 
-    @app.route('/', methods=['GET', 'POST'])
-    def web_index():  # web GUI
-        if request.values:
-            if 'play' in request.values:
+
+    @app.route('/action/<command>', methods=['GET', 'POST'])
+    def web_action(command):
+        request_data = request.json if request.json else request.values
+        # if request_data.get('api_key') != settings['api_key']:
+        #     return {'error': 'Unauthorized, api_key=not-provided'}, 401
+        match command:
+            case 'play':
                 if resume('web'):
                     api_msg = 'resumed playback'
                 else:
@@ -825,27 +845,38 @@ if __name__ == '__main__':
                     else:
                         play_all()
                         api_msg = 'shuffled all and started playing'
-            elif 'pause' in request.values:
+            case 'pause':
                 pause()  # resume == play
                 api_msg = 'pause called'
-            elif 'next' in request.values:
-                ignore_timestamps = 'ignore_timestamps' in request.values
-                next_track(times=int(request.values.get('times', 1)), forced=True, ignore_timestamps=ignore_timestamps)
+            case 'next':
+                ignore_timestamps = 'ignore_timestamps' in request_data
+                next_track(times=int(request_data.get('times', 1)), forced=True, ignore_timestamps=ignore_timestamps)
                 api_msg = 'next track called'
-            elif 'prev' in request.values:
-                prev_track(times=int(request.values.get('times', 1)), forced=True)
+            case 'prev':
+                prev_track(times=int(request_data.get('times', 1)), forced=True)
                 api_msg = 'prev track called'
-            elif 'repeat' in request.values:
+            case 'repeat':
                 cycle_repeat()
                 api_msg = 'cycled repeat to ' + {None: 'off', True: 'one', False: 'all'}[settings['repeat']]
-            elif 'shuffle' in request.values:
+            case 'shuffle':
                 shuffle_enabled = update_settings('shuffle', not settings['shuffle'])
                 api_msg = f'shuffle set to {shuffle_enabled}'
-            elif 'activate' in request.values:
+            case 'activate':
                 daemon_commands.put('__ACTIVATED__')  # tell main thread to show GUI
                 api_msg = 'activated main window'
-            else: api_msg = 'invalid command'
-            return api_msg if ('is_api' in request.args or request.method == 'POST') else redirect('/')
+            case _:
+                return f'unknown command: {command}'
+        return {'message': api_msg} if ('is_api' in request.args or request.method == 'POST') else redirect('/')
+
+
+    @app.route('/', methods=['GET', 'POST'])
+    def web_index():  # web GUI
+        request_data = request.json if request.json else request.values
+        for command in ('play', 'pause', 'next', 'prev', 'repeat', 'shuffle', 'activate'):
+            if command in request_data: return web_action(command)
+        api_key = settings['api_key']
+        # if request_data.get('api_key') != api_key:
+        #     return jsonify({'error': 'Unauthorized, api_key=not-provided'}), 401
         metadata = get_current_metadata()
         art = get_current_art()
         if type(art) == bytes: art = art.decode()
@@ -871,7 +902,7 @@ if __name__ == '__main__':
             uri = music_queue[0]
             if os.path.exists(uri):
                 file_path = pathname2url(uri).strip('/')
-                stream_url = f'/file?path={file_path}'
+                stream_url = f"/file?path={file_path}&api_key={api_key}"
             else:
                 stream_url = metadata.get('audio_url', metadata.get('url'))
         for cast_info in sorted(cast_browser.devices.values(), key=cast_info_sorter):
@@ -901,8 +932,9 @@ if __name__ == '__main__':
     @app.route('/play/', methods=['GET', 'POST'])
     def api_play():
         global last_play_command
-        queue_only = request.values.get('queue', '').casefold() == 'true'
-        play_next = request.values.get('play_next', '').casefold() == 'true'
+        request_data = request.json if request.json else request.values
+        queue_only = str(request_data.get('queue', '')).casefold() == 'true'
+        play_next = str(request_data.get('play_next', '')).casefold() == 'true'
         merge_plays = time.monotonic() - last_play_command < 0.5
         # reset recent_api_plays
         if not merge_plays:
@@ -917,13 +949,14 @@ if __name__ == '__main__':
         merge_plays = recent_api_plays[opt]
         recent_api_plays[opt] += 1
         last_play_command = time.monotonic()
-        if 'uris' in request.values:
-            play_uris(request.values.getlist('uris'), queue_uris=queue_only,
+        if 'uris' in request_data:
+            uris = request_data['uris'] if isinstance(request_data, dict) else request_data.getlist('uris')
+            play_uris(uris, queue_uris=queue_only,
                       play_next=play_next, merge_tracks=merge_plays)
             if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
                 queue_all()
-        elif 'uri' in request.values:
-            play_uris([request.values['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
+        elif 'uri' in request_data:
+            play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
             if settings['queue_library']: queue_all()
         return redirect('/') if request.method == 'GET' else api_state()
 
@@ -1002,7 +1035,8 @@ if __name__ == '__main__':
 
     @app.get('/devices/')
     def api_get_devices():
-        friendly = 'friendly' in request.values
+        request_data = request.json if request.json else request.values
+        friendly = 'friendly' in request_data
         if not friendly:
             devices = {'0': 'Local device'}
             for _uuid, cast_info in cast_browser.devices.items():
@@ -1471,7 +1505,8 @@ if __name__ == '__main__':
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
             url_metadata['SYSTEM_AUDIO'] = {'artist': artist, 'title': title, 'album': album}
             sar.start()  # start recording system audio BEFORE the first request for data
-            url = f'http://{get_ipv4()}:{State.PORT}/system-audio/'
+            api_key = settings['api_key']
+            url = f'http://{get_ipv4()}:{State.PORT}/system-audio/?api_key={api_key}'
             mc.play_media(url, 'audio/wav', metadata=metadata, thumb=f'{url}/thumb', stream_type='LIVE')
             mc.block_until_active(WAIT_TIMEOUT + 1)
             stream_start_time = time.monotonic()
@@ -1764,7 +1799,8 @@ if __name__ == '__main__':
         title, artist, album = metadata['title'], metadata['artist'], metadata['album']
         ext = metadata['ext']
         url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
-        thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART'
+        api_key = settings['api_key']
+        thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART&api_key={api_key}'
         track_length = metadata['length']
         if cast is None:
             volume = 0 if settings['muted'] else settings['volume'] / 100
@@ -1836,7 +1872,7 @@ if __name__ == '__main__':
             audio_player.play(uri, volume=volume, start_playing=autoplay, start_from=position)
         else:
             try:
-                url_args = urllib.parse.urlencode({'path': uri})
+                url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
                 cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(volume)
@@ -2544,7 +2580,8 @@ if __name__ == '__main__':
                 window_layout = MiniPlayerWindow(playing_status, settings, title, artist, album_art_data, track_length, _track_position)
             else:
                 window_layout = MainWindow(playing_status, settings, title, artist, album, album_art_data, track_length, _track_position,
-                                           lb_tracks, selected_value, timer, all_tracks, get_devices(), f'http://{get_ipv4()}:{State.PORT}')
+                                           lb_tracks, selected_value, timer, all_tracks, get_devices(),
+                                           f"http://{get_ipv4()}:{State.PORT}?api_key={settings['api_key']}")
             window_metadata: dict = {'last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
                                      'library': {'sort_by': 0, 'ascending': True, 'region': 'cell', 'column': 1},
                                      'mouse_hover': '', 'url_input': '', 'pl_url_input': ''}
@@ -2596,19 +2633,20 @@ if __name__ == '__main__':
         with suppress(TclError):
             focus_window(gui_window)
 
-    def uri_at_idx(idx=0):
+    def uri_at_idx(idx=0, offset=None):
+        # converts listbox idx to uri
         # raises IndexError
-        if idx < 0:
+        if idx < len(done_queue):
             uri = done_queue[idx]
-        elif idx == 0:
+        elif idx == len(done_queue):
             uri = music_queue[0]
-        elif 0 < idx <= len(next_queue):
-            uri = next_queue[idx - 1]
+        elif idx <= len(next_queue) + len(done_queue):
+            uri = next_queue[idx - 1 - len(done_queue)]
         else:
-            uri = music_queue[idx - len(next_queue)]
+            uri = music_queue[idx - len(next_queue) - len(done_queue)]
         return uri
 
-    def locate_uri(selected_track_index=0, uri=None):
+    def locate_uri(selected_track_index=None, uri=None):
         with suppress(IndexError):
             if uri is None:
                 uri = uri_at_idx(idx=selected_track_index)
@@ -2867,7 +2905,7 @@ if __name__ == '__main__':
                 dq_len = len(done_queue)
                 gui_window['queue'].update(values=values, set_to_index=dq_len, scroll_to_index=dq_len)
         elif main_event == 'album' and playing_status.busy():
-            locate_uri()
+            locate_uri(len(done_queue))
         # queue related actions
         elif main_event == 'mini_mode':
             update_settings('mini_mode', not settings['mini_mode'])
@@ -2897,8 +2935,8 @@ if __name__ == '__main__':
         elif main_event == 'locate_uri':
             if not settings['mini_mode'] and main_values['queue']:
                 for index in gui_window['queue'].get_indexes():
-                    locate_uri(index - len(done_queue))
-            else: locate_uri()
+                    locate_uri(index)
+            else: locate_uri(len(done_queue))
         elif main_event == 'copy_uri':
             with suppress(IndexError):
                 text_to_copy = ', '.join(( uri_at_idx(index) for index in gui_window['queue'].get_indexes()))
@@ -3658,12 +3696,12 @@ if __name__ == '__main__':
                     # if ports are not occupied
                     with suppress(OSError):
                         # try to start server and bind it to PORT
+                        # Linux auto-maps ipv4 to ipv6 however Windows keep them seperate
                         if platform.system() == 'Windows':
-                            server_kwargs = {'host': '0.0.0.0', 'port': State.PORT, 'threaded': True}
-                            Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
-                        # Linux maps ipv4 to ipv6
-                        server_kwargs = {'host': '::', 'port': State.PORT, 'threaded': True}
-                        Thread(target=app.run, name='FlaskServer', daemon=True, kwargs=server_kwargs).start()
+                            server_kwargs = {'host': '0.0.0.0', 'port': State.PORT}
+                            Thread(target=waitress.serve, name='WaitressServe', daemon=True, args=(app,), kwargs=server_kwargs).start()
+                        server_kwargs = {'host': '::', 'port': State.PORT}
+                        Thread(target=waitress.serve, name='WaitressServe', daemon=True, args=(app,), kwargs=server_kwargs).start()
                         break
                 State.PORT += 1  # port in use or failed to bind to port
         with suppress(PermissionError):
@@ -3674,11 +3712,12 @@ if __name__ == '__main__':
         tray_process = mp.Process(target=system_tray, name='Music Caster Tray',
                                   args=(daemon_commands, tray_process_queue), daemon=True)
         tray_process.start()
-        print(f'Running on http://127.0.0.1:{State.PORT}/')
-        print(f'Running on http://[::1]:{State.PORT}/')
-        app_log.info(f'LAN IPV4: http://{get_ipv4()}:{State.PORT}/')
+        api_key = settings['api_key']
+        print(f'Running on http://127.0.0.1:{State.PORT}/?api_key={api_key}')
+        print(f'Running on http://[::1]:{State.PORT}/?api_key={api_key}')
+        app_log.info(f'LAN IPV4: {get_ipv4()}:{State.PORT}/')
         try:
-            app_log.info(f'LAN IPV6: http://{get_ipv6()}:{State.PORT}/')
+            app_log.info(f'LAN IPV6: {get_ipv6()}:{State.PORT}/')
         except StopIteration:
             app_log.info('Could not get LAN IPV6 address')
         DiscordPresence.connect(settings['discord_rpc'])
@@ -3755,27 +3794,25 @@ if __name__ == '__main__':
                 last_position_save = time.monotonic()
             if cast is not None:
                 cast_monitor()
-            if platform.system() == 'Windows':
-                try:
-                    if settings['on_battery_res'] != settings['plugged_in_res']:
+            if platform.system() == 'Windows' and None not in (settings['on_battery_res'], settings['plugged_in_res']):
+                if settings['on_battery_res'] != settings['plugged_in_res']:
+                    try:
                         user32 = ctypes.windll.user32
                         res_map = get_all_resolutions()
                         if is_plugged_in(throw_error=False):
-                            plugged_in_info = res_map[fmt_res(*settings['plugged_in_res'])]
-                            if user32.GetSystemMetrics(0) * plugged_in_info['dpi_scale'] != settings['plugged_in_res'][0]:
+                            res_info = res_map[fmt_res(*settings['plugged_in_res'])]
+                            if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['plugged_in_res'][0]:
                                 refresh_rate = max(get_all_refresh_rates())
-                                set_resolution(plugged_in_info['w'], plugged_in_info['h'], plugged_in_info['dpi_scale'], refresh_rate=refresh_rate)
-                                refresh_tray_icon()
                         else:  # on battery
-                            on_battery_info = res_map[fmt_res(*settings['on_battery_res'])]
-                            if user32.GetSystemMetrics(0) * on_battery_info['dpi_scale'] != settings['on_battery_res'][0]:
+                            res_info = res_map[fmt_res(*settings['on_battery_res'])]
+                            if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['on_battery_res'][0]:
                                 refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
-                                set_resolution(on_battery_info['w'], on_battery_info['h'], on_battery_info['dpi_scale'], refresh_rate=refresh_rate)
-                                refresh_tray_icon()
-                except KeyError:
-                    update_settings('plugged_in_res', get_initial_res())
-                    update_settings('on_battery_res', get_initial_res())
-                    tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
+                        set_resolution(res_info['w'], res_info['h'], res_info['dpi_scale'], refresh_rate=refresh_rate)
+                        refresh_tray_icon()
+                    except KeyError:
+                        update_settings('plugged_in_res', get_initial_res())
+                        update_settings('on_battery_res', get_initial_res())
+                        tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
             time.sleep(0.2) if gui_window.was_closed() else read_main_window()
     except KeyboardInterrupt:
         exit_program()

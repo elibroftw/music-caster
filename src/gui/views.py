@@ -330,12 +330,14 @@ def SettingsTab(settings, web_ui_url):
 
     if platform.system() == 'Windows':
         res_values = list(get_all_resolutions().keys())
+        on_battery_res = None if settings['on_battery_res'] is None else fmt_res(*settings['on_battery_res'])
+        plugged_in_res = None if settings['plugged_in_res'] is None else fmt_res(*settings['plugged_in_res'])
         misc_tab = Sg.Tab(t('Misc'),[
             [Sg.Text(t('On battery resolution')),
-             Sg.Combo(values=res_values, size=(6, 1), default_value=fmt_res(*settings['on_battery_res']),
+             Sg.Combo(values=res_values, size=(6, 1), default_value=on_battery_res,
                        key='on_battery_res', readonly=True, enable_events=True)],
             [Sg.Text(t('Plugged in resolution')),
-             Sg.Combo(values=res_values, size=(6, 1), default_value=fmt_res(*settings['plugged_in_res']),
+             Sg.Combo(values=res_values, size=(6, 1), default_value=plugged_in_res,
                         key='plugged_in_res', readonly=True, enable_events=True)],
             [Checkbox(t('Experimental features'), 'experimental_features', settings)]
             ],

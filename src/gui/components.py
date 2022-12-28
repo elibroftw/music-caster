@@ -34,10 +34,9 @@ def IconButton(image_data, key, tooltip, bg):
     return Sg.Button(image_data=image_data, key=key, tooltip=tooltip, enable_events=True, button_color=(bg, bg))
 
 
-def Checkbox(name, key, settings, on_right=False, tooltip=''):
+def Checkbox(name, key, settings, on_right=False, tooltip=None):
     bg = settings['theme']['background']
     size = (23, 5) if on_right else (23, 5)
-    tooltip = tooltip or name
     checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
     return Sg.Checkbox(name, default=settings[key], key=key, tooltip=tooltip, size=size, **checkbox)
 

@@ -19,6 +19,7 @@ PySimpleGUI~=4.60.0
 pystray~=0.19.1
 requests~=2.28
 urllib3~=1.26.7
+waitress~=2.0
 wavinfo==1.6
 youtube_dl
 scrapetube
