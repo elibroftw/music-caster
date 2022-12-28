@@ -106,7 +106,7 @@ Invertir comportamiento de reproducir siguiente
 Reproducir siguiente invertido
 Reproduce al empezar
 Guardar cola entre sesiones
-Guardar la cola en la lista de reproducción
+Guardar en la lista de reproducción
 Guardar posiciones de ventana
 Escanear carpetas
 Rueda del ratón de desplazamiento
@@ -195,4 +195,6 @@ Salir de la aplicación al cerrar la GUI
 Sobre la resolución de la batería
 Resolución enchufada
 No se pudo establecer la resolución
-copiar uris
+copiar URIs
+editar metadatos
+caracteristicas experimentales

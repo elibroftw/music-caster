@@ -106,7 +106,7 @@ Omgekeerd afspelen volgende gedrag
 Omgekeerd afspelen volgende
 Uitvoeren bij het starten
 Wachtrij tussen sessies opslaan
-Bewaar de wachtrij in een afspeellijst
+opslaan in afspeellijst
 Vensterposities opslaan
 Mappen scannen
 scroll muiswiel
@@ -195,4 +195,6 @@ Sluit app op GUI sluiten
 Op batterij resolutie
 Aangesloten resolutie
 Kan resolutie niet instellen
-kopieer uri
+kopieer URI
+metagegevens bewerken
+experimentele functies

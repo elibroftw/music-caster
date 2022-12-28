@@ -106,7 +106,7 @@ Reverse play next behaviour
 Reversed play next
 Run on startup
 Save queue between sessions
-Save queue to playlist
+Save to playlist
 Save window positions
 Scan folders
 scroll mousewheel
@@ -195,4 +195,6 @@ Exit app on GUI close
 On battery resolution
 Plugged in resolution
 Could not set resolution
-copy uris
+copy URIs
+edit metadata
+Experimental features

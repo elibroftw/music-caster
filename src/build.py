@@ -233,7 +233,7 @@ if not args.skip_build:
     main_file = 'Music Caster'
     if platform.system() == 'Windows':
         main_file += '.exe'
-    for dist_file in (main_file, f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip', 'Source Files Condensed.zip'):
+    for dist_file in (main_file, f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip'):
         with suppress(FileNotFoundError):
             dist_file = os.path.join('dist', dist_file)
             print(f'Removing {dist_file}')
@@ -289,11 +289,11 @@ if not args.skip_build:
         lang_packs = glob.glob('languages/*.txt')
         music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
         updater_portable = ('dist/Updater.exe', 'Updater.exe')
-        portable_files = [music_caster_portable,
-                          ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'),
-                          updater_portable]
+        portable_files = [music_caster_portable, ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'), updater_portable]
         vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
-        portable_files.extend(res_files + glob.glob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
+        portable_files.extend(res_files)
+        portable_files.extend(glob.iglob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
+        portable_files.extend(glob.iglob(f'theme/**/*.*', recursive=True))
         portable_files.extend(lang_packs)
         print('Creating dist/Portable.zip')
         create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
@@ -317,18 +317,16 @@ if not args.skip_build:
         linux_dist = 'dist/Music Caster (Linux)'
         print(f'Creating {linux_dist}.zip')
         shutil.make_archive(linux_dist, 'zip', 'dist/Music Caster OneDir')
-    print('Creating dist/Source Files Condensed.zip')
-    create_zip('dist/Source Files Condensed.zip', ['music_caster.py', 'helpers.py'])
-    with suppress(AttributeError): s4.wait()  # Wait for inno script to finish
+    with suppress(AttributeError): s4.wait()  # Wait for InnoSetup script to finish
     print(f'v{VERSION} Build Time:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
 
 if platform.system() == 'Windows':
-    dist_files = ('Music Caster Setup.exe', 'Portable.zip', 'Source Files Condensed.zip')
+    dist_files = ('Music Caster Setup.exe', 'Portable.zip')
 elif platform.system() == 'Darwin':
-    dist_files = ('Music Caster (OSX).zip', 'Source Files Condensed.zip')
+    dist_files = ('Music Caster (OSX).zip',)
 else:
-    dist_files = ('Music Caster (Linux).zip', 'Source Files Condensed.zip')
+    dist_files = ('Music Caster (Linux).zip',)
 
 # check if all files were built
 dist_files_exist = True

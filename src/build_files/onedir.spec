@@ -15,10 +15,11 @@ block_cipher = None
 vlc_ext = 'dll' if platform.system() == 'Windows' else 'so*'
 vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob(f'vlc_lib/**/*.{vlc_ext}', recursive=True)]
 lang_packs = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('languages/*.txt')]
+tcl_theme = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('theme/**/*.*', recursive=True)]
 tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
 data_files = [('Music Caster.VisualElementsManifest.xml', '.'),
               (os.path.abspath('templates/index.html'), 'templates'),
-              (os.path.abspath('static/style.css'), 'static')] + vlc_files + lang_packs + tkdnd
+              (os.path.abspath('static/style.css'), 'static')] + vlc_files + lang_packs + tkdnd + tcl_theme
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],

@@ -106,7 +106,7 @@ kehre das Verhalten von "spiele nächstes ab" um
 spiele vorheriges ab
 beim Start ausführen
 speichere die Warteschlange zwischen Sitzungen
-speichere die Warteschlange als Wiedergabeliste
+In Wiedergabeliste speichern
 speichere Fensterposition
 lese Ordner ein
 Blättern mit Mausrad
@@ -196,3 +196,5 @@ Auf Batterieauflösung
 Eingesteckte Auflösung
 Auflösung konnte nicht eingestellt werden
 URIs kopieren
+metadaten bearbeiten
+experimentelle funktionen

@@ -3,7 +3,7 @@ import sys
 if __name__ == '__main__':
     freeze_support()
 from music_caster import get_running_processes, is_already_running, VERSION
-from helpers import *
+from utils import *
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
 TEST_MUSIC_FILES = [
@@ -86,7 +86,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
         assert get_lang_pack(code)
 
     for code in ('es', 'de', 'en'):
-        Shared.lang = code
+        State.lang = code
         for line in get_lang_pack('en'):
             get_translation(line, code)
         unknown_title = Unknown('Title')
@@ -98,14 +98,14 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
     # test get length
     for file in chain(TEST_MUSIC_FILES, ['https://audio.tv', 'https://audio.com', 'audio.mp3', 'https://audio.mp4']):
         try:
-            assert get_length(file) > 0
+            assert get_audio_length(file) > 0
             assert valid_audio_file(file)
         except InvalidAudioFile:
             assert not os.path.exists(file)
     for file in ('audio_player.py', 'file.mp4', 'README.txt'):
         with suppress(InvalidAudioFile):
             # should raise an error but not crash program
-            get_length(file)
+            get_audio_length(file)
 
     LIST_TO_NAT_SORT_1.sort(key=natural_key_file)
     LIST_TO_NAT_SORT_2.sort(key=natural_key_file)
@@ -141,7 +141,8 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
             raise AssertionError
 
     print('get_ipv6():', get_ipv6())
-    print('get_ipv4():', get_ipv4())
+    ipv4_addr = get_ipv4()
+    print('get_ipv4():', ipv4_addr)
     assert get_ipv6().count(':')
     assert get_ipv4().count('.') == 3
 
@@ -153,7 +154,6 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
     assert test_better_shuffle[0] == 0
     assert test_better_shuffle[-1] == 9999
 
-    assert isinstance(create_qr_code(), str)
     if platform.system() == 'Windows':
         for process in get_running_processes():
             assert len(process) == 5
@@ -188,7 +188,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
         except AssertionError:
             print('TEST FAILED', option)
             raise AssertionError
-    assert create_progress_bar_text(30, 300) == ('0:30', '4:30')
+    assert create_progress_bar_texts(30, 300) == ('0:30', '4:30')
 
     if platform.system() == 'Windows':
         print('Default Audio Device:', get_default_output_device())

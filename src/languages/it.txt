@@ -106,7 +106,7 @@ Inverti modalità riproduzione successiva
 Riprod. successiva invertita
 Esegui all'avvio
 Salva la coda tra le sessioni
-Salva coda in una playlist
+Salva in playlist
 Salva posizioni finestre
 Scansione cartelle
 scorrere la rotella del mouse
@@ -195,4 +195,6 @@ Esci dall'app alla chiusura della GUI
 Sulla risoluzione della batteria
 Risoluzione inserita
 Impossibile impostare la risoluzione
-copia uris
+copia URIs
+modificare i metadati
+caratteristiche sperimentali
