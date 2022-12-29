@@ -3380,7 +3380,6 @@ if __name__ == '__main__':
                                                        scroll_to_index=max(new_i - 3, 0))
         elif main_event in {'pl_locate_selected', 'pl_tracks'}:
             for i in gui_window['pl_tracks'].get_indexes():
-                print(gui_window.metadata['pl_tracks'][i])
                 locate_uri(uri=gui_window.metadata['pl_tracks'][i])
         elif main_event == 'pl_copy_selected':
             with suppress(IndexError):

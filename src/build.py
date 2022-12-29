@@ -252,7 +252,7 @@ if not args.skip_build:
     if args.clean:
         additional_args += ' --clean'
     if platform.system() == 'Windows':
-        s1 = Popen(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
+        s1 = Popen(f'{sys.executable} -O -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
     else:
         s1 = None
     try:
@@ -263,7 +263,7 @@ if not args.skip_build:
         check_call('go build -ldflags "-s -w -H windowsgui" -o dist/Updater.exe')
     except Exception as e:
         print(f'WARNING: {e}')
-    check_call(f'{sys.executable} -OO -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
+    check_call(f'{sys.executable} -O -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
     try:
         if platform.system() == 'Windows':
             s4 = Popen('iscc build_files/setup_script.iss')

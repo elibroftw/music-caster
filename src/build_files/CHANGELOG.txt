@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.12.2
+- Upgrade dependencies
+
 5.12.1
 - [Fix] queue action accuracy
 - [Note] new API

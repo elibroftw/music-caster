@@ -4,8 +4,7 @@ pywin32; sys_platform == 'win32'
 pyaudio; sys_platform != 'win32'
 pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
-ujson==5.5.0
-pycparser==2.14
+ujson~=5.5
 mutagen~=1.45.1
 Pillow~=9.0
 pychromecast~=12.1
@@ -20,7 +19,7 @@ pystray~=0.19.1
 requests~=2.28
 urllib3~=1.26.7
 waitress~=2.0
-wavinfo==1.6
+wavinfo~=2.1
 youtube_dl
 scrapetube
 pyperclip~=1.8
@@ -29,9 +28,10 @@ werkzeug~=2.0.2
 pyperclip~=1.8
 python-vlc==3.0.12118
 lz4==3.1.3a
-browser_cookie3~=0.12
+git+https://github.com/elibroftw/browser_cookie3.git
 beautifulsoup4~=4.10
 flask~=2.0
+pycparser~=2.14  # used by deemix
 deezer-py~=1.2
 deemix~=3.5
 six~=1.16
