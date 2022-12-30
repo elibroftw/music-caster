@@ -5,13 +5,13 @@ pyaudio; sys_platform != 'win32'
 pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
 ujson~=5.5
-mutagen~=1.45.1
+mutagen~=1.45
 Pillow~=9.0
 pychromecast~=12.1
 zeroconf~=0.37
 pynput~=1.4.5
 pypng~=0.0.20
-# pypresence~=4.0
+# pypresence
 git+https://github.com/elibroftw/pypresence.git
 pyqrcode~=1.2.1
 PySimpleGUI~=4.60.0
@@ -28,14 +28,14 @@ werkzeug~=2.0.2
 pyperclip~=1.8
 python-vlc==3.0.12118
 lz4==3.1.3a
-git+https://github.com/elibroftw/browser_cookie3.git
+browser_cookie3
 beautifulsoup4~=4.10
 flask~=2.0
 pycparser~=2.14  # used by deemix
 deezer-py~=1.2
 deemix~=3.5
 six~=1.16
-portalocker~=2.4.0
+portalocker~=2.4
 numpy~=1.21
 matplotlib~=3.6
 soundfile~=0.11

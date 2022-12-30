@@ -2690,7 +2690,11 @@ if __name__ == '__main__':
             save_queues()
             with suppress(RuntimeError):
                 save_queue_thread.join()
-        portalocker.unlock(lock_file)
+        try:
+            portalocker.unlock(lock_file)
+        except Exception as e:
+            # TODO: remove if errors are no longer raised
+            handle_exception(e)
         sys.exit()
 
 
