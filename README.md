@@ -6,6 +6,8 @@
 
 Music Caster is a modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
 
+[Screenshots](https://elijahlopez.ca/music-caster/)
+
 ### Donate or Translate
 
 - monero:84PR6SkYd5zaFLKDjAFrQfbaAg2c7SV3q3XDZ15QCpEZUggrN4YzY7n8m9XC3deXjo41yWHTm1LrsUpPTYGnRQbD9Cwp8En
