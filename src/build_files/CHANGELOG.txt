@@ -1,7 +1,7 @@
 Music Caster by Elijah Lopez Changelog
 
 5.12.4
-- Upgrade dependencies
+- [Fix] Deezer, Spotify search
 
 5.12.3
 - [Fix] Exit app crash

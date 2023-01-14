@@ -1589,13 +1589,15 @@ if __name__ == '__main__':
         Supports: YouTube, Soundcloud, any url ending with a valid audio extension
         """
         global deezer_opened
+        ytsearch = 'ytsearch1'
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
         if url in url_metadata and not url_expired(url): return [url_metadata[url]]
         if url.startswith('www'):
             url = f'http://{url}'
         # short-circuit
-        if not url.startswith('http'):
+        print(url, url.startswith(ytsearch))
+        if not url.startswith('http') and not url.startswith(ytsearch):
             return metadata_list
         if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
             ext = url[::-1].split('.', 1)[0][::-1]
@@ -1637,7 +1639,8 @@ if __name__ == '__main__':
                                                     'length': r['duration'], 'art': r['thumbnail'], 'url': r['url']}
                     metadata_list.append(metadata)
         # youtube
-        elif (ytid := get_yt_id(url)) is not None or url.startswith('ytsearch:'):
+        elif (ytid := get_yt_id(url)) is not None or url.startswith(f'{ytsearch}:'):
+            print(url)
             # lazily get videos in the playlist
             if ytid is not None and ytid.startswith('PL'):
                 videos = scrapetube.get_playlist(ytid)
@@ -1659,7 +1662,7 @@ if __name__ == '__main__':
                         metadata_list.append(metadata)
             else:
                 # type error in case video was deleted or unavailable
-                with suppress(IOError, TypeError):
+                try:
                     r = ydl_extract_info(url, quiet=not is_debug())
                     if 'entries' in r:
                         for entry in r['entries']:
@@ -1678,6 +1681,8 @@ if __name__ == '__main__':
                         for webpage_url in get_yt_urls(r['id']): url_metadata[webpage_url] = metadata
                         url_metadata[url] = metadata
                         metadata_list.append(metadata)
+                except (IOError, TypeError) as e:
+                    print(e)
         elif url.startswith('https://open.spotify.com'):
             # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):
@@ -1686,7 +1691,7 @@ if __name__ == '__main__':
                     youtube_metadata = get_url_metadata(f"https://www.youtube.com/watch?v={metadata['ytid']}", False)
                 else:
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
+                    youtube_metadata = get_url_metadata(f'{ytsearch}:{query}', False)
                     if metadata['src'] == '':
                         metadata['src'] = youtube_metadata['src']
                 if youtube_metadata:
@@ -1711,7 +1716,7 @@ if __name__ == '__main__':
                 if spotify_tracks:
                     metadata = spotify_tracks[0]
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)
+                    youtube_metadata = get_url_metadata(f'{ytsearch}:{query}', False)
                     if youtube_metadata:
                         youtube_metadata = youtube_metadata[0]
                         # expiry, url, and audio_url are not overwritten here
@@ -1742,7 +1747,7 @@ if __name__ == '__main__':
                 if url in url_metadata:
                     metadata = url_metadata[url]
                     query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                    youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                    youtube_metadata = get_url_metadata(f'{ytsearch}:{query}', False)[0]
                     metadata = {**youtube_metadata, **metadata}
                     url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                     metadata_list.append(metadata)
@@ -1751,7 +1756,7 @@ if __name__ == '__main__':
                     if deezer_tracks:
                         metadata = deezer_tracks[0]
                         query = f"{get_first_artist(metadata['artist'])} - {metadata['title']}"
-                        youtube_metadata = get_url_metadata(f'ytsearch:{query}', False)[0]
+                        youtube_metadata = get_url_metadata(f'{ytsearch}:{query}', False)[0]
                         metadata = {**youtube_metadata, **metadata}
                         url_metadata[metadata['src']] = url_metadata[youtube_metadata['src']] = metadata
                         metadata_list.append(metadata)
