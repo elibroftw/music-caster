@@ -25,7 +25,6 @@ scrapetube
 pyperclip~=1.8
 yt-dlp
 werkzeug~=2.0.2
-pyperclip~=1.8
 python-vlc==3.0.12118
 lz4==3.1.3a
 browser_cookie3

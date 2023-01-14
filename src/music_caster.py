@@ -1596,7 +1596,6 @@ if __name__ == '__main__':
         if url.startswith('www'):
             url = f'http://{url}'
         # short-circuit
-        print(url, url.startswith(ytsearch))
         if not url.startswith('http') and not url.startswith(ytsearch):
             return metadata_list
         if url.startswith('http') and valid_audio_file(url):  # source url e.g. http://...radio.mp3
@@ -1640,7 +1639,6 @@ if __name__ == '__main__':
                     metadata_list.append(metadata)
         # youtube
         elif (ytid := get_yt_id(url)) is not None or url.startswith(f'{ytsearch}:'):
-            print(url)
             # lazily get videos in the playlist
             if ytid is not None and ytid.startswith('PL'):
                 videos = scrapetube.get_playlist(ytid)
@@ -2551,6 +2549,7 @@ if __name__ == '__main__':
         gui_window.bind('<Control-s>', 's:83')
         gui_window.bind('<Control-m>', 'mute')
         gui_window.bind('<Control-e>', 'locate_uri')
+        gui_window.bind('<Control-c>', '<<Copy>>')
         gui_window.bind('<KeyPress>', 'KeyPress')
         for i in range(1, 10):
             gui_window.bind(f'<Control-Key-{i}>', f'{i}:{48 + i}')
@@ -2786,7 +2785,7 @@ if __name__ == '__main__':
                 main_event = 'progress_bar'
                 gui_window.refresh()
         # override keypress events
-        in_tab_queue = main_values.get('tab_group') in {'tab_queue', None}
+        QUEUE_TAB_SELECTED = main_values.get('tab_group') in {'tab_queue', None}
         if main_event != '__TIMEOUT__':
             with suppress(KeyError):
                 el = gui_window.find_element_with_focus()
@@ -2834,7 +2833,7 @@ if __name__ == '__main__':
             if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
                 gui_window.grab_any_where_on()
             if main_event != 'volume_slider_mouse_leave': gui_window.metadata['mouse_hover'] = ''
-        elif main_event == 'pause/resume' or main_event == 'k' and in_tab_queue:
+        elif main_event == 'pause/resume' or main_event == 'k' and QUEUE_TAB_SELECTED:
             if playing_status.paused(): resume('gui')
             elif playing_status.playing(): pause()
             elif music_queue: play()
@@ -2846,9 +2845,9 @@ if __name__ == '__main__':
                 done_queue.clear()
                 play()
             else: play_all()
-        elif (main_event == 'next' or main_event == 'N' and in_tab_queue) and playing_status.busy():
+        elif (main_event == 'next' or main_event == 'N' and QUEUE_TAB_SELECTED) and playing_status.busy():
             next_track()
-        elif (main_event == 'prev' or main_event == 'B' and in_tab_queue) and playing_status.busy():
+        elif (main_event == 'prev' or main_event == 'B' and QUEUE_TAB_SELECTED) and playing_status.busy():
             prev_track()
         elif main_event == 'devices':
             change_device(main_value.id)
@@ -2869,7 +2868,7 @@ if __name__ == '__main__':
             update_settings('shuffle', not settings['shuffle'])
         elif main_event == 'repeat': cycle_repeat()
         elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdecimal())
-                                                and in_tab_queue)):
+                                                and QUEUE_TAB_SELECTED)):
             # User scrubbed volume bar or pressed a, d, #
             try:
                 new_volume = int(main_event) * 10
@@ -2946,7 +2945,7 @@ if __name__ == '__main__':
                 for index in gui_window['queue'].get_indexes():
                     locate_uri(index)
             else: locate_uri(len(done_queue))
-        elif main_event == 'copy_uri':
+        elif main_event == 'copy_uri' or (main_event == '<<Copy>>' and QUEUE_TAB_SELECTED):
             with suppress(IndexError):
                 text_to_copy = ', '.join(( uri_at_idx(index) for index in gui_window['queue'].get_indexes()))
                 if text_to_copy: pyperclip.copy(text_to_copy)

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.12.5
+- [Fix] Ctrl + C for queue
+
 5.12.4
 - [Fix] Deezer, Spotify search
 
