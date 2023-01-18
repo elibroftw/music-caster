@@ -3809,14 +3809,18 @@ if __name__ == '__main__':
                         refresh_rate = None
                         if is_plugged_in(throw_error=False):
                             res_info = res_map[fmt_res(*settings['plugged_in_res'])]
+                            # check if res differs from desireed res
                             if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['plugged_in_res'][0]:
                                 refresh_rate = max(get_all_refresh_rates())
                         else:  # on battery
                             res_info = res_map[fmt_res(*settings['on_battery_res'])]
+                            # check if res differs from desireed res
                             if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['on_battery_res'][0]:
                                 refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
-                        set_resolution(res_info['w'], res_info['h'], res_info['dpi_scale'], refresh_rate=refresh_rate)
-                        refresh_tray_icon()
+                        # res differs from desired res
+                        if refresh_rate is not None:
+                            set_resolution(res_info['w'], res_info['h'], res_info['dpi_scale'], refresh_rate=refresh_rate)
+                            refresh_tray_icon()
                     except KeyError:
                         update_settings('plugged_in_res', get_initial_res())
                         update_settings('on_battery_res', get_initial_res())
