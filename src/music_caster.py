@@ -1763,7 +1763,7 @@ if __name__ == '__main__':
                             uris_to_scan.put(deezer_track['src'])
                             metadata_list.append(deezer_track)
         else:
-            with suppress(IOError, TypeError):
+            with suppress(IOError, TypeError, AttributeError):
                 r = ydl_extract_info(url, quiet=not is_debug())
                 if 'entries' in r:
                     for entry in r['entries']:

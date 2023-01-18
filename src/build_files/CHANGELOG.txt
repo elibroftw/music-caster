@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.12.7
+- [Fix] Invalid URL crash
+
 5.12.6
 - [Fix] Resolution switcher
 - Upgrade dependencies
