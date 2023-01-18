@@ -102,7 +102,7 @@ func extractZip(src string) error {
 
 	src, _ = filepath.Abs(src)
 	dest := filepath.Dir(src)
-	fmt.Println("Extracing", src, "to", dest)
+	fmt.Println("Extracting", src, "to", dest)
 	for _, f := range r.File {
 
 		// Store filename/path for returning and using later on

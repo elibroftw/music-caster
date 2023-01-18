@@ -3806,6 +3806,7 @@ if __name__ == '__main__':
                     try:
                         user32 = ctypes.windll.user32
                         res_map = get_all_resolutions()
+                        refresh_rate = None
                         if is_plugged_in(throw_error=False):
                             res_info = res_map[fmt_res(*settings['plugged_in_res'])]
                             if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['plugged_in_res'][0]:
