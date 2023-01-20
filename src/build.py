@@ -140,12 +140,16 @@ if args.deps or (not args.skip_build and not args.skip_deps):
         shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
         shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
     if args.deps:
-        Popen(pip_cmd, stdin=DEVNULL, stdout=None, text=True).wait()
-        print('Finished installing dependencies. Try something else if errors occurred.')
+        if Popen(pip_cmd, stdin=DEVNULL, text=True).wait() > 0:
+            print('Dependencies installed')
+        else:
+            print('ERROR: the following command to install dependencies failed\n', pip_cmd)
         sys.exit()
     else:
-        # suppress output if not dry
-        getoutput(pip_cmd)
+        p = Popen(pip_cmd, stdin=DEVNULL, stdout=DEVNULL, text=True)
+        if p.wait() != 0:
+            print('ERROR: the following command to install dependencies failed\n', pip_cmd)
+            sys.exit()
 
 
 # import third party libraries
