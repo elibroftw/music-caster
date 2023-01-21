@@ -1,19 +1,18 @@
 """
-AudioPlayer v2.3.6
+AudioPlayer v2.3.7
 Author: Elijah Lopez
-Make sure VLC .dll files are located in "vlc_lib/"
+Ensure VLC shared library files (*.dll, *.so) are located in "vlc_lib/"
 """
-from enum import IntEnum
 import math
 import os
+import platform
 import sys
 import time
-import platform
+from enum import IntEnum
 from pathlib import Path
-if getattr(sys, 'frozen', False):
-    app_path = os.path.dirname(sys.executable)
-else:
-    app_path = os.path.dirname(__file__)
+
+IS_FROZEN = getattr(sys, 'frozen', False)  # pyinstaller generated executable
+app_path = os.path.dirname(sys.executable if IS_FROZEN else  __file__)
 vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
 if platform.system() != 'Windows':
     os.environ['PYTHON_VLC_MODULE_PATH'] = f'{app_path}/vlc_lib/plugins'
@@ -23,6 +22,7 @@ cwd = os.getcwd()
 if platform.system() == 'Linux':
     os.chdir(f'{app_path}/vlc_lib')
 import vlc
+
 os.chdir(cwd)
 
 
