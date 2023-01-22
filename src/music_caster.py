@@ -1880,11 +1880,11 @@ if __name__ == '__main__':
                 cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(volume)
                 mc = cast.media_controller
-                metadata = {'title': metadata['title'], 'artist': metadata['artist'],
-                            'albumName': metadata['album'], 'metadataType': 3}
+                metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
+                            'albumName': str(metadata['album']), 'metadataType': 3}
                 ext = uri.split('.')[-1]
                 mc.play_media(url, f'audio/{ext}', current_time=position,
-                              metadata=metadata, thumb=url + '&thumbnail_only=true', autoplay=autoplay)
+                              metadata=metadata, thumb=f'{url}&thumbnail_only=true', autoplay=autoplay)
                 mc.block_until_active(WAIT_TIMEOUT)
                 app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError):

@@ -554,8 +554,8 @@ def get_metadata(file_path: str):
     except (ID3NoHeaderError, HeaderNotFoundError, AttributeError, WavInfoEOFError, StopIteration):
         logging.getLogger('music_caster').info(f'Metadata not found for {file_path}')
         audio = {}
-    title = audio.get('title', [title])[0]
-    album = audio.get('album', [album])[0]
+    title = str(audio.get('title', [title])[0])
+    album = str(audio.get('album', [album])[0])
     try:
         is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
     except IndexError:

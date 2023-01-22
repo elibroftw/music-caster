@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.12.8
+- [Fix] Weird metadata
+
 5.12.7
 - [Fix] Invalid URL crash
 
