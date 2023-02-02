@@ -1681,6 +1681,11 @@ if __name__ == '__main__':
                         metadata_list.append(metadata)
                 except (IOError, TypeError) as e:
                     print(e)
+                except AttributeError as e:
+                    trace_back_msg = traceback.format_exc().replace('\\', '/')
+                    if 'PhantomJS' in trace_back_msg:
+                        Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
+                    handle_exception(e)
         elif url.startswith('https://open.spotify.com'):
             # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):
