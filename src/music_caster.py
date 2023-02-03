@@ -350,7 +350,7 @@ if __name__ == '__main__':
     CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
-    playing_url = deezer_opened = False
+    playing_url = deezer_opened = phantom_js_opened = False
     recent_api_plays = {'play': 0, 'queue': 0, 'play_next': 0}
     # seconds but using time()
     track_position = timer = track_end = track_length = track_start = 0
@@ -1588,7 +1588,7 @@ if __name__ == '__main__':
         Tries to parse url and set url_metadata[url] to parsed metadata
         Supports: YouTube, Soundcloud, any url ending with a valid audio extension
         """
-        global deezer_opened
+        global deezer_opened, phantom_js_opened
         ytsearch = 'ytsearch1'
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
@@ -1683,7 +1683,8 @@ if __name__ == '__main__':
                     print(e)
                 except AttributeError as e:
                     trace_back_msg = traceback.format_exc().replace('\\', '/')
-                    if 'PhantomJS' in trace_back_msg:
+                    if 'PhantomJS' in trace_back_msg and not phantom_js_opened:
+                        phantom_js_opened = True
                         Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
                     handle_exception(e)
         elif url.startswith('https://open.spotify.com'):

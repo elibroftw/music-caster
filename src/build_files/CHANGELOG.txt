@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.12.10
+- [Fix] ytdlp
+
 5.12.9
 - [Fix] Open PhantomJS download page
 
