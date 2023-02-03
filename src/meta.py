@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.12.10'
+VERSION = latest_version = '5.12.11'
 UPDATE_MESSAGE = """
 See changelog for new features
 [MSG] Language translators wanted
