@@ -350,7 +350,7 @@ if __name__ == '__main__':
     CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
-    playing_url = deezer_opened = phantom_js_opened = False
+    playing_url = deezer_opened = attribute_error_reported = False
     recent_api_plays = {'play': 0, 'queue': 0, 'play_next': 0}
     # seconds but using time()
     track_position = timer = track_end = track_length = track_start = 0
@@ -1588,7 +1588,7 @@ if __name__ == '__main__':
         Tries to parse url and set url_metadata[url] to parsed metadata
         Supports: YouTube, Soundcloud, any url ending with a valid audio extension
         """
-        global deezer_opened, phantom_js_opened
+        global deezer_opened, attribute_error_reported
         ytsearch = 'ytsearch1'
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
@@ -1682,11 +1682,13 @@ if __name__ == '__main__':
                 except (IOError, TypeError) as e:
                     print(e)
                 except AttributeError as e:
+                    app_log.error(f'yt-dlp failed to extract {url}')
                     trace_back_msg = traceback.format_exc().replace('\\', '/')
-                    if 'PhantomJS' in trace_back_msg and not phantom_js_opened:
-                        phantom_js_opened = True
-                        Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
-                    handle_exception(e)
+                    if not attribute_error_reported:
+                        attribute_error_reported = True
+                        if 'PhantomJS' in trace_back_msg:
+                            Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
+                        handle_exception(e)
         elif url.startswith('https://open.spotify.com'):
             # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):
