@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.0
+- [Feature] Works with VPN
+
 5.12.12
 - [Fix] ytdlp
 

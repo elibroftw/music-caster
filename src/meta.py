@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.12.12'
+VERSION = latest_version = '5.13.0'
 UPDATE_MESSAGE = """
-See changelog for new features
+Better VPN compatibility
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """

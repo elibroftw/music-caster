@@ -19,7 +19,7 @@ from random import getrandbits
 import re
 import socket
 import sys
-from subprocess import Popen, PIPE, DEVNULL
+from subprocess import Popen, PIPE, DEVNULL, getoutput
 from threading import Thread
 import time
 import unicodedata
@@ -645,16 +645,24 @@ def get_ipv6():
     return ip
 
 
+ipv4_pattern = re.compile(r'IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
+
+
 def get_ipv4():
-    # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        try:
-            # doesn't even have to be reachable
-            s.connect(('192.168.1.2', 1))
-            ip = s.getsockname()[0]
-        except Exception:
-            ip = '127.0.0.1'
-    return ip
+    try:
+        ipconfig_output = getoutput('ipconfig')
+        return ipv4_pattern.findall(ipconfig_output)[-1]
+    except IndexError:
+        # fallback in case the ipv4 cannot be found in ipconfig
+        # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            try:
+                # doesn't even have to be reachable
+                s.connect(('192.168.1.2', 1))
+                ip = s.getsockname()[0]
+            except Exception:
+                ip = '127.0.0.1'
+        return ip
 
 
 def get_lan_ip() -> str:
