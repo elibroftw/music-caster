@@ -19,7 +19,7 @@ from random import getrandbits
 import re
 import socket
 import sys
-from subprocess import Popen, PIPE, DEVNULL, check_output
+from subprocess import Popen, PIPE, DEVNULL, check_output, CalledProcessError
 from threading import Thread
 import time
 import unicodedata
@@ -652,7 +652,7 @@ def get_ipv4():
         ipconfig_output = check_output(['ipconfig'], shell=True, text=True, encoding='iso8859-2')
         # ipconfig_output = getoutput('ipconfig')
         return ipv4_pattern.findall(ipconfig_output)[-1]
-    except IndexError:
+    except (IndexError, CalledProcessError):
         # fallback in case the ipv4 cannot be found in ipconfig
         # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
