@@ -1645,9 +1645,9 @@ if __name__ == '__main__':
                 for i, video in enumerate(videos):
                     _url = f'https://www.youtube.com/watch?v={video["videoId"]}'
                     src_url = f'{_url}&list={ytid}'
-                    if i == 0:
-                        m_lst = get_url_metadata(_url)
-                        if m_lst:
+                    # fetch first most URL of playlist so that play_url does not break
+                    if not metadata_list:
+                        if m_lst := get_url_metadata(_url):
                             m = m_lst[0]
                             m['pl_src'] = src_url
                             metadata_list.extend(m_lst)
