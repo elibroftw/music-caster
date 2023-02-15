@@ -1588,6 +1588,7 @@ if __name__ == '__main__':
         Tries to parse url and set url_metadata[url] to parsed metadata
         Supports: YouTube, Soundcloud, any url ending with a valid audio extension
         """
+        from yt_dlp.utils import YoutubeDLError
         global deezer_opened, attribute_error_reported
         ytsearch = 'ytsearch1'
         metadata_list = []
@@ -1771,7 +1772,7 @@ if __name__ == '__main__':
                             uris_to_scan.put(deezer_track['src'])
                             metadata_list.append(deezer_track)
         else:
-            with suppress(IOError, TypeError, AttributeError):
+            with suppress(IOError, TypeError, AttributeError, YoutubeDLError):
                 r = ydl_extract_info(url, quiet=not is_debug())
                 if 'entries' in r:
                     for entry in r['entries']:
@@ -3837,7 +3838,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         exit_program()
     except Exception as exception:
-        app_log.info(f'FATAL exception detected: {exception}')
+        app_log.exception(f'FATAL exception detected')
         # try to auto-update before exiting
         if not settings.get('DEBUG', False): auto_update()
         handle_exception(exception, True)

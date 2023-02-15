@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.4
+- [Fix] SSL links
+
 5.13.3
 - [Fix] Playing YouTube playlists
 
