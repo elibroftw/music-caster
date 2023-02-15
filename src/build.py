@@ -49,7 +49,7 @@ args = parser.parse_args()
 if args.deps:
     print('Building Music Caster (only install dependencies)')
 else:
-    print('Building Music Caster (only install dependencies)')
+    print('Building Music Caster')
 
 
 def update_versions():
