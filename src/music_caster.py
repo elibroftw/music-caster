@@ -222,6 +222,7 @@ if __name__ == '__main__':
     working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     os.chdir(working_dir)
     SETTINGS_FILE = Path('settings.json').absolute()
+    PHANTOMJS_DIR = Path('phantomjs')
 
     def json_dumps(d):
         return json.dumps(d).encode('utf-8')
@@ -1688,7 +1689,11 @@ if __name__ == '__main__':
                     if not attribute_error_reported:
                         attribute_error_reported = True
                         if 'PhantomJS' in trace_back_msg:
-                            Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
+                            try:
+                                install_phantomjs(PHANTOMJS_DIR)
+                                add_to_path(PHANTOMJS_DIR / 'bin')
+                            except Exception as e:
+                                Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
                         handle_exception(e)
         elif url.startswith('https://open.spotify.com'):
             # spotify metadata has already been fetched, so just get youtube metadata
@@ -3737,6 +3742,8 @@ if __name__ == '__main__':
         except StopIteration:
             app_log.info('Could not get LAN IPV6 address')
         DiscordPresence.connect(settings['discord_rpc'])
+        if PHANTOMJS_DIR.is_dir() and not cmd_exists('phantomjs'):
+            add_to_path(PHANTOMJS_DIR / 'bin')
         if args.device is not None:
             end_time = time.monotonic() + WAIT_TIMEOUT
             while not change_device(args.device) and time.monotonic() < end_time:

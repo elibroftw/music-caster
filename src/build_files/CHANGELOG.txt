@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.5
+- [Fix] PhantomJS auto install
+
 5.13.4
 - [Fix] SSL links
 

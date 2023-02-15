@@ -19,12 +19,17 @@ from random import getrandbits
 import re
 import socket
 import sys
+import subprocess
 from subprocess import Popen, PIPE, DEVNULL, check_output, CalledProcessError
 from threading import Thread
 import time
 import unicodedata
 from urllib.parse import urlparse, parse_qs, urlencode
 from uuid import getnode
+import tempfile
+from zipfile import ZipFile
+import tarfile
+import shutil
 
 from b64_images import *
 
@@ -1382,3 +1387,54 @@ def startfile(file):
         return Popen(['open', file])
     # Linux
     return Popen(['xdg-open', file])
+
+
+def add_to_path(path):
+    if platform.system() == 'Windows':
+        os.environ['PATH'] += f'{path};'
+    else:
+        os.environ['PATH'] += f':{path}'
+
+
+def cmd_exists(cmd):
+    if platform.system() == 'Windows':
+        return subprocess.call(f'where {cmd}', shell=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+    return subprocess.call(f'type {cmd}', shell=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+
+
+def install_phantomjs(install_directory):
+    """Downloads PhantomJS zip, extracts to install_dir. Does not bin dir to path
+    Raises multiple exceptions!
+
+    Args:
+        install_directory (Pathlike): path to extract phantomjs to
+    """
+    # download phantomJS
+    tags = requests.get('https://api.github.com/repos/ariya/phantomjs/tags').json()
+    latest_tag = tags[0]['name']
+
+    if platform.system() == 'Windows':
+        dir_name = f'phantomjs-{latest_tag}-windows'
+        dl_link = f'https://bitbucket.org/ariya/phantomjs/downloads/{dir_name}.zip'
+    elif platform.system() == 'Linux':
+        dir_name = f'phantomjs-{latest_tag}-linux'
+        dl_link = f'https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-{latest_tag}-linux-x86_64.tar.bz2'
+    elif platform.system() == 'Darwin':  # Mac OSX
+        dir_name = f'phantomjs-{latest_tag}-windows'
+        dl_link = f'https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-{latest_tag}-macosx.zip'
+    r = requests.get(dl_link, stream=True)
+    temp_dir = tempfile.mkdtemp()
+    if dl_link.endswith('zip'):
+        with ZipFile(io.BytesIO(r.content)) as zf:
+            zf.extractall(temp_dir)
+    else:
+        with tarfile.open(fileobj=r.raw, mode='r|bz2') as tf:
+            tf.extractall(temp_dir)
+    shutil.move(Path(temp_dir) / dir_name, install_directory)
+
+
+def test():
+    from pathlib import Path
+    install_phantomjs(Path('phantomjs'))
