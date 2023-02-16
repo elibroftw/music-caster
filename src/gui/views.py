@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import platform
 import time
 from math import ceil, floor

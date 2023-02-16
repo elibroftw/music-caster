@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.6
+- [Fix] Opening GUI with timer
+
 5.13.5
 - [Fix] PhantomJS auto install
 
