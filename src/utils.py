@@ -701,7 +701,6 @@ def dz():
 
 @lru_cache(maxsize=2)
 def ydl(proxy=None, quiet=False):
-    # from youtube_dl import YoutubeDL  # 2 seconds!
     from yt_dlp import YoutubeDL
     opts = {
         'quiet': quiet,
@@ -716,7 +715,6 @@ def ydl_extract_info(url, quiet=False):
     """
     Raises IOError instead of YoutubeDL's DownloadError, saving us time on imports
     """
-    # from youtube_dl.utils import DownloadError
     from yt_dlp.utils import DownloadError
     with suppress(DownloadError):
         return ydl(quiet=quiet).extract_info(url, download=False)
