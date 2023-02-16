@@ -300,7 +300,7 @@ if __name__ == '__main__':
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
     import waitress
     from jinja2.exceptions import TemplateNotFound
-    from werkzeug.exceptions import InternalServerError
+    from werkzeug.exceptions import InternalServerError, BadRequest
     from PIL import Image
     import pychromecast
     from pychromecast.controllers.media import MediaStatusListener
@@ -329,6 +329,7 @@ if __name__ == '__main__':
     app_log.propagate = False  # disable console output
     app_log.setLevel(logging.INFO)
     app_log.addHandler(log_handler)
+    # LOGGING
     logging.getLogger('pychromecast.socket_client').addHandler(log_handler)
     logging.getLogger('pychromecast').addHandler(log_handler)
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -830,9 +831,15 @@ if __name__ == '__main__':
         return redirect('/#more')
 
 
+    def get_request_data():
+        try:
+            return request.json
+        except BadRequest:
+            return request.values
+
     @app.route('/action/<command>', methods=['GET', 'POST'])
     def web_action(command):
-        request_data = request.json if request.json else request.values
+        request_data = get_request_data()
         # if request_data.get('api_key') != settings['api_key']:
         #     return {'error': 'Unauthorized, api_key=not-provided'}, 401
         match command:
@@ -872,7 +879,7 @@ if __name__ == '__main__':
 
     @app.route('/', methods=['GET', 'POST'])
     def web_index():  # web GUI
-        request_data = request.json if request.json else request.values
+        request_data = get_request_data()
         for command in ('play', 'pause', 'next', 'prev', 'repeat', 'shuffle', 'activate'):
             if command in request_data: return web_action(command)
         api_key = settings['api_key']
@@ -933,7 +940,7 @@ if __name__ == '__main__':
     @app.route('/play/', methods=['GET', 'POST'])
     def api_play():
         global last_play_command
-        request_data = request.json if request.json else request.values
+        request_data = get_request_data()
         queue_only = str(request_data.get('queue', '')).casefold() == 'true'
         play_next = str(request_data.get('play_next', '')).casefold() == 'true'
         merge_plays = time.monotonic() - last_play_command < 0.5
@@ -1036,7 +1043,7 @@ if __name__ == '__main__':
 
     @app.get('/devices/')
     def api_get_devices():
-        request_data = request.json if request.json else request.values
+        request_data = get_request_data()
         friendly = 'friendly' in request_data
         if not friendly:
             devices = {'0': 'Local device'}
