@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.13.7'
+VERSION = latest_version = '5.13.8'
 UPDATE_MESSAGE = """
 Better VPN compatibility
 [MSG] Language translators wanted
