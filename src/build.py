@@ -26,7 +26,8 @@ UPDATER_SPEC_FILE = 'build_files/updater.spec'
 
 
 class ProgressUpload:
-    def __init__(self, filename, chunk_size=1250):
+    # 1MB chunk size
+    def __init__(self, filename, chunk_size=1_000_000):
         self.filename = filename
         self.chunk_size = chunk_size
         self.file_size = os.path.getsize(filename)
