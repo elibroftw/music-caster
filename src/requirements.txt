@@ -7,12 +7,13 @@ testresources; sys_platform == 'linux'
 ujson~=5.5
 mutagen~=1.45
 Pillow~=9.0
-pychromecast<13.0.2
+# pychromecast<13.0.2
+https://github.com/strunker/pychromecast/archive/master.tar.gz
 zeroconf~=0.37
 pynput~=1.4.5
 pypng~=0.0.20
 # pypresence
-git+https://github.com/elibroftw/pypresence.git@master
+https://github.com/elibroftw/pypresence/archive/master.tar.gz
 pyqrcode~=1.2.1
 PySimpleGUI~=4.60.0
 pystray~=0.19.1
@@ -37,5 +38,5 @@ portalocker~=2.4
 numpy~=1.21
 matplotlib~=3.6
 soundfile~=0.11
-git+https://github.com/elibroftw/youtube-comment-downloader.git@master
+https://github.com/elibroftw/youtube-comment-downloader/archive/master.tar.gz
 python-tkdnd; sys_platform != 'win32'
