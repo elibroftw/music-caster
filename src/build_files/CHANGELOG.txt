@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.9
+- Rollback dependencies
+
 5.13.8
 - Upgrade dependencies
 
