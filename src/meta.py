@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.13.10'
+VERSION = latest_version = '5.13.11'
 UPDATE_MESSAGE = """
 Better VPN compatibility
 [MSG] Language translators wanted
@@ -24,7 +24,7 @@ CONTACT_INFO = f'Elijah Lopez <{EMAIL}>'
 SUBMIT_EVENTS = {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
 AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
 AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
-IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
+IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *jpg *jpeg *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
 AUDIO_EXTS = {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav', '.m3u'}
 FONT_NORMAL = 'Segoe UI', 11
 FONT_SMALL = 'Segoe UI', 10
