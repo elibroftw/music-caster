@@ -277,7 +277,8 @@ if __name__ == '__main__':
     for process in get_running_processes('Music Caster.exe'):
         # force close any other instances of MC
         pid = process['pid']
-        os.kill(pid, 9)
+        with suppress(PermissionError):
+            os.kill(pid, 9)
     if args.debug: set_spec_debug(True)
     else: set_spec_debug(False)
     if args.upload: print('Will upload to GitHub after building')
