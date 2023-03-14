@@ -1694,14 +1694,15 @@ if __name__ == '__main__':
                     app_log.error(f'yt-dlp failed to extract {url}')
                     trace_back_msg = traceback.format_exc().replace('\\', '/')
                     if not attribute_error_reported:
-                        attribute_error_reported = True
                         if 'PhantomJS' in trace_back_msg:
                             try:
                                 install_phantomjs(PHANTOMJS_DIR)
                                 add_to_path(PHANTOMJS_DIR / 'bin')
                             except Exception as e:
                                 Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
-                        handle_exception(e)
+                        if 'blocked it on copyright grounds' not in trace_back_msg:
+                            attribute_error_reported = True
+                            handle_exception(e)
         elif url.startswith('https://open.spotify.com'):
             # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.12
+- [Fix] Ignore copyright errors
+
 5.13.11
 - [Fix] Metadata select artwork allows JPG/JPEG images
 
