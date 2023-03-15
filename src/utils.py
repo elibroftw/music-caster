@@ -1348,9 +1348,14 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
     app_log = logging.getLogger('music_caster')
     app_log.info('create_shortcut called')
     startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
-    shortcut_path = f"{startup_dir}\\Music Caster{' (DEBUG)' if is_debug else ''}.lnk"
-    with suppress(com_error):
-        shortcut_exists = os.path.exists(shortcut_path)
+    shortcut_name = 'Music Caster'
+    if not is_frozen:
+        shortcut_name += ' (Python)'
+    if is_debug:
+        shortcut_name += ' [DEBUG]'
+    shortcut_path = f"{startup_dir}\\{shortcut_name}.lnk"
+    shortcut_exists = os.path.exists(shortcut_path)
+    try:
         if run_on_startup or is_debug:
             # noinspection PyUnresolvedReferences
             pythoncom.CoInitialize()
@@ -1369,10 +1374,12 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
             shortcut.WorkingDirectory = working_dir
             shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
             shortcut.save()
-            if is_debug:
+            if not is_frozen or is_debug:
                 time.sleep(1)
                 os.remove(shortcut_path)
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
+    except com_error as e:
+        app_log.exception('create_shortcut failed')
 
 
 def startfile(file):
