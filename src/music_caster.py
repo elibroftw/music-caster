@@ -2252,8 +2252,13 @@ if __name__ == '__main__':
             if cast.media_controller.is_idle and music_queue:
                 return play(position=new_position, autoplay=playing_status.playing())
             else:
-                cast.media_controller.seek(new_position)
-                if playing_status.paused(): cast.media_controller.pause()
+                for _ in range(2):
+                    try:
+                        cast.media_controller.seek(new_position)
+                        if playing_status.paused(): cast.media_controller.pause()
+                        break
+                    except NotConnected:
+                        cast.wait()
         else:
             audio_player.set_pos(new_position)
         track_position = new_position

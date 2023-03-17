@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.14
+- [Fix] set_pos crash when not connected
+
 5.13.13
 - [Fix] Shift + P for previous track
 
