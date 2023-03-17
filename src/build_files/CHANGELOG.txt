@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.13
+- [Fix] Shift + P for previous track
+
 5.13.12
 - [Fix] Ignore copyright errors
 - [Fix] create_shortcut_windows

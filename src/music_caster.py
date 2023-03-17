@@ -2867,9 +2867,11 @@ if __name__ == '__main__':
                 done_queue.clear()
                 play()
             else: play_all()
+        # Shift + N
         elif (main_event == 'next' or main_event == 'N' and QUEUE_TAB_SELECTED) and playing_status.busy():
             next_track()
-        elif (main_event == 'prev' or main_event == 'B' and QUEUE_TAB_SELECTED) and playing_status.busy():
+        # Shift + P || Shift + B
+        elif (main_event == 'prev' or main_event == 'P' or main_event == 'B' and QUEUE_TAB_SELECTED) and playing_status.busy():
             prev_track()
         elif main_event == 'devices':
             change_device(main_value.id)
