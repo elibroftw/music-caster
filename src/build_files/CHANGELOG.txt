@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.15
+- Upgrade dependencies
+
 5.13.14
 - [Fix] set_pos crash when not connected
 
