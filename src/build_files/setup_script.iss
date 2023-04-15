@@ -20,8 +20,8 @@ DisableProgramGroupPage=yes
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-MinVersion=0,6.0.6001
-; Minimum version is Windows Vista or later
+MinVersion=0,6.1.7600
+; Minimum version is Windows 10 or later
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 OutputDir={#SourcePath}..\dist
