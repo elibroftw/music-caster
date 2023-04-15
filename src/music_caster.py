@@ -618,7 +618,7 @@ if __name__ == '__main__':
             try:
                 return all_tracks[Path(file_path).as_posix()]
             except KeyError:
-                return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
+                return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False, 'modified_time': time.time(),
                         'album': Unknown('Title'), 'sort_key': get_file_name(file_path), 'track_number': '1'}
 
 
@@ -632,7 +632,9 @@ if __name__ == '__main__':
             return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
                     'album': Unknown('Album'), 'sort_key': uri, 'track_number': '1'}
         if uri in all_tracks:
-            return all_tracks[uri]
+            ignore_cache = os.path.getmtime(uri) != all_tracks[uri]['time_modified'] if read_file else False
+            if not ignore_cache:
+                return all_tracks[uri]
         # uri is probably a file that has not been cached yet
         if read_file:
             metadata = get_metadata_wrapped(uri)
@@ -1941,9 +1943,9 @@ if __name__ == '__main__':
         return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-    def metadata_key(filename):
+    def metadata_key(filename, check_timestamp=True):
         """ Sort by (artist, album, track number, title) """
-        m = get_uri_metadata(filename)
+        m = get_uri_metadata(filename, check_timestamp=check_timestamp)
         try:
             tn = int(m.get('track_number'))
         except (ValueError, TypeError):
@@ -2383,6 +2385,8 @@ if __name__ == '__main__':
         import pynput.keyboard
         global track_position, track_start, track_end
         if not is_debug(): send_info()
+        app_log.info(f'entered background_thread')
+        app_log.info(f'system: {platform.system()}')
         create_shortcut()
         UpdateChecker()
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
@@ -2496,6 +2500,7 @@ if __name__ == '__main__':
             gui_window.metadata['library']['column'] = int(column_index)
 
         def dnd_pl_tracks(event):
+            # pl: playlist
             file_paths = gui_window.TKroot.tk.splitlist(event.data)
             pl_tracks = gui_window.metadata['pl_tracks']
             pl_tracks.extend(get_audio_uris(file_paths))

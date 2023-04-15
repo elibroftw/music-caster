@@ -585,7 +585,8 @@ def get_metadata(file_path: str):
         sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
-                'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number}
+                'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number,
+                'time_modified': os.path.getmtime(file_path)}
     return metadata
 
 
@@ -1355,6 +1356,7 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
         shortcut_name += ' [DEBUG]'
     shortcut_path = f"{startup_dir}\\{shortcut_name}.lnk"
     shortcut_exists = os.path.exists(shortcut_path)
+    app_log.info(f'create_shortcut path: {shortcut_path}')
     try:
         if run_on_startup or is_debug:
             # noinspection PyUnresolvedReferences
@@ -1376,10 +1378,11 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
             shortcut.save()
             if not is_frozen or is_debug:
                 time.sleep(1)
+                app_log.info('create_shortcut: removed shortcut')
                 os.remove(shortcut_path)
         elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
     except com_error as e:
-        app_log.exception('create_shortcut failed')
+        app_log.exception('create_shortcut: failed')
 
 
 def startfile(file):
