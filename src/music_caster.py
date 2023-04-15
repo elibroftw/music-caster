@@ -1943,9 +1943,9 @@ if __name__ == '__main__':
         return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-    def metadata_key(filename, check_timestamp=True):
+    def metadata_key(filename):
         """ Sort by (artist, album, track number, title) """
-        m = get_uri_metadata(filename, check_timestamp=check_timestamp)
+        m = get_uri_metadata(filename)
         try:
             tn = int(m.get('track_number'))
         except (ValueError, TypeError):

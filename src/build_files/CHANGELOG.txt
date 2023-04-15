@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.17
+- Remove old code
+
 5.13.16
 - Re-read metadata if file was modified
 
