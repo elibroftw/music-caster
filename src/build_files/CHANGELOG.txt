@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.18
+- Add Ukrainian translation
+
 5.13.17
 - Remove old code
 
