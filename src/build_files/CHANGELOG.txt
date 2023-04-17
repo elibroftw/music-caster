@@ -1,14 +1,15 @@
 Music Caster by Elijah Lopez Changelog
 
 5.13.20
-- Update Ukrainian translation
-- Add Russian translation
+- [Fix] Sort order when playing folder with missing album metadata
+- [UI] Added Russian translation
+- [UI] Fix Ukrainian translation
 
 5.13.19
-- Show artist as unknown in queue
+- [UI] Show artist as unknown in queue
 
 5.13.18
-- Add Ukrainian translation
+- [UI] Added Ukrainian translation
 
 5.13.17
 - Remove old code

@@ -1947,14 +1947,14 @@ if __name__ == '__main__':
         return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
-    def metadata_key(filename):
+    def metadata_key(filename, album_sort=True):
         """ Sort by (artist, album, track number, title) """
         m = get_uri_metadata(filename)
         try:
             tn = int(m.get('track_number'))
         except (ValueError, TypeError):
             tn = 1
-        return m['album'].casefold(), tn, m['artist'].casefold(), m['title'].casefold()
+        return (m['album'].casefold() if album_sort else ''), tn, m['artist'].casefold(), m['title'].casefold()
 
 
     def play_uris(uris: Iterable, return_if_empty=True, queue_uris=False,
@@ -1970,7 +1970,13 @@ if __name__ == '__main__':
         merge_tracks indicates the number of tracks that were already propogated but need to be merged
         If sort is False, shuffle being off does not sort items
         """
-        temp_queue = list(get_audio_uris(uris))
+        temp_queue, albums_found = [], set()
+        unknown_album = Unknown('Album')
+        for track in get_audio_uris(uris):
+            album_name = get_uri_metadata(track)['album']
+            if album_name != unknown_album:
+                albums_found.add(album_name)
+            temp_queue.append(track)
         if not temp_queue and return_if_empty:
             return False
         # fresh play condition
@@ -1999,8 +2005,11 @@ if __name__ == '__main__':
         elif natural_sort:
             temp_queue.sort(key=natural_key_file)
         else:
-            # do custom sort only if dir and not natural
-            temp_queue.sort(key=metadata_key)
+            # do custom sort only if possible album was queued
+            try:
+                temp_queue.sort(key=lambda filename: metadata_key(filename, album_sort=len(albums_found) > 1))
+            except Exception as e:
+                print(e)
         # add to next queue condition
         if play_next:
             if settings['reversed_play_next']:
@@ -2517,6 +2526,7 @@ if __name__ == '__main__':
             items = tk_lb.tk.splitlist(event.data)
             files = list(filter(os.path.isfile, items))
             dirs = filter(os.path.isdir, items)
+            # ASSUMPTION: if there are more than 20 files being queued, that's not an album
             play_uris(files, queue_uris=True, natural_sort=len(files) > 20)
             for directory in dirs:
                 # assume album
