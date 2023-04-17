@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.19
+- Show artist as unknown in queue
+
 5.13.18
 - Add Ukrainian translation
 

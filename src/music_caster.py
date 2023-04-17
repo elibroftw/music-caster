@@ -1379,10 +1379,14 @@ if __name__ == '__main__':
         try:
             if use_basename: raise TypeError
             metadata = get_uri_metadata(uri, read_file=False)
-            title, artist = metadata['title'], metadata['artist']
-            if artist == Unknown('Artist') or title == Unknown('Title'): raise KeyError
-            formatted = settings['track_format'].replace('&artist', artist).replace('&title', title)
-            formatted = formatted.replace('&alb', metadata['album'])
+            title, artist, album = metadata['title'], metadata['artist'], metadata['album']
+            if title == Unknown('Title'):
+                title = os.path.splitext(os.path.basename(uri))[0]
+                if '-' in title:
+                    artist, title = title.split('-', maxsplit=1)
+                    artist, title = artist.strip(), title.strip()
+            formatted = settings['track_format'].replace('&artist', str(artist)).replace('&title', title)
+            formatted = formatted.replace('&alb', str(album))
             number = metadata.get('track_number', '')
             if '&trck' in formatted:
                 formatted = formatted.replace('&trck', number)
@@ -1398,7 +1402,7 @@ if __name__ == '__main__':
                 lo = middle - cut_out
                 formatted = formatted[:lo] + '...' + formatted[ro:]
             return formatted
-        except (TypeError, KeyError):
+        except (TypeError, KeyError) as e:
             if uri.startswith('http'): return uri
             return os.path.splitext(os.path.basename(uri))[0]
 
