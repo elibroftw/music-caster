@@ -23,10 +23,9 @@ Unique users as of April 23rd 2023: 3,800
 ### [Windows Download Music.Caster.Setup.exe](https://github.com/elibroftw/music-caster/releases/latest)
 
 - **IMPORTANT INFORMATION:** The tray icon will be in the tray, so you will need to move it to your taskbar
-- Command line installation: `winget install "Music Caster"` (auto-updates on launch)
-- [Screenshots](https://elijahlopez.ca/music-caster/)
+- Command line installation: `winget install "Music Caster"`
 - [VirusTotal scan](https://www.virustotal.com/gui/file/40a1c61e5cb2c5eed714eb70bb84f138e9fd9742076ea665b4ac85fc8f372abf)
-  - If Music Caster gets auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
+  - If Music Caster is auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
 
 ### Linux
 
