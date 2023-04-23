@@ -4,7 +4,11 @@
 [![GitHub Releases](https://img.shields.io/github/downloads/elibroftw/music-caster/latest/total?color=blue&label=github%20downloads%40latest&style=for-the-badge)](https://github.com/elibroftw/music-caster/releases/latest)
 [![Source Forge](https://img.shields.io/sourceforge/dt/music-caster?color=orange&label=SourceForge%20downloads&style=for-the-badge)](https://sourceforge.net/projects/music-caster/)
 
-Music Caster is a modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
+Music Caster is a modern music player with the ability to cast audio files, system audio, and URLs to Google Chromecasts, Google Home/Nest Minis, etc.
+
+Display languages: English, German, Spanish, French, Italian, Dutch, Russian\*, and Ukrainian\*
+
+Unique users as of April 23rd 2023: 3,800
 
 [Screenshots](https://elijahlopez.ca/music-caster/)
 
@@ -14,23 +18,26 @@ Music Caster is a modern music player that can cast audio files and urls to Goog
 - [PayPal](https://www.paypal.me/elibroftw)
 - [Translate](https://github.com/elibroftw/music-caster/issues/12#issuecomment-808658776) Music Caster to other languages
 
-## [Download (Windows)](https://github.com/elibroftw/music-caster/releases/latest)
+## Install
+
+### [Windows Download Music.Caster.Setup.exe](https://github.com/elibroftw/music-caster/releases/latest)
 
 - **IMPORTANT INFORMATION:** The tray icon will be in the tray, so you will need to move it to your taskbar
 - Command line installation: `winget install "Music Caster"` (auto-updates on launch)
 - [Screenshots](https://elijahlopez.ca/music-caster/)
 - [VirusTotal scan](https://www.virustotal.com/gui/file/40a1c61e5cb2c5eed714eb70bb84f138e9fd9742076ea665b4ac85fc8f372abf)
   - If Music Caster gets auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
-- [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 
-## Linux
+### Linux
 
-It is not straight forward to package, so you can invoke a sudo-free [install script](linux_install.sh).
+Not maintained, but I did get it to work on Ubuntu once. Music Caster is not straight forward to package, so you can invoke a sudo-free [install script](linux_install.sh).
 
 ```bash
 mkdir -p ~/bin && git clone --depth 1 https://github.com/elibroftw/music-caster.git ~/bin/music-caster
 ~/bin/music-caster/linux_install.sh
 ```
+
+## Demo
 
 <a href="https://www.youtube.com/watch?v=5xwHkLPgvtQ" title="Music Caster Video Demo">
   <p align="center">
@@ -59,10 +66,12 @@ Here are Music Caster specific keyboard shortcuts aside from the global media ho
 | Esc                    | Main       | Close Window                   |
 | Ctrl + Shift + Q       | Main       | Exit Program                   |
 | Scroll                 | Main       | Volume and Progress Bar        |
-| ⬆/A                    | Main       | Decrease Volume by 5%          |
-| ⬇/D                    | Main       | Increase Volume by 5%          |
+| ⬆ / A                  | Main       | Decrease Volume by 5%          |
+| ⬇ / D                  | Main       | Increase Volume by 5%          |
 | #                      | Main       | Set Volume to # * 10%          |
 | K                      | Main       | Pause / Resume / Start Playing |
+| Shift + N              | Main       | Next Track                     |
+| Shift + P / Shift + B  | Main       | Previous Track                 |
 | J                      | Main       | Rewind 5 seconds               |
 | L                      | Main       | Fast-forward 5 seconds         |
 | Ctrl + R               | Main       | Cycle Repeat                   |
@@ -96,7 +105,9 @@ payload = {'VERSION': VERSION, 'FATAL': restart_program, 'EXCEPTION TYPE': exc_t
 ```
 
 In addition, I collect MD5 hashed MAC addresses and IP addresses in a Google Excel Sheet.
-Only I have access to this data, I will NEVER give it to anyone else.
+Only I have access to this data, I will NEVER give it to anyone else. Will stop collecting analytics once I stop caring about the number of users.
 
 - Hashed MAC so that I know how many users without knowing the actual MAC addresses
 - IP because I can map out the IPs to a visual map to see where my users are located
+
+[Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)

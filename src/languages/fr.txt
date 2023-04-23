@@ -1,0 +1,200 @@
+# Language: French
+# Credits: github.com/tasye24
+# Any line starting with a # is ignored
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+# Try to keep the same capitalization or lack of as in the English file
+ajouter à partir d’un dossier
+ajouter Music Caster au dossier du menu contextuel
+ajouter à partir des fichiers
+ajouter à partir d’une URL
+Une erreur s’est produite, redémarrage immédiat
+Une erreur interne du serveur s’est produite
+Sélection audio
+Mise à jour automatique
+Par
+Annuler
+Annuler le chronomètre
+Nettoyer la file d’attente
+Contrôles
+Impossible de se connecter au périphérique cast
+Impossible de trouver un appareil de sortie pour enregistrer 
+Impossible de jouer $URL
+Impossible de remplir la file d’attente car l’analyse de bibliothèque est désactivée
+Impossible de régler le chronomètre
+présence Discord
+Mise à jour vers $VER
+Saisir les minutes ou HH:MM
+Saisir un temps
+Saisir l'URL
+ERREUR
+Sortir
+Dossier du menu contextuel
+Le dossier ne contient pas de fichiers audio
+Dossiers
+Générale
+Mettre en veille lorsque le chronomètre finit
+Mettre en veille l'ordinateur
+INFO
+Entrée invalide (saisir minutes ou HH:MM)
+URL. invalide l'URL doit commencer par http:// ou https://
+Fichier audio sélectionné invalide
+Fichier audio invalide $FILE
+Garder le mode mini au premier plan
+Launcer le mode mini
+Commandes de musique du côté gauche
+Bibliothèque
+Indexation de la bibliothèque incomplète, seulement les fichiers scannés ont été ajoutés
+Écoute
+Audio système
+Périphérique local
+langue sélectionnée
+Connexion perdue avec $DEVICE, changement vers l’appareil local
+Mode mini au premier plan
+Plus
+descendre
+Déplacer vers le suivant
+Déplacer le contenu de la piste vers la gauche
+monter
+Music Caster est en cours d'exécution.
+silencieux
+Nouveau
+morceau suivant
+Il n'y a plus d'espace libre sur l'appareil de mise à jour automatisé
+Il n'y a plus d'espace libre dans l'appareil pour sauvegarder les paramètres
+Aucun chronomètre
+Non connecté à un appareil de Cast
+Non connecté à deezer.com
+Joue rien
+Notifications
+Arrêter uniquement la lecture
+Ouvrir
+Pause
+File d’attente permanente
+Jouer
+Tout jouer
+Jouer les fichiers
+Jouer les fichiers suivants
+Jouer immédiatement
+Jouer le prochain
+Jouer à partir d'une URL
+Jouer le prochain morceau de l'URL
+En cours d'écoute
+Nom de la playlist
+Listes de lectures
+Onglet listes de lectures
+Remplir la file d’attente au démarrage
+Remplir la file d’attente depuis les dossiers au démarrage
+morceau précédent
+File d'attente
+Tout mettre dans la file d'attente
+Fichiers de la file d'attente
+URL de la file d'attente
+Rafraichir les appareils
+Restaurer le dernier dossier
+supprimer le dossier sélectionné
+supprimer
+Répéter
+Tout répéter
+Désactiver le mode repeat
+Répéter une fois
+Options du mode répéter
+Réanalyse de la bibliothèque
+Réanalyse de la bibliothèque en cours
+Résumer
+Jouer à l'envers le prochain comportement
+Jouer à l'envers le prochain morceau
+Démarrer au lancement
+Sauvegarder la file d'attente entre les sessions
+Sauvegarder à la playlist
+Sauvegarder les position de la fenêtre
+Scanner les dossier
+scroll molette
+Rechercher de la musique...
+Sélectionner l'appareil
+Sélectionner un dossier
+Sélectionner des dossiers
+Sélectionner des fichiers
+Sélectionner un fichier
+Sélectionner des fichiers audio
+Envoyez-moi un email
+régler DEBUG = true dans settings.json pour activer cette page
+Régler le chronomètre
+Régler
+Paramètres
+Afficher la pochette d'album
+Afficher la pochette d'album dans l'interface
+Afficher l'index dans la file d'attente
+Afficher le numéro du morceau
+Afficher le numéro du morceau dans la file d'attente
+aléatoire
+Éteindre à la fin du chronomètre
+Éteindre l'ordinateur
+Mettre en veille à la fin du chronomètre
+Mettre en veille l'ordinateur
+Arrêter
+Envoyer
+Merci d'avoir installé Music Caster.
+Chronomètre
+Chronomètre annulé
+Chronomètre réglé pour $TIME
+Rechercher dans artistes/morceaux
+Interface utilisateur
+réactiver le son
+Nouvelle mise à jour $VER disponible
+URL
+Utiliser cover.* pour la pochette d'album
+Utiliser cover.* pour la pochette d'album au lieu de celui du fichier
+remplacer la bannière par cover.*
+Interface verticale
+Afficher les liens source des fichiers audio
+Ouvrir l'interface Web
+nouvelle playlist
+exporter la playlist
+supprimer la playlist
+jouer la playlist
+playlist de la file d'attente
+Titre inconnu
+Artiste inconnu
+Album inconnu
+Toujours mettre en attente la bibliothèque
+Jouer avec Music Caster
+Mise en attente dans Music Caster
+Jouer le prochain titre dans Music Caster
+Mise en file d'attente
+File d'attente intelligente
+Ajouter au prochain
+métadonnées
+Sauvegarde des métadonnées
+Métadonnées sauvegardées
+Sauvegarder
+Titre
+Artiste
+Album
+Morceau numéro
+Explicite
+Sélectionner un morceau
+Rechercher un morceau
+Supprimer le morceau
+Morceau trouvé
+Aucun morceau trouvé
+Recherche de morceau...
+Chargements des URL
+URL ajoutées
+langue
+Jouer les morceaux sélectionnés
+file d’attente sélectionnée
+Ajouter la sélection au prochain
+Délai du système audio:
+secondes
+Localiser le morceau
+Passage à l'appareil local
+Format du morceau:
+Impossible de trouver le fichier audio à partir de $URL
+Sortir de l'app quand le GUI se ferme
+Résolution sur batterie
+Résolution branchée
+Impossible de définir la résolution
+copier les URI
+modifier les métadonnées
+Fonctionnalités expérimentales

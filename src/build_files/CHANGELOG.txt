@@ -1,9 +1,12 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.21
+- [UI] Added French translation
+
 5.13.20
-- [Fix] Sort order when playing folder with missing album metadata
 - [UI] Added Russian translation
-- [UI] Fix Ukrainian translation
+- [Fix] Sort order when playing folder with missing album metadata
+- [Fix] Ukrainian translation
 
 5.13.19
 - [UI] Show artist as unknown in queue
@@ -101,13 +104,13 @@ Music Caster by Elijah Lopez Changelog
 - Upgrade dependencies
 
 5.12.1
-- [Fix] queue action accuracy
-- [Note] new API
+- [Fix] Queue action accuracy
+- [Note] New REST API
 
 5.12.0
-- [Feature] alternative UI (Settings > Misc > Experimental features)
-- [Feature] Edit metadata of a queue track
+- [Feature] Edit metadata of a track in the queue
 - [Feature] Save selected items in queue to playlist
+- [Feature] Alternative UI (Settings > Misc > Experimental features)
 - [Fix] Handle user prematurely removing bad uri
 
 5.11.0
@@ -236,10 +239,10 @@ Music Caster by Elijah Lopez Changelog
 - [Fix] Files with no track number
 
 5.7.1
-- [Fix] Deutsch translation
+- [Fix] German translation
 
 5.7.0
-- [Feature] Deutsch translation
+- [UI] Added German / Deutsch translation
 
 5.6.14
 - [Fix] Improve GUI error handling
