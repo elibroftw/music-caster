@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.22
+- [UI] Tooltip for all settings
+
 5.13.21
 - [UI] Added French translation
 

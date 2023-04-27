@@ -35,6 +35,9 @@ def IconButton(image_data, key, tooltip, bg):
 
 
 def Checkbox(name, key, settings, on_right=False, tooltip=None):
+    # fix for languages that are too long to fit into the UI
+    if tooltip is None:
+        tooltip = name
     bg = settings['theme']['background']
     size = (23, 5) if on_right else (23, 5)
     checkbox = {'background_color': bg, 'font': FONT_NORMAL, 'enable_events': True, 'pad': ((0, 5), (5, 5))}
