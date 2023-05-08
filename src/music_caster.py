@@ -632,7 +632,10 @@ if __name__ == '__main__':
             return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
                     'album': Unknown('Album'), 'sort_key': uri, 'track_number': '1'}
         if uri in all_tracks:
-            ignore_cache = os.path.getmtime(uri) != all_tracks[uri]['time_modified'] if read_file else False
+            try:
+                ignore_cache = os.path.getmtime(uri) != all_tracks[uri]['time_modified'] if read_file else False
+            except FileNotFoundError:
+                ignore_cache = False
             if not ignore_cache:
                 return all_tracks[uri]
         # uri is probably a file that has not been cached yet
@@ -2699,6 +2702,8 @@ if __name__ == '__main__':
     def locate_uri(selected_track_index=None, uri=None):
         with suppress(IndexError):
             if uri is None:
+                if selected_track_index is None:
+                    raise IndexError
                 uri = uri_at_idx(idx=selected_track_index)
             if uri.startswith('http'):
                 if uri in url_metadata:

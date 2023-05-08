@@ -34,9 +34,10 @@ class AudioPlayerUnit(IntEnum):
 class AudioPlayer:
     __slots__ = 'vlc_instance', 'player', 'is_url'
 
-    def __init__(self):
-        self.vlc_instance = vlc.Instance()
-        self.player: vlc.MediaPlayer = self.vlc_instance.media_player_new()
+    def __init__(self, skip_vlc=False):
+        if not skip_vlc:
+            self.vlc_instance = vlc.Instance()
+            self.player: vlc.MediaPlayer = self.vlc_instance.media_player_new()
         self.is_url = False
 
     def has_media(self):
