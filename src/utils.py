@@ -1036,6 +1036,7 @@ def parse_spotify_track(track_obj, parent_url='') -> dict:
     return metadata
 
 
+@lru_cache
 def get_spotify_track(url):
     try:
         track_id = urlparse(url).path.split('/track/', 1)[1]
@@ -1046,6 +1047,7 @@ def get_spotify_track(url):
     return {**parse_spotify_track(track), 'src': url}
 
 
+@lru_cache
 def get_spotify_album(url):
     album_id = urlparse(url).path.split('/album/', 1)[1]
     api_url = f'{SPOTIFY_API}/albums/{album_id}'
@@ -1064,7 +1066,6 @@ def get_spotify_playlist(url):
     return [parse_spotify_track(result['track'], url) for result in results if isinstance(result['track'], dict)]
 
 
-@lru_cache
 def get_spotify_tracks(url):
     """
     Returns a list of spotify track objects stemming from a Spotify url

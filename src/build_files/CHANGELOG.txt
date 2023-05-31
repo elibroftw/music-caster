@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.24
+- [Fix] Next up bug
+- [Fix] Don't cache spotify playlist
+
 5.13.23
 - [Fix] Metadata bug
 - [Fix] Locate track bug

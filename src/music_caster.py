@@ -3030,6 +3030,7 @@ if __name__ == '__main__':
                         gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
                         save_queues()
+            gui_window.metadata['update_listboxes'] = False
         elif main_event == 'move_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
                 new_i = index_to_move - 1
