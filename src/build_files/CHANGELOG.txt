@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.24
+- [Fix] get_ipv4 fallback bug
+
 5.13.23
 - [Fix] Next up bug
 - [Fix] Don't cache spotify playlist
