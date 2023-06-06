@@ -300,7 +300,7 @@ if __name__ == '__main__':
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
     import waitress
     from jinja2.exceptions import TemplateNotFound
-    from werkzeug.exceptions import InternalServerError, BadRequest
+    from werkzeug.exceptions import InternalServerError, BadRequest, UnsupportedMediaType
     from PIL import Image
     import pychromecast
     from pychromecast.controllers.media import MediaStatusListener
@@ -839,7 +839,7 @@ if __name__ == '__main__':
     def get_request_data():
         try:
             return request.json
-        except BadRequest:
+        except (BadRequest, werkzeug.exceptions.UnsupportedMediaType):
             return request.values
 
     @app.route('/action/<command>', methods=['GET', 'POST'])
