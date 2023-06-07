@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.26
+- [Fix] web UI and API
+
 5.13.25
 - [Fix] web UI and API
 

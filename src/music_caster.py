@@ -839,7 +839,7 @@ if __name__ == '__main__':
     def get_request_data():
         try:
             return request.json
-        except (BadRequest, werkzeug.exceptions.UnsupportedMediaType):
+        except (BadRequest, UnsupportedMediaType):
             return request.values
 
     @app.route('/action/<command>', methods=['GET', 'POST'])
