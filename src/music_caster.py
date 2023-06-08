@@ -1388,6 +1388,9 @@ if __name__ == '__main__':
                 if '-' in title:
                     artist, title = title.split('-', maxsplit=1)
                     artist, title = artist.strip(), title.strip()
+            if uri in url_metadata and '-' in title:
+                artist, title = title.split('-', maxsplit=1)
+                artist, title = artist.strip(), title.strip()
             formatted = settings['track_format'].replace('&artist', str(artist)).replace('&title', title)
             formatted = formatted.replace('&alb', str(album))
             number = metadata.get('track_number', '')
