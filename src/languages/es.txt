@@ -198,3 +198,4 @@ No se pudo establecer la resolución
 copiar URIs
 editar metadatos
 caracteristicas experimentales
+Lista de reproducción guardada

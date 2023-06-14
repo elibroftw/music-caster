@@ -198,3 +198,4 @@ Auflösung konnte nicht eingestellt werden
 URIs kopieren
 metadaten bearbeiten
 experimentelle funktionen
+Playlist gespeichert

@@ -18,7 +18,7 @@ Annuler le chronomètre
 Nettoyer la file d’attente
 Contrôles
 Impossible de se connecter au périphérique cast
-Impossible de trouver un appareil de sortie pour enregistrer 
+Impossible de trouver un appareil de sortie pour enregistrer
 Impossible de jouer $URL
 Impossible de remplir la file d’attente car l’analyse de bibliothèque est désactivée
 Impossible de régler le chronomètre
@@ -198,3 +198,4 @@ Impossible de définir la résolution
 copier les URI
 modifier les métadonnées
 Fonctionnalités expérimentales
+Liste de lecture enregistrée

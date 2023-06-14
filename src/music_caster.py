@@ -3369,6 +3369,9 @@ if __name__ == '__main__':
                 settings['playlists'] = {k: settings['playlists'][k] for k in playlist_names}
                 gui_window['playlist_combo'].update(value=pl_name, values=playlist_names)
             save_settings()
+            gui_window['pl_saved'].update(visible=True)
+            gui_window.read(1)
+            gui_window.TKroot.after(2000, lambda: gui_window['pl_saved'].update(visible=False))
             refresh_tray()
         elif (main_event == 'pl_rm_items' and main_values['pl_tracks']
               and main_values.get('tab_group') == 'tab_playlists'):
@@ -3405,7 +3408,7 @@ if __name__ == '__main__':
         elif main_event == 'pl_url_input_copy':
             with suppress(TclError):
                 pyperclip.copy(gui_window['pl_url_input'].Widget.selection_get())
-        elif main_event == 'pl_add_url':
+        elif main_event == 'pl_add_url' or (main_event in SUBMIT_EVENTS and main_values.get('tab_group') == 'tab_playlists'):
             links = main_values['pl_url_input']
             if '\n' in links: links = links.split('\n')
             else: links = links.split(';')

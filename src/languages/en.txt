@@ -198,3 +198,4 @@ Could not set resolution
 copy URIs
 edit metadata
 Experimental features
+Playlist saved
