@@ -48,5 +48,5 @@ resources/assets.png
 settings.json.bak
 *.syso
 *.pid
-*.lock
+music_caster.lock
 src/phantomjs/
