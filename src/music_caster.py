@@ -2649,6 +2649,7 @@ if __name__ == '__main__':
                                    use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
                                    location=window_location, metadata=window_metadata, debugger_enabled=is_debug())
             if State.using_tcl_theme:
+                Sg.PySimpleGUI.TOOLTIP_BACKGROUND_COLOR = settings['theme']['background']
                 with suppress(TclError):
                     gui_window.TKroot.tk.call('source', SUN_VALLEY_TCL)
                 gui_window.TKroot.tk.call('set_theme', 'dark')

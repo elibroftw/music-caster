@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.29
+- [Fix] Experimental UI tooltip text now legible
+
 5.13.28
 - [UI] Add url with <Enter>
 - [UI] UI informs when playlist was saved by user
