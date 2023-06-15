@@ -9,6 +9,7 @@ from PyInstaller.building.build_main import Analysis
 from PyInstaller.config import CONF
 
 CONF['distpath'] = './dist'
+CONF['workpath'] = './_build'
 block_cipher = None
 # noinspection PyTypeChecker
 sys.modules['FixTk'] = None

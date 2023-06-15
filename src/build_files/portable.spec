@@ -3,18 +3,18 @@ import os
 # noinspection PyPackageRequirements
 from PyInstaller.building.api import PYZ, EXE
 # noinspection PyPackageRequirements
-from PyInstaller.building.build_main import Analysis
+from PyInstaller.building.build_main import Analysis, Tree
 # noinspection PyPackageRequirements
 from PyInstaller.config import CONF
 from glob import iglob
 
 CONF['distpath'] = './dist'
-tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
+# CONF['workpath'] = './build'
 block_cipher = None
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
-             datas=tkdnd,
+             datas=[],
              hiddenimports=['pystray._win32'],
              hookspath=[],
              runtime_hooks=[],
@@ -24,6 +24,11 @@ a = Analysis([f'{os.getcwd()}/music_caster.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+tkdnd_toc = Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2')
+frontend_files = Tree('../src-frontend/dist', 'frontend')
+a.datas.extend(frontend_files)
+a.datas.extend(tkdnd_toc)
+
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
 exe = EXE(pyz,

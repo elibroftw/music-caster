@@ -4,22 +4,23 @@ from glob import iglob
 # noinspection PyPackageRequirements
 from PyInstaller.building.api import PYZ, EXE, COLLECT
 # noinspection PyPackageRequirements
-from PyInstaller.building.build_main import Analysis
+from PyInstaller.building.build_main import Analysis, Tree
 # noinspection PyPackageRequirements
 from PyInstaller.config import CONF
 import platform
 
 CONF['distpath'] = './dist'
 block_cipher = None
+# CONF['workpath'] = './build'
+VLC_EXCLUDES = ['*.dll', '*.so*', '*.dylib*']
+if platform.system() == 'Windows':
+    VLC_EXCLUDES.remove('*.dll')
+elif platform.system() == 'Darwin':
+    VLC_EXCLUDES.remove('*.dylib*')
+elif platform.system() == 'Linux':
+    VLC_EXCLUDES.remove('*.so*')
 # TODO: test on MAC OSX
-vlc_ext = 'dll' if platform.system() == 'Windows' else 'so*'
-vlc_files = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob(f'vlc_lib/**/*.{vlc_ext}', recursive=True)]
-lang_packs = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('languages/*.txt')]
-tcl_theme = [(os.path.abspath(file), os.path.dirname(file)) for file in iglob('theme/**/*.*', recursive=True)]
-tkdnd = [(os.path.abspath(file), 'tkdnd2.9.2') for file in iglob('build_files/tkdnd2.9.2/*.*')]
-data_files = [('Music Caster.VisualElementsManifest.xml', '.'),
-              (os.path.abspath('templates/index.html'), 'templates'),
-              (os.path.abspath('static/style.css'), 'static')] + vlc_files + lang_packs + tkdnd + tcl_theme
+data_files = [('Music Caster.VisualElementsManifest.xml', '.')]
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
@@ -33,6 +34,14 @@ a = Analysis([f'{os.getcwd()}/music_caster.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+a.datas.extend(Tree('templates', 'templates'))
+a.datas.extend(Tree('static', 'static'))
+a.datas.extend(Tree('vlc_lib', 'vlc_lib', excludes=VLC_EXCLUDES))
+a.datas.extend(Tree('languages', 'languages'))
+a.datas.extend(Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2'))
+a.datas.extend(Tree('theme/**/*.*', 'theme'))
+a.datas.extend(Tree('../src-frontend/dist', 'frontend'))
+
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
 exe = EXE(pyz,
