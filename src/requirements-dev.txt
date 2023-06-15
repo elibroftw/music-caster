@@ -10,3 +10,4 @@ pywin32-ctypes; sys_platform == 'win32'
 pypiwin32; sys_platform == 'win32'
 macholib; sys_platform == 'darwin'
 build_files/pyinstaller-5.9.0-py3-none-any.whl
+pipdeptree

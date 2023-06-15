@@ -3,6 +3,7 @@
 __pycache__/
 src/venv/
 build/
+_build/
 dist/
 images/
 test_files/

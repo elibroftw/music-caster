@@ -312,6 +312,8 @@ if __name__ == '__main__':
         additional_args = '--log=DEBUG' if args.debug else ''
         if args.clean:
             additional_args += ' --clean'
+        # build frontend
+        check_call('yarn build', cwd='../src-frontend', shell=True)
         if platform.system() == 'Windows':
             s1 = Popen(f'{sys.executable} -O -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
         else:
@@ -427,8 +429,6 @@ if __name__ == '__main__':
         test('Music Caster Exit API', lambda: requests.post('http://[::1]:2001/exit'))
         time.sleep(2)
         test('Music Caster Should Have Exited', lambda: not is_already_running(), True)
-    if not args.keep_finals:
-        shutil.rmtree('dist/Music Caster OneDir', ignore_errors=True)
 
     if args.debug or not dist_files_exist:
         print('Exiting early to avoid upload or installation of possibly broken build')
