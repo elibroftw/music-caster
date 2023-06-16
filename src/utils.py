@@ -338,16 +338,22 @@ def time_cache(max_age, maxsize=None, typed=False):
     return _decorator
 
 
+try:
+    LANGUAGES_FOLDER = f'{sys._MEIPASS}/languages'
+except AttributeError:
+    LANGUAGES_FOLDER = 'languages'
+
+
 @lru_cache(maxsize=1)
 def get_languages():
-    return list(chain([''], (get_file_name(lang) for lang in glob.iglob('languages/*.txt'))))
+    return list(chain([''], (get_file_name(lang) for lang in glob.iglob(f'{glob.escape(LANGUAGES_FOLDER)}/*.txt'))))
 
 
 @lru_cache(maxsize=3)
 def get_lang_pack(lang):
     lang_pack = {} if lang == 'en' else []
     with suppress(FileNotFoundError):
-        with open(f'languages/{lang}.txt', encoding='utf-8') as f:
+        with open(f'{LANGUAGES_FOLDER}/{lang}.txt', encoding='utf-8') as f:
             i = 0
             line = f.readline().strip()
             while line:

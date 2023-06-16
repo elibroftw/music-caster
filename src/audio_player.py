@@ -12,7 +12,10 @@ from enum import IntEnum
 from pathlib import Path
 
 IS_FROZEN = getattr(sys, 'frozen', False)  # pyinstaller generated executable
-app_path = os.path.dirname(sys.executable if IS_FROZEN else  __file__)
+try:
+    app_path = sys._MEIPASS
+except AttributeError:
+    app_path = os.path.dirname(sys.executable if IS_FROZEN else __file__)
 vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
 if platform.system() != 'Windows':
     os.environ['PYTHON_VLC_MODULE_PATH'] = f'{app_path}/vlc_lib/plugins'

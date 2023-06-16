@@ -6,7 +6,7 @@ from PyInstaller.building.api import PYZ, EXE
 from PyInstaller.building.build_main import Analysis, Tree
 # noinspection PyPackageRequirements
 from PyInstaller.config import CONF
-from glob import iglob
+import platform
 
 CONF['distpath'] = './dist'
 # CONF['workpath'] = './build'
@@ -14,7 +14,7 @@ block_cipher = None
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
-             datas=[],
+             datas=[('CHANGELOG.TXT', '.')],
              hiddenimports=['pystray._win32'],
              hookspath=[],
              runtime_hooks=[],
@@ -24,10 +24,22 @@ a = Analysis([f'{os.getcwd()}/music_caster.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
-tkdnd_toc = Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2')
-frontend_files = Tree('../src-frontend/dist', 'frontend')
-a.datas.extend(frontend_files)
-a.datas.extend(tkdnd_toc)
+
+a.datas.extend(Tree('templates', 'templates'))
+a.datas.extend(Tree('static', 'static'))
+VLC_EXCLUDES = ['*.dll', '*.so*', '*.dylib*']
+if platform.system() == 'Windows':
+    VLC_EXCLUDES.remove('*.dll')
+elif platform.system() == 'Darwin':
+    VLC_EXCLUDES.remove('*.dylib*')
+elif platform.system() == 'Linux':
+    VLC_EXCLUDES.remove('*.so*')
+a.datas.extend(Tree('vlc_lib', 'vlc_lib', excludes=VLC_EXCLUDES))
+a.datas.extend(Tree('languages', 'languages'))
+
+a.datas.extend(Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2'))
+a.datas.extend(Tree('theme', 'theme'))
+a.datas.extend(Tree('../src-frontend/dist', 'frontend'))
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
@@ -43,4 +55,5 @@ exe = EXE(pyz,
           strip=False,
           upx=False,
           runtime_tmpdir=None,
+          # TODO: use ENV variable
           console=False, version='mc_version_info.txt', icon=os.path.abspath('../resources/Music Caster Icon.ico'))

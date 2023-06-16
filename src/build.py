@@ -348,30 +348,12 @@ if __name__ == '__main__':
 
         # Portable
         if platform.system() == 'Windows':
-            res_files = ['static/style.css', 'templates/index.html']
-            lang_packs = glob.glob('languages/*.txt')
             music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
             updater_portable = ('dist/Updater.exe', 'Updater.exe')
             portable_files = [music_caster_portable, ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'), updater_portable]
             vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
-            portable_files.extend(res_files)
-            portable_files.extend(glob.iglob(f'vlc_lib/**/*.{vlc_ext}', recursive=True))
-            portable_files.extend(glob.iglob(f'theme/**/*.*', recursive=True))
-            portable_files.extend(lang_packs)
             print('Creating dist/Portable.zip')
             create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
-            if args.keep_finals:
-                for res_file in res_files:
-                    dst_file = f'dist/{res_file}'
-                    os.makedirs(os.path.dirname(dst_file), exist_ok=True)
-                    shutil.copyfile(res_file, dst_file)
-                shutil.copytree('vlc_lib', 'dist/vlc_lib', dirs_exist_ok=True)
-                shutil.copytree('languages', 'dist/languages', dirs_exist_ok=True)
-            else:
-                for file in (music_caster_portable, updater_portable):
-                    os.remove(file[0])
-                for directory in ('vlc_lib', 'languages', 'static', 'templates'):
-                    shutil.rmtree(f'dist/{directory}', ignore_errors=True)
         # zip directory for Linux or Darwin
         elif platform.system() == 'Darwin':
             pass

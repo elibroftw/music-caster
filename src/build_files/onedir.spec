@@ -12,15 +12,8 @@ import platform
 CONF['distpath'] = './dist'
 block_cipher = None
 # CONF['workpath'] = './build'
-VLC_EXCLUDES = ['*.dll', '*.so*', '*.dylib*']
-if platform.system() == 'Windows':
-    VLC_EXCLUDES.remove('*.dll')
-elif platform.system() == 'Darwin':
-    VLC_EXCLUDES.remove('*.dylib*')
-elif platform.system() == 'Linux':
-    VLC_EXCLUDES.remove('*.so*')
 # TODO: test on MAC OSX
-data_files = [('Music Caster.VisualElementsManifest.xml', '.')]
+data_files = [('Music Caster.VisualElementsManifest.xml', '.'), ('CHANGELOG.txt', '.')]
 a = Analysis([f'{os.getcwd()}/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
@@ -36,10 +29,17 @@ a = Analysis([f'{os.getcwd()}/music_caster.py'],
              noarchive=False)
 a.datas.extend(Tree('templates', 'templates'))
 a.datas.extend(Tree('static', 'static'))
+VLC_EXCLUDES = ['*.dll', '*.so*', '*.dylib*']
+if platform.system() == 'Windows':
+    VLC_EXCLUDES.remove('*.dll')
+elif platform.system() == 'Darwin':
+    VLC_EXCLUDES.remove('*.dylib*')
+elif platform.system() == 'Linux':
+    VLC_EXCLUDES.remove('*.so*')
 a.datas.extend(Tree('vlc_lib', 'vlc_lib', excludes=VLC_EXCLUDES))
 a.datas.extend(Tree('languages', 'languages'))
 a.datas.extend(Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2'))
-a.datas.extend(Tree('theme/**/*.*', 'theme'))
+a.datas.extend(Tree('theme', 'theme'))
 a.datas.extend(Tree('../src-frontend/dist', 'frontend'))
 
 pyz = PYZ(a.pure, a.zipped_data,
