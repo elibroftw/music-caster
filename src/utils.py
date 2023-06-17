@@ -530,8 +530,11 @@ def set_metadata(file_path: str, metadata: dict):
 def get_metadata(file_path: str):
     unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
     title, artist, album = unknown_title, unknown_artist, unknown_album
+    length = None
     try:
         a = mutagen.File(file_path)
+        with suppress(AttributeError):
+            length = a.info.length
         if isinstance(a, MP3):
             audio = dict(EasyMP3(file_path))
             audio['rating'] = a.get('TXXX:RATING', a.get('TXXX:ITUNESADVISORY', ['0']))
@@ -593,6 +596,8 @@ def get_metadata(file_path: str):
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
                 'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number,
                 'time_modified': os.path.getmtime(file_path)}
+    if length is not None:
+        metadata['length'] = length
     return metadata
 
 

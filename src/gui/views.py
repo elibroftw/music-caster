@@ -169,7 +169,7 @@ def QueueTab(queue, listbox_selected, listbox_height, accent_color, text_color, 
                                select_mode=Sg.SELECT_MODE_EXTENDED,
                                text_color=text_color, key='queue', font=FONT_NORMAL,
                                bind_return_key=True)], queue_controls]),
-        Sg.Column(listbox_controls, pad=(0, 0), vertical_alignment='center')]]
+        Sg.Column(listbox_controls, pad=(0, (5, 0)), vertical_alignment='top')]]
     return Sg.Tab(t('Queue'), queue_tab_layout, key='tab_queue')
 
 
@@ -210,9 +210,11 @@ def PlaylistsTab(playlists, accent_color, text_color, background_color, vertical
          Sg.Combo(values=playlists_names, size=(PL_COMBO_W, 1), key='playlist_combo', font=FONT_NORMAL,
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
+    pl_length_txt = [Sg.Text('', font=FONT_NORMAL, key='pl_length')]
     add_tracks_btn = [StyledButton(t('Add files'), accent_color, background_color, key='pl_add_tracks', button_width=13)]
     url_input_btn = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
     add_url_btn = [StyledButton(t('Add URL'), accent_color, background_color, key='pl_add_url', button_width=13)]
+    pl_saved_txt = [Sg.Text(t('Playlist saved'), key='pl_saved', font=FONT_NORMAL, visible=False, text_color='green')]
     lb_height = 17 - 6 * (vertical_gui or not show_album_art)
     pl_name_text = t('Playlist name')
     name_text_w = max(13, len(pl_name_text))
@@ -221,7 +223,8 @@ def PlaylistsTab(playlists, accent_color, text_color, background_color, vertical
                Sg.Input(playlist_name, key='pl_name', size=(60 - name_text_w, 1), font=FONT_NORMAL,
                         pad=((22, 5), (5, 10)), border_width=1),
                Sg.Button(key='pl_save', image_data=SAVE_IMG, tooltip='Ctrl + S', button_color=(background_color, background_color))],
-              [Sg.Column([add_tracks_btn, url_input_btn, add_url_btn, [Sg.Text(t('Playlist saved'), key='pl_saved', font=FONT_NORMAL, visible=False, text_color='green')]]),
+              [Sg.Column([pl_length_txt, add_tracks_btn, url_input_btn, add_url_btn, pl_saved_txt],
+                         vertical_alignment='top'),
                Sg.Listbox([], size=(45, lb_height), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=text_color,
                           key='pl_tracks', background_color=background_color, font=FONT_NORMAL, bind_return_key=True),
                Sg.Column(

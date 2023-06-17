@@ -228,7 +228,6 @@ if __name__ == '__main__':
     parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
     parser.add_argument('--no-install', default=False, action='store_true', help='do not install after building')
     parser.add_argument('--ytdl', default=False, action='store_true', help='version++ if new youtube-dl available')
-    parser.add_argument('--keep-finals', default=False, action='store_true', help='keep final pre-packaged files after packaging them')
     args = parser.parse_args()
     if args.deps:
         print('Building Music Caster (only install dependencies)')

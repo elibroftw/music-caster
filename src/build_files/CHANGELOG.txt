@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.30
+- [Feature] Playlist length
+- [UI] ListBox controls alignment
+
 5.13.29
 - [Fix] Experimental UI tooltip text now legible
 

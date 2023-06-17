@@ -1311,8 +1311,26 @@ if __name__ == '__main__':
 
 
     def format_pl_lb(tracks):
-        """Return usable list for playlist listbox"""
-        return [f"{i + 1}. {format_uri(track, _for='pl')}" for i, track in enumerate(tracks)]
+        """Return (list of formatted tracks, readable playlist time length) for playlist listbox"""
+        formatted_tracks = []
+        pl_length = 0
+        for i, track in enumerate(tracks):
+            formatted_tracks.append(f"{i + 1}. {format_uri(track, _for='pl')}")
+            metadata = get_uri_metadata(track, read_file=False)
+            pl_length += metadata.get('length', 0)
+        friendly_length = ''
+        if pl_length > 3600:
+            hours = pl_length // 3600
+            friendly_length = f'{hours:.0f}h '
+            pl_length -= hours * 3600
+        if pl_length > 60:
+            minutes = pl_length // 60
+            friendly_length += f'{minutes:.0f}m '
+            pl_length -= minutes * 60
+        friendly_length += f'{pl_length:.0f}s'
+        if friendly_length == '0s':
+            friendly_length = ''
+        return formatted_tracks, friendly_length
 
 
     def format_uri(uri: str, use_basename=False, _for=''):
@@ -2461,8 +2479,9 @@ if __name__ == '__main__':
             pl_tracks = gui_window.metadata['pl_tracks']
             pl_tracks.extend(get_audio_uris(file_paths))
             update_settings('last_folder', os.path.dirname(file_paths[-1]))
-            new_values = format_pl_lb(pl_tracks)
+            new_values, new_length = format_pl_lb(pl_tracks)
             new_i = len(new_values) - 1
+            gui_window['pl_length'].update(value=new_length)
             gui_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
         def dnd_queue(event):
@@ -2592,7 +2611,9 @@ if __name__ == '__main__':
                 gui_window.TKroot.tk.call('set_theme', 'dark')
             if not settings['mini_mode']:
                 gui_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
-                gui_window['pl_tracks'].update(values=format_pl_lb(pl_tracks))
+                pl_tracks_values, pl_length = format_pl_lb(pl_tracks)
+                gui_window['pl_length'].update(value=pl_length)
+                gui_window['pl_tracks'].update(values=pl_tracks_values)
             set_callbacks()
         elif settings['mini_mode']:
             if selected_tab:
@@ -2726,6 +2747,12 @@ if __name__ == '__main__':
         ignore_events = {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
         return (main_values == Sg.WIN_CLOSED or
                 main_event in {'Escape:27', ''} and gui_window.metadata['last_event'] not in ignore_events)
+
+    def update_playlist_ui(set_to_index=None):
+        pl_tracks = gui_window.metadata['pl_tracks']
+        pl_values, pl_length = format_pl_lb(pl_tracks)
+        gui_window['pl_length'].update(value=pl_length)
+        gui_window['pl_tracks'].update(values=pl_values, set_to_index=set_to_index)
 
     def read_main_window():
         global track_position, track_start, track_end, timer, music_queue, done_queue, SYNC_WITH_CHROMECAST
@@ -2933,7 +2960,9 @@ if __name__ == '__main__':
             gui_window['tab_playlists'].select()
             gui_window['pl_name'].set_focus()
             gui_window['pl_name'].update(value=gui_window.metadata['pl_name'])
-            gui_window['pl_tracks'].update(values=format_pl_lb(pl_tracks), set_to_index=0)
+            pl_tracks_values, pl_tracks_length = format_pl_lb(pl_tracks)
+            gui_window['pl_length'].update(value=pl_tracks_length)
+            gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
         elif main_event == 'locate_uri':
             if not settings['mini_mode'] and main_values['queue']:
                 for index in gui_window['queue'].get_indexes():
@@ -3262,12 +3291,15 @@ if __name__ == '__main__':
             pl_name = gui_window.metadata['pl_name'] = main_value if main_value in settings['playlists'] else ''
             pl_tracks = gui_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
             gui_window['pl_name'].update(value=pl_name)
-            gui_window['pl_tracks'].update(values=format_pl_lb(pl_tracks), set_to_index=0)
+            pl_tracks_values, pl_length = format_pl_lb(pl_tracks)
+            gui_window['pl_length'].update(value=pl_length)
+            gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
         elif main_event in {'new_pl', 'n:78'}:
             gui_window.metadata['pl_name'] = ''
             gui_window.metadata['pl_tracks'] = []
             gui_window['pl_name'].update(value='')
             gui_window['pl_name'].set_focus()
+            gui_window['pl_length'].update(value='')
             gui_window['pl_tracks'].update(values=[])
             gui_window['playlist_combo'].update(value='')
         elif main_event == 'export_pl':
@@ -3283,7 +3315,9 @@ if __name__ == '__main__':
             pl_tracks = gui_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
             # update playlist editor
             gui_window['pl_name'].update(value=pl_name)
-            gui_window['pl_tracks'].update(values=format_pl_lb(pl_tracks), set_to_index=0)
+            pl_tracks_values, pl_tracks_length = format_pl_lb(pl_tracks)
+            gui_window['pl_length'].update(value=pl_length)
+            gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
             save_settings()
             refresh_tray()
         elif main_event == 'play_pl':
@@ -3322,7 +3356,8 @@ if __name__ == '__main__':
                 pl_tracks.pop(to_remove)
                 if i == len(main_values['pl_tracks']):  # update gui after the last removal
                     scroll_to_index = max(to_remove - 3, 0)
-                    new_values = format_pl_lb(pl_tracks)
+                    new_values, new_length = format_pl_lb(pl_tracks)
+                    gui_window['pl_length'].update(value=new_length)
                     gui_window['pl_tracks'].update(new_values, set_to_index=to_remove, scroll_to_index=scroll_to_index)
         elif main_event == 'pl_add_tracks':
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
@@ -3335,7 +3370,8 @@ if __name__ == '__main__':
                 with suppress(TclError):
                     gui_window.TKroot.focus_force()
                     gui_window.normal()
-                    new_values = format_pl_lb(pl_tracks)
+                    new_values, pl_length = format_pl_lb(pl_tracks)
+                    gui_window['pl_length'].update(value=pl_length)
                     new_i = len(new_values) - 1
                     gui_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
         elif main_event == 'pl_url_input':
@@ -3357,7 +3393,8 @@ if __name__ == '__main__':
                     uris_to_scan.put(link)
                     pl_tracks = gui_window.metadata['pl_tracks']
                     pl_tracks.append(link)
-                    new_values = format_pl_lb(pl_tracks)
+                    new_values, pl_length = format_pl_lb(pl_tracks)
+                    gui_window['pl_length'].update(value=pl_length)
                     new_i = len(new_values) - 1
                     gui_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
                     # empty the input field
@@ -3373,7 +3410,8 @@ if __name__ == '__main__':
                     pl_tracks = gui_window.metadata['pl_tracks']
                     pl_tracks.insert(new_i, pl_tracks.pop(to_move))
                     if i == len(main_values['pl_tracks']):  # update gui after the last swap
-                        new_values = format_pl_lb(pl_tracks)
+                        new_values, pl_length = format_pl_lb(pl_tracks)
+                        gui_window['pl_length'].update(value=pl_length)
                         gui_window['pl_tracks'].update(new_values, set_to_index=new_i,
                                                        scroll_to_index=max(new_i - 3, 0))
         elif main_event == 'pl_move_down':
@@ -3384,7 +3422,9 @@ if __name__ == '__main__':
                     new_i = to_move + 1
                     pl_tracks.insert(new_i, pl_tracks.pop(to_move))
                     if i == len(main_values['pl_tracks']):  # update gui after the last swap
-                        gui_window['pl_tracks'].update(format_pl_lb(pl_tracks), set_to_index=new_i,
+                        pl_new_values, pl_length = format_pl_lb(pl_tracks)
+                        gui_window['pl_length'].update(value=pl_length)
+                        gui_window['pl_tracks'].update(values=pl_new_values, set_to_index=new_i,
                                                        scroll_to_index=max(new_i - 3, 0))
         elif main_event in {'pl_locate_selected', 'pl_tracks'}:
             for i in gui_window['pl_tracks'].get_indexes():
@@ -3472,7 +3512,9 @@ if __name__ == '__main__':
             lb_tracks = create_track_list()
             gui_window['queue'].update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
             pl_tracks = gui_window.metadata['pl_tracks']
-            gui_window['pl_tracks'].update(values=format_pl_lb(pl_tracks))
+            pl_values, pl_length = format_pl_lb(pl_tracks)
+            gui_window['pl_length'].update(value=pl_length)
+            gui_window['pl_tracks'].update(values=pl_values)
             if len(all_tracks) != len(gui_window['library'].Values):
                 lib_data = [[track['title'], get_first_artist(track['artist']), track['album'], uri] for uri, track in
                             index_all_tracks(False).items()]
