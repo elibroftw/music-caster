@@ -1,0 +1,201 @@
+# Language: Danish
+# Credits: Frey Clante
+# Any line starting with a # is ignored
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+# Try to keep the same capitalization or lack of as in the English file
+tilføj mappe
+Tilføj Music Caster til mappe kontekst menu
+Tilføj filer
+Tilføj URL
+Der er sket en fejl, genstarter nu
+Der opstod en intern Server Fejl
+Audio Selection
+Automatiske opdateringer
+Af
+Annuller
+Annuller Timer
+Tøm køen
+Knapper
+Kunne ikke forbinde til cast device
+Kunne ikke finde optagelseskilde
+Kunne ikke afspille $URL
+Kunne ikke oprette køen fordi mappe-scanning er slået fra
+Kunne ikke indstille timer
+Discord installeret?
+Downloader opdatering ver: $VER
+Skriv minutter eller HH:MM (Timer:Minutter)
+Skriv tid
+Skriv URL
+FEJL
+Afslut
+Mappe kontekst menu
+Mappen indeholder ikke lydfiler
+Mapper
+Generelt
+Gå i dvale når nedtælling løber ud
+Sæt computer i dvale
+INFO
+Fejl i det indtastede (Skriv minutter eller timer ( 24 timers format (HH:mm) ))
+Ugyldig URL. URL'er SKAL starte med http:// eller https://
+Ugyldig lydfil valgt
+Ugyldig lydfil $FILE
+behold mini-tilstand i forgrunden
+Start mini-tilstand
+Musik-Knapper (venstre)
+Bibliotek
+Bibliotek indeksering blev afbrudt, kun scannede filer blev tilføjet
+Lytter
+System Lyd
+Denne Computer
+find valgte
+Forbindelsen til $DEVICE blev afbrudt, skifter til denne computer
+Mini-Mode i forgrunden
+Mere
+flyt ned
+sæt til at afspille som næste
+Flyt indhold til venstre
+Flyt op
+Music Caster kører i minimeret tilstand.
+mute
+Ny
+næste nummer
+Der er ikke nok plads på den valgte disk til at auto-opdatere
+Der er ikke nok plads på den valgte disk til at gemme indstillingerne
+Ingen timer sat
+Ikke forbundet til et 'cast device' 
+Ikke logget ind på deezer.com
+Intet afspilles
+Notifikationer
+Stop kun afspilning
+Åben
+Pause
+Gemt kø
+Afspil
+Afspil Alle
+Afspil Filer
+Afspil Filer bagefter
+Afspil Øjeblikkeligt
+Afspil Næste
+Afspil URL
+Afspil URL bagefter
+Afspiller
+Playlist navn
+Playlists
+Playlists Tab
+Indlæs kø under opstart
+Indlæser kø fra mapper under opstart
+forrige nummer
+Kø
+Sæt alle i kø
+Sæt filer i kø
+Sæt URL i kø
+Opdater Devices
+Husk sidste mappe
+fjern den valgte mappe
+fjern
+Gentag
+Gentag Alle
+Gentag 'fra'
+Gentag nummer
+Gentag Muligheder
+Scan Bibliotek igen
+Scanner Bibliotek igen
+Genoptag
+Reverse play next behaviour Afspil næste baglæns-opførsel
+Næste spilles baglæns
+Kør ved opstart
+Gem kø på tværs a sessioner
+Gem i playlist
+Gem Vindues positioner
+Scan mapper
+scroll musehjul
+Søg efter musik...
+Vælg Device
+Vælg Mappe
+Vælg Mapper
+Vælg Filer
+Vælg Fil
+Vælg Lydfiler
+Send mig en mail
+sæt --> DEBUG = true i `settings.json` for at aktivere denne side
+Sæt Timer
+Set
+Indstillinger
+Vis Album Art
+Vis album art in GUI
+Vis plads-indeks i køen
+Vis indeks for nummer
+Vis indeks for nummer i køen
+bland
+Luk computeren ned når timeren løber ud
+Luk computeren
+Gå i dvale når timeren løber ud
+Gå i dvale
+Stop
+Send
+Tak fordi du installerer Music Caster.
+Timer
+Timer annulleret
+Timer indstillet til: $TIME
+Udfyld kunstner/titel
+Brugerflade
+unmute
+Opdatering ver: $VER er tilgængelig
+URL
+Brug cover.* til album art
+Brug cover.* til art i stedet for filens album art
+cover.* billede trumfer coverfil
+Lodret Brugerflade
+Vis Lydfilers kilde Links
+Åbn Brugerflade i browser
+ny playlist
+eksporter playlist
+slet playlist
+afspil playliste
+sæt playliste i kø
+Ukendt Titel
+Ukendt Kunstner
+Ukendt Album
+Sæt altid bibliotek i kø
+Afspil med Music Caster
+Tilføj til kø i Music Caster
+Afspil næste i Music Caster
+Sætter i kø
+Intelligent kø
+tilføj som næste
+Metadata
+Gemmer metadata
+Metadata gemt
+Gem
+Titel
+Kunstner
+Album
+Nummer indeks
+Eksplicit
+Vælg artwork
+Søg artwork
+fjern artwork
+Artwork fundet
+intet artwork found
+Søger efter artwork...
+Indlæser URL(s)
+Tilføjede URL(s)
+sprog
+afspil valgte
+sæt valgte i kø
+tilføj valgte som næste
+System Lyd Forsinkelse:
+sekunder
+find nummer
+Skifter til lokal afspilning
+Nummer Format:
+Kunne ikke hente lyd fra: $URL
+Afslut når den grafiske brugeflade lukkes
+'På batteri' opløsning
+'tilsluttet' opløsning
+Kunne ikke indstille opløsning
+Kopier URIs
+rediger metadata
+Eksperimentelle funktioner
+Playlist gemt
