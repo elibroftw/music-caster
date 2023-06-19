@@ -2,6 +2,7 @@ Music Caster by Elijah Lopez Changelog
 
 5.13.31
 - [UI] Danish supported
+- [Fix] Playlist tab
 
 5.13.30
 - [Feature] Playlist length
