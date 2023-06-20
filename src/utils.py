@@ -662,13 +662,17 @@ def get_ipv6():
     return ip
 
 
-ipv4_pattern = re.compile(r'IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
+# https://regex101.com/
+IPV4_WIFI_PATTERN = re.compile(r'Wireless LAN adapter Wi-Fi:((.|\n)*?)?\s+IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
+IPV4_GENERAL_PATTERN = re.compile(r'IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
 
 def get_ipv4():
     try:
         ipconfig_output = check_output(['ipconfig'], shell=True, text=True, encoding='iso8859-2')
-        # ipconfig_output = getoutput('ipconfig')
-        return ipv4_pattern.findall(ipconfig_output)[-1]
+        wifi_match = IPV4_WIFI_PATTERN.findall(ipconfig_output)
+        if wifi_match:
+            return wifi_match[-1][-1]
+        return IPV4_GENERAL_PATTERN.findall(ipconfig_output)[-1]
     except (IndexError, CalledProcessError, FileNotFoundError):
         # fallback in case the ipv4 cannot be found in ipconfig
         # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET))

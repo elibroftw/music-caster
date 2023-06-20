@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.32
+- [Fix] Fetching local IPV4
+
 5.13.31
 - [UI] Danish supported
 - [Fix] Playlist tab
