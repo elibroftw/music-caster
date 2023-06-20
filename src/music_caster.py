@@ -1318,7 +1318,9 @@ if __name__ == '__main__':
             formatted_tracks.append(f"{i + 1}. {format_uri(track, _for='pl')}")
             with suppress(KeyError):
                 metadata = get_uri_metadata(track, read_file=False)
-                pl_length += metadata.get('length', 0)
+                length = metadata.get('length')
+                if length is not None:
+                    pl_length += length
         friendly_length = ''
         if pl_length > 3600:
             hours = pl_length // 3600
