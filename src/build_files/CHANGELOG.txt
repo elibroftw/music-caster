@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.33
+- [Fix] Playlist delete
+
 5.13.32
 - [Fix] Fetching local IPV4
 

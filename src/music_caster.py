@@ -3319,7 +3319,7 @@ if __name__ == '__main__':
             # update playlist editor
             gui_window['pl_name'].update(value=pl_name)
             pl_tracks_values, pl_tracks_length = format_pl_lb(pl_tracks)
-            gui_window['pl_length'].update(value=pl_length)
+            gui_window['pl_length'].update(value=pl_tracks_length)
             gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
             save_settings()
             refresh_tray()
