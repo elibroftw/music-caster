@@ -2,7 +2,6 @@ import audioop
 import base64
 from contextlib import suppress
 import ctypes
-from datetime import datetime
 from deezer import TrackFormats
 from functools import wraps, lru_cache
 import glob
@@ -35,6 +34,7 @@ from b64_images import *
 
 # 3rd party imports
 import deemix.utils.localpaths as __lp
+import webbrowser
 __lp.musicdata = '/dz'
 import mutagen
 from mutagen import MutagenError
@@ -56,7 +56,7 @@ from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 from youtube_comment_downloader import YoutubeCommentDownloader
-from resolution_switcher import fmt_res, get_all_resolutions, get_initial_dpi_scale
+from modules.resolution_switcher import fmt_res, get_all_resolutions, get_initial_dpi_scale
 from meta import *
 
 # save cache
@@ -595,10 +595,17 @@ def get_metadata(file_path: str):
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
                 'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number,
+                # float works with sqlite REAL
                 'time_modified': os.path.getmtime(file_path)}
     if length is not None:
         metadata['length'] = length
     return metadata
+
+
+def open_in_browser(url):
+    t = Thread(target=webbrowser.open, daemon=True, args=(url,))
+    t.start()
+    return t
 
 
 def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime: str, data: str

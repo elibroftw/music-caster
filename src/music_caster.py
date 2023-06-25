@@ -221,14 +221,14 @@ if __name__ == '__main__':
     import urllib.parse
     from urllib.parse import urlsplit
     from uuid import UUID
-    import webbrowser
     import zipfile
 
     from audio_player import AudioPlayer
     from utils import *
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import PySimpleGUI as Sg
-    from resolution_switcher import set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in
+    from modules.resolution_switcher import set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in
+    from modules.db import DatabaseConnection, init_db
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
@@ -319,7 +319,8 @@ if __name__ == '__main__':
     os.environ['FLASK_SKIP_DOTENV'] = '1'
     # if time.time() > SYNC_WITH_CHROMECAST good to sync from chromecast
     SYNC_WITH_CHROMECAST = 0
-
+    connection = DatabaseConnection.create_connection()
+    init_db()
 
     def get_line_number():
         cf = currentframe()
@@ -646,19 +647,40 @@ if __name__ == '__main__':
             all_tracks_temp = {}
             dict_to_use = all_tracks_temp if use_temp else all_tracks
             # scan items in queue and library
-            for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
-                if uri.startswith('http'):
-                    get_url_metadata(uri)
-                else:
-                    dict_to_use[uri] = get_metadata_wrapped(uri)
-            if use_temp: all_tracks = all_tracks_temp
-            gui_window.metadata['update_listboxes'] = True
-            all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
-            # scan items in playlists
-            for _ in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
-                # the function scans for us
-                pass
-
+            with DatabaseConnection() as conn:
+                cur = conn.cursor()
+                for i, uri in enumerate(get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True)):
+                    if uri.startswith('http'):
+                        url_metadatas = get_url_metadata(uri)
+                        for m in url_metadatas:
+                            values = [uri]
+                            values.extend((int(x) if isinstance(x, bool) else x for x in m.values()))
+                            columns = ','.join(m.keys())
+                            placeholders = ','.join('?' * len(values))
+                            sql = f'INSERT OR REPLACE INTO url_metadata(src,{columns}) VALUES({placeholders})'
+                            cur.execute(sql, values)
+                    else:
+                        m = get_metadata_wrapped(uri)
+                        dict_to_use[uri] = m
+                        values = [uri]
+                        values.extend((int(x) if isinstance(x, bool) else x for x in m.values()))
+                        columns = ','.join(m.keys())
+                        placeholders = ','.join('?' * len(values))
+                        sql = f'INSERT OR REPLACE INTO file_metadata(file_path,{columns}) VALUES({placeholders})'
+                        cur.execute(sql, values)
+                    if i % 20 == 0:
+                        conn.commit()
+                conn.commit()
+                if use_temp: all_tracks = all_tracks_temp
+                gui_window.metadata['update_listboxes'] = True
+                tracks = cur.execute('SELECT * FROM file_metadata ORDER BY sort_key').fetchall()
+                all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
+                print(dict(tracks[0]))
+                print(all_tracks_sorted[0])
+                # scan items in playlists
+                for _ in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
+                    # the function scans for us
+                    pass
         if not update_global:
             temp_tracks = all_tracks.copy()
             for ignore_file in ignore_files: temp_tracks.pop(ignore_file, None)
@@ -1353,7 +1375,7 @@ if __name__ == '__main__':
             formatted = formatted.replace('&alb', str(album))
             number = metadata.get('track_number', '')
             if '&trck' in formatted:
-                formatted = formatted.replace('&trck', number)
+                formatted = formatted.replace('&trck', str(number))
             elif settings['show_track_number'] and number:
                 formatted = f'[{number}] {formatted}'
             if not _for:
@@ -1513,10 +1535,11 @@ if __name__ == '__main__':
             tray_notify('ERROR: Something went wrong')
         return False
 
-    def url_expired(uri, default=False):
+    def url_expired(uri):
         """ Returns if URI is a URL that has expired """
-        default_expiry_time = time.time() + 3 if default else 0
-        expiry_time = url_metadata.get(uri, {}).get('expiry', default_expiry_time)
+        expiry_time = url_metadata.get(uri, {}).get('expiry', 0)
+        # if expiry_time is None, url does not have an expiry
+        if expiry_time is None: return False
         return expiry_time < time.time()
 
 
@@ -1582,14 +1605,15 @@ if __name__ == '__main__':
             url_frags = urlsplit(url)
             title, artist, album = url_frags.path.split('/')[-1], url_frags.netloc, url_frags.path[1:]
             url_metadata[url] = metadata = {'title': title, 'artist': artist, 'length': None, 'album': album,
-                                            'src': url, 'url': url, 'ext': ext}  # never expires
+                                            'src': url, 'url': url, 'ext': ext, 'expiry': None}  # never expires
             metadata_list.append(metadata)
         elif 'twitch.tv' in url:
             with suppress(StopIteration, IOError):
                 r = ydl_extract_info(url, quiet=not is_debug())
                 audio_url = max(r['formats'], key=lambda item: item['tbr'] * (item['vcodec'] == 'none'))['url']
+                # for now, expire immediately
                 metadata = {'title': r['description'], 'artist': r['uploader'], 'ext': r['ext'],
-                            'expiry': time.time(), 'album': 'Twitch', 'length': None,
+                            'expiry': 0, 'album': 'Twitch', 'length': None,
                             'art': r['thumbnail'], 'url': r['url'], 'audio_url': audio_url, 'src': url}
                 url_metadata[url] = metadata
                 metadata_list.append(metadata)
@@ -1633,7 +1657,7 @@ if __name__ == '__main__':
                     else:
                         metadata = {'title': video['title']['runs'][0]['text'],
                                     'artist': video['shortBylineText']['runs'][0]['text'], 'album': 'YouTube',
-                                    'id': video['videoId'], 'src': _url, 'pl_src': src_url,
+                                    'id': video['videoId'], 'src': _url, 'pl_src': src_url, 'expiry': 0,
                                     'art': f'https://img.youtube.com/vi/{ytid}/maxresdefault.jpg'}
                         url_metadata[_url] = metadata
                         metadata_list.append(metadata)
@@ -1669,7 +1693,7 @@ if __name__ == '__main__':
                                 install_phantomjs(PHANTOMJS_DIR)
                                 add_to_path(PHANTOMJS_DIR / 'bin')
                             except Exception as e:
-                                Thread(target=webbrowser.open, daemon=True, args=('https://phantomjs.org/download.html',)).start()
+                                open_in_browser('https://phantomjs.org/download.html')
                         if 'blocked it on copyright grounds' not in trace_back_msg:
                             attribute_error_reported = True
                             handle_exception(e)
@@ -1730,7 +1754,7 @@ if __name__ == '__main__':
                 # login cookie not found
                 # first time open the browser
                 if not deezer_opened:
-                    Thread(target=webbrowser.open, daemon=True, args=('https://www.deezer.com/login',)).start()
+                    open_in_browser('https://www.deezer.com/login')
                     tray_notify(t('ERROR') + ': ' + t('Not logged into deezer.com'))
                     deezer_opened = True
                 # fallback to deezer -> youtube
@@ -2674,7 +2698,7 @@ if __name__ == '__main__':
                 if uri in url_metadata:
                     # if source is from playlist...
                     uri = url_metadata[uri].get('pl_src', uri)
-                Thread(target=webbrowser.open, daemon=True, args=[uri]).start()
+                open_in_browser(uri)
                 return True
             if os.path.exists(uri):
                 if platform.system() == 'Windows':
@@ -3143,11 +3167,11 @@ if __name__ == '__main__':
                 track_end = track_start + track_length
         # main window settings tab
         elif main_event == 'open_email':
-            Thread(target=webbrowser.open, daemon=True, args=[create_email_url()]).start()
+            open_in_browser(create_email_url())
         elif main_event == 'open_github':
-            Thread(target=webbrowser.open, daemon=True, args=['https://github.com/elibroftw/music-caster']).start()
+            open_in_browser('https://github.com/elibroftw/music-caster')
         elif main_event == 'web_gui':
-            Thread(target=webbrowser.open, daemon=True, args=[f'http://{get_lan_ip()}:{State.PORT}']).start()
+            open_in_browser(f'http://{get_lan_ip()}:{State.PORT}')
         # toggle settings
         elif main_event in TOGGLEABLE_SETTINGS:
             update_settings(main_event, main_value)
@@ -3216,7 +3240,7 @@ if __name__ == '__main__':
                 changelog_path = 'CHANGELOG.txt'
             if not os.path.exists(changelog_path):
                 changelog_url = 'https://github.com/elibroftw/music-caster/blob/master/src/build_files/CHANGELOG.txt'
-                Thread(target=webbrowser.open, daemon=True, args=(changelog_url,)).start()
+                open_in_browser(changelog_url)
             else:
                 startfile(changelog_path)
         elif main_event == 'music_folders':

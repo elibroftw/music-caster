@@ -9,7 +9,7 @@ from b64_images import *
 from gui.components import Checkbox, IconButton, StyledButton, QRCode
 from meta import (CONTACT_INFO, COVER_NORMAL, FONT_LINK, FONT_MED, FONT_NORMAL, PlayingStatus,
                   FONT_TAB, FONT_TITLE, LINK_COLOR, PL_COMBO_W, VERSION, State)
-from resolution_switcher import fmt_res, get_all_resolutions
+from modules.resolution_switcher import fmt_res, get_all_resolutions
 from utils import Device, get_languages, t, truncate_title, repeat_img_tooltip, get_first_artist, create_progress_bar_texts
 
 
