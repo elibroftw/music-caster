@@ -800,6 +800,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
     mc_file = 'MusicCaster_file'
     write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY
+    path_to_exe = str(path_to_exe)
     # create URL protocol handler
     url_protocol = fr'{classes_path}\music-caster'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
