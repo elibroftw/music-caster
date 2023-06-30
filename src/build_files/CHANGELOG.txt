@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.34
+- [Fix] Start on login
+
 5.13.33
 - [Fix] Playlist delete
 

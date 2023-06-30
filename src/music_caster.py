@@ -153,7 +153,7 @@ if __name__ == '__main__':
     DEBUG = args.debug
     print(f'DEBUG: {DEBUG}')
     IS_FROZEN = getattr(sys, 'frozen', False)
-    working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    working_dir = Path(sys.argv[0]).absolute().parent
     os.chdir(working_dir)
     SETTINGS_FILE = Path('settings.json').absolute()
     PHANTOMJS_DIR = Path('phantomjs')
@@ -675,8 +675,6 @@ if __name__ == '__main__':
                 gui_window.metadata['update_listboxes'] = True
                 tracks = cur.execute('SELECT * FROM file_metadata ORDER BY sort_key').fetchall()
                 all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
-                print(dict(tracks[0]))
-                print(all_tracks_sorted[0])
                 # scan items in playlists
                 for _ in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
                     # the function scans for us
@@ -2388,7 +2386,7 @@ if __name__ == '__main__':
         if not is_debug(): send_info()
         app_log.info(f'entered background_thread')
         app_log.info(f'system: {platform.system()}')
-        create_shortcut()
+        start_on_login_modifications()
         UpdateChecker()
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
         p.name = 'pynputListener'
@@ -3176,7 +3174,7 @@ if __name__ == '__main__':
         elif main_event in TOGGLEABLE_SETTINGS:
             update_settings(main_event, main_value)
             if main_event == 'run_on_startup':
-                create_shortcut()
+                start_on_login_modifications()
             elif main_event == 'persistent_queue':
                 if main_value: save_queues()
                 else: update_settings('queues', {'done': [], 'music': [], 'next': []})
@@ -3560,14 +3558,12 @@ if __name__ == '__main__':
         return True
 
 
-    def create_shortcut():
-        """ Creates short-cut in Startup folder (enter "startup" in Explorer address bar to)
-            if setting['run_on_startup'], else removes existing shortcut """
+    def start_on_login_modifications():
+        """ Run platform specific implementation of startup modification """
         if platform.system() == 'Windows':
-            Thread(target=create_shortcut_windows, name='CreateShortcut',
-                   args=(is_debug(), IS_FROZEN, settings['run_on_startup'], working_dir)).start()
+            start_on_login_win32(working_dir, settings['run_on_startup'])
         else:
-            print('TODO: create_shortcut not implemented for', platform.system())
+            print('TODO: start_on_login_modifications not implemented for', platform.system())
 
     def auto_update():
         """ auto_start should be True when checking for updates at startup up,
@@ -3747,11 +3743,10 @@ if __name__ == '__main__':
         # set file handlers only if installed from the setup (Not a portable installation)
         if os.path.exists(UNINSTALLER):
             with suppress(PermissionError):
-                add_reg_handlers(f'{working_dir}/Music Caster.exe', add_folder_context=settings['folder_context_menu'])
+                add_reg_handlers(working_dir / 'Music Caster.exe', add_folder_context=settings['folder_context_menu'])
 
         with suppress(FileNotFoundError, OSError): os.remove('mc_installer.exe')
         rmtree('Update', ignore_errors=True)
-
         Thread(target=background_thread, daemon=True, name='BackgroundTasks').start()
         zconf = zeroconf.Zeroconf()
         cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)

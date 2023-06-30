@@ -63,6 +63,7 @@ from meta import *
 get_initial_dpi_scale()
 
 # CONSTANTS
+IS_FROZEN = getattr(sys, 'frozen', False)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 YTCommentDLer = YoutubeCommentDownloader()
 # for stealing focus when bring window to front
@@ -780,12 +781,12 @@ def is_os_64bit(): return platform.machine().endswith('64')
 
 def delete_sub_key(root, current_key):
     import winreg as wr
-    access = wr.KEY_ALL_ACCESS | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_ALL_ACCESS
+    access = wr.KEY_ALL_ACCESS | wr.KEY_WOW64_64KEY
     with suppress(FileNotFoundError):
         with wr.OpenKeyEx(root, current_key, 0, access) as parent_key:
             info_key = wr.QueryInfoKey(parent_key)
             for x in range(info_key[0]):
-                sub_key = wr.EnumKey(parent_key, 0)
+                sub_key = wr.EnumKey(parent_key, x)
                 try: wr.DeleteKeyEx(parent_key, sub_key, access)
                 except OSError: delete_sub_key(root, '\\'.join([current_key, sub_key]))
             wr.DeleteKeyEx(parent_key, '', access)
@@ -795,13 +796,12 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
     """ Register Music Caster as a program to open audio files and folders """
     # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
     import winreg as wr
-    path_to_exe = path_to_exe.replace('/', '\\')
-    classes_path = 'SOFTWARE\\Classes\\'
+    classes_path = r'SOFTWARE\Classes'
     mc_file = 'MusicCaster_file'
-    write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_WRITE
-    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
+    write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY
+    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY
     # create URL protocol handler
-    url_protocol = f'{classes_path}music-caster'
+    url_protocol = fr'{classes_path}\music-caster'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, 'URL:music-caster Protocol')
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
@@ -812,41 +812,41 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --urlprotocol "%1"')
 
     # create Audio File type
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}', 0, write_access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Audio File')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\DefaultIcon', 0, write_access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\DefaultIcon', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, path_to_exe)  # define icon location
 
     # create play context | open handler
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\open', 0, write_access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\shell\open', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play with Music Caster'))
         wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    command_path = f'{classes_path}{mc_file}\\shell\\open\\command'
+    command_path = fr'{classes_path}\{mc_file}\shell\open\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
 
     # create queue context
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\queue', 0, write_access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\shell\queue', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Queue in Music Caster'))
         wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    command_path = f'{classes_path}{mc_file}\\shell\\queue\\command'
+    command_path = fr'{classes_path}\{mc_file}\shell\queue\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
 
     # create play next context
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{classes_path}{mc_file}\\shell\\play_next', 0, write_access) as key:
+    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\shell\play_next', 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play next in Music Caster'))
         wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
         wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    command_path = f'{classes_path}{mc_file}\\shell\\play_next\\command'
+    command_path = fr'{classes_path}\{mc_file}\shell\play_next\command'
     with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
 
     # set file handlers
     for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
-        key_path = f'{classes_path}.{ext}'
+        key_path = fr'{classes_path}\.{ext}'
         try:  # check if key exists
             with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _: pass
         except (WindowsError, FileNotFoundError):
@@ -855,31 +855,31 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
                 # set as default program unless .mp4 because that's a video format
                 wr.SetValueEx(key, None, 0, wr.REG_SZ, mc_file)
         # add to Open With (prompts user to set default program when they try playing a file)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{key_path}\\OpenWithProgids', 0, write_access) as key:
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{key_path}\\OpenWithProgids', 0, write_access) as key:
             # noinspection PyTypeChecker
             wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, b'')  # type needs to be bytes
 
-    play_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayFolder'
-    queue_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterQueueFolder'
-    play_next_folder_key_path = f'{classes_path}\\Directory\\shell\\MusicCasterPlayNextFolder'
+    play_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterPlayFolder'
+    queue_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterQueueFolder'
+    play_next_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterPlayNextFolder'
     if add_folder_context:
         # set "open folder in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play with Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_folder_key_path}\\command', 0, write_access) as key:
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{play_folder_key_path}\\command', 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
         # set "queue folder in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Queue in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{queue_folder_key_path}\\command', 0, write_access) as key:
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{queue_folder_key_path}\\command', 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
         # set "play folder next in Music Caster" command
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_next_folder_key_path, 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play next in Music Caster'))
             wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, f'{play_next_folder_key_path}\\command', 0, write_access) as key:
+        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{play_next_folder_key_path}\\command', 0, write_access) as key:
             wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
     else:
         # remove commands for folders
@@ -891,7 +891,7 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
 def get_default_output_device():
     """ returns the PyAudio formatted name of the default output device """
     import winreg as wr
-    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY if is_os_64bit() else wr.KEY_READ
+    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY
     audio_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
     audio_key = wr.OpenKeyEx(wr.HKEY_LOCAL_MACHINE, audio_path, 0, read_access)
     num_devices = wr.QueryInfoKey(audio_key)[0]
@@ -1364,6 +1364,22 @@ def get_cut_text(window, key):
     return cut_text
 
 
+def start_on_login_win32(working_dir, create_key=True, is_debug=True):
+    import winreg as wr
+    classes_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+    access = wr.KEY_ALL_ACCESS | wr.KEY_WOW64_64KEY
+    path_to_exe = working_dir / 'Music Caster.exe' if IS_FROZEN else working_dir / 'music_caster.bat'
+    if not IS_FROZEN and not os.path.exists(path_to_exe):
+        with open('music_caster.bat', 'w') as f:
+            f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
+    with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, classes_path, 0, access) as key:
+        if create_key and (IS_FROZEN or is_debug):
+            wr.SetValueEx(key, 'Music Caster', 0, wr.REG_SZ, f'"{path_to_exe}" -m')
+        if not create_key or (not IS_FROZEN and is_debug):
+            with suppress(FileNotFoundError):
+                wr.DeleteValue(key, 'Music Caster')
+
+
 def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
     from win32comext.shell import shell, shellcon
     from win32com.universal import com_error
@@ -1373,7 +1389,7 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
     app_log.info('create_shortcut called')
     startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
     shortcut_name = 'Music Caster'
-    if not is_frozen:
+    if not IS_FROZEN:
         shortcut_name += ' (Python)'
     if is_debug:
         shortcut_name += ' [DEBUG]'
@@ -1386,20 +1402,20 @@ def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
             pythoncom.CoInitialize()
             _shell = win32com.client.Dispatch('WScript.Shell')
             shortcut = _shell.CreateShortCut(shortcut_path)
-            if is_frozen:
-                target = f'{working_dir}\\Music Caster.exe'
+            if IS_FROZEN:
+                target = working_dir / 'Music Caster.exe'
             else:
-                target = f'{working_dir}\\music_caster.bat'
-                if os.path.exists(target):
+                target = working_dir / 'music_caster.bat'
+                if not os.path.exists(target):
                     with open('music_caster.bat', 'w') as f:
                         f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
-                shortcut.IconLocation = f'{working_dir}\\resources\\Music Caster Icon.ico'
-            shortcut.Targetpath = target
+                shortcut.IconLocation = str(working_dir / 'resources' / 'Music Caster Icon.ico')
+            shortcut.Targetpath = str(target)
             shortcut.Arguments = '-m'
-            shortcut.WorkingDirectory = working_dir
+            shortcut.WorkingDirectory = str(working_dir)
             shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
             shortcut.save()
-            if not is_frozen or is_debug:
+            if not IS_FROZEN or is_debug:
                 time.sleep(1)
                 app_log.info('create_shortcut: removed shortcut')
                 os.remove(shortcut_path)
