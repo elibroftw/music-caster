@@ -293,7 +293,12 @@ if __name__ == '__main__':
     recent_api_plays = {'play': 0, 'queue': 0, 'play_next': 0}
     # seconds but using time()
     track_position = timer = track_end = track_length = track_start = 0
-    DEFAULT_FOLDER = home_music_folder = (Path.home() / 'Music').as_posix()
+
+    def get_default_music_folder():
+        if platform.system() == 'Windows':
+            from knownpaths import sh_get_known_folder_path, FOLDERID
+            return sh_get_known_folder_path(FOLDERID.Music)
+        return str(Path.home() / 'Music')
     default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings: dict = {  # default settings
         'device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
@@ -304,9 +309,9 @@ if __name__ == '__main__':
         'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False,
         'gui_exits_app': False, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'sys_audio_delay': 0,
-        'use_last_folder': False, 'upload_pw': '', 'last_folder': DEFAULT_FOLDER, 'scan_folders': True,
+        'use_last_folder': False, 'upload_pw': '', 'last_folder': get_default_music_folder(), 'scan_folders': True,
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
-        'music_folders': [DEFAULT_FOLDER], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []},
+        'music_folders': [get_default_music_folder()], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []},
         'position': 0, 'plugged_in_res': None, 'on_battery_res': None, 'experimental_features': False,
         'api_key': secrets.token_urlsafe(16)}
     default_settings = deepcopy(settings)
@@ -709,7 +714,7 @@ if __name__ == '__main__':
         calls refresh_tray(), index_all_tracks(), save_setting()
         first_load: if true, start indexing all tracks
         """
-        global settings, music_folders, settings_last_modified, DEFAULT_FOLDER
+        global settings, music_folders, settings_last_modified, get_default_music_folder()
         _save_settings = False
         with settings_file_lock:
             try:
@@ -741,7 +746,7 @@ if __name__ == '__main__':
                 music_folders = settings['music_folders']
                 if settings['scan_folders']: index_all_tracks()
             refresh_tray()
-            DEFAULT_FOLDER = music_folders[0] if music_folders else home_music_folder
+            get_default_music_folder() = music_folders[0] if music_folders else home_music_folder
             theme = settings['theme']
             for k, v in theme.copy().items():
                 # validate settings file color codes
@@ -2058,10 +2063,10 @@ if __name__ == '__main__':
             while not os.path.exists(initial_folder):
                 initial_folder = Path(initial_folder).parent.absolute()
                 if prev_folder == initial_folder:  # prevent infinite loop
-                    initial_folder = DEFAULT_FOLDER
+                    initial_folder = get_default_music_folder()
                     break
         else:
-            initial_folder = DEFAULT_FOLDER
+            initial_folder = get_default_music_folder()
         _root = tkinter.Tk()
         _root.withdraw()
         if platform.system() != 'Linux':
@@ -3225,7 +3230,7 @@ if __name__ == '__main__':
                 save_settings()
                 if settings['scan_folders']: index_all_tracks()
         elif main_event == 'add_music_folder':
-            initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+            initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
             folder_path = Sg.popup_get_folder(t('Select Folder'), initial_folder=initial_folder, no_window=True,
                                               icon=WINDOW_ICON)
             if folder_path: add_music_folder([folder_path])
@@ -3385,7 +3390,7 @@ if __name__ == '__main__':
                     gui_window['pl_length'].update(value=new_length)
                     gui_window['pl_tracks'].update(new_values, set_to_index=to_remove, scroll_to_index=scroll_to_index)
         elif main_event == 'pl_add_tracks':
-            initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+            initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
             file_paths = Sg.popup_get_file('Select Audio Files', no_window=True, initial_folder=initial_folder,
                                            multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
             if file_paths:
@@ -3464,7 +3469,7 @@ if __name__ == '__main__':
                       play_next=main_event == 'add_next_pl_selected', natural_sort=settings['shuffle'])
         # metadata editor tab
         elif main_event in {'metadata_browse', 'metadata_file'}:
-            initial_folder = settings['last_folder'] if settings['use_last_folder'] else DEFAULT_FOLDER
+            initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
             selected_file = Sg.popup_get_file('Select audio file', initial_folder=initial_folder, no_window=True,
                                               file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
             metadata_process_file(selected_file)
