@@ -299,6 +299,7 @@ if __name__ == '__main__':
             from knownpaths import sh_get_known_folder_path, FOLDERID
             return sh_get_known_folder_path(FOLDERID.Music)
         return str(Path.home() / 'Music')
+
     default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings: dict = {  # default settings
         'device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
@@ -714,7 +715,7 @@ if __name__ == '__main__':
         calls refresh_tray(), index_all_tracks(), save_setting()
         first_load: if true, start indexing all tracks
         """
-        global settings, music_folders, settings_last_modified, get_default_music_folder()
+        global settings, music_folders, settings_last_modified
         _save_settings = False
         with settings_file_lock:
             try:
@@ -746,7 +747,6 @@ if __name__ == '__main__':
                 music_folders = settings['music_folders']
                 if settings['scan_folders']: index_all_tracks()
             refresh_tray()
-            get_default_music_folder() = music_folders[0] if music_folders else home_music_folder
             theme = settings['theme']
             for k, v in theme.copy().items():
                 # validate settings file color codes

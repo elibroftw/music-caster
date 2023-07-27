@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.36
+- [Fix] Linux local audio player
+- [Fix] Default music folder
+
 5.13.35
 - [Fix] register handlers
 
