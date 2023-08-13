@@ -3477,7 +3477,7 @@ if __name__ == '__main__':
             selected_file = Sg.popup_get_file('Select image/audio file', no_window=True,
                                               file_types=IMG_FILE_TYPES, icon=WINDOW_ICON)
             if selected_file:
-                if os.path.splitext(selected_file)[1][1:].casefold() in AUDIO_EXTS:
+                if Path(selected_file).suffix.casefold() in AUDIO_EXTS:
                     mime, artwork = get_album_art(selected_file, settings['folder_cover_override'])
                 else:
                     img = Image.open(selected_file).convert('RGB')
