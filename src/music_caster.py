@@ -1824,34 +1824,34 @@ if __name__ == '__main__':
         api_key = settings['api_key']
         thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART&api_key={api_key}'
         track_length = metadata['length']
-        if cast is None:
+        try:
+            app_log.info(f'cast.socket_client.is_alive(): {cast.socket_client.is_alive()}')
+            cast.wait(timeout=WAIT_TIMEOUT)
+            cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
+            mc = cast.media_controller
+            _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
+            stream_type = 'LIVE' if track_length is None else 'BUFFERED'
+            mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
+                            current_time=position, autoplay=autoplay, stream_type=stream_type)
+            mc.block_until_active(WAIT_TIMEOUT)
+            if track_length is None: mc.play()
+        except AttributeError:
+            # cast is None, so play on local
             volume = 0 if settings['muted'] else settings['volume'] / 100
             if autoplay or not metadata.get('is_live', False):
                 audio_player.play(url, start_playing=autoplay, start_from=position, volume=volume)
-        else:
-            try:
-                app_log.info(f'cast.socket_client.is_alive(): {cast.socket_client.is_alive()}')
-                cast.wait(timeout=WAIT_TIMEOUT)
-                cast.set_volume(0 if settings['muted'] else settings['volume'] / 100)
-                mc = cast.media_controller
-                _metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
-                stream_type = 'LIVE' if track_length is None else 'BUFFERED'
-                mc.play_media(url, f'video/{ext}', metadata=_metadata, thumb=thumbnail,
-                                current_time=position, autoplay=autoplay, stream_type=stream_type)
-                mc.block_until_active(WAIT_TIMEOUT)
-                if track_length is None: mc.play()
-            except NotConnected:
-                app_log.error('play_url failed to cast because cast was not connected')
+        except NotConnected:
+            app_log.error('play_url failed to cast because cast was not connected')
+            tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
+            change_device()
+            return False
+        except (PyChromecastError, OSError) as e:
+            app_log.error(f'play_url failed to cast {repr(e)}')
+            if show_error:
                 tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
-                change_device()
-                return False
-            except (PyChromecastError, OSError) as e:
-                app_log.error(f'play_url failed to cast {repr(e)}')
-                if show_error:
-                    tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
-                    return handle_exception(e)
-                cast_try_reconnect()
-                return play_url(position, autoplay, switching_device, show_error=True)
+                return handle_exception(e)
+            cast_try_reconnect()
+            return play_url(position, autoplay, switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
         if track_length is not None:
@@ -2461,10 +2461,11 @@ if __name__ == '__main__':
             gui_window['metadata_explicit'].update(value=file_metadata['explicit'])
             mime, artwork = get_album_art(file)
             artwork = None if artwork == DEFAULT_ART else artwork
-            _, display_art = gui_window['metadata_art'].metadata = (mime, artwork)
-            if display_art is not None:
-                display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
-            gui_window['metadata_art'].update(data=display_art)
+            if artwork is not None:
+                gui_window['metadata_art'].metadata = (mime, artwork)
+                with suppress(OSError):
+                    display_art = resize_img(artwork, settings['theme']['background'], COVER_MINI)
+                    gui_window['metadata_art'].update(data=display_art)
             return True
         except InvalidAudioFile:
             error = t('ERROR') + ': ' + t('Invalid audio file selected')
@@ -3484,11 +3485,14 @@ if __name__ == '__main__':
                     data = io.BytesIO()
                     img.save(data, format='jpeg', quality=95)
                     mime, artwork = 'image/jpeg', b64encode(data.getvalue()).decode()
-                art_metadata = (mime, None if artwork == DEFAULT_ART else artwork)
-                _, display_art = gui_window['metadata_art'].metadata = art_metadata
-                if display_art is not None:
-                    display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
-                gui_window['metadata_art'].update(data=display_art)
+                artwork = None if artwork == DEFAULT_ART else artwork
+                if artwork is not None:
+                    try:
+                        display_art = resize_img(artwork, settings['theme']['background'], COVER_MINI)
+                        gui_window['metadata_art'].metadata = (mime, artwork)
+                        gui_window['metadata_art'].update(data=display_art)
+                    except OSError as e:
+                        handle_exception(e)
         elif main_event == 'metadata_search_art' and gui_window['metadata_file'].get():
             # search for artwork using spotify API
             gui_window['metadata_msg'].update(value=t('Searching for artwork...'), text_color='yellow')
@@ -3502,11 +3506,15 @@ if __name__ == '__main__':
                 r = requests.get(url, headers=get_spotify_headers()).json()
                 if 'tracks' in r:
                     for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
-                        display_art = base64.b64encode(requests.get(art_link).content).decode()
-                        gui_window['metadata_art'].metadata = ('image/jpeg', display_art)
-                        display_art = resize_img(display_art, settings['theme']['background'], COVER_MINI)
-                        gui_window['metadata_art'].update(data=display_art)
+                        original_art = base64.b64encode(requests.get(art_link).content).decode()
                         found_artwork = True
+                        try:
+                            display_art = resize_img(original_art, settings['theme']['background'], COVER_MINI)
+                            gui_window['metadata_art'].metadata = ('image/jpeg', original_art)
+                            gui_window['metadata_art'].update(data=display_art)
+                        except OSError as e:
+                            handle_exception(e)
+                            found_artwork = False
                         break
             if found_artwork:
                 gui_window['metadata_msg'].update(value=t('Artwork found'), text_color='green')

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.38
+- [Fix] Added error handling for Metadata editor artwork
+
 5.13.37
 - [Fix] Select metadata art from other audio files
 
