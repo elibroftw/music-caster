@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.39
+- [Fix] Exit program
+
 5.13.38
 - [Fix] Added error handling for Metadata editor artwork
 

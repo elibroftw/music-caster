@@ -198,6 +198,7 @@ if __name__ == '__main__':
 
     if args.exit: sys.exit()
     import asyncio
+    import concurrent.futures
     from collections import deque
     from collections.abc import Iterable
     # noinspection PyUnresolvedReferences
@@ -2726,7 +2727,7 @@ if __name__ == '__main__':
         gui_window.close()
         close_tray()
         # stop any active scanning
-        with suppress(NameError, asyncio.TimeoutError):
+        with suppress(NameError, asyncio.TimeoutError, concurrent.futures.TimeoutError):
             cast_browser.stop_discovery()
         with suppress(PyChromecastError):
             if cast is None:
