@@ -9,6 +9,6 @@ pefile; sys_platform == 'win32'
 pywin32-ctypes; sys_platform == 'win32'
 pypiwin32; sys_platform == 'win32'
 macholib; sys_platform == 'darwin'
-build_files/pyinstaller-6.0.0-py3-none-any.whl
+build_files/pyinstaller-5.12.0-py3-none-any.whl
 pipdeptree
 pyoxidizer

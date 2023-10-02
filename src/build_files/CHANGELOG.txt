@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.40
+- [Fix] Revert PyInstaller upgrade causing anti-virus detection
+
 5.13.39
 - [Fix] Exit program
 
