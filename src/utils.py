@@ -928,12 +928,12 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes
     w, h = art_img.size
     if w == h:
         # resize a square
-        img = art_img.resize(new_size, Image.ANTIALIAS)
+        img = art_img.resize(new_size, Image.LANCZOS)
     else:
         # resize by shrinking the longest side to the new_size
         ratios = (1, h / w) if w > h else (w / h, 1)
         ratio_size = (round(new_size[0] * ratios[0]), round(new_size[1] * ratios[1]))
-        art_img = art_img.resize(ratio_size, Image.ANTIALIAS)
+        art_img = art_img.resize(ratio_size, Image.LANCZOS)
         paste_width = (new_size[0] - ratio_size[0]) // 2
         paste_height = (new_size[1] - ratio_size[1]) // 2
         img = Image.new('RGB', new_size, color=bg)
