@@ -6,7 +6,7 @@ pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
 ujson~=5.5
 mutagen~=1.45
-Pillow~=9.0
+Pillow~=10.0.1
 pychromecast~=13.0
 zeroconf~=0.37
 pynput~=1.4.5

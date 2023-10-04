@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.13.40'
+VERSION = latest_version = '5.13.41'
 UPDATE_MESSAGE = """
 [NEW] Bienvenue Français
 [MSG] Language translators wanted

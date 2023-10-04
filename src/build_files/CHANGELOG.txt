@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.41
+- [Fix] Use latest Pillow
+
 5.13.40
 - [Fix] Revert PyInstaller upgrade causing anti-virus detection
 
