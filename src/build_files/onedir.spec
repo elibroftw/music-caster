@@ -29,13 +29,15 @@ a = Analysis([f'{os.getcwd()}/music_caster.py'],
              noarchive=False)
 a.datas.extend(Tree('templates', 'templates'))
 a.datas.extend(Tree('static', 'static'))
-VLC_EXCLUDES = ['*.dll', '*.so*', '*.dylib*']
+VLC_EXCLUDES = ['*.dll', '*.so', '*.so*', '*.dylib*', '*.dylib']
 if platform.system() == 'Windows':
     VLC_EXCLUDES.remove('*.dll')
 elif platform.system() == 'Darwin':
     VLC_EXCLUDES.remove('*.dylib*')
+    VLC_EXCLUDES.remove('*.dylib')
 elif platform.system() == 'Linux':
     VLC_EXCLUDES.remove('*.so*')
+    VLC_EXCLUDES.remove('*.so')
 a.datas.extend(Tree('vlc_lib', 'vlc_lib', excludes=VLC_EXCLUDES))
 a.datas.extend(Tree('languages', 'languages'))
 a.datas.extend(Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2'))

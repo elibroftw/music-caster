@@ -114,7 +114,6 @@ if __name__ == '__main__':
     from inspect import currentframe
     from pathlib import Path
     from urllib.request import pathname2url, urlopen, Request
-    from urllib.parse import urlencode
     from urllib.error import URLError
 
     import portalocker
@@ -326,6 +325,9 @@ if __name__ == '__main__':
     os.environ['FLASK_SKIP_DOTENV'] = '1'
     # if time.time() > SYNC_WITH_CHROMECAST good to sync from chromecast
     SYNC_WITH_CHROMECAST = 0
+    CAST_LOCK = threading.Lock()
+    OLD_CAST_VOLUME = 0
+    OLD_CAST_POS = 0
     connection = DatabaseConnection.create_connection()
     init_db()
 
@@ -435,7 +437,7 @@ if __name__ == '__main__':
 
 
     def update_settings(settings_key, new_value):
-        """ can be called from non-main thread """
+        """ returns new value and can be called from non-main thread """
         if settings[settings_key] != new_value:
             settings[settings_key] = new_value
             save_settings()
@@ -1687,7 +1689,7 @@ if __name__ == '__main__':
                         url_metadata[url] = metadata
                         metadata_list.append(metadata)
                 except (IOError, TypeError) as e:
-                    print(e)
+                    print('error', e)
                 except AttributeError as e:
                     app_log.error(f'yt-dlp failed to extract {url}')
                     trace_back_msg = traceback.format_exc().replace('\\', '/')
@@ -1894,6 +1896,7 @@ if __name__ == '__main__':
         if cast is None:  # play locally
             audio_player.play(uri, volume=volume, start_playing=autoplay, start_from=position)
         else:
+            # track_end = time.monotonic() + WAIT_TIMEOUT * 2 + 1
             try:
                 url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
@@ -2001,7 +2004,7 @@ if __name__ == '__main__':
             try:
                 temp_queue.sort(key=lambda filename: metadata_key(filename, album_sort=len(albums_found) > 1))
             except Exception as e:
-                print(e)
+                print('error', e)
         # add to next queue condition
         if play_next:
             if settings['reversed_play_next']:
@@ -2046,10 +2049,10 @@ if __name__ == '__main__':
         music_queue.extend(index_all_tracks(False, ignore_files).keys())
         better_shuffle(music_queue, start_shuffle_from)
         if not queue_only:
+            if not music_queue and next_queue:
+                music_queue.append(next_queue.popleft())
             if music_queue:
                 play()
-            elif next_queue:
-                next_track(forced=True)
         gui_window.metadata['update_listboxes'] = True
 
 
@@ -2211,7 +2214,7 @@ if __name__ == '__main__':
                 if not gui_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except PyChromecastError as e:
-                print(e)
+                print('error', e)
                 if music_queue: return play(position=track_position)
             return True
         return False
@@ -2275,16 +2278,19 @@ if __name__ == '__main__':
 
     def next_track(from_timeout=False, times=1, forced=False, ignore_timestamps=False):
         """
-        :param from_timeout: whether next track is due to track ending
-        :param times: number of times to go to next track
-        :param forced: whether to ignore current playing status
+        :param from_timeout: whether next track is due to the currently playing audio ending
+        :param times: number of tracks ahead
+        :param forced: if True, ignore current playing status
         :param ignore_timestamps: whether to ignore timestamps for a track
         :return:
         """
         app_log.info(f'next_track(from_timeout={from_timeout})')
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
+            # clicked next track when connected to cast and the app is not the media receiver app
             playing_status.stop()
-        elif (forced or playing_status.busy() and not sar.alive) and (next_queue or music_queue):
+        elif (next_queue or music_queue) and (forced or playing_status.busy() and not sar.alive):
+            # 1. there is something to play next
+            # 2. we are already playing a track (or are forcing)
             with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
                 if track_length > 600 and not ignore_timestamps:
                     if url_metadata.get(music_queue[0], {}).get('timestamps'):
@@ -2788,6 +2794,7 @@ if __name__ == '__main__':
 
     def read_main_window():
         global track_position, track_start, track_end, timer, music_queue, done_queue, SYNC_WITH_CHROMECAST
+        global OLD_CAST_POS, OLD_CAST_VOLUME
         main_event, main_values = gui_window.read(timeout=100)
         if main_event == 'KeyPress':
             e = gui_window.user_bind_event
@@ -2811,27 +2818,28 @@ if __name__ == '__main__':
         if main_event.startswith('MouseWheel'):
             main_event = main_event.split(':', 1)[1]
             if gui_window.metadata['mouse_hover'] == 'progress_bar':
-                SYNC_WITH_CHROMECAST = time.time() + 0.25
                 delta = {'Up': settings['scrubbing_delta'], 'Down': -settings['scrubbing_delta']}.get(main_event, 0)
                 if playing_status.busy() and track_length is not None:
-                    get_track_position()
+                    OLD_CAST_POS = get_track_position()
                     new_position = min(max(track_position + delta, 0), track_length)
-                    gui_window['progress_bar'].update(new_position)
+                    gui_window['progress_bar'].update(value=new_position)
                     main_values['progress_bar'] = new_position
                     main_event = 'progress_bar'
             elif gui_window.metadata['mouse_hover'] in {'', 'volume_slider'}:  # not in another scroll view
-                SYNC_WITH_CHROMECAST = time.time() + 0.25
-                delta = {'Up': settings['volume_delta'], 'Down': -settings['volume_delta']}.get(main_event, 0)
-                new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
-                update_settings('volume', new_volume)
-                update_settings('muted', False)
-                update_volume(new_volume, 'mouse_wheel')
+                with CAST_LOCK:
+                    delta = {'Up': settings['volume_delta'], 'Down': -settings['volume_delta']}.get(main_event, 0)
+                    new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
+                    update_settings('volume', new_volume)
+                    update_settings('muted', False)
+                    update_volume(new_volume, 'mouse_wheel')
+                    OLD_CAST_VOLUME = new_volume
+                    SYNC_WITH_CHROMECAST = time.time() + 0.5
         elif main_event in {'j', 'l'} and (main_values.get('tab_group', 'tab_queue') == 'tab_queue'):
             if playing_status.busy() and track_length is not None:
                 delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
                 get_track_position()
                 new_position = min(max(track_position + delta, 0), track_length)
-                gui_window['progress_bar'].update(new_position)
+                gui_window['progress_bar'].update(value=new_position)
                 main_values['progress_bar'] = new_position
                 main_event = 'progress_bar'
                 gui_window.refresh()
@@ -3167,7 +3175,9 @@ if __name__ == '__main__':
                 return
             else:
                 track_position = main_values['progress_bar']
-                set_pos(track_position)
+                with CAST_LOCK:
+                    set_pos(track_position)
+                    SYNC_WITH_CHROMECAST = time.time() + 0.5
                 track_start = time.monotonic() - track_position
                 track_end = track_start + track_length
         # main window settings tab
@@ -3537,7 +3547,7 @@ if __name__ == '__main__':
                     set_metadata(gui_window['metadata_file'].get(), new_metadata)
                     gui_window['metadata_msg'].update(value=t('Metadata saved'), text_color='green')
                 except Exception as e:  # e.g. ValueError track number incorrectly entered
-                    print(repr(e))
+                    print('error', repr(e))
                     error = t('ERROR') + ': ' + repr(e)
                     gui_window['metadata_msg'].update(value=error, text_color='red')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
@@ -3651,10 +3661,11 @@ if __name__ == '__main__':
 
 
     def cast_monitor(msg: dict = None):
-        global track_position, track_start, track_end
+        global track_position, track_start, track_end, OLD_CAST_VOLUME, OLD_CAST_POS
         if cast is None:
             return
         try:
+            CAST_LOCK.acquire()
             if msg is None and playing_status.busy():
                 # block/monitor in background thread
                 return cast.media_controller.update_status(callback_function_param=cast_monitor)
@@ -3666,29 +3677,29 @@ if __name__ == '__main__':
                     # sync track position with chromecast, also allows scrubbing from external apps
                     with suppress(IndexError):
                         buffer = 2 if music_queue[0].startswith('http') else 0.5
-                        if abs(media_controller.status.adjusted_current_time - track_position) > buffer:
-                            track_position = media_controller.status.adjusted_current_time
+                        if abs(media_controller.status.adjusted_current_time - OLD_CAST_POS) > buffer:
+                            OLD_CAST_POS = track_position = media_controller.status.adjusted_current_time
                             track_start = time.monotonic() - track_position
                             if not is_live: track_end = track_start + track_length
                 if media_controller.status.player_is_paused and playing_status.playing():
                     pause('cast_monitor')
                 elif media_controller.status.player_is_playing and playing_status.paused():
                     resume('cast_monitor')
-                elif (is_stopped and playing_status.busy() and
-                        not is_live and time.monotonic() - track_end > 1):
+                elif (is_stopped and playing_status.busy() and not is_live and time.monotonic() - track_end > 1):
                     # if cast says nothing is playing, only stop if we are not at the end of the track
                     #  this will prevent false positives
                     stop('cast_monitor', False)
                 cast_volume = round(cast.status.volume_level * 100, 1)
-                if settings['volume'] != cast_volume:
+                if settings['volume'] != OLD_CAST_VOLUME:
                     if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
                                                     abs(settings['volume'] - cast_volume) > 0.05):
                         # if volume was changed via Google Home App
+                        OLD_CAST_VOLUME = cast_volume
                         if update_settings('volume', cast_volume) and settings['muted']:
                             update_settings('muted', False)
                         gui_window.metadata['update_volume_slider'] = True
-            elif playing_status.playing() and cast.media_controller.is_idle:
-                stop('cast_monitor. app was not running')
+            # elif playing_status.playing() and cast.media_controller.is_idle:
+            #     stop('cast_monitor. app was not running')
         except (NotConnected, AttributeError):  # don't care
             pass
         except UnsupportedNamespace:  # known error
@@ -3699,6 +3710,8 @@ if __name__ == '__main__':
             pass
         except Exception as e:
             handle_exception(e)
+        finally:
+            CAST_LOCK.release()
 
 
     def handle_action(action):
@@ -3859,6 +3872,7 @@ if __name__ == '__main__':
         while True:
             while not daemon_commands.empty(): handle_action(daemon_commands.get())
             if playing_status.playing() and track_length is not None and time.monotonic() > track_end:
+                app_log.info(f'going to next track because monotonic time is past {track_end}')
                 next_track(from_timeout=time.monotonic() > track_end)
             elif timer and time.time() > timer:
                 stop('timer')
@@ -3879,8 +3893,6 @@ if __name__ == '__main__':
             if settings['persistent_queue'] and time.monotonic() - last_position_save > 2.5:
                 update_settings('position', get_track_position())
                 last_position_save = time.monotonic()
-            if cast is not None:
-                cast_monitor()
             if platform.system() == 'Windows' and None not in (settings['on_battery_res'], settings['plugged_in_res']):
                 if settings['on_battery_res'] != settings['plugged_in_res']:
                     try:
@@ -3905,7 +3917,13 @@ if __name__ == '__main__':
                         update_settings('plugged_in_res', get_initial_res())
                         update_settings('on_battery_res', get_initial_res())
                         tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
-            time.sleep(0.2) if gui_window.was_closed() else read_main_window()
+
+            if cast is not None:
+                cast_monitor()
+            if not gui_window.was_closed():
+                read_main_window()
+            else:
+                time.sleep(0.3)
     except KeyboardInterrupt:
         exit_program()
     except Exception as exception:

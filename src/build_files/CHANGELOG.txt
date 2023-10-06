@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.42
+- [Fix] Install size
+- [Fix] False positive not playing on chromecast
+
 5.13.41
 - [Fix] Use latest Pillow
 

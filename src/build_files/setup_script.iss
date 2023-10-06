@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "5.13.41"
+#define MyAppVersion "5.13.42"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.ca/software#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -43,6 +43,7 @@ Source: "{#SourcePath}CHANGELOG.txt"; DestDir: "{app}"; DestName: "CHANGELOG.txt
 Type: files; Name: {app}\*.pyd
 Type: files; Name: {app}\*.dll
 ; delete previous version folders and those that may contain old files
+Type: filesandordirs; Name: {app}\_internal
 Type: filesandordirs; Name: {app}\Crypto
 Type: filesandordirs; Name: {app}\Cryptodome
 Type: filesandordirs; Name: {app}\google

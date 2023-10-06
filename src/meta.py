@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.13.41'
+VERSION = latest_version = '5.13.42'
 UPDATE_MESSAGE = """
 [NEW] Bienvenue Français
 [MSG] Language translators wanted
@@ -64,15 +64,19 @@ class PlayingStatus:
         self.BUSY = {self.PLAYING, self.PAUSED}
         self.state = self.NOT_PLAYING
 
+    # @property
     def busy(self):
         return self.state in self.BUSY
 
+    # @property
     def stopped(self):
         return self.state == self.NOT_PLAYING
 
+    # @property
     def playing(self):
         return self.state == self.PLAYING
 
+    # @property
     def paused(self):
         return self.state == self.PAUSED
 
