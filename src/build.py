@@ -324,6 +324,8 @@ if __name__ == '__main__':
             check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
             check_call('go build -ldflags "-s -w -H windowsgui" -o dist/Updater.exe')
         except Exception as e:
+            if args.upload:
+                raise Exception ('failed to build updater') from e
             print(f'WARNING: {e}')
         check_call(f'{sys.executable} -O -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
         try:
