@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.13.43
+- [Fix] Stop chromecast after 5 minutes of pausing
+
 5.13.42
 - [Fix] Install size
 - [Fix] False positive not playing on chromecast

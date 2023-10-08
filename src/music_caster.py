@@ -328,6 +328,7 @@ if __name__ == '__main__':
     CAST_LOCK = threading.Lock()
     OLD_CAST_VOLUME = 0
     OLD_CAST_POS = 0
+    LAST_PLAYED = time.time()
     connection = DatabaseConnection.create_connection()
     init_db()
 
@@ -1939,6 +1940,7 @@ if __name__ == '__main__':
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
+        LAST_PLAYED = time.time()
         return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
 
 
@@ -2146,7 +2148,7 @@ if __name__ == '__main__':
         Returns false if player was not playing
         can be called from a non-main thread
         """
-        global track_position
+        global track_position, LAST_PLAYED
         app_log.info(f'pause({source}), playing status = {playing_status}')
         if playing_status.playing():
             if platform.system() == 'Windows':
@@ -2176,6 +2178,7 @@ if __name__ == '__main__':
                 stop('pause')
             if not gui_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
             refresh_tray()
+            LAST_PLAYED = time.time()
             return True
         return False
 
@@ -3698,8 +3701,9 @@ if __name__ == '__main__':
                         if update_settings('volume', cast_volume) and settings['muted']:
                             update_settings('muted', False)
                         gui_window.metadata['update_volume_slider'] = True
-            # elif playing_status.playing() and cast.media_controller.is_idle:
-            #     stop('cast_monitor. app was not running')
+            elif playing_status.playing() and cast.media_controller.is_idle and time.time() - LAST_PLAYED > 300:
+                # paused for more than 5 minutes
+                stop('cast_monitor. app was not running')
         except (NotConnected, AttributeError):  # don't care
             pass
         except UnsupportedNamespace:  # known error
