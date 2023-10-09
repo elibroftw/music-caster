@@ -8,22 +8,43 @@ import shutil
 import sys
 import threading
 import time
+import traceback
 import zipfile
 from contextlib import suppress
 from datetime import datetime
-from subprocess import check_call, Popen, getoutput, DEVNULL
-import traceback
+from pathlib import Path
+from subprocess import DEVNULL, CalledProcessError, Popen, check_call, getoutput
+from multiprocessing import freeze_support
 
-from meta import VERSION
+
+if __name__ == '__main__':
+    freeze_support()
+
+
+from src.meta import VERSION
 
 # build constants
+script_dir = Path(__file__).parent
+SRC_DIR = script_dir / 'src'
+DIST_DIR = script_dir / 'src' / 'dist'
+build_files = script_dir / 'build_files'
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
-VERSION_FILE = 'build_files/mc_version_info.txt'
-INSTALLER_SCRIPT = 'build_files/setup_script.iss'
-PORTABLE_SPEC = 'build_files/portable.spec'
-ONEDIR_SPEC = 'build_files/onedir.spec'
-UPDATER_SPEC_FILE = 'build_files/updater.spec'
+VERSION_FILE = build_files / 'mc_version_info.txt'
+INSTALLER_SCRIPT = build_files / 'setup_script.iss'
+PORTABLE_SPEC = build_files / 'portable.spec'
+ONEDIR_SPEC = build_files / 'onedir.spec'
+UPDATER_SPEC_FILE = build_files / 'updater.spec'
+CHANGELOG_FILE = script_dir / 'CHANGELOG.txt'
+TKDND_FILES = (build_files / 'tkdnd2.9.2', build_files / 'TkinterDnD2')
+UPDATER_MANIFEST_FILE = build_files / 'Updater.exe.MANIFEST'
+UPDATER_ICO = build_files / 'updater.ico'
+UPDATER_DIST = SRC_DIR / 'dist' / 'Updater.exe'
+REQUIREMENTS_FILE = script_dir / 'requirements.txt'
+REQUIREMENTS_DEV_FILE = script_dir / 'requirements-dev.txt'
+SRC_FRONTEND = script_dir / 'src-frontend'
 
+IS_VENV = sys.prefix != sys.base_prefix
+assert IS_VENV
 
 class ProgressUpload:
     # 1MB chunk size
@@ -68,9 +89,9 @@ def read_env(env_file='.env'):
 
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
-    with open('build_files/CHANGELOG.txt', encoding='utf-8') as changelog_file:
+    with open(CHANGELOG_FILE, encoding='utf-8') as _file:
         add_changes = False
-        line = changelog_file.readline()
+        line = _file.readline()
         while line:
             line = line.strip()
             if line == VERSION:
@@ -78,7 +99,7 @@ def add_new_changes(prev_changes: str):
             elif add_changes:
                 if line == '': break
                 changes.add(line)
-            line = changelog_file.readline()
+            line = _file.readline()
     if not add_changes:
         print(f'CHANGELOG does not contain changes for {VERSION}...')
         input('Press enter to try again...')
@@ -143,7 +164,7 @@ def update_versions(version):
 
 def local_install():
     exe = os.getenv('LOCALAPPDATA') + '/Programs/Music Caster/Music Caster.exe'
-    cmd = ['dist/Music Caster Setup.exe', '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"']
+    cmd = [str(DIST_DIR / 'Music Caster Setup.exe'), '/FORCECLOSEAPPLICATIONS', '/VERYSILENT', '/MERGETASKS="!desktopicon"']
     cmd.extend(('&&', exe))
     if not player_state.get('gui_open', False):
         cmd.append('--minimized')
@@ -190,7 +211,7 @@ def upgrade_yt_dlp():
                                        f"VERSION = latest_version = '{new_version}'")
             f.seek(0)
             f.write(new_txt)
-        with open('build_files/CHANGELOG.txt', 'r+', encoding='utf-8') as f:
+        with open(CHANGELOG_FILE, 'r+', encoding='utf-8') as f:
             content = ''.join((f.readline(), f'\n{VERSION}\n- Upgrade dependencies\n', f.read()))
             f.seek(0)
             f.write(content)
@@ -224,7 +245,7 @@ if __name__ == '__main__':
                         help='Skip testing')
     parser.add_argument('--force-install', '-f', default=False, action='store_true', help='Force install after build')
     parser.add_argument('--deps', '--dry', default=False, action='store_true', help='does not modify anything')
-    parser.add_argument('--test-autoupdate', default=False, action='store_true', help='use if testing auto update')
+    parser.add_argument('--test-auto-update', default=False, action='store_true', help='use if testing auto update')
     parser.add_argument('--skip-deps', '-i', default=False, action='store_true', help='skips installation of dependencies')
     parser.add_argument('--no-install', default=False, action='store_true', help='do not install after building')
     parser.add_argument('--ytdl', default=False, action='store_true', help='version++ if new youtube-dl available')
@@ -240,14 +261,19 @@ if __name__ == '__main__':
         update_versions(VERSION)
     print('Updated versions of build files')
     if args.ver_update: sys.exit()
-    pip_cmd = f'"{sys.executable}" -m pip install --upgrade --user -r requirements.txt -r requirements-dev.txt'
+    install_to_user = '' if IS_VENV else '--user'
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade {install_to_user} -r "{REQUIREMENTS_FILE}" -r "{REQUIREMENTS_DEV_FILE}"'
     if args.deps or (not args.skip_build and not args.skip_deps):
         print('Installing and/or upgrading dependencies...')
         if platform.system() == 'Windows':
             # install tkdnd custom way
-            sys_dir_name = os.path.dirname(sys.executable)
-            shutil.copytree('build_files/tkdnd2.9.2', f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
-            shutil.copytree('build_files/TkinterDnD2', f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+            sys_dir_name = Path(sys.executable).parent
+            if IS_VENV:
+                shutil.copytree(TKDND_FILES[0], f'{sys_dir_name.parent}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+                shutil.copytree(TKDND_FILES[1], f'{sys_dir_name.parent}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
+            else:
+                shutil.copytree(TKDND_FILES[0], f'{sys_dir_name}/tcl/tkdnd2.9.2', dirs_exist_ok=True)
+                shutil.copytree(TKDND_FILES[1], f'{sys_dir_name}/Lib/site-packages/TkinterDnD2', dirs_exist_ok=True)
         if args.deps:
             if Popen(pip_cmd, stdin=DEVNULL, text=True).wait() > 0:
                 print('Dependencies installed')
@@ -264,9 +290,9 @@ if __name__ == '__main__':
     import requests
     from git import Repo
     sys.argv = sys.argv[:1]
-    from music_caster import is_already_running, get_running_processes
+    from src.shared import get_running_processes, is_already_running
 
-    args.upload = args.upload and not args.test_autoupdate
+    args.upload = args.upload and not args.test_auto_update
     try:
         player_state = requests.get('http://[::1]:2001/state').json()
         requests.get('http://[::1]:2001/exit')
@@ -281,7 +307,7 @@ if __name__ == '__main__':
     if args.debug: set_spec_debug(True)
     else: set_spec_debug(False)
     if args.upload: print('Will upload to GitHub after building')
-    if args.test_autoupdate: print("This test should test auto update and won't publish to GitHub")
+    if args.test_auto_update: print("This test should test auto update and won't publish to GitHub")
 
     if not args.skip_build:
         # remove existing builds
@@ -296,7 +322,7 @@ if __name__ == '__main__':
             main_file += '.exe'
         for dist_file in (main_file, f'{SETUP_OUTPUT_NAME}.exe', 'Portable.zip'):
             with suppress(FileNotFoundError):
-                dist_file = os.path.join('dist', dist_file)
+                dist_file = DIST_DIR / dist_file
                 print(f'Removing {dist_file}')
                 os.remove(dist_file)
 
@@ -312,7 +338,7 @@ if __name__ == '__main__':
         if args.clean:
             additional_args += ' --clean'
         # build frontend
-        check_call('yarn build', cwd='../src-frontend', shell=True)
+        check_call('yarn build', cwd=SRC_FRONTEND, shell=True)
         if platform.system() == 'Windows':
             s1 = Popen(f'{sys.executable} -O -m PyInstaller -y {additional_args} {PORTABLE_SPEC}', shell=True)
         else:
@@ -321,8 +347,8 @@ if __name__ == '__main__':
             # build Updater
             # install go dependencies
             check_call('go install github.com/akavel/rsrc@latest')
-            check_call('rsrc -manifest build_files/Updater.exe.MANIFEST -ico build_files/updater.ico')
-            check_call('go build -ldflags "-s -w -H windowsgui" -o dist/Updater.exe')
+            check_call(f'rsrc -manifest "{UPDATER_MANIFEST_FILE}" -ico "{UPDATER_ICO}"')
+            check_call(f'go build -ldflags "-s -w -H windowsgui" -o "{UPDATER_DIST}" src')
         except Exception as e:
             if args.upload:
                 raise Exception ('failed to build updater') from e
@@ -330,7 +356,7 @@ if __name__ == '__main__':
         check_call(f'{sys.executable} -O -m PyInstaller -y {additional_args} {ONEDIR_SPEC}', shell=True)
         try:
             if platform.system() == 'Windows':
-                s4 = Popen('iscc build_files/setup_script.iss')
+                s4 = Popen(f'iscc "{INSTALLER_SCRIPT}"')
             else:
                 s4 = None
         except FileNotFoundError:
@@ -349,18 +375,18 @@ if __name__ == '__main__':
 
         # Portable
         if platform.system() == 'Windows':
-            music_caster_portable = ('dist/Music Caster.exe', 'Music Caster.exe')
-            updater_portable = ('dist/Updater.exe', 'Updater.exe')
-            portable_files = [music_caster_portable, ('build_files/CHANGELOG.txt', 'CHANGELOG.txt'), updater_portable]
+            music_caster_portable = (DIST_DIR / 'Music Caster.exe', 'Music Caster.exe')
+            updater_portable = (DIST_DIR / 'Updater.exe', 'Updater.exe')
+            portable_files = [music_caster_portable, (CHANGELOG_FILE, 'CHANGELOG.txt'), updater_portable]
             vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
             print('Creating dist/Portable.zip')
-            create_zip('dist/Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
+            create_zip(DIST_DIR / 'Portable.zip', portable_files, compression=zipfile.ZIP_DEFLATED)
         # zip directory for Linux or Darwin
         elif platform.system() == 'Darwin':
             pass
         else:
-            shutil.rmtree('dist/Music Caster OneDir/share/')
-            linux_dist = 'dist/Music Caster (Linux)'
+            shutil.rmtree(DIST_DIR / 'Music Caster OneDir/share/')
+            linux_dist = DIST_DIR / 'Music Caster (Linux)'
             print(f'Creating {linux_dist}.zip')
             shutil.make_archive(linux_dist, 'zip', 'dist/Music Caster OneDir')
         with suppress(AttributeError): s4.wait()  # Wait for InnoSetup script to finish
@@ -377,7 +403,7 @@ if __name__ == '__main__':
     # check if all files were built
     dist_files_exist = True
     for dist_file in dist_files:
-        dist_file_path = f'dist/{dist_file}'
+        dist_file_path = SRC_DIR / 'dist' / dist_file
         if os.path.exists(dist_file_path):
             file_size = os.path.getsize(dist_file_path) // 1000  # KB
             file_exists_str = f'EXISTS {file_size:,} KB'.rjust(12)
@@ -388,7 +414,7 @@ if __name__ == '__main__':
 
 
     if dist_files_exist and platform.system() == 'Windows':
-        with zipfile.ZipFile('dist/Portable.zip') as portable_zip:
+        with zipfile.ZipFile(DIST_DIR / 'Portable.zip') as portable_zip:
             if 'Updater.exe' in portable_zip.namelist():
                 print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
             else:
@@ -399,13 +425,17 @@ if __name__ == '__main__':
     if not args.skip_tests and dist_files_exist:
         try:
             sys.argv = sys.argv[:1]
-            from test_harness import run_tests
-            run_tests(uploading_after=args.upload, testing_autoupdate=args.test_autoupdate)
-        except AssertionError as e:
-            print('TESTS FAILED: test_helpers()')
-            raise e
+            test_harness_args = ''
+            if args.upload:
+                test_harness_args = ' -u'
+            if args.test_auto_update:
+                test_harness_args += ' -a'
+            check_call(f'"{sys.executable}" test_harness.py {test_harness_args}', cwd=SRC_DIR)
+        except CalledProcessError:
+            print('TESTS FAILED: test_harness.py')
+            sys.exit(1)
         # Test if executable can be run
-        p = Popen('"dist/Music Caster OneDir/Music Caster" -m --debug', shell=True)
+        p = Popen(f'"{SRC_DIR}/dist/Music Caster OneDir/Music Caster" -m --debug', shell=True)
         time.sleep(5)
         test('Music Caster Should Be Running', lambda: is_already_running(threshold=1), True)
         time.sleep(2)
@@ -462,7 +492,7 @@ if __name__ == '__main__':
         release_id = release['id']
         # upload assets
         for dist_file in dist_files:
-            requests.post(upload_url, data=ProgressUpload(f'dist/{dist_file}'), params={'name': dist_file},
+            requests.post(upload_url, data=ProgressUpload(f'{SRC_DIR}dist/{dist_file}'), params={'name': dist_file},
                           headers={**headers, 'Content-Type': 'application/octet-stream'})
         requests.post(f'{github_api}/repos/{USERNAME}/music-caster/releases/{release_id}',
                       headers=headers, json={'body': body, 'draft': False})

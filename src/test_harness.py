@@ -1,9 +1,7 @@
-from multiprocessing import freeze_support
-import sys
-if __name__ == '__main__':
-    freeze_support()
-from music_caster import get_running_processes, is_already_running, VERSION
+from meta import VERSION
+from shared import get_running_processes, is_already_running
 from utils import *
+import argparse
 
 MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
 TEST_MUSIC_FILES = [
@@ -63,7 +61,7 @@ EXPECTED_METADATA = [
 EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
 
-def run_tests(uploading_after=False, testing_autoupdate=False):
+def run_tests(uploading_after=False, test_auto_update=False):
     if platform.system() == 'Windows':
         assert list(get_running_processes())
 
@@ -255,7 +253,7 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
     version = [int(x) for x in VERSION.split('.')]
     compare_ver = get_latest_release(VERSION, VERSION, True)['version']
     compare_ver = [int(x) for x in compare_ver.split('.')]
-    if testing_autoupdate:
+    if test_auto_update:
         assert version < compare_ver
     elif uploading_after:
         assert compare_ver < version
@@ -264,6 +262,9 @@ def run_tests(uploading_after=False, testing_autoupdate=False):
     print('test_harness.py: tests passed')
 
 
-
 if __name__ == '__main__':
-    run_tests()
+    parser = argparse.ArgumentParser(description='Music Caster Build Script')
+    parser.add_argument('--upload', '-u', default=False, action='store_true')
+    parser.add_argument('--test-auto-update', '-a', default=False, action='store_true')
+    args = parser.parse_args()
+    run_tests(uploading_after=args.upload, test_auto_update=args.test_auto_update)

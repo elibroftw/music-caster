@@ -16,48 +16,7 @@ from subprocess import Popen, PIPE, DEVNULL
 # noinspection PyUnresolvedReferences
 import re
 import sys
-
-
-def get_running_processes(look_for='', pid=None, add_exe=True):
-    if platform.system() == 'Windows':
-        cmd = f'tasklist /NH'
-        if look_for:
-            if not look_for.endswith('.exe') and add_exe:
-                look_for += '.exe'
-            cmd += f' /FI "IMAGENAME eq {look_for}"'
-        if pid is not None:
-            cmd += f' /FI "PID eq {pid}"'
-        p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True, encoding='iso8859-2')
-        p.stdout.readline()
-        for task in iter(lambda: p.stdout.readline().strip(), ''):
-            m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
-            if m is not None:
-                yield {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
-                       'session_num': m.group(4), 'mem_usage': m.group(5)}
-    elif platform.system() == 'Linux':
-        cmd = ['ps', 'h']
-        if look_for:
-            cmd.extend(('-C', look_for))
-        p = Popen(cmd, stdout=PIPE, stdin=PIPE, stderr=DEVNULL, text=True)
-        for task in iter(lambda: p.stdout.readline().strip(), ''):
-            m = task.split(maxsplit=4)
-            yield {'name': m[-1], 'pid': int(m[0])}
-
-
-def is_already_running(look_for='Music Caster', threshold=1, pid=None) -> bool:
-    """
-    Returns True if more processes than `threshold` were found
-    # TODO: threshold feature for Linux
-    """
-    if platform.system() == 'Windows':
-        for _ in get_running_processes(look_for=look_for, pid=pid):
-            threshold -= 1
-            if threshold < 0:
-                return True
-    else:  # Linux
-        p = Popen(['ps', 'h', '-C', look_for, '-o', 'comm'], stdout=PIPE, stdin=PIPE, stderr=DEVNULL, text=True)
-        return p.stdout.readline().strip() != ''
-    return False
+from shared import is_already_running
 
 
 def create_pid_file(port=None):
@@ -194,7 +153,6 @@ if __name__ == '__main__':
     lock_file = ensure_single_instance(debugging=DEBUG)
     daemon_commands, tray_process_queue = mp.Queue(), mp.Queue()
     auto_updating = True
-
     if args.exit: sys.exit()
     import asyncio
     import concurrent.futures
@@ -225,6 +183,7 @@ if __name__ == '__main__':
 
     from audio_player import AudioPlayer
     from utils import *
+    get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import PySimpleGUI as Sg
     from modules.resolution_switcher import set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in
@@ -320,6 +279,7 @@ if __name__ == '__main__':
     playing_status = PlayingStatus()
     sar = SystemAudioRecorder()
     app = Flask(__name__)
+
     app.jinja_env.lstrip_blocks = app.jinja_env.trim_blocks = True
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     os.environ['FLASK_SKIP_DOTENV'] = '1'
@@ -3257,7 +3217,7 @@ if __name__ == '__main__':
             except AttributeError:
                 changelog_path = 'CHANGELOG.txt'
             if not os.path.exists(changelog_path):
-                changelog_url = 'https://github.com/elibroftw/music-caster/blob/master/src/build_files/CHANGELOG.txt'
+                changelog_url = 'https://github.com/elibroftw/music-caster/blob/master/CHANGELOG.txt'
                 open_in_browser(changelog_url)
             else:
                 startfile(changelog_path)

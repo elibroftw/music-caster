@@ -110,3 +110,9 @@ Only I have access to this data, I will NEVER give it to anyone else. Will stop 
 - IP because I can map out the IPs to a visual map to see where my users are located
 
 [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
+
+### Virtualenv
+
+```
+python -m venv venv
+```

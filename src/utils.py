@@ -59,8 +59,6 @@ from youtube_comment_downloader import YoutubeCommentDownloader
 from modules.resolution_switcher import fmt_res, get_all_resolutions, get_initial_dpi_scale
 from meta import *
 
-# save cache
-get_initial_dpi_scale()
 
 # CONSTANTS
 IS_FROZEN = getattr(sys, 'frozen', False)

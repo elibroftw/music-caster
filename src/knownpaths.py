@@ -180,7 +180,6 @@ def sh_get_known_folder_path(folderid, user_handle=UserHandle.current, flags=0x0
     fid = GUID(folderid)
     pPath = ctypes.c_wchar_p()
     S_OK = 0
-    print(KNOWN_FOLDER_FLAG.KF_FLAG_FORCE_APP_DATA_REDIRECTION)
     if _SHGetKnownFolderPath(ctypes.byref(fid), flags, user_handle, ctypes.byref(pPath)) != S_OK:
         raise PathNotFoundException()
     path = pPath.value
