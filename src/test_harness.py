@@ -3,7 +3,9 @@ from shared import get_running_processes, is_already_running
 from utils import *
 import argparse
 
-MUSIC_FILE_WITH_ALBUM_ART = r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
+MUSIC_FILE_WITH_ALBUM_ART = (
+    r"C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3"
+)
 TEST_MUSIC_FILES = [
     r'C:\Users\maste\OneDrive\Music\deadmau5 - My Pet Coelacanth.mp3',
     r'C:\Users\maste\OneDrive\Music\deadmau5 - Not Exactly.mp3',
@@ -26,37 +28,85 @@ TEST_MUSIC_FILES = [
     r'C:\Users\maste\OneDrive\Music\Dogzilla - Without You (Will Atkinson Remix).mp3',
     r"C:\Users\maste\OneDrive\Music\Drake - Hold On, We're Going Home.mp3",
     r'C:\Users\maste\OneDrive\Music\Drake - Over (Ayobi Remix).mp3',
-    r'C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3'
+    r'C:\Users\maste\OneDrive\Music\Drake - Passionfruit.mp3',
 ]
 
-LIST_TO_NAT_SORT_1 = ['1. Hello World', '3. Hello World', '10. Hello World', '2. Hello World', '9. Hello World',
-                      '11. Hello World', '12. Hello World']
-LIST_TO_NAT_SORT_2 = ['C:/Users/maste/OneDrive/Music/1. Hello World', 'C:/Users/maste/OneDrive/Music/3. Hello World',
-                      'C:/Users/maste/OneDrive/Music/10. Hello World', 'C:/Users/maste/OneDrive/Music/2. Hello World',
-                      'C:/Users/maste/OneDrive/Music/9. Hello World', 'C:/Users/maste/OneDrive/Music/11. Hello World',
-                      'C:/Users/maste/OneDrive/Music/12. Hello World']
-NAT_SORTED_LIST_1 = ['1. Hello World', '2. Hello World', '3. Hello World', '9. Hello World', '10. Hello World',
-                     '11. Hello World', '12. Hello World']
-NAT_SORTED_LIST_2 = ['C:/Users/maste/OneDrive/Music/1. Hello World', 'C:/Users/maste/OneDrive/Music/2. Hello World',
-                     'C:/Users/maste/OneDrive/Music/3. Hello World', 'C:/Users/maste/OneDrive/Music/9. Hello World',
-                     'C:/Users/maste/OneDrive/Music/10. Hello World', 'C:/Users/maste/OneDrive/Music/11. Hello World',
-                     'C:/Users/maste/OneDrive/Music/12. Hello World']
+LIST_TO_NAT_SORT_1 = [
+    '1. Hello World',
+    '3. Hello World',
+    '10. Hello World',
+    '2. Hello World',
+    '9. Hello World',
+    '11. Hello World',
+    '12. Hello World',
+]
+LIST_TO_NAT_SORT_2 = [
+    'C:/Users/maste/OneDrive/Music/1. Hello World',
+    'C:/Users/maste/OneDrive/Music/3. Hello World',
+    'C:/Users/maste/OneDrive/Music/10. Hello World',
+    'C:/Users/maste/OneDrive/Music/2. Hello World',
+    'C:/Users/maste/OneDrive/Music/9. Hello World',
+    'C:/Users/maste/OneDrive/Music/11. Hello World',
+    'C:/Users/maste/OneDrive/Music/12. Hello World',
+]
+NAT_SORTED_LIST_1 = [
+    '1. Hello World',
+    '2. Hello World',
+    '3. Hello World',
+    '9. Hello World',
+    '10. Hello World',
+    '11. Hello World',
+    '12. Hello World',
+]
+NAT_SORTED_LIST_2 = [
+    'C:/Users/maste/OneDrive/Music/1. Hello World',
+    'C:/Users/maste/OneDrive/Music/2. Hello World',
+    'C:/Users/maste/OneDrive/Music/3. Hello World',
+    'C:/Users/maste/OneDrive/Music/9. Hello World',
+    'C:/Users/maste/OneDrive/Music/10. Hello World',
+    'C:/Users/maste/OneDrive/Music/11. Hello World',
+    'C:/Users/maste/OneDrive/Music/12. Hello World',
+]
 
 GET_METADATA_FROM = [
     r'C:\Users\maste\OneDrive\Music\$teven Cannon - Inxanity.mp3',
     r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3',
     r'C:\Users\maste\OneDrive\Music\88GLAM, Lil Yachty - Lil Boat.mp3',
-    r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3'
+    r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3',
 ]
 EXPECTED_METADATA = [
-    {'album': 'Inxanity', 'artist': '$teven Cannon', 'explicit': True, 'sort_key': 'inxanity - $teven cannon',
-     'title': 'Inxanity', 'track_number': '1'},
-    {'album': '6ixupsidedown', 'artist': '6ixbuzz, Pressa, Houdini', 'explicit': True, 'title': 'Up & Down',
-     'sort_key': 'up & down - 6ixbuzz, pressa, houdini', 'track_number': '1'},
-    {'album': '88GLAM2.5', 'artist': '88GLAM, Lil Yachty', 'explicit': True, 'title': 'Lil Boat',
-     'sort_key': 'lil boat - 88glam, lil yachty', 'track_number': '6'},
-    {'album': 'Rebirth Classics - Ibiza', 'artist': 'Adam K & Soha', 'explicit': False, 'title': 'Twilight',
-     'sort_key': 'twilight - adam k & soha', 'track_number': '4'}
+    {
+        'album': 'Inxanity',
+        'artist': '$teven Cannon',
+        'explicit': True,
+        'sort_key': 'inxanity - $teven cannon',
+        'title': 'Inxanity',
+        'track_number': '1',
+    },
+    {
+        'album': '6ixupsidedown',
+        'artist': '6ixbuzz, Pressa, Houdini',
+        'explicit': True,
+        'title': 'Up & Down',
+        'sort_key': 'up & down - 6ixbuzz, pressa, houdini',
+        'track_number': '1',
+    },
+    {
+        'album': '88GLAM2.5',
+        'artist': '88GLAM, Lil Yachty',
+        'explicit': True,
+        'title': 'Lil Boat',
+        'sort_key': 'lil boat - 88glam, lil yachty',
+        'track_number': '6',
+    },
+    {
+        'album': 'Rebirth Classics - Ibiza',
+        'artist': 'Adam K & Soha',
+        'explicit': False,
+        'title': 'Twilight',
+        'sort_key': 'twilight - adam k & soha',
+        'track_number': '4',
+    },
 ]
 EXPECTED_FIRST_ARTIST = ['$teven Cannon', '6ixbuzz', '88GLAM', 'Adam K & Soha']
 
@@ -66,15 +116,30 @@ def run_tests(uploading_after=False, test_auto_update=False):
         assert list(get_running_processes())
 
     for file_path, name in [
-            (r'C:\Users\maste\OneDrive\Music\Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
-            ('C:/Users/maste/OneDrive/Music/Alesso, Matthew Koma - Years.mp3', 'Alesso, Matthew Koma - Years'),
-            (r'Music\Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef'),
-            ('Music/Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3', 'Afrojack, Steve Aoki, Miss Palmer - No Beef')]:
+        (
+            r'C:\Users\maste\OneDrive\Music\Alesso, Matthew Koma - Years.mp3',
+            'Alesso, Matthew Koma - Years',
+        ),
+        (
+            'C:/Users/maste/OneDrive/Music/Alesso, Matthew Koma - Years.mp3',
+            'Alesso, Matthew Koma - Years',
+        ),
+        (
+            r'Music\Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3',
+            'Afrojack, Steve Aoki, Miss Palmer - No Beef',
+        ),
+        (
+            'Music/Afrojack, Steve Aoki, Miss Palmer - No Beef.mp3',
+            'Afrojack, Steve Aoki, Miss Palmer - No Beef',
+        ),
+    ]:
         try:
             if os.path.exists(file_path):
                 assert get_file_name(file_path) == name
         except AssertionError as e:
-            print(f'FAILED: get_file_name("{file_path}"). {get_file_name(file_path)} != {name}')
+            print(
+                f'FAILED: get_file_name("{file_path}"). {get_file_name(file_path)} != {name}'
+            )
             raise e
 
     print('DISPLAY LANGUAGE', get_display_lang())
@@ -94,7 +159,10 @@ def run_tests(uploading_after=False, test_auto_update=False):
         assert isinstance(unknown_title >= 'unknown title', bool)
 
     # test get length
-    for file in chain(TEST_MUSIC_FILES, ['https://audio.tv', 'https://audio.com', 'audio.mp3', 'https://audio.mp4']):
+    for file in chain(
+        TEST_MUSIC_FILES,
+        ['https://audio.tv', 'https://audio.com', 'audio.mp3', 'https://audio.mp4'],
+    ):
         try:
             assert get_audio_length(file) > 0
             assert valid_audio_file(file)
@@ -110,10 +178,33 @@ def run_tests(uploading_after=False, test_auto_update=False):
     assert LIST_TO_NAT_SORT_1 == NAT_SORTED_LIST_1
     assert LIST_TO_NAT_SORT_2 == NAT_SORTED_LIST_2
 
-    for code in ('#fff', '#ffffff', '#aaa', '#abc', '#999', '#000', '#010', '#000000', '#999999', '#aaaaaa'):
+    for code in (
+        '#fff',
+        '#ffffff',
+        '#aaa',
+        '#abc',
+        '#999',
+        '#000',
+        '#010',
+        '#000000',
+        '#999999',
+        '#aaaaaa',
+    ):
         assert valid_color_code(code)
 
-    for code in ('fff', '000', 'abcdef', '999999', '.', 'czc/z', '#...', '#/.;ads', '#fff.aa', '#999999a', '#ggg'):
+    for code in (
+        'fff',
+        '000',
+        'abcdef',
+        '999999',
+        '.',
+        'czc/z',
+        '#...',
+        '#/.;ads',
+        '#fff.aa',
+        '#999999a',
+        '#ggg',
+    ):
         assert not valid_color_code(code)
 
     for file, expected_metadata in zip(GET_METADATA_FROM, EXPECTED_METADATA):
@@ -131,7 +222,9 @@ def run_tests(uploading_after=False, test_auto_update=False):
 
     for file, expected_first_artist in zip(GET_METADATA_FROM, EXPECTED_FIRST_ARTIST):
         try:
-            assert get_first_artist(get_metadata(file)['artist']) == expected_first_artist
+            assert (
+                get_first_artist(get_metadata(file)['artist']) == expected_first_artist
+            )
         except MutagenError:
             pass
         except AssertionError:
@@ -161,15 +254,28 @@ def run_tests(uploading_after=False, test_auto_update=False):
     for file in TEST_MUSIC_FILES + ['DEFAULT_ART']:
         get_album_art(file)
 
-    for ext in ('.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav'):
+    for ext in (
+        '.mp3',
+        '.flac',
+        '.m4a',
+        '.mp4',
+        '.aac',
+        '.mpeg',
+        '.ogg',
+        '.opus',
+        '.wma',
+        '.wav',
+    ):
         assert valid_audio_file(f'x{ext}')
 
-    for youtube_link in {'https://youtu.be/Dlxu28sQfkE',
-                         'https://www.youtube.com/watch?v=Dlxu28sQfkE&feature=youtu.be',
-                         'https://www.youtube.com/watch/Dlxu28sQfkE',
-                         'https://www.youtube.com/embed/Dlxu28sQfkE',
-                         'https://www.youtube.com/v/Dlxu28sQfkE',
-                         'https://www.youtube.com/playlist?list=PLRbcUrcJVEmX_eaAsubNOWfE4SlhGqjW4'}:
+    for youtube_link in {
+        'https://youtu.be/Dlxu28sQfkE',
+        'https://www.youtube.com/watch?v=Dlxu28sQfkE&feature=youtu.be',
+        'https://www.youtube.com/watch/Dlxu28sQfkE',
+        'https://www.youtube.com/embed/Dlxu28sQfkE',
+        'https://www.youtube.com/v/Dlxu28sQfkE',
+        'https://www.youtube.com/playlist?list=PLRbcUrcJVEmX_eaAsubNOWfE4SlhGqjW4',
+    }:
         try:
             assert get_yt_id(youtube_link)
         except AssertionError:
@@ -178,9 +284,11 @@ def run_tests(uploading_after=False, test_auto_update=False):
 
     assert custom_art('SYS')
 
-    for option, expected in {None: (REPEAT_OFF_IMG, t('Repeat All')),
-                             True: (REPEAT_ONE_IMG, t('Repeat Off')),
-                             False: (REPEAT_ALL_IMG, t('Repeat One'))}.items():
+    for option, expected in {
+        None: (REPEAT_OFF_IMG, t('Repeat All')),
+        True: (REPEAT_ONE_IMG, t('Repeat Off')),
+        False: (REPEAT_ALL_IMG, t('Repeat One')),
+    }.items():
         try:
             assert repeat_img_tooltip(option) == expected
         except AssertionError:
@@ -210,17 +318,17 @@ def run_tests(uploading_after=False, test_auto_update=False):
 
     # Parsers for Streaming Services
     for streaming_url in (
-            'https://open.spotify.com/track/0Memc4WL8oO0xUnkXCsNnV?si=Mg58OQxeTj6lTkvNV919wg',  # spotify track
-            'https://open.spotify.com/album/2JSiQ1wnqVEdaf6Y39DsAJ?highlight=spotify:track:0Memc4WL8oO0xUnkXCsNnV',
-            'https://open.spotify.com/album/47MVgO7XNmxzoYSJIvqxAG',  # spotify album
-            'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',  # spotify playlist
-            'https://www.deezer.com/track/65404135?utm_campaign=clipboard-generic',  # deezer track
-            'https://deezer.page.link/NTW1c5cRdkzy28P19',
-            'https://deezer.page.link/Prw6jnAYCNe8VrV17',
-            'https://www.deezer.com/album/217794942',  # deezer album
-            'https://deezer.page.link/XGPUgE6HN5LryeBE7',
-            'https://www.deezer.com/playlist/1963962142',  # deezer playlist
-            'https://deezer.page.link/URU2yh1GX1wyaoZy9'
+        'https://open.spotify.com/track/0Memc4WL8oO0xUnkXCsNnV?si=Mg58OQxeTj6lTkvNV919wg',  # spotify track
+        'https://open.spotify.com/album/2JSiQ1wnqVEdaf6Y39DsAJ?highlight=spotify:track:0Memc4WL8oO0xUnkXCsNnV',
+        'https://open.spotify.com/album/47MVgO7XNmxzoYSJIvqxAG',  # spotify album
+        'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',  # spotify playlist
+        'https://www.deezer.com/track/65404135?utm_campaign=clipboard-generic',  # deezer track
+        'https://deezer.page.link/NTW1c5cRdkzy28P19',
+        'https://deezer.page.link/Prw6jnAYCNe8VrV17',
+        'https://www.deezer.com/album/217794942',  # deezer album
+        'https://deezer.page.link/XGPUgE6HN5LryeBE7',
+        'https://www.deezer.com/playlist/1963962142',  # deezer playlist
+        'https://deezer.page.link/URU2yh1GX1wyaoZy9',
     ):
         print('testing', streaming_url)
         if 'spotify' in streaming_url:

@@ -47,7 +47,7 @@ class AudioPlayer:
         return self.player.get_media() is not None
 
     def is_busy(self):
-        """ Returns whether player is playing or is paused """
+        """Returns whether player is playing or is paused"""
         return self.has_media()
 
     def play(self, media_path, start_playing=True, volume=None, start_from=0):
@@ -60,11 +60,14 @@ class AudioPlayer:
         self.is_url = media_path.startswith('http')
         self.player.set_mrl(media_path)
         self.player.play()
-        if volume is not None: self.set_volume(volume)
+        if volume is not None:
+            self.set_volume(volume)
         block_until = time.time() + 1
-        while not self.player.is_playing() and time.time() < block_until: pass
+        while not self.player.is_playing() and time.time() < block_until:
+            pass
         self.set_pos(start_from)
-        if not start_playing: self.pause()
+        if not start_playing:
+            self.pause()
 
     def load(self, file_path):
         self.play(file_path, start_playing=False)
@@ -73,7 +76,8 @@ class AudioPlayer:
         if self.is_playing():
             self.player.pause()
             block_until = time.time() + 1
-            while self.player.is_playing() and time.time() < block_until: pass
+            while self.player.is_playing() and time.time() < block_until:
+                pass
             return True
         return False
 
@@ -87,12 +91,13 @@ class AudioPlayer:
                 self.player.audio_set_volume(self.player.audio_get_volume())
                 self.player.pause()
                 block_until = time.time() + 1
-                while not self.player.is_playing() and time.time() < block_until: pass
+                while not self.player.is_playing() and time.time() < block_until:
+                    pass
                 return True
         return False
 
     def stop(self):
-        """ Stop the playback of any audio and return the current position in seconds """
+        """Stop the playback of any audio and return the current position in seconds"""
         if self.is_busy():
             position = self.player.get_time() / 1000
             self.player.stop()
@@ -105,12 +110,14 @@ class AudioPlayer:
         """
         :param percent: float [0, 1]
         """
-        try: return round(20 * math.log(percent * 100, 10), 3) / 40
-        except ValueError: return 0
+        try:
+            return round(20 * math.log(percent * 100, 10), 3) / 40
+        except ValueError:
+            return 0
 
     @staticmethod
     def db_percent_to_percent(db: float):
-        """ :param db: float [0, 40]"""
+        """:param db: float [0, 40]"""
         return 0 if db == 0 else round((10 ** (2 * db)) / 120, 2)
 
     def set_volume(self, volume):
@@ -139,14 +146,14 @@ class AudioPlayer:
         return self.player.get_time() / unit
 
     def is_playing(self):
-        """ returns strictly whether the player is playing audio """
+        """returns strictly whether the player is playing audio"""
         return self.player.is_playing()
 
     def is_paused(self):
         return not self.is_playing() and self.has_media()
 
     def is_idle(self):
-        """ Whether audio player is in stopped state: audio was never loaded, finished/stopped playing """
+        """Whether audio player is in stopped state: audio was never loaded, finished/stopped playing"""
         return not self.is_busy()
 
     def toggle_mute(self):

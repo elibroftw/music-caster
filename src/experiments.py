@@ -16,7 +16,7 @@ def get_audio_wave(file):
     accent_color = '#00bfff'
     bg = '#121212'
     buf = io.BytesIO()
-    fig = plt.figure(figsize=(4.5 * 60, .75 * 60), dpi=5)
+    fig = plt.figure(figsize=(4.5 * 60, 0.75 * 60), dpi=5)
     plt.plot(time_axis, sound_axis, color=accent_color)
     plt.axis('off')
     plt.margins(x=0)

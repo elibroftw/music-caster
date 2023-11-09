@@ -10,20 +10,31 @@ import os
 
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
     from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
+
     if platform.system() == 'Linux':
         os.environ['PYSTRAY_BACKEND'] = 'appindicator'
     import pystray
     from PIL import Image
+
     filled_icon = Image.open(io.BytesIO(b64decode(FILLED_ICON)))
     unfilled_icon = Image.open(io.BytesIO(b64decode(UNFILLED_ICON)))
 
     def create_menu(lst, root=True):
         # e.g. ['Item 1', ('Item 2 Display', 'item_2_key'), ['Sub Menu Title', ('Sub Menu Item 1 Display', 'KEY')]]
         items = []
-        if root: items.append(pystray.MenuItem('', get_tray_action('__ACTIVATED__'), default=True, visible=False))
+        if root:
+            items.append(
+                pystray.MenuItem(
+                    '', get_tray_action('__ACTIVATED__'), default=True, visible=False
+                )
+            )
         for element in lst:
             if type(element) == list:
-                items.append(pystray.MenuItem(element[0], create_menu(islice(element, 1, None), root=False)))
+                items.append(
+                    pystray.MenuItem(
+                        element[0], create_menu(islice(element, 1, None), root=False)
+                    )
+                )
             elif type(element) == tuple and len(element) == 2:
                 element, key = element
                 items.append(pystray.MenuItem(element, get_tray_action(element, key)))
@@ -32,7 +43,6 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
         return pystray.Menu(*items)
 
     def get_tray_action(string, key=''):
-
         def tray_action():
             try:
                 main_queue.put(key) if key else main_queue.put(string)
@@ -61,7 +71,9 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         tray.icon = unfilled_icon
                     elif parent_cmd == 'notify':
                         if tray.HAS_NOTIFICATION:
-                            tray.notify(arguments['message'], title=arguments.get('title'))  # msg, title
+                            tray.notify(
+                                arguments['message'], title=arguments.get('title')
+                            )  # msg, title
                         else:
                             print('pystray: notify not supported')
                     elif parent_cmd == 'hide':
@@ -71,6 +83,8 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                         sys.exit()
             time.sleep(0.1)
 
-    tray = pystray.Icon('Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]')
+    tray = pystray.Icon(
+        'Music Caster SystemTray', unfilled_icon, title='Music Caster [LOADING]'
+    )
     threading.Thread(target=background, daemon=True).start()
     tray.run()

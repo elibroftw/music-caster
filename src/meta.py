@@ -7,13 +7,38 @@ IMPORTANT_INFORMATION = """
 """.strip()
 
 # Constants
-DEFAULT_THEME = {'accent': '#00bfff', 'background': '#121212', 'text': '#d7d7d7', 'alternate_background': '#222222'}
-TOGGLEABLE_SETTINGS = {'auto_update', 'notifications', 'discord_rpc', 'run_on_startup', 'folder_cover_override',
-                       'folder_context_menu', 'save_window_positions', 'populate_queue_startup', 'lang',
-                       'smart_queue', 'show_track_number', 'persistent_queue', 'flip_main_window', 'vertical_gui',
-                       'use_last_folder', 'show_album_art', 'reversed_play_next', 'scan_folders',
-                       'show_queue_index', 'queue_library', 'show_queue_length', 'show_queue_time', 'gui_exits_app',
-                       'experimental_features'}
+DEFAULT_THEME = {
+    'accent': '#00bfff',
+    'background': '#121212',
+    'text': '#d7d7d7',
+    'alternate_background': '#222222',
+}
+TOGGLEABLE_SETTINGS = {
+    'auto_update',
+    'notifications',
+    'discord_rpc',
+    'run_on_startup',
+    'folder_cover_override',
+    'folder_context_menu',
+    'save_window_positions',
+    'populate_queue_startup',
+    'lang',
+    'smart_queue',
+    'show_track_number',
+    'persistent_queue',
+    'flip_main_window',
+    'vertical_gui',
+    'use_last_folder',
+    'show_album_art',
+    'reversed_play_next',
+    'scan_folders',
+    'show_queue_index',
+    'queue_library',
+    'show_queue_length',
+    'show_queue_time',
+    'gui_exits_app',
+    'experimental_features',
+}
 PID_FILENAME = 'music_caster.pid'
 LOCK_FILENAME = 'music_caster.lock'
 UNINSTALLER = 'unins000.exe'
@@ -24,8 +49,22 @@ CONTACT_INFO = f'Elijah Lopez <{EMAIL}>'
 SUBMIT_EVENTS = {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
 AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
 AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
-IMG_FILE_TYPES = (('Image', '*.gif *.pdf *.png *jpg *jpeg *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),)
-AUDIO_EXTS = {'.mp3', '.flac', '.m4a', '.mp4', '.aac', '.mpeg', '.ogg', '.opus', '.wma', '.wav', '.m3u'}
+IMG_FILE_TYPES = (
+    ('Image', '*.gif *.pdf *.png *jpg *jpeg *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),
+)
+AUDIO_EXTS = {
+    '.mp3',
+    '.flac',
+    '.m4a',
+    '.mp4',
+    '.aac',
+    '.mpeg',
+    '.ogg',
+    '.opus',
+    '.wma',
+    '.wav',
+    '.m3u',
+}
 FONT_NORMAL = 'Segoe UI', 11
 FONT_SMALL = 'Segoe UI', 10
 FONT_LINK = 'Segoe UI', 11, 'underline'
@@ -46,6 +85,7 @@ class State:
     """
     attributes in State are modified by music_caster.py
     """
+
     lang = ''
     track_format = '&title - &artist'
     PORT = 2001
@@ -93,5 +133,6 @@ class PlayingStatus:
         return ['NOT PLAYING', 'PLAYING', 'PAUSED'][self.state]
 
     def __eq__(self, other):
-        if not isinstance(other, PlayingStatus): return str(other) == str(self)
+        if not isinstance(other, PlayingStatus):
+            return str(other) == str(self)
         return other.state == self.state

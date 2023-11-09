@@ -30,6 +30,7 @@ if platform.system() == 'Windows':
             ('BatteryLifeTime', wintypes.DWORD),
             ('BatteryFullLifeTime', wintypes.DWORD),
         ]
+
     SYSTEM_POWER_STATUS_P = ctypes.POINTER(SYSTEM_POWER_STATUS)
     GetSystemPowerStatus = ctypes.windll.kernel32.GetSystemPowerStatus
     GetSystemPowerStatus.argtypes = [SYSTEM_POWER_STATUS_P]
@@ -129,13 +130,11 @@ def get_all_resolutions():
         # no resolutions found
         return {}
     # return resolutions with same aspect ratio as max resolution
-    lst = sorted(filter(lambda res: get_aspect_ratio(*res) == aspect_ratio, resolutions))
+    lst = sorted(
+        filter(lambda res: get_aspect_ratio(*res) == aspect_ratio, resolutions)
+    )
     return {
-        fmt_res(*res): {
-            'w': res[0],
-            'h': res[1],
-            'dpi_scale': calc_dpi_scale(*res)
-        }
+        fmt_res(*res): {'w': res[0], 'h': res[1], 'dpi_scale': calc_dpi_scale(*res)}
         for res in lst
     }
 
@@ -204,7 +203,10 @@ if __name__ == '__main__':
     # save cache
     get_initial_dpi_scale()
     image = Image.open('icon.png')
-    menu = [item(k, set_res_curry(v['w'], v['h'], v['dpi_scale'])) for k, v in get_all_resolutions().items()]
+    menu = [
+        item(k, set_res_curry(v['w'], v['h'], v['dpi_scale']))
+        for k, v in get_all_resolutions().items()
+    ]
     menu.append(item('Exit', on_exit))
     icon = pystray.Icon('Resolution Switcher', image, 'Resolution Switcher', menu)
     icon.run()

@@ -15,13 +15,26 @@ def get_running_processes(look_for='', pid=None, add_exe=True):
             cmd += f' /FI "IMAGENAME eq {look_for}"'
         if pid is not None:
             cmd += f' /FI "PID eq {pid}"'
-        p = Popen(cmd, shell=True, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True, encoding='iso8859-2')
+        p = Popen(
+            cmd,
+            shell=True,
+            stdout=PIPE,
+            stdin=DEVNULL,
+            stderr=DEVNULL,
+            text=True,
+            encoding='iso8859-2',
+        )
         p.stdout.readline()
         for task in iter(lambda: p.stdout.readline().strip(), ''):
             m = re.match(r'(.+?) +(\d+) (.+?) +(\d+) +(\d+.* K).*', task)
             if m is not None:
-                yield {'name': m.group(1), 'pid': int(m.group(2)), 'session_name': m.group(3),
-                       'session_num': m.group(4), 'mem_usage': m.group(5)}
+                yield {
+                    'name': m.group(1),
+                    'pid': int(m.group(2)),
+                    'session_name': m.group(3),
+                    'session_num': m.group(4),
+                    'mem_usage': m.group(5),
+                }
     elif platform.system() == 'Linux':
         cmd = ['ps', 'h']
         if look_for:
@@ -43,6 +56,12 @@ def is_already_running(look_for='Music Caster', threshold=1, pid=None) -> bool:
             if threshold < 0:
                 return True
     else:  # Linux
-        p = Popen(['ps', 'h', '-C', look_for, '-o', 'comm'], stdout=PIPE, stdin=PIPE, stderr=DEVNULL, text=True)
+        p = Popen(
+            ['ps', 'h', '-C', look_for, '-o', 'comm'],
+            stdout=PIPE,
+            stdin=PIPE,
+            stderr=DEVNULL,
+            text=True,
+        )
         return p.stdout.readline().strip() != ''
     return False
