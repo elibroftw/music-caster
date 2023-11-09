@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.15.0
+- [Fix] Security update
+
 5.14.0
 - [Dev] New build process; might break app
 
