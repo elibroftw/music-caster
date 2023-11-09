@@ -24,7 +24,7 @@ MinVersion=0,6.1.7600
 ; Minimum version is Windows 10 or later
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
-OutputDir={#SourcePath}src\dist
+OutputDir={#SourcePath}\..\src\dist
 OutputBaseFilename=Music Caster Setup
 UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
