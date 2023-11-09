@@ -628,7 +628,7 @@ if __name__ == '__main__':
         # keep changes of current major version if new version is a minor update
         body = '' if VERSION.endswith('.0') else old_release['body']
         body = add_new_changes(body)
-        if any(Repo('../.git').index.diff(None)):
+        if any(Repo('.git').index.diff(None)):
             input(
                 'Changed (not committed) files detected. Press enter to confirm upload.\n'
             )
@@ -656,7 +656,7 @@ if __name__ == '__main__':
         for dist_file in dist_files:
             requests.post(
                 upload_url,
-                data=ProgressUpload(f'{SRC_DIR}dist/{dist_file}'),
+                data=ProgressUpload(SRC_DIR / 'dist' / dist_file),
                 params={'name': dist_file},
                 headers={
                     **headers, 'Content-Type': 'application/octet-stream'
