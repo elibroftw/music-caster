@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.16.0
+- [Fix] Linux?
+- [Fix] Remove old startup shortcuts
+
 5.15.0
 - [Fix] Security update
 

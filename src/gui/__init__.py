@@ -6,13 +6,13 @@ import ctypes.wintypes
 import sys
 
 ALT_KEY, EXTENDED_KEY, KEY_UP = 0x12, 0x0001, 0x0002
-keybd_event = ctypes.windll.user32.keybd_event
 
 
 def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
     # raises TclError [window_is_foreground]
     # use bring_to_front when frozen and in Python use other method
     if platform.system() == 'Windows':
+        keybd_event = ctypes.windll.user32.keybd_event
         if is_frozen and window_is_foreground(window):
             window.bring_to_front()
         else:

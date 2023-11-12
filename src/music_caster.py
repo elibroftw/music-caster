@@ -3548,6 +3548,7 @@ if __name__ == '__main__':
     def start_on_login_modifications():
         """ Run platform specific implementation of startup modification """
         if platform.system() == 'Windows':
+            rm_old_startup_shortcuts()
             start_on_login_win32(working_dir, settings['run_on_startup'])
         else:
             print('TODO: start_on_login_modifications not implemented for', platform.system())

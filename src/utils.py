@@ -1379,48 +1379,13 @@ def start_on_login_win32(working_dir, create_key=True, is_debug=True):
                 wr.DeleteValue(key, 'Music Caster')
 
 
-def create_shortcut_windows(is_debug, is_frozen, run_on_startup, working_dir):
+def rm_old_startup_shortcuts():
     from win32comext.shell import shell, shellcon
-    from win32com.universal import com_error
-    import pythoncom
-    import win32com.client
-    app_log = logging.getLogger('music_caster')
-    app_log.info('create_shortcut called')
     startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
-    shortcut_name = 'Music Caster'
-    if not IS_FROZEN:
-        shortcut_name += ' (Python)'
-    if is_debug:
-        shortcut_name += ' [DEBUG]'
-    shortcut_path = f"{startup_dir}\\{shortcut_name}.lnk"
-    shortcut_exists = os.path.exists(shortcut_path)
-    app_log.info(f'create_shortcut path: {shortcut_path}')
-    try:
-        if run_on_startup or is_debug:
-            # noinspection PyUnresolvedReferences
-            pythoncom.CoInitialize()
-            _shell = win32com.client.Dispatch('WScript.Shell')
-            shortcut = _shell.CreateShortCut(shortcut_path)
-            if IS_FROZEN:
-                target = working_dir / 'Music Caster.exe'
-            else:
-                target = working_dir / 'music_caster.bat'
-                if not os.path.exists(target):
-                    with open('music_caster.bat', 'w') as f:
-                        f.write(f'pythonw "{os.path.basename(sys.argv[0])}" -m')
-                shortcut.IconLocation = str(working_dir / 'resources' / 'Music Caster Icon.ico')
-            shortcut.Targetpath = str(target)
-            shortcut.Arguments = '-m'
-            shortcut.WorkingDirectory = str(working_dir)
-            shortcut.WindowStyle = 1  # 7: Minimized, 3: Maximized, 1: Normal
-            shortcut.save()
-            if not IS_FROZEN or is_debug:
-                time.sleep(1)
-                app_log.info('create_shortcut: removed shortcut')
-                os.remove(shortcut_path)
-        elif not run_on_startup and shortcut_exists: os.remove(shortcut_path)
-    except com_error as e:
-        app_log.exception('create_shortcut: failed')
+    shortcut_paths = (f"{startup_dir}\\{item}.lnk" for item in ('Music Caster', 'Music Caster (Python)', 'Music Caster  [DEBUG]'))
+    for shortcut_path in shortcut_paths:
+        with suppress(FileNotFoundError):
+            os.remove(shortcut_path)
 
 
 def startfile(file):
