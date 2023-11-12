@@ -674,6 +674,8 @@ IPV4_GENERAL_PATTERN = re.compile(r'IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}
 
 def get_ipv4():
     try:
+        if platform.system() != 'Windows':
+            raise FileNotFoundError
         ipconfig_output = check_output(['ipconfig'], shell=True, text=True, encoding='iso8859-2')
         wifi_match = IPV4_WIFI_PATTERN.findall(ipconfig_output)
         if wifi_match:
