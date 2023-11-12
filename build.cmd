@@ -7,5 +7,5 @@ set args=%args% %1
 shift
 goto start
 :done
-python -m venv venv 2>NUL
-"venv/Scripts/python.exe" build.py %args%
+python -m venv .venv 2>NUL
+".venv/Scripts/python.exe" build.py %args%

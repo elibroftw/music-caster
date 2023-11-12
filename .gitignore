@@ -2,12 +2,14 @@
 .vscode/
 __pycache__/
 src/venv/
+src/.venv/
 build/
 _build/
 dist/
 images/
 test_files/
 venv/
+.venv/
 src/.flatpak-builder
 .env
 settings.json

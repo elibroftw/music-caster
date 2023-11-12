@@ -3,7 +3,7 @@
 Type=Application
 Name=Music Caster
 Comment=A modern music player that can cast audio files and urls to Google Chromecasts, Home minis, etc.
-Exec=sh -c "$HOME/bin/music-caster/src/venv/bin/python $HOME/bin/music-caster/src/music_caster.py"
+Exec=sh -c "$HOME/bin/music-caster/.venv/bin/python $HOME/bin/music-caster/src/music_caster.py"
 Icon=music_caster.png
 Terminal=false
 MimeType=application/x-ogg;application/ogg;audio/x-vorbis+ogg;audio/vorbis;audio/x-vorbis;audio/x-scpls;audio/x-mp3;audio/x-mpeg;audio/mpeg;audio/x-mpegurl;audio/x-flac;audio/mp4;
