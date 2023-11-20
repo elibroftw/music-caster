@@ -1382,12 +1382,13 @@ def start_on_login_win32(working_dir, create_key=True, is_debug=True):
 
 
 def rm_old_startup_shortcuts():
-    from win32comext.shell import shell, shellcon
-    startup_dir = shell.SHGetFolderPath(0, (shellcon.CSIDL_STARTUP, shellcon.CSIDL_COMMON_STARTUP)[0], None, 0)
-    shortcut_paths = (f"{startup_dir}\\{item}.lnk" for item in ('Music Caster', 'Music Caster (Python)', 'Music Caster  [DEBUG]'))
-    for shortcut_path in shortcut_paths:
-        with suppress(FileNotFoundError):
-            os.remove(shortcut_path)
+    if platform.system() == 'Windows':
+        from knownpaths import sh_get_known_folder_path, FOLDERID
+        startup_dir = sh_get_known_folder_path(FOLDERID.Startup)
+        shortcut_paths = (f"{startup_dir}\\{item}.lnk" for item in ('Music Caster', 'Music Caster (Python)', 'Music Caster  [DEBUG]'))
+        for shortcut_path in shortcut_paths:
+            with suppress(FileNotFoundError):
+                os.remove(shortcut_path)
 
 
 def startfile(file):

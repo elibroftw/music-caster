@@ -1,5 +1,5 @@
 #define MyAppName "Music Caster"
-#define MyAppVersion "5.16.0"
+#define MyAppVersion "5.16.1"
 #define MyAppPublisher "Elijah Lopez"
 #define MyAppURL "https://elijahlopez.ca/software#music-caster"
 #define MyAppExeName "Music Caster.exe"
@@ -63,6 +63,11 @@ Type: filesandordirs; Name: {app}\PyQt5
 Type: filesandordirs; Name: {app}\wx
 Type: filesandordirs; Name: {app}\vlc
 Type: filesandordirs; Name: {app}\vlc_lib
+Type: filesandordirs; Name: {app}\importlib_metadata*
+Type: filesandordirs; Name: {app}\keyring*
+Type: filesandordirs; Name: {app}\lz4*
+Type: filesandordirs; Name: {app}\websockets*
+Type: filesandordirs; Name: {app}\wheel*
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -1,7 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.16.1
+- [Fix] Remove old startup shortcuts + background thread
+
 5.16.0
-- [Fix] Linux?
+- [Feature] Linux support
 - [Fix] Remove old startup shortcuts
 
 5.15.0

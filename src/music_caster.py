@@ -3548,8 +3548,12 @@ if __name__ == '__main__':
     def start_on_login_modifications():
         """ Run platform specific implementation of startup modification """
         if platform.system() == 'Windows':
+            app_log.info('removing old startup shortcuts')
             rm_old_startup_shortcuts()
+            app_log.info('removed old startup shortcuts')
+            app_log.info('creating/removing startup registry entry')
             start_on_login_win32(working_dir, settings['run_on_startup'])
+            app_log.info('created/removed startup registry entry')
         else:
             print('TODO: start_on_login_modifications not implemented for', platform.system())
 
