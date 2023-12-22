@@ -2945,12 +2945,14 @@ if __name__ == '__main__':
             activate_gui()
         elif main_event == 'queue_all': queue_all()
         elif main_event == 'clear_queue':
+            gui_window['queue'].update(set_to_index=0)
             gui_window['queue'].update(values=[])
             if playing_status.busy(): stop('clear_queue')
             music_queue.clear()
             next_queue.clear()
             done_queue.clear()
             save_queues()
+            gui_window.refresh()
         elif main_event == 'save_to_pl':
             indices = gui_window['queue'].get_indexes()
             if len(indices) <= 1:
