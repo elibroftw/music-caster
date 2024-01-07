@@ -1,0 +1,59 @@
+name: App Builder
+on:
+  push:
+    tags:
+      - "v*"
+    branches: master
+  workflow_dispatch:
+concurrency:
+  cancel-in-progress: true
+  # we want to group based on the push type not the ref
+  group: ${{ github.ref_type }}
+
+env:
+  ARTIFACT_BASE_NAME: 'music_caster_artifacts' # + '_${runsOn}'
+  TAG_PUSH: ${{ github.ref_type == 'tag' }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [windows-latest]
+    runs-on: ${{matrix.platform}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: actions/setup-go@v4
+
+      - name: Venv
+        run: |
+          python -m venv .venv
+          .venv\Scripts\Activate.ps1
+
+      - name: Install Dependencies
+        run: |
+          .venv\Scripts\Activate.ps1
+          python build.py --deps
+
+      - name: Build
+        run: |
+          .venv\Scripts\Activate.ps1
+          python build.py --no-deps --no-tests --no-install
+
+      - name: Test build
+        run: |
+          .venv\Scripts\Activate.ps1
+          python build.py --no-deps --no-build --no-install
+
+      - name: Upload build
+        if: github.env.TAG_PUSH
+        run: |
+          .venv\Scripts\Activate.ps1
+          python build.py -u --ci --no-deps --no-build --no-tests --no-install
+
+  # TODO: if/when MacOS is supported?
+  # release:
+  #   needs: build
+  #   runs-on: ubuntu-latest

@@ -106,6 +106,8 @@ def add_new_changes(prev_changes: str):
             line = _file.readline()
     if not add_changes:
         print(f'CHANGELOG does not contain changes for {VERSION}...')
+        if args.ci:
+            sys.exit(3)
         input('Press enter to try again...')
         return add_new_changes(prev_changes)
     return '\n'.join(sorted(changes, key=lambda item: item.casefold()))
@@ -285,11 +287,13 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--skip-build',
+        '--no-build',
         default=False,
         action='store_true',
         help='Skip to testing / uploading',
     )
     parser.add_argument('--skip-tests',
+                        '--no-tests',
                         '--st',
                         default=False,
                         action='store_true',
@@ -316,6 +320,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--skip-deps',
+        '--no-deps',
         '-i',
         default=False,
         action='store_true',
@@ -332,6 +337,12 @@ if __name__ == '__main__':
         default=False,
         action='store_true',
         help='version++ if new youtube-dl available',
+    )
+    parser.add_argument(
+        '--ci',
+        default=False,
+        action='store_true',
+        help='if running in a CI do not prompt just fail',
     )
     args = parser.parse_args()
     if args.deps:
@@ -374,8 +385,9 @@ if __name__ == '__main__':
                     dirs_exist_ok=True,
                 )
         if args.deps:
+            install_time_start = time.time()
             if Popen(pip_cmd, stdin=DEVNULL, text=True).wait() > 0:
-                print('Dependencies installed')
+                print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
             else:
                 print(
                     'ERROR: the following command to install dependencies failed\n',
@@ -449,7 +461,7 @@ if __name__ == '__main__':
         if args.clean:
             additional_args += ' --clean'
         # build frontend
-        check_call('yarn build', cwd=SRC_FRONTEND, shell=True)
+        # check_call('yarn build', cwd=SRC_FRONTEND, shell=True)
         if platform.system() == 'Windows':
             s1 = Popen(
                 f'{sys.executable} -O -m PyInstaller -y {additional_args} {PORTABLE_SPEC}',
@@ -591,7 +603,7 @@ if __name__ == '__main__':
         print(
             'Exiting early to avoid upload or installation of possibly broken build'
         )
-        sys.exit()
+        sys.exit(0 if args.dist_files_exist else 2)
     print(f'Build v{VERSION} complete')
     print('Time taken:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
@@ -612,7 +624,7 @@ if __name__ == '__main__':
             headers=headers,
         )
         if r.status_code != 404:
-            print(f'ERROR: Tag v{VERSION} already exists')
+            print(f'ERROR: Release for tag "v{VERSION}" already exists')
             sys.exit(1)
 
         old_release = requests.get(
@@ -629,6 +641,9 @@ if __name__ == '__main__':
         body = '' if VERSION.endswith('.0') else old_release['body']
         body = add_new_changes(body)
         if any(Repo('.git').index.diff(None)):
+            if args.ci:
+                print('Changes detected. Exiting.')
+                sys.exit(2)
             input(
                 'Changed (not committed) files detected. Press enter to confirm upload.\n'
             )
