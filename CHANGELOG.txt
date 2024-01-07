@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.16.2
+- [Fix] Metadata time modified error
+- [Fix] Clear queue
+
 5.16.1
 - [Fix] Remove old startup shortcuts + background thread
 

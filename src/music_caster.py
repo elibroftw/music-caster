@@ -526,7 +526,8 @@ if __name__ == '__main__':
             try:
                 return all_tracks[Path(file_path).as_posix()]
             except KeyError:
-                return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False, 'modified_time': time.time(),
+                # i forget the reason why we have the time_modified so high
+                return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False, 'time_modified': os.path.getmtime(file_path),
                         'album': Unknown('Title'), 'sort_key': get_file_name(file_path), 'track_number': '1'}
 
 
