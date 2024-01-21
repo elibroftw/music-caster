@@ -1,5 +1,5 @@
 wheel
-build_files/PyAudio-0.2.11-cp310-cp310-win_amd64.whl; sys_platform == 'win32'
+build_files/PyAudio-0.2.14-cp312-cp312-win_amd64.whl; sys_platform == 'win32'
 pywin32; sys_platform == 'win32'
 pyaudio; sys_platform != 'win32'
 pgi; sys_platform == 'linux'
@@ -24,7 +24,7 @@ scrapetube
 pyperclip~=1.8
 https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
 werkzeug~=3.0
-python-vlc==3.0.12118
+python-vlc==3.0.20123
 lz4==3.1.3
 browser_cookie3
 beautifulsoup4~=4.10

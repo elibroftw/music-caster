@@ -31,7 +31,7 @@ Unique users as of April 23rd 2023: 3,800
 
 Not maintained, but I did get it to work on Ubuntu once. Music Caster is not straight forward to package, so you can invoke a sudo-free [install script](linux_install.sh).
 
-Make sure you have Python 3.10, pip, and tkinter installed before running the commands below.
+Make sure you have Python 3.12, pip, and tkinter installed before running the commands below.
 
 ```bash
 mkdir -p ~/bin && git clone --depth 1 https://github.com/elibroftw/music-caster.git ~/bin/music-caster
@@ -115,6 +115,6 @@ Only I have access to this data, I will NEVER give it to anyone else. Will stop 
 
 ### Virtualenv
 
-```
-python -m venv .venv
+```sh
+python3.12 -m venv .venv
 ```

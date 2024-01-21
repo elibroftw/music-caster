@@ -1165,6 +1165,7 @@ if __name__ == '__main__':
 
         def add_cast(self, uuid, _service):
             """Called when a new cast has been discovered."""
+            print(f'cast found found {uuid}')
             global cast
             cast_info = cast_browser.devices[uuid]
             if str(cast_info.uuid) == settings['device']:
