@@ -42,7 +42,6 @@ REQUIREMENTS_DEV_FILE = script_dir / 'requirements-dev.txt'
 SRC_FRONTEND = script_dir / 'src-frontend'
 
 IS_VENV = sys.prefix != sys.base_prefix
-assert IS_VENV
 
 
 class ProgressUpload:
@@ -105,6 +104,9 @@ def add_new_changes(prev_changes: str):
                 changes.add(line)
             line = _file.readline()
     if not add_changes:
+        # TODO: generate changelog from commits
+        #       could use AI/LLM for summarizing subjects
+        #       see modern-desktop-app
         print(f'CHANGELOG does not contain changes for {VERSION}...')
         if args.ci:
             sys.exit(3)
@@ -367,7 +369,7 @@ if __name__ == '__main__':
             if IS_VENV:
                 shutil.copytree(
                     TKDND_FILES[0],
-                    f'{sys_dir_name.parent}/tcl/tkdnd2.9.2',
+                    f'{sys_dir_name}/tcl/tkdnd2.9.2',
                     dirs_exist_ok=True,
                 )
                 shutil.copytree(
@@ -384,6 +386,8 @@ if __name__ == '__main__':
                     f'{sys_dir_name}/Lib/site-packages/TkinterDnD2',
                     dirs_exist_ok=True,
                 )
+                # sys.exit(0)
+        # assert IS_VENV
         if args.deps:
             install_time_start = time.time()
             if Popen(pip_cmd, stdin=DEVNULL, text=True).wait() > 0:
@@ -402,7 +406,7 @@ if __name__ == '__main__':
                     pip_cmd,
                 )
                 sys.exit()
-
+    assert IS_VENV
     # import third party libraries
     import requests
     from git import Repo

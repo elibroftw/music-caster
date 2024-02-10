@@ -12,7 +12,6 @@ concurrency:
 
 env:
   ARTIFACT_BASE_NAME: 'music_caster_artifacts' # + '_${runsOn}'
-  TAG_PUSH: ${{ github.ref_type == 'tag' }}
 
 jobs:
   build:
@@ -27,13 +26,14 @@ jobs:
           python-version: '3.10'
       - uses: actions/setup-go@v4
 
-      - name: Venv
+      - name: Create Python venv
         run: |
           python -m venv .venv
-          .venv\Scripts\Activate.ps1
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
+          # tkdnd2?
+          python build.py --deps
           .venv\Scripts\Activate.ps1
           python build.py --deps
 
@@ -48,7 +48,7 @@ jobs:
           python build.py --no-deps --no-build --no-install
 
       - name: Upload build
-        if: github.env.TAG_PUSH
+        if: ${{ github.ref_type == 'tag' }}
         run: |
           .venv\Scripts\Activate.ps1
           python build.py -u --ci --no-deps --no-build --no-tests --no-install
