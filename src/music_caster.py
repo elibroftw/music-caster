@@ -2360,7 +2360,6 @@ if __name__ == '__main__':
 
         import pynput.keyboard
         global track_position, track_start, track_end
-        if not is_debug(): send_info()
         app_log.info(f'entered background_thread')
         app_log.info(f'system: {platform.system()}')
         start_on_login_modifications()
@@ -3625,11 +3624,6 @@ if __name__ == '__main__':
                         tray_notify('update_available', context=latest_ver)
             else:
                 app_log.info(f'auto_update: no update found, or no internet, or API rate limited')
-
-    def send_info():
-        with suppress(requests.RequestException):
-            mac = hashlib.md5(get_mac().encode()).hexdigest()
-            requests.post('https://en3ay96poz86qa9.m.pipedream.net', json={'MAC': mac, 'VERSION': VERSION})
 
 
     def cast_monitor(msg: dict = None):
