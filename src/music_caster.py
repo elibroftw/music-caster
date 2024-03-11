@@ -3634,7 +3634,7 @@ if __name__ == '__main__':
             CAST_LOCK.acquire()
             if msg is None and playing_status.busy():
                 # block/monitor in background thread
-                return cast.media_controller.update_status(callback_function_param=cast_monitor)
+                return cast.media_controller.update_status(callback_function=cast_monitor)
             if cast.app_id == APP_MEDIA_RECEIVER and time.time() > SYNC_WITH_CHROMECAST:
                 media_controller = cast.media_controller
                 is_stopped = media_controller.status.player_is_idle
