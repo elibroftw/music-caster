@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.16.4
+- [Fix] Chromecast support
+
 5.16.3
 - [Fix] use GitHub downloads instead of instances
 
