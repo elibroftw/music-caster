@@ -3626,7 +3626,7 @@ if __name__ == '__main__':
                 app_log.info(f'auto_update: no update found, or no internet, or API rate limited')
 
 
-    def cast_monitor(sent: bool, msg: dict = None):
+    def cast_monitor(sent: bool = True, msg: dict = None):
         global track_position, track_start, track_end, OLD_CAST_VOLUME, OLD_CAST_POS
         if cast is None:
             return
