@@ -1,7 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.16.5
+- [Fix] Chromecast status callback
+
 5.16.4
-- [Fix] Chromecast support
+- [Fix] pychromecast v14 support
 
 5.16.3
 - [Fix] use GitHub downloads instead of instances
