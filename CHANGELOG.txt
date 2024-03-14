@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.16.7
+- [Fix] Chromecast status
+
 5.16.6
 - [Fix] Chromecast status callback
 

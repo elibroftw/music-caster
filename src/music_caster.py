@@ -1234,7 +1234,8 @@ if __name__ == '__main__':
                 with suppress(UnsupportedNamespace, NotConnected):
                     mc.update_status()  # Switch device without playback loss
                     current_pos = mc.status.adjusted_current_time
-                    if mc.is_playing or mc.is_paused: mc.stop()
+                    if mc.status.player_is_playing or mc.status.player_is_paused:
+                        mc.stop()
             with suppress(NotConnected):
                 cast.quit_app()
         elif cast is None and 'audio_player' in globals() and audio_player.is_busy():
