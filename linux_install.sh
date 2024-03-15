@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -ex
-# cd ~/bin/music-caster
+
 echo "(music-caster) Updating..."
-git fetch
-git reset --hard "@{u}"
+# git fetch
+# git reset --hard "@{u}"
+
 PYTHON=python3.12
+./scripts/pre-req.sh $PYTHON
+
 echo "(music-caster) Creating $PYTHON virtual environment"
 # if .venv DNE or has wrong Python version, delete old .venv and install new .venv
 if [ ! -d .venv ] || [ "$(.venv/bin/python -V)" != "$($PYTHON -V)" ]; then
