@@ -1,6 +1,6 @@
-VERSION = latest_version = '5.16.8'
+VERSION = latest_version = '5.17.0'
 UPDATE_MESSAGE = """
-[NEW] Bienvenue Français
+[NEW] Better Error Capturing
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """

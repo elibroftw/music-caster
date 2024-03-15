@@ -482,7 +482,7 @@ if __name__ == '__main__':
                    'MAC': hashlib.md5(get_mac().encode()).hexdigest(), 'OS': platform.platform(), 'TIME': current_time}
         if IS_FROZEN:
             with suppress(requests.RequestException):
-                requests.post('https://dc19f29a6822522162e00f0b4bee7632.m.pipedream.net', json=payload, timeout=0.5)
+                requests.post('https://lenerva.com/telemetry/music-caster/error/', json=payload, timeout=1)
         try:
             with open('error.log', 'r', encoding='utf-8') as _f:
                 content = _f.read()
