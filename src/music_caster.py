@@ -2225,7 +2225,7 @@ if __name__ == '__main__':
                 cast.media_controller.update_status()
             except PyChromecastError:
                 cast.wait()
-            if cast.media_controller.is_idle and music_queue:
+            if cast.media_controller.status.player_is_idle and music_queue:
                 return play(position=new_position, autoplay=playing_status.playing())
             else:
                 for _ in range(2):
@@ -3665,7 +3665,7 @@ if __name__ == '__main__':
                         if update_settings('volume', cast_volume) and settings['muted']:
                             update_settings('muted', False)
                         gui_window.metadata['update_volume_slider'] = True
-            elif playing_status.playing() and cast.media_controller.is_idle and time.time() - LAST_PLAYED > 300:
+            elif playing_status.playing() and cast.media_controller.status.player_is_idle and time.time() - LAST_PLAYED > 300:
                 # paused for more than 5 minutes
                 stop('cast_monitor. app was not running')
         except (NotConnected, AttributeError):  # don't care
