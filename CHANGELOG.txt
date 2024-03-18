@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.17.1
+- [Fix] Setting position of Chromecast from GUI
+
 5.17.0
 - [Feat] Migrated error capturing endpoint from pipedream to under mine (lenerva)
 
