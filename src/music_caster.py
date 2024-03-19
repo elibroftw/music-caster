@@ -2126,7 +2126,11 @@ if __name__ == '__main__':
                     app_log.info('paused local audio player')
                 else:
                     mc = cast.media_controller
-                    mc.pause()
+                    try:
+                        mc.pause()
+                    except RequestTimeout:
+                        cast.wait()
+                        cast.media_controller.pause()
                     block_until = time.monotonic() + 5
                     while not mc.status.player_is_paused and time.monotonic() < block_until: time.sleep(0.1)
                     track_position = mc.status.adjusted_current_time
