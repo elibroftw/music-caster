@@ -198,7 +198,7 @@ if __name__ == '__main__':
     import pychromecast
     from pychromecast.controllers.media import MediaStatusListener
     from pychromecast.controllers.receiver import CastStatusListener
-    from pychromecast.error import PyChromecastError, UnsupportedNamespace, NotConnected, RequestTimeout
+    from pychromecast.error import PyChromecastError, UnsupportedNamespace, NotConnected, RequestTimeout, RequestFailed
     from pychromecast.config import APP_MEDIA_RECEIVER
     from pychromecast import Chromecast
     from pychromecast.models import CastInfo
@@ -435,7 +435,7 @@ if __name__ == '__main__':
         with suppress(NameError):
             audio_player.set_volume(new_vol)
         if cast is not None:
-            with suppress(NotConnected, RequestTimeout):
+            with suppress(NotConnected, RequestTimeout, RequestFailed):
                 cast.set_volume(new_vol)
 
 
@@ -2129,7 +2129,7 @@ if __name__ == '__main__':
                     mc = cast.media_controller
                     try:
                         mc.pause()
-                    except RequestTimeout:
+                    except (RequestTimeout, RequestFailed):
                         cast.wait()
                         cast.media_controller.pause()
                     block_until = time.monotonic() + 5
@@ -2239,7 +2239,7 @@ if __name__ == '__main__':
                         if playing_status.paused():
                             cast.media_controller.pause()
                         break
-                    except (NotConnected, RequestTimeout):
+                    except (NotConnected, RequestTimeout, RequestFailed):
                         cast.wait()
         else:
             audio_player.set_pos(new_position)
