@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.17.4
+- [Fix] Volume Chromecast
+
 5.17.3
 - [Fix] Upgrade pychromecast
 

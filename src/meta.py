@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.17.3'
+VERSION = latest_version = '5.17.4'
 UPDATE_MESSAGE = """
 [NEW] Better Error Capturing
 [MSG] Language translators wanted

@@ -435,7 +435,8 @@ if __name__ == '__main__':
         with suppress(NameError):
             audio_player.set_volume(new_vol)
         if cast is not None:
-            with suppress(NotConnected): cast.set_volume(new_vol)
+            with suppress(NotConnected, RequestTimeout):
+                cast.set_volume(new_vol)
 
 
     def cycle_repeat():
