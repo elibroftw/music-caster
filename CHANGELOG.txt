@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.17.3
+- [Fix] Upgrade pychromecast
+
 5.17.2
 - [Fix] Pausing Chromecast
 
