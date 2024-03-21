@@ -2131,9 +2131,14 @@ if __name__ == '__main__':
                         mc.pause()
                     except (RequestTimeout, RequestFailed):
                         cast.wait()
-                        cast.media_controller.pause()
+                        try:
+                            cast.media_controller.pause()
+                        except (RequestTimeout, RequestFailed):
+                            app_log.error('failed to pause cast device', exc_info=True)
+                            return False
                     block_until = time.monotonic() + 5
-                    while not mc.status.player_is_paused and time.monotonic() < block_until: time.sleep(0.1)
+                    while not mc.status.player_is_paused and time.monotonic() < block_until:
+                        time.sleep(0.1)
                     track_position = mc.status.adjusted_current_time
                     app_log.info('paused cast device')
                 playing_status.pause()

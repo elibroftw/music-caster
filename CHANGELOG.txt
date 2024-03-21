@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.17.6
+- [Fix] Better exception handling when pausing Chromecast
+
 5.17.5
 - [Fix] Setting position of Chromecast from GUI again
 
