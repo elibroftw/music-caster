@@ -2782,7 +2782,7 @@ if __name__ == '__main__':
             gui_window.metadata['last_event'] = main_event
         # update timer text if timer is old
         if not settings['mini_mode'] and timer == 0 and gui_window['timer_text'].metadata:
-            gui_window['timer_text'].update('No Timer Set')
+            gui_window['timer_text'].update(t('No Timer Set'))
             gui_window['timer_text'].metadata = False
             gui_window['cancel_timer'].update(visible=False)
         # these events modify main_event (chain events)
@@ -3272,7 +3272,7 @@ if __name__ == '__main__':
             gui_window.metadata['update_listboxes'] = True
         # timer tab
         elif main_event == 'cancel_timer':
-            gui_window['timer_text'].update('No Timer Set')
+            gui_window['timer_text'].update(t('No Timer Set'))
             gui_window['timer_text'].metadata = False
             gui_window['timer_error'].update(visible=False)
             gui_window['cancel_timer'].update(visible=False)
@@ -3282,7 +3282,7 @@ if __name__ == '__main__':
             try:
                 timer_value: str = main_values['timer_input']
                 timer_set_to = set_timer(timer_value)
-                gui_window['timer_text'].update(f'Timer set for {timer_set_to}')
+                gui_window['timer_text'].update(t('Timer set for $TIME').replace('$TIME', timer_set_to))
                 gui_window['timer_text'].metadata = True
                 gui_window['cancel_timer'].update(visible=True)
                 gui_window['timer_error'].update(visible=False)
