@@ -358,9 +358,9 @@ def SettingsTab(settings, web_ui_url):
     ], pad=(0, 0))
     link_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'click_submits': True}
     layout = [
-        [Sg.Text(f'Music Caster v{VERSION} by', font=FONT_NORMAL),
+        [Sg.Text(f'Music Caster v{VERSION}', font=FONT_NORMAL),
          Sg.Text(CONTACT_INFO, tooltip=t('Send me an email'), key='open_email', **link_params),
-         Sg.Text(f'GitHub', **link_params, key='open_github')],
+         Sg.Text('GitHub', **link_params, key='open_github')],
         [checkbox_col, right_settings_col] if qr_code else [checkbox_col],
         [Sg.Listbox(settings['music_folders'], size=(62, 5), select_mode=Sg.SELECT_MODE_EXTENDED, text_color=fg,
                     key='music_folders', background_color=bg, font=FONT_NORMAL, bind_return_key=True,
