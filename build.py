@@ -575,16 +575,16 @@ if __name__ == '__main__':
     if not args.skip_tests and dist_files_exist:
         try:
             sys.argv = sys.argv[:1]
-            test_harness_args = ''
+            pytest_args = ['pytest']
             if args.upload:
-                test_harness_args = ' -u'
+                pytest_args.append('--upload')
             if args.test_auto_update:
-                test_harness_args += ' -a'
-            check_call(
-                f'"{sys.executable}" test_harness.py {test_harness_args}',
-                cwd=SRC_DIR)
+                pytest_args.append('--test-auto-update')
+            if args.ci:
+                pytest_args.append('--ci')
+            check_call(pytest_args, cwd=SRC_DIR)
         except CalledProcessError:
-            print('TESTS FAILED: test_harness.py')
+            print('pytest: failed')
             sys.exit(1)
         # Test if executable can be run
         p = Popen(

@@ -9,7 +9,7 @@ import io
 from itertools import cycle, repeat, chain
 import locale
 import logging
-from math import floor, ceil
+from math import floor
 import os
 from pathlib import Path
 import platform
@@ -31,6 +31,7 @@ import tarfile
 import shutil
 
 from b64_images import *
+from base64 import b64encode, b64decode
 
 # 3rd party imports
 import deemix.utils.localpaths as __lp
@@ -340,7 +341,11 @@ def time_cache(max_age, maxsize=None, typed=False):
 try:
     LANGUAGES_FOLDER = f'{sys._MEIPASS}/languages'
 except AttributeError:
-    LANGUAGES_FOLDER = 'languages'
+    if os.path.exists('src/languages'):
+        print('WARNING 345:  application not running in src directory')
+        LANGUAGES_FOLDER = 'src/languages'
+    else:
+        LANGUAGES_FOLDER = 'languages'
 
 
 @lru_cache(maxsize=1)
@@ -350,18 +355,20 @@ def get_languages():
 
 @lru_cache(maxsize=3)
 def get_lang_pack(lang):
-    lang_pack = {} if lang == 'en' else []
-    with suppress(FileNotFoundError):
-        with open(f'{LANGUAGES_FOLDER}/{lang}.txt', encoding='utf-8') as f:
-            i = 0
+    # fails if not in src directory
+    en_lang_pack, other_lang_pack = {}, []
+    with open(f'{LANGUAGES_FOLDER}/{lang}.txt', encoding='utf-8') as f:
+        i = 0
+        line = f.readline().strip()
+        while line:
+            if not line.startswith('#'):
+                if lang == 'en':
+                    en_lang_pack[line] = i
+                else:
+                    other_lang_pack.append(line)
+                i += 1
             line = f.readline().strip()
-            while line:
-                if not line.startswith('#'):
-                    try: lang_pack[line] = i
-                    except TypeError: lang_pack.append(line)
-                    i += 1
-                line = f.readline().strip()
-    return lang_pack
+    return en_lang_pack if lang == 'en' else other_lang_pack
 
 
 def get_display_lang():
@@ -378,7 +385,7 @@ def get_translation(string, lang='', as_title=False):
     :param lang: Optional code to translate to. Defaults to using display language
     :param as_title: The phrase returned has each word capitalized
     :return: string translated to display language """
-    with suppress(IndexError, KeyError):
+    with suppress(IndexError, KeyError, FileNotFoundError):
         string = get_lang_pack(lang or get_display_lang())[get_lang_pack('en')[string]]
     if as_title: string = ' '.join(word[0].upper() + word[1:] for word in string.split())
     return string
@@ -758,7 +765,7 @@ def get_yt_id(url, ignore_playlist=False):
             with suppress(KeyError):
                 return parse_qs(query.query)['list'][0]
         if query.path == '/watch': return parse_qs(query.query)['v'][0]
-        if query.path[:7] == '/watch/': return query.path.split('/')[1]
+        if query.path[:7] == '/watch/': return query.path.split('/')[2]
         if query.path[:7] == '/embed/': return query.path.split('/')[2]
         if query.path[:3] == '/v/': return query.path.split('/')[2]
 
@@ -919,12 +926,12 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes
 
     try:
         img_data = io.BytesIO(b64decode(base64data))
-        art_img: Image = Image.open(img_data)
+        art_img: Image.Image = Image.open(img_data)
     except UnidentifiedImageError as e:
         if default_art is None:
             raise OSError from e
         img_data = io.BytesIO(b64decode(default_art))
-        art_img: Image = Image.open(img_data)
+        art_img: Image.Image = Image.open(img_data)
     w, h = art_img.size
     if w == h:
         # resize a square
@@ -1239,7 +1246,7 @@ def get_deezer_tracks(url, login=True):
 @lru_cache
 def custom_art(text):
     img_data = io.BytesIO(b64decode(DEFAULT_ART))
-    art_img: Image = Image.open(img_data)
+    art_img: Image.Image = Image.open(img_data)
     size = art_img.size
     x1 = y1 = size[0] * 0.95
     x0 = x1 - len(text) * 0.0625 * size[0]
@@ -1302,8 +1309,10 @@ def get_video_timestamps(video_info):
 # GUI utilitiies
 
 def repeat_img_tooltip(repeat_setting):
-    if repeat_setting is None: return REPEAT_OFF_IMG, t('Repeat All')
-    elif repeat_setting: return REPEAT_ONE_IMG, t('Repeat Off')
+    if repeat_setting is None:
+        return REPEAT_OFF_IMG, t('Repeat All')
+    elif repeat_setting:
+        return REPEAT_ONE_IMG, t('Repeat Off')
     return REPEAT_ALL_IMG, t('Repeat One')
 
 

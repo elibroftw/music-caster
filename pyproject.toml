@@ -1,0 +1,15 @@
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "single"
+
+# pyproject.toml
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-s"
+testpaths = [
+    "src/test_harness.py",
+    "tests",
+]
+markers = [
+    "no_ci: marks tests as unable to run in CI environment"
+]

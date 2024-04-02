@@ -12,3 +12,5 @@ macholib; sys_platform == 'darwin'
 build_files/pyinstaller-5.12.0-py3-none-any.whl
 pipdeptree
 pyoxidizer
+pytest
+ruff

@@ -43,3 +43,4 @@ python-tkdnd; sys_platform != 'win32'
 # webview
 pywebview
 pythonnet
+# https://github.com/AbstractUmbra/audioop/archive/main.tar.gz  # for Python 3.13+

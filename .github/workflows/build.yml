@@ -23,7 +23,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: 3.12
+          cache: pip
       - uses: actions/setup-go@v4
 
       - name: Create Python venv
@@ -32,7 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # tkdnd2?
+          # hack: install tkdnd2 to system
           python build.py --deps
           .venv\Scripts\Activate.ps1
           python build.py --deps
@@ -40,12 +41,12 @@ jobs:
       - name: Build
         run: |
           .venv\Scripts\Activate.ps1
-          python build.py --no-deps --no-tests --no-install
+          python build.py --ci --no-deps --no-tests --no-install
 
       - name: Test build
         run: |
           .venv\Scripts\Activate.ps1
-          python build.py --no-deps --no-build --no-install
+          python build.py --ci --no-deps --no-build --no-install
 
       - name: Upload build
         if: ${{ github.ref_type == 'tag' }}
