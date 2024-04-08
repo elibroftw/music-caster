@@ -80,12 +80,13 @@ class ProgressUpload:
 
 
 def read_env(env_file='.env'):
-    with open(env_file, encoding='utf-8') as env_file:
-        env_line = env_file.readline()
-        while env_line:
-            k, v = env_line.split('=', 1)
-            os.environ[k] = v.strip()
+    if not args.ci:
+        with open(env_file, encoding='utf-8') as env_file:
             env_line = env_file.readline()
+            while env_line:
+                k, v = env_line.split('=', 1)
+                os.environ[k] = v.strip()
+                env_line = env_file.readline()
     return os.environ
 
 
