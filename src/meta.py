@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.17.7'
+VERSION = latest_version = '5.18.0'
 UPDATE_MESSAGE = """
 [NEW] Better Error Capturing
 [MSG] Language translators wanted
@@ -47,24 +47,15 @@ STREAM_CHUNK = 1024
 EMAIL = 'elijahllopezz@gmail.com'
 CONTACT_INFO = f'Elijah Lopez <{EMAIL}>'
 SUBMIT_EVENTS = {'\r', 'special 16777220', 'special 16777221', 'timer_submit'}
-AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav')
-AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
+AUDIO_EXTS = ('mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav', 'aiff')
 IMG_FILE_TYPES = (
     ('Image', '*.gif *.pdf *.png *jpg *jpeg *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),
 )
-AUDIO_EXTS = {
-    '.mp3',
-    '.flac',
-    '.m4a',
-    '.mp4',
-    '.aac',
-    '.mpeg',
-    '.ogg',
-    '.opus',
-    '.wma',
-    '.wav',
-    '.m3u',
-}
+AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
+# re-define AUDIO_EXTS
+AUDIO_EXTS = {f'.{ext}' for ext in AUDIO_EXTS}
+AUDIO_EXTS.add('.m3u')
+
 FONT_NORMAL = 'Segoe UI', 11
 FONT_SMALL = 'Segoe UI', 10
 FONT_LINK = 'Segoe UI', 11, 'underline'

@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.18.0
+- [Feat] Local support for AIFF?
+
 5.17.7
 - [GUI] Timer tab translation
 
