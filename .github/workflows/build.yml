@@ -12,6 +12,7 @@ concurrency:
 
 env:
   ARTIFACT_BASE_NAME: 'music_caster_artifacts' # + '_${runsOn}'
+  github: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
