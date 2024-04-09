@@ -1,5 +1,4 @@
 # UTF-8
-# noinspection PyUnresolvedReferences
 VSVersionInfo(
     ffi=FixedFileInfo(
         prodvers=(2, 3, 0, 0),

@@ -1,3 +1,4 @@
+# flake8: noqa: E402
 import audioop
 import base64
 from contextlib import suppress
@@ -29,36 +30,34 @@ import tempfile
 from zipfile import ZipFile
 import tarfile
 import shutil
-
+# local imports
 from b64_images import *
 from base64 import b64encode, b64decode
-
 # 3rd party imports
 import deemix.utils.localpaths as __lp
 import webbrowser
 __lp.musicdata = '/dz'
 import mutagen
-from mutagen import MutagenError
+from mutagen._util import MutagenError
+import mutagen._file
 from mutagen.aac import AAC
 from mutagen.oggopus import OggOpus
 from mutagen.oggvorbis import OggVorbis
 import mutagen.flac
-# noinspection PyProtectedMember
-from mutagen.id3 import ID3NoHeaderError
-# noinspection PyProtectedMember
+import mutagen.id3
+from mutagen.id3._util import ID3NoHeaderError
 from mutagen.mp3 import HeaderNotFoundError, EasyMP3, MP3
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.wave import WAVE
 import pyaudio
 from pychromecast import CastInfo
 import pypresence
-import pyqrcode
 from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
 from youtube_comment_downloader import YoutubeCommentDownloader
-from modules.resolution_switcher import fmt_res, get_all_resolutions, get_initial_dpi_scale
 from meta import *
+from meta import AUDIO_HANDLER_EXTS
 
 
 # CONSTANTS
@@ -270,7 +269,6 @@ class Device:
     def id(self):
         return str(self.__device.uuid) if isinstance(self.__device, CastInfo) else None
 
-    # noinspection PyPep8Naming
     @classmethod
     def LOCAL_DEVICE(cls):
         return t('Local device')
@@ -413,19 +411,19 @@ def get_audio_length(file_path) -> int:
     try:
         if file_path.casefold().endswith('.wav'):
             a = WavInfoReader(file_path)
-            length = a.data.frame_count / a.fmt.sample_rate
+            length = a.data.frame_count / a.fmt.sample_rate # type:ignore
         elif file_path.casefold().endswith('.wma'):
             try:
-                audio_info = mutagen.File(file_path).info
+                audio_info = mutagen.File(file_path).info  # type:ignore
                 length = audio_info.length
             except AttributeError:
                 audio_info = AAC(file_path).info
                 length = audio_info.length
         elif file_path.casefold().endswith('.opus'):
-            audio_info = mutagen.File(file_path).info
+            audio_info = mutagen.File(file_path).info  # type:ignore
             length = audio_info.length
         else:
-            audio_info = mutagen.File(file_path).info
+            audio_info = mutagen.File(file_path).info  # type:ignore
             length = audio_info.length
         return length
     except (AttributeError, HeaderNotFoundError, MutagenError, WavInfoEOFError, StopIteration) as e:
@@ -442,7 +440,7 @@ def valid_audio_file(uri) -> bool:
 
 def set_metadata(file_path: str, metadata: dict):
     ext = os.path.splitext(file_path)[1].casefold()
-    audio = mutagen.File(file_path)
+    audio: mutagen._file.FileType = mutagen.File(file_path) # type: ignore
     title = metadata['title']
     artists = metadata['artist'].split(', ') if ', ' in metadata['artist'] else metadata['artist'].split(',')
     album = metadata['album']
@@ -455,32 +453,36 @@ def set_metadata(file_path: str, metadata: dict):
     if '/' not in track_place:
         tracks = max(1, int(track_place))
         track_place = f'{track_place}/{tracks}'
-    if isinstance(audio, (MP3, mutagen.wave.WAVE)) or ext in {'.mp3', '.wav'}:
+    if isinstance(audio, (MP3, WAVE)) or ext in {'.mp3', '.wav'}:
         if title:
-            audio['TIT2'] = mutagen.id3.TIT2(text=metadata['title'])
+            audio['TIT2'] = mutagen.id3._frames.TIT2(text=metadata['title'])
         if artists:
-            audio['TPE1'] = mutagen.id3.TPE1(text=artists)
-            audio['TPE2'] = mutagen.id3.TPE1(text=artists[0])  # album artist
-        audio['TCMP'] = mutagen.id3.TCMP(text=track_number)
-        audio['TRCK'] = mutagen.id3.TRCK(text=track_place)
-        audio['TPOS'] = mutagen.id3.TPOS(text=track_place)
+            audio['TPE1'] = mutagen.id3._frames.TPE1(text=artists)
+            audio['TPE2'] = mutagen.id3._frames.TPE1(text=artists[0])  # album artist
+        audio['TCMP'] = mutagen.id3._frames.TCMP(text=track_number)
+        audio['TRCK'] = mutagen.id3._frames.TRCK(text=track_place)
+        audio['TPOS'] = mutagen.id3._frames.TPOS(text=track_place)
         if album:
-            audio['TALB'] = mutagen.id3.TALB(text=album)
+            audio['TALB'] = mutagen.id3._frames.TALB(text=album)
         # audio['TDRC'] = mutagen.id3.TDRC(text=metadata['year'])
         # audio['TCON'] = mutagen.id3.TCON(text=metadata['genre'])
         # audio['TPUB'] = mutagen.id3.TPUB(text=metadata['publisher'])
-        audio['TXXX:RATING'] = mutagen.id3.TXXX(text=rating, desc='RATING')
-        audio['TXXX:ITUNESADVISORY'] = mutagen.id3.TXXX(text=rating, desc='ITUNESADVISORY')
+        audio['TXXX:RATING'] = mutagen.id3._frames.TXXX(text=rating, desc='RATING')
+        audio['TXXX:ITUNESADVISORY'] = mutagen.id3._frames.TXXX(text=rating, desc='ITUNESADVISORY')
         if metadata['art'] is not None:
             img_data = b64decode(metadata['art'])
-            audio['APIC:'] = mutagen.id3.APIC(encoding=0, mime=metadata['mime'], type=3, data=img_data)
+            audio['APIC:'] = mutagen.id3._frames.APIC(encoding=0, mime=metadata['mime'], type=3, data=img_data)
         else:  # remove all album art
             for k in tuple(audio.keys()):
-                if 'APIC:' in k: audio.pop(k)
+                if 'APIC:' in k:
+                    audio.pop(k)
     elif isinstance(audio, MP4):
-        if title: audio['©nam'] = [title]
-        if artists: audio['©ART'] = artists
-        if album: audio['©alb'] = [album]
+        if title:
+            audio['©nam'] = [title]
+        if artists:
+            audio['©ART'] = artists
+        if album:
+            audio['©alb'] = [album]
         audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
         audio['rtng'] = [int(rating)]
         if metadata['art'] is not None:
@@ -490,9 +492,12 @@ def set_metadata(file_path: str, metadata: dict):
         elif 'covr' in audio:
             del audio['covr']
     elif isinstance(audio, (OggOpus, OggVorbis)):
-        if title: audio['title'] = [title]
-        if artists: audio['artist'] = artists
-        if album: audio['album'] = [album]
+        if title:
+            audio['title'] = [title]
+        if artists:
+            audio['artist'] = artists
+        if album:
+            audio['album'] = [album]
         audio['rtng'] = [rating]
         audio['trkn'] = track_place
         if metadata['art'] is not None:
@@ -503,12 +508,12 @@ def set_metadata(file_path: str, metadata: dict):
             audio.pop('APIC:', None)
             audio.pop('metadata_block_picture', None)
     else:  # FLAC?
-        if title: audio['TITLE'] = title
-        if artists: audio['ARTIST'] = artists
-        if album: audio['ALBUM'] = album
-        audio['TRACKNUMBER'] = track_number
-        audio['TRACKTOTAL'] = track_place.split('/')[1]
-        audio['ITUNESADVISORY'] = rating
+        if title: audio['TITLE'] = title # type: ignore
+        if artists: audio['ARTIST'] = artists # type: ignore
+        if album: audio['ALBUM'] = album # type: ignore
+        audio['TRACKNUMBER'] = track_number  # type: ignore
+        audio['TRACKTOTAL'] = track_place.split('/')[1]  # type: ignore
+        audio['ITUNESADVISORY'] = rating  # type: ignore
         if metadata['art'] is not None:
             if ext == '.flac':
                 img_data = b64decode(metadata['art'])
@@ -516,20 +521,19 @@ def set_metadata(file_path: str, metadata: dict):
                 pic.mime = metadata['mime']
                 pic.data = img_data
                 pic.type = 3
-                # noinspection PyUnresolvedReferences
-                audio.clear_pictures()
-                audio.add_picture(pic)
+                audio.clear_pictures() # type: ignore
+                audio.add_picture(pic) # type: ignore
             else:
-                audio['APIC:'] = metadata['art']
-                audio['mime'] = metadata['mime']
+                audio['APIC:'] = metadata['art'] # type: ignore
+                audio['mime'] = metadata['mime'] # type: ignore
         else:
             if ext == '.flac':
-                # noinspection PyUnresolvedReferences
-                audio.clear_pictures()
+                audio.clear_pictures() # type: ignore
             else:
                 # remove all album art
                 for k in tuple(audio.keys()):
-                    if 'APIC:' in k: audio.pop(k)
+                    if 'APIC:' in k:
+                        audio.pop(k)
     audio.save()
 
 
@@ -755,7 +759,6 @@ def ydl_extract_info(url, quiet=False):
         raise IOError from e
 
 
-# noinspection PyTypeChecker
 @lru_cache(maxsize=1)
 def get_yt_id(url, ignore_playlist=False):
     query = urlparse(url)
@@ -853,10 +856,11 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
         wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
 
     # set file handlers
-    for ext in {'mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8'}:
+    for ext in AUDIO_HANDLER_EXTS:
         key_path = fr'{classes_path}\.{ext}'
         try:  # check if key exists
-            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _: pass
+            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _:
+                pass
         except (WindowsError, FileNotFoundError):
             # create key for extension if it does not exist with MC as the default program
             with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:
@@ -864,7 +868,6 @@ def add_reg_handlers(path_to_exe, add_folder_context=True):
                 wr.SetValueEx(key, None, 0, wr.REG_SZ, mc_file)
         # add to Open With (prompts user to set default program when they try playing a file)
         with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{key_path}\\OpenWithProgids', 0, write_access) as key:
-            # noinspection PyTypeChecker
             wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, b'')  # type needs to be bytes
 
     play_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterPlayFolder'
@@ -1005,8 +1008,7 @@ def get_proxies(add_local=True):
         scraped_proxies = set()
         soup = BeautifulSoup(response.text, 'lxml')
         table = soup.find('table')
-        # noinspection PyUnresolvedReferences
-        for row in table.find_all('tr'):
+        for row in table.find_all('tr'): # type: ignore
             count = 0
             proxy = ''
             try:
@@ -1340,12 +1342,10 @@ def truncate_title(title):
 
 
 # TKDnD
-# noinspection PyProtectedMember
 def drop_target_register(widget, *dndtypes):
     widget.tk.call('tkdnd::drop_target', 'register', widget._w, dndtypes)
 
 
-# noinspection PyProtectedMember
 def dnd_bind(widget, sequence=None, func=None, add=None, need_cleanup=True):
     """Internal function."""
     what = ('bind', widget._w)

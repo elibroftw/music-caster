@@ -1,19 +1,15 @@
+# flake8: noqa: E402
 from meta import *
 import time
 start_time = time.monotonic()
-# noinspection PyUnresolvedReferences
 from contextlib import suppress
 from itertools import islice
-# noinspection PyUnresolvedReferences
 import io
 import multiprocessing as mp
 import os
-# noinspection PyUnresolvedReferences
 import platform
 import threading
-# noinspection PyUnresolvedReferences
-from subprocess import Popen, PIPE, DEVNULL
-# noinspection PyUnresolvedReferences
+from subprocess import Popen, PIPE, DEVNULL # noqa
 import re
 import sys
 from shared import is_already_running
@@ -158,8 +154,7 @@ if __name__ == '__main__':
     import concurrent.futures
     from collections import deque
     from collections.abc import Iterable
-    # noinspection PyUnresolvedReferences
-    import encodings.idna  # DO NOT REMOVE
+    import encodings.idna  # noqa # DO NOT REMOVE
     from functools import cmp_to_key
     import hashlib
     from copy import deepcopy
@@ -183,10 +178,10 @@ if __name__ == '__main__':
 
     from audio_player import AudioPlayer
     from utils import *
+    from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in, get_initial_dpi_scale
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import PySimpleGUI as Sg
-    from modules.resolution_switcher import set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in
     from modules.db import DatabaseConnection, init_db
 
     # 0.5 seconds gone to 3rd party imports
@@ -241,8 +236,7 @@ if __name__ == '__main__':
     settings_file_lock = threading.Lock()
     last_play_command = settings_last_modified = 0
     update_last_checked = time.time()  # check every hour
-    # noinspection PyTypeChecker
-    cast: Chromecast = None
+    cast: Chromecast = None  # type: ignore
     all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
     tray_playlists = [t('Playlists Tab')]
     CHECK_MARK = '✓'
@@ -1070,7 +1064,6 @@ if __name__ == '__main__':
             range_header = {'Range': request.headers.get('Range', 'bytes=0-')}
             r = requests.get(file_url, headers=range_header, stream=True)
             start_bytes = int(range_header['Range'].split('=', 1)[1].split('-', 1)[0])
-            # noinspection PyProtectedMember
             blowfish_key = metadata['bf_key']
             iv = b'\x00\x01\x02\x03\x04\x05\x06\x07'
 
@@ -1553,7 +1546,6 @@ if __name__ == '__main__':
             metadata['art'] = item['thumbnail']
         return metadata
 
-    # noinspection PyTypeChecker
     def get_url_metadata(url, fetch_art=True) -> list:
         # TODO: move to utils.py and add parameter url_metadata_cache
         """

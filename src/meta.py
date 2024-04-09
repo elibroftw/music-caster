@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.18.0'
+VERSION = latest_version = '5.18.1'
 UPDATE_MESSAGE = """
 [NEW] Better Error Capturing
 [MSG] Language translators wanted
@@ -55,6 +55,7 @@ AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u
 # re-define AUDIO_EXTS
 AUDIO_EXTS = {f'.{ext}' for ext in AUDIO_EXTS}
 AUDIO_EXTS.add('.m3u')
+AUDIO_HANDLER_EXTS = ('mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'aiff', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8')
 
 FONT_NORMAL = 'Segoe UI', 11
 FONT_SMALL = 'Segoe UI', 10

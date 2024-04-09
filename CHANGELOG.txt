@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.18.1
+- [Fix] Security update
+- [Fix] Play AIFF from explorer
+
 5.18.0
 - [Feat] Local support for AIFF?
 

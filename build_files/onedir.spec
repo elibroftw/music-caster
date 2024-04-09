@@ -1,15 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
-from glob import iglob
-# noinspection PyPackageRequirements
 from PyInstaller.building.api import PYZ, EXE, COLLECT
-# noinspection PyPackageRequirements
-from PyInstaller.building.build_main import Analysis, Tree
-# noinspection PyPackageRequirements
+from PyInstaller.building.build_main import Analysis, Tree # type: ignore
 from PyInstaller.config import CONF
 import platform
 
-CONF['distpath'] = './src/dist'
+CONF['distpath'] = './src/dist' # type: ignore
 block_cipher = None
 # CONF['workpath'] = './build'
 # TODO: test on MAC OSX

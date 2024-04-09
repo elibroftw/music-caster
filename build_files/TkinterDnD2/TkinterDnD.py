@@ -24,10 +24,8 @@ tkinter.Tk() window. This will add the drag-and-drop specific methods to the
 Tk window and all its descendants."""
 
 try:
-    # noinspection PyPep8Naming
-    import Tkinter as tkinter
-    # noinspection PyPep8Naming
-    import Tix as tix
+    import Tkinter as tkinter # type: ignore
+    import Tix as tix # type: ignore
 except ImportError:
     import tkinter
     from tkinter import tix
@@ -73,7 +71,6 @@ class DnDEvent:
     pass
 
 
-# noinspection PyUnresolvedReferences,PyPep8Naming
 class DnDWrapper:
     """Internal class."""
     # some of the percent substitutions need to be enclosed in braces

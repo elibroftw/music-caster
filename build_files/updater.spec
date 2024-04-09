@@ -1,18 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import sys
-# noinspection PyPackageRequirements
 from PyInstaller.building.api import PYZ, EXE
-# noinspection PyPackageRequirements
 from PyInstaller.building.build_main import Analysis
-# noinspection PyPackageRequirements
 from PyInstaller.config import CONF
 
-CONF['distpath'] = './dist'
-CONF['workpath'] = './_build'
+CONF['distpath'] = './dist' # type: ignore
+CONF['workpath'] = './_build' # type: ignore
 block_cipher = None
-# noinspection PyTypeChecker
-sys.modules['FixTk'] = None
+sys.modules['FixTk'] = None # type: ignore
 a = Analysis([f'{os.getcwd()}/updater.py'],
              pathex=[os.getcwd()],
              binaries=[],
@@ -46,7 +42,6 @@ exe = EXE(pyz,
           icon=os.path.abspath('resources/Updater.ico'),
           version='mcu_version_info.txt')
 # ONLY USE FOR DEBUGGING
-# noinspection PyUnresolvedReferences
 # coll = COLLECT(exe,
 #                a.binaries - TOC([('libcrypto-1_1.dll', None, None)]),
 #                a.zipfiles,
