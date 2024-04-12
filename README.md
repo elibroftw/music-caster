@@ -112,6 +112,15 @@ Only I have access to this data, I will NEVER give it to anyone else. Will stop 
 
 [Developer Guide](https://github.com/elibroftw/music-caster/wiki/Developer-Guide)
 
+### Linux Build Guide
+
+- Define correct PY variable (requires rebuilding the image)
+- Obtain the mc-builder Image
+  - Option A: `docker pull elibroftw/mc-builder`
+  - Option B: `docker build . -t elibroftw/mc-builder`
+    - Remember to have Docker desktop/daemon running already
+- Build source code using: `docker run --rm --volume .:/var/music-caster elibroftw/mc-builder`
+
 ### Virtualenv
 
 ```sh

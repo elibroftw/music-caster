@@ -1,16 +1,18 @@
-# WIP: Build an image capable of producing music-caster App Images# WIP: Build an image capable of producing music-caster App Images
-# Base image: Fedora 37
-FROM fedora:37
+# running this image will build the music-caster source into an App Image
+FROM fedora:latest
+ENV PY=python3.12
 
-# Install required tools
-RUN dnf update -y && \
-    dnf install -y python3.12 python3.12-devel python3.12-virtualenv dnf-plugins-core libappindicator-gtk3 && \
-    dnf config-manager --set-enabled powertools && \
-    dnf install -y python3-tkinter
-
-# Install pip for Python 3.12 (as it's not included by default)
-RUN curl https://bootstrap.pypa.io/get-pip.py | python3.12
-
-CMD cd /var/music-caster && \
-    python3.12 -m pip install --upgrade -r requirements.txt -r requirements-dev.txt && \
-    python3.12 -O -m PyInstaller --onefile build_files/onedir.spec
+# install required tools
+RUN dnf update -y
+RUN dnf install -y $PY $PY-devel $PY-virtualenv dnf-plugins-core libappindicator-gtk3 python3-devel python3-tkinter python3-pyaudio
+# install some dependencies here to reduce the dependencies installed at run time
+RUN $PY -m pip install --upgrade pip
+RUN $PY -m pip install pyaudio
+COPY . music-caster
+RUN cd music-caster && $PY -m pip install --upgrade -r requirements.txt
+RUN rm -rf ./music-caster
+# when running this image, need to mount the work directory to /var/music-caster
+CMD if [ ! -d /var/music-caster ] ; then git clone https://github.com/elibroftw/music-caster/ /var/music-caster ; fi && cd /var/music-caster && \
+    $PY -m pip install --upgrade pip && \
+    $PY -m pip install --upgrade -r requirements.txt -r requirements-dev.txt && \
+    $PY -O -m PyInstaller --onefile build_files/onedir.spec
