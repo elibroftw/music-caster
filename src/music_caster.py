@@ -3156,7 +3156,8 @@ if __name__ == '__main__':
         elif main_event == 'open_github':
             open_in_browser('https://github.com/elibroftw/music-caster')
         elif main_event == 'web_gui':
-            open_in_browser(f'http://{get_lan_ip()}:{State.PORT}')
+            api_key = settings['api_key']
+            open_in_browser(f'http://{get_lan_ip()}:{State.PORT}?api_key={api_key}')
         # toggle settings
         elif main_event in TOGGLEABLE_SETTINGS:
             update_settings(main_event, main_value)
@@ -3762,8 +3763,7 @@ if __name__ == '__main__':
                 s1.settimeout(socket_timeout), s2.settimeout(socket_timeout)
                 # check if ports are not occupied
                 if s1.connect_ex(('127.0.0.1', State.PORT)) != 0 and s2.connect_ex(('::1', State.PORT)) != 0:
-                    # if ports are not occupied
-                    with suppress(OSError):
+                    with suppress(OSError, PermissionError):
                         # try to start server and bind it to PORT
                         # Linux auto-maps ipv4 to ipv6 however Windows keep them seperate
                         if platform.system() == 'Windows':
@@ -3840,6 +3840,13 @@ if __name__ == '__main__':
         app_log.info(f'Time to start (excluding imports) is {TIME_TO_START:.2f} seconds')
         app_log.info(f'Time to start (including imports) is {TIME_TO_START + TIME_TO_IMPORT:.2f} seconds')
         last_position_save = time.monotonic()
+
+        # health check
+        if not IS_FROZEN:
+            api_key = settings['api_key']
+            r = requests.get(f'http://127.0.0.1:{State.PORT}/?api_key={api_key}')
+            assert r.ok
+
         while True:
             while not daemon_commands.empty(): handle_action(daemon_commands.get())
             if playing_status.playing() and track_length is not None and time.monotonic() > track_end:
