@@ -389,14 +389,14 @@ if __name__ == '__main__':
                 )
         # assert IS_VENV
         install_time_start = time.time()
-        p = Popen(pip_cmd, stdin=DEVNULL, stdout=None if args.dep else DEVNULL, text=True)
+        p = Popen(pip_cmd, stdin=DEVNULL, stdout=None if args.deps else DEVNULL, text=True)
         if p.wait() > 0:
             print(
                 'ERROR: the following command to install dependencies failed\n',
                 pip_cmd,
             )
             sys.exit()
-        if args.dep:
+        if args.deps:
             print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
             sys.exit()
     assert IS_VENV
