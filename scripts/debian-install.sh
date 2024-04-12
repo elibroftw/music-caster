@@ -7,23 +7,9 @@ if ! $PYTHON --version &> /dev/null; then
   echo "Python 3.12 not found. Installing..."
   sudo add-apt-repository -y ppa:deadsnakes/ppa
   sudo apt update
-  sudo apt install -y python3.12 "${PYTHON}-venv" "${PYTHON}-tk"
+  sudo apt install -y python3.12
 fi
 
-# Check for pip
-if ! $PYTHON -m pip --version &> /dev/null; then
-  echo "pip not found. Installing..."
-  sudo apt update
-  sudo apt install -y python3-pip
-fi
-
-# Check for tkinter
-if ! $PYTHON -c "import tkinter" &> /dev/null; then
-  echo "tkinter not found. Installing..."
-  sudo apt update
-  sudo apt install -y "${PYTHON}-tk"
-fi
-
-echo "Ensuring $PYTHON-venv is insalled"
+echo "Installing system dependencies"
 sudo apt update
-sudo apt install -y "${PYTHON}-venv"
+sudo apt install -y python3-pip "${PYTHON}-venv" "${PYTHON}-tk" python3-pyaudio "${PYTHON}-venv"
