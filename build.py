@@ -348,6 +348,14 @@ if __name__ == '__main__':
         help='if running in a CI do not prompt just fail',
     )
     args = parser.parse_args()
+
+    if args.clean:
+        shutil.rmtree(DIST_DIR, True)
+        shutil.rmtree('build', True)
+        for file in glob.iglob('*.log'):
+            os.remove(file)
+        sys.exit()
+
     if args.deps:
         print('Building Music Caster (only install dependencies)')
     else:
@@ -445,13 +453,6 @@ if __name__ == '__main__':
                 dist_file = DIST_DIR / dist_file
                 print(f'Removing {dist_file}')
                 os.remove(dist_file)
-
-    if args.clean:
-        shutil.rmtree(DIST_DIR, True)
-        shutil.rmtree('build', True)
-        for file in glob.iglob('*.log'):
-            os.remove(file)
-        sys.exit()
 
     if not args.skip_build:
         print(f'building executables with debug={args.debug}')
