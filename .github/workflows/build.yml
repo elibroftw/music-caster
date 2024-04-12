@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: 3.12
           cache: pip
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
 
       - name: Create Python venv
         run: |
