@@ -525,7 +525,7 @@ def test_export_playlist():
     os.remove(path)
 
 
-@pytest.mark.parametrize('url', ('https://www.youtube.com/watch?v=znndNZBsdGY',))
+@pytest.mark.parametrize('url', ('https://www.youtube.com/watch?v=MTk-Hwr15ao',))
 def test_youtube_comments(url):
     comments = list(get_youtube_comments(url, 10))
     assert len(comments) > 0
