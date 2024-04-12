@@ -387,26 +387,18 @@ if __name__ == '__main__':
                     f'{sys_dir_name}/Lib/site-packages/TkinterDnD2',
                     dirs_exist_ok=True,
                 )
-                # sys.exit(0)
         # assert IS_VENV
-        if args.deps:
-            install_time_start = time.time()
-            if Popen(pip_cmd, stdin=DEVNULL, text=True).wait() > 0:
-                print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
-            else:
-                print(
-                    'ERROR: the following command to install dependencies failed\n',
-                    pip_cmd,
-                )
+        install_time_start = time.time()
+        p = Popen(pip_cmd, stdin=DEVNULL, stdout=None if args.dep else DEVNULL, text=True)
+        if p.wait() > 0:
+            print(
+                'ERROR: the following command to install dependencies failed\n',
+                pip_cmd,
+            )
             sys.exit()
-        else:
-            p = Popen(pip_cmd, stdin=DEVNULL, stdout=DEVNULL, text=True)
-            if p.wait() != 0:
-                print(
-                    'ERROR: the following command to install dependencies failed\n',
-                    pip_cmd,
-                )
-                sys.exit()
+        if args.dep:
+            print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
+            sys.exit()
     assert IS_VENV
     # import third party libraries
     import requests
