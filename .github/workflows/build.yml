@@ -1,8 +1,6 @@
 name: App Builder
 on:
   push:
-    tags:
-      - "v*"
     branches: master
   workflow_dispatch:
 concurrency:
@@ -49,8 +47,10 @@ jobs:
           .venv\Scripts\Activate.ps1
           python build.py --ci --no-deps --no-build --no-install
 
+      # upload the build continuously to avoid duplicate build on a tag
+      # script will exit with zero if release for VERSION exists since --ci is used
       - name: Upload build
-        if: ${{ github.ref_type == 'tag' }}
+        if: ${{ github.event_name == 'push' && github.ref_name == 'master' }}
         run: |
           .venv\Scripts\Activate.ps1
           python build.py -u --ci --no-deps --no-build --no-tests --no-install

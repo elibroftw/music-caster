@@ -5,7 +5,7 @@ from PyInstaller.building.build_main import Analysis, Tree # type: ignore
 from PyInstaller.config import CONF
 import platform
 
-CONF['distpath'] = './src/dist' # type: ignore
+CONF['distpath'] = './dist' # type: ignore
 block_cipher = None
 # CONF['workpath'] = './build'
 # TODO: test on MAC OSX

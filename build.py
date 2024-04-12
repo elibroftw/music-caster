@@ -24,7 +24,7 @@ from src.meta import VERSION
 # build constants
 script_dir = Path(__file__).parent
 SRC_DIR = script_dir / 'src'
-DIST_DIR = script_dir / 'src' / 'dist'
+DIST_DIR = script_dir / 'dist'
 build_files = script_dir / 'build_files'
 SETUP_OUTPUT_NAME = 'Music Caster Setup'
 VERSION_FILE = build_files / 'mc_version_info.txt'
@@ -36,7 +36,7 @@ CHANGELOG_FILE = script_dir / 'CHANGELOG.txt'
 TKDND_FILES = (build_files / 'tkdnd2.9.2', build_files / 'TkinterDnD2')
 UPDATER_MANIFEST_FILE = build_files / 'Updater.exe.MANIFEST'
 UPDATER_ICO = build_files / 'updater.ico'
-UPDATER_DIST = SRC_DIR / 'dist' / 'Updater.exe'
+UPDATER_DIST = DIST_DIR / 'Updater.exe'
 REQUIREMENTS_FILE = script_dir / 'requirements.txt'
 REQUIREMENTS_DEV_FILE = script_dir / 'requirements-dev.txt'
 SRC_FRONTEND = script_dir / 'src-frontend'
@@ -447,10 +447,11 @@ if __name__ == '__main__':
                 os.remove(dist_file)
 
     if args.clean:
-        shutil.rmtree('dist', True)
+        shutil.rmtree(DIST_DIR, True)
         shutil.rmtree('build', True)
         for file in glob.iglob('*.log'):
             os.remove(file)
+        sys.exit()
 
     if not args.skip_build:
         print(f'building executables with debug={args.debug}')
@@ -547,7 +548,7 @@ if __name__ == '__main__':
     # check if all files were built
     dist_files_exist = True
     for dist_file in dist_files:
-        dist_file_path = SRC_DIR / 'dist' / dist_file
+        dist_file_path = DIST_DIR / dist_file
         if os.path.exists(dist_file_path):
             file_size = os.path.getsize(dist_file_path) // 1000  # KB
             file_exists_str = f'EXISTS {file_size:,} KB'.rjust(12)
@@ -581,7 +582,7 @@ if __name__ == '__main__':
             sys.exit(1)
         # Test if executable can be run
         p = Popen(
-            f'"{SRC_DIR}/dist/Music Caster OneDir/Music Caster" -m --debug',
+            f'"{DIST_DIR}/Music Caster OneDir/Music Caster" -m --debug',
             shell=True)
         time.sleep(5)
         test(
@@ -621,6 +622,9 @@ if __name__ == '__main__':
             headers=headers,
         )
         if r.status_code != 404:
+            if args.ci:
+                print('INFO: not uploading build since tag already exists')
+                sys.exit(0)
             print(f'ERROR: Release for tag "v{VERSION}" already exists')
             sys.exit(1)
 
@@ -668,7 +672,7 @@ if __name__ == '__main__':
         for dist_file in dist_files:
             requests.post(
                 upload_url,
-                data=ProgressUpload(SRC_DIR / 'dist' / dist_file),
+                data=ProgressUpload(DIST_DIR / dist_file),
                 params={'name': dist_file},
                 headers={
                     **headers, 'Content-Type': 'application/octet-stream'

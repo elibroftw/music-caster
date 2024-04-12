@@ -24,7 +24,7 @@ MinVersion=0,6.1.7600
 ; Minimum version is Windows 10 or later
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
-OutputDir={#SourcePath}\..\src\dist
+OutputDir={#SourcePath}\..\dist
 OutputBaseFilename=Music Caster Setup
 UninstallDisplayName=Music Caster
 UninstallDisplayIcon={app}\{#MyAppExeName}
@@ -35,7 +35,7 @@ SetupIconFile="..\resources\Music Caster Icon.ico"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "{#SourcePath}\..\src\dist\Music Caster OneDir\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "{#SourcePath}\..\dist\Music Caster OneDir\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#SourcePath}..\CHANGELOG.txt"; DestDir: "{app}"; DestName: "CHANGELOG.txt"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 

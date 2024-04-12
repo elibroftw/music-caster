@@ -5,7 +5,7 @@ from PyInstaller.building.build_main import Analysis, Tree # type: ignore
 from PyInstaller.config import CONF
 import platform
 
-CONF['distpath'] = './src/dist' # type: ignore
+CONF['distpath'] = './dist' # type: ignore
 # CONF['workpath'] = './build'
 block_cipher = None
 a = Analysis([f'{os.getcwd()}/src/music_caster.py'],
