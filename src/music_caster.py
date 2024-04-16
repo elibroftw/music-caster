@@ -211,6 +211,7 @@ if __name__ == '__main__':
         sun_valley_tcl_path = f'{sys._MEIPASS}/{SUN_VALLEY_TCL}'
     except AttributeError:
         sun_valley_tcl_path = SUN_VALLEY_TCL
+    sun_valley_tcl_path = os.path.abspath(sun_valley_tcl_path)
     # LOGS
     log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
     # max 1 MB log file
@@ -2612,9 +2613,15 @@ if __name__ == '__main__':
                                    location=window_location, metadata=window_metadata, debugger_enabled=is_debug())
             if State.using_tcl_theme:
                 Sg.PySimpleGUI.TOOLTIP_BACKGROUND_COLOR = settings['theme']['background']
-                with suppress(TclError):
+                try:
+                    # as per State.using_tcl_theme, sun_valley_tcl_path exists
                     gui_window.TKroot.tk.call('source', sun_valley_tcl_path)
-                gui_window.TKroot.tk.call('set_theme', 'dark')
+                    gui_window.TKroot.tk.call('set_theme', 'dark')
+                except TclError as e:
+                    if IS_FROZEN:
+                        handle_exception(e)
+                    else:
+                        raise e
             if not settings['mini_mode']:
                 gui_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
                 pl_tracks_values, pl_length = format_pl_lb(pl_tracks)
