@@ -26,14 +26,15 @@ jobs:
           cache: pip
       - uses: actions/setup-go@v5
 
+      - name: Install system deps
+        run: python build.py --deps
+
       - name: Create Python venv
         run: |
           python -m venv .venv
 
-      - name: Install dependencies
+      - name: Install venv dependencies
         run: |
-          # hack: install tkdnd2 to system
-          python build.py --deps
           .venv\Scripts\Activate.ps1
           python build.py --deps
 

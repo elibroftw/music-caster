@@ -357,7 +357,7 @@ if __name__ == '__main__':
         sys.exit()
 
     if args.deps:
-        print('Building Music Caster (only install dependencies)')
+        print('Installing Music Caster dependencies')
     else:
         print('Building Music Caster')
 
@@ -395,7 +395,6 @@ if __name__ == '__main__':
                     f'{sys_dir_name}/Lib/site-packages/TkinterDnD2',
                     dirs_exist_ok=True,
                 )
-        # assert IS_VENV
         install_time_start = time.time()
         p = Popen(pip_cmd, stdin=DEVNULL, stdout=None if args.deps else DEVNULL, text=True)
         if p.wait() > 0:

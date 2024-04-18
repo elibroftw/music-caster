@@ -2,6 +2,12 @@ wheel
 build_files/PyAudio-0.2.14-cp312-cp312-win_amd64.whl; sys_platform == 'win32'
 pyaudio; sys_platform == 'darwin'
 pywin32; sys_platform == 'win32'
+winrt-Windows.Media; sys_platform == 'win32'
+winrt-Windows.Media.Playback; sys_platform == 'win32'
+winrt-Windows.Media.Control; sys_platform == 'win32'
+winrt-Windows.Storage.Streams; sys_platform == 'win32'
+winrt-Windows.Foundation; sys_platform == 'win32'
+winrt-runtime; sys_platform == 'win32'
 pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
 ujson~=5.5

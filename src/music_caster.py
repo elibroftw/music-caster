@@ -1,6 +1,7 @@
 # flake8: noqa: E402
 from meta import *
 import time
+
 start_time = time.monotonic()
 from contextlib import suppress
 from itertools import islice
@@ -178,6 +179,7 @@ if __name__ == '__main__':
     import zipfile
 
     from audio_player import AudioPlayer
+    from modules.win32_media_controls import SystemMediaControls, SystemMediaTransportControlsButton
     from utils import *
     from threading import Thread
     from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in, get_initial_dpi_scale
@@ -1457,7 +1459,7 @@ if __name__ == '__main__':
             handle_exception(e)
 
 
-    def after_play(title, artists: str, autoplay, switching_device):
+    def after_play(title, artists: str, album, autoplay, switching_device):
         app_log.info(f'autoplay={autoplay}, switching_device={switching_device}')
         # prevent Windows from going to sleep
         if autoplay:
@@ -1467,12 +1469,31 @@ if __name__ == '__main__':
                 # artists is comma separated string
                 tray_notify(t('Playing') + f': {get_first_artist(artists)} - {title}')
             playing_status.play()
+            system_media_controls.set_playing()
         else:
             playing_status.pause()
+            system_media_controls.set_paused()
         refresh_tray()
         save_queues()
         DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artists}', details=title,
                                large_text=t('Listening'))
+        # update metadata of the player
+        if platform.system() == 'Windows':
+            bg = settings['theme']['background']
+            # base64
+            try:
+                album_art_data = resize_img(get_current_art(), bg, COVER_NORMAL, default_art=DEFAULT_ART)
+            except OSError as e:
+                handle_exception(e)
+                album_art_data = resize_img(DEFAULT_ART, bg, COVER_NORMAL)
+
+            img_data = io.BytesIO(base64.b64decode(album_art_data))
+            album_art: Image.Image = Image.open(img_data)
+            thumb_path = Path('thumb.jpg').absolute()
+            album_art.save(thumb_path)
+            system_media_controls.set_metadata(title, artists, album, thumb_path.as_uri())
+            system_media_controls.update_time()
+
         if not gui_window.was_closed():
             gui_window.metadata['update_listboxes'] = True
             daemon_commands.put('__UPDATE_GUI__')
@@ -1511,7 +1532,7 @@ if __name__ == '__main__':
             track_length = None
             track_position = 0
             track_start = time.monotonic() - track_position
-            after_play(title, artist, True, switching_device)
+            after_play(title, artist, album, True, switching_device)
             return True
         except OSError:
             tray_notify(t('ERROR') + ': ' + t('Could not find an output device to record'))
@@ -1846,7 +1867,7 @@ if __name__ == '__main__':
         if track_length is not None:
             track_end = track_start + track_length
         playing_url = True
-        after_play(title, artist, autoplay, switching_device)
+        after_play(title, artist, album, autoplay, switching_device)
         return True
 
     # up to 4 seconds!
@@ -1935,7 +1956,7 @@ if __name__ == '__main__':
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
         LAST_PLAYED = time.time()
-        return after_play(metadata['title'], metadata['artist'], autoplay, switching_device)
+        return after_play(metadata['title'], metadata['artist'], metadata['album'], autoplay, switching_device)
 
 
     def metadata_key(filename, album_sort=True):
@@ -2235,6 +2256,7 @@ if __name__ == '__main__':
         app_log.info(f'stopped from {stopped_from}, stop_cast={stop_cast}')
         # allow Windows to go to sleep
         if platform.system() == 'Windows':
+            system_media_controls.set_stopped()
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         playing_status.stop()
         sar.alive = playing_url = False
@@ -2455,6 +2477,18 @@ if __name__ == '__main__':
                 set_pos_thread.start()
                 SYNC_WITH_CHROMECAST = time.time() + 1
             time.sleep(0.1)
+
+    # SystemMediaTransportControls.ButtonPressed
+    def on_smtc_btn_press(event: SystemMediaTransportControlsButton):
+        match event:
+            case SystemMediaTransportControlsButton.PLAY:
+                print('play')
+            case SystemMediaTransportControlsButton.PAUSE:
+                print('pause')
+            case SystemMediaTransportControlsButton.NEXT:
+                print('next')
+            case SystemMediaTransportControlsButton.PREVIOUS:
+                print('previous')
 
 
     def on_press(key):
@@ -3844,6 +3878,7 @@ if __name__ == '__main__':
         except Exception as exception:
             tray_notify(t('WARNING: Failed to start audio player. Do not play on local device.'))
             handle_exception(exception)
+        system_media_controls = SystemMediaControls(on_smtc_btn_press)
         # find a port to bind to
         socket_timeout = 0.5 if args.shell else 0.1
         while True:

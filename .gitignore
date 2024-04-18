@@ -53,3 +53,5 @@ settings.json.bak
 music_caster.lock
 music_caster.db
 src/phantomjs/
+src/music_caster.db-journal
+src/thumb.jpg
