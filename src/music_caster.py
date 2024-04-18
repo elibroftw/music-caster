@@ -1493,7 +1493,7 @@ if __name__ == '__main__':
                 tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (psa)')
                 change_device()
                 return handle_exception(e)
-            cast_try_reconnect()
+            # cast_try_reconnect()
             return play_system_audio(switching_device=switching_device, show_error=True)
         except Exception as e:
             handle_exception(e)
@@ -1811,7 +1811,7 @@ if __name__ == '__main__':
             if show_error:
                 tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
                 return handle_exception(e)
-            cast_try_reconnect()
+            # cast_try_reconnect()
             return play_url(position, autoplay, switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -1893,7 +1893,7 @@ if __name__ == '__main__':
                     tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
                     return handle_exception(e)
-                cast_try_reconnect()
+                # cast_try_reconnect()
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -2221,14 +2221,18 @@ if __name__ == '__main__':
 
     def set_pos(new_position):
         """
+        AKA: seeking
         sets position of audio player or cast to new_position
         """
         global track_position, track_start, track_end
+        app_log.info('trying to set playback position')
         if cast is not None:
             try:
                 cast.media_controller.update_status()
             except PyChromecastError:
-                cast.wait()
+                app_log.info('set_pos(1) trying to wait on cast')
+                cast.wait(WAIT_TIMEOUT)
+                app_log.info('set_pos(1) cast waited')
             if cast.media_controller.status.player_is_idle and music_queue:
                 return play(position=new_position, autoplay=playing_status.playing())
             else:
@@ -2239,7 +2243,9 @@ if __name__ == '__main__':
                             cast.media_controller.pause()
                         break
                     except (NotConnected, RequestTimeout, RequestFailed):
+                        app_log.info('set_pos(2) trying to wait on cast')
                         cast.wait()
+                        app_log.info('set_pos(2) cast waited')
         else:
             audio_player.set_pos(new_position)
         track_position = new_position
