@@ -442,7 +442,7 @@ if __name__ == '__main__':
         new_vol: float[0, 100]
         AKA set_volume
         """
-        app_log.info(f'update_volume: set to {new_vol} from {_from}')
+        app_log.info(f'set to {new_vol} from {_from}')
         gui_window.metadata['update_volume_slider'] = True
         if not isinstance(new_vol, (float, int)):
             new_vol = update_settings('volume', 20)
@@ -1456,7 +1456,7 @@ if __name__ == '__main__':
 
 
     def after_play(title, artists: str, autoplay, switching_device):
-        app_log.info(f'after_play: autoplay={autoplay}, switching_device={switching_device}')
+        app_log.info(f'autoplay={autoplay}, switching_device={switching_device}')
         # prevent Windows from going to sleep
         if autoplay:
             if platform.system() == 'Windows':
@@ -1848,6 +1848,7 @@ if __name__ == '__main__':
         return True
 
     # up to 4 seconds!
+    @timing
     def play(position=0, autoplay=True, switching_device=False, show_error=False):
         global cast, track_start, track_end, track_length, track_position, music_queue, playing_url, cast_browser, zconf
         uri = music_queue[0]
@@ -1864,7 +1865,7 @@ if __name__ == '__main__':
         uri_path = Path(uri)
         uri = uri_path.as_posix()
         playing_url = sar.alive = False
-        app_log.info(f'play: {uri_path.name} @{position}, autoplay={autoplay}, switching_device={switching_device}')
+        app_log.info(f'{uri_path.name} @{position}, autoplay={autoplay}, switching_device={switching_device}')
         try:
             track_length = get_audio_length(uri)
         except InvalidAudioFile:
@@ -1884,24 +1885,30 @@ if __name__ == '__main__':
             try:
                 url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
-                # raises RequestTimeout
-                t1 = time.time()
                 cast.wait(timeout=WAIT_TIMEOUT)
-                print(f'cast.wait took {time.time() - t1:.2f} seconds')
-                cast.set_volume(volume)
+                app_log.info('cast.set_volume')
+                t1 = time.time()
+                with suppress(RequestTimeout):
+                    cast.set_volume(volume)
+                app_log.info(f'cast.set_volume took {time.time() - t1:.2f} seconds')
                 mc = cast.media_controller
                 metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
                             'albumName': str(metadata['album']), 'metadataType': 3}
                 ext = uri.split('.')[-1]
+                app_log.info('try playing media on media controller')
+                t1 = time.time()
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=f'{url}&thumbnail_only=true', autoplay=autoplay)
+                t2 = time.time()
+                app_log.info(f'play media took {t2 - t1:.2f} seconds')
                 mc.block_until_active(WAIT_TIMEOUT)
-                app_log.info(f'play: mc.status.player_state={mc.status.player_state}')
-            except (NotConnected, AttributeError):
-                app_log.error('play could not cast because cast is not connected')
+                app_log.info(f'mc.block_until_active took {time.time() - t2:.2f} seconds')
+                app_log.info(f'mc.status.player_state={mc.status.player_state}')
+            except (NotConnected, AttributeError) as e:
+                app_log.error('Cast device is not connected')
                 """
                 2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009]
-                Failed to connect to service ServiceInfo(type='mdns',
+                Failed to connect to service HostServiceInfo(type='mdns',
                 data='Google-Home-Mini-$HASH._googlecast._tcp.local.'), retrying in 5.0s
                 Traceback (most recent call last):
                   File "music_caster.py", line 1733, in play
@@ -1912,13 +1919,18 @@ if __name__ == '__main__':
                   File "pychromecast/socket_client.py", line 924, in send_message
                 pychromecast.error.NotConnected: Chromecast 192.168.1.9:8009 is connecting...
                 """
-                tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (play)')
-                change_device()
-                return False
-            except (PyChromecastError, OSError, RuntimeError) as e:
+                if not IS_FROZEN:
+                    print(e)
+                if show_error:
+                    tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
+                    change_device()
+                    return False
+                cast_try_reconnect()
+                return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
+            except (PyChromecastError, OSError, RuntimeError, AssertionError) as e:
                 app_log.error(f'play failed to cast {repr(e)}')
                 if show_error:
-                    tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (play)')
+                    tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
                     return handle_exception(e)
                 cast_try_reconnect()
@@ -2275,18 +2287,19 @@ if __name__ == '__main__':
                     for _ in range(2):
                         t1 = time.time()
                         try:
+                            app_log.info('trying call seek')
                             cast.media_controller.seek(new_position, timeout=WAIT_TIMEOUT)
                             if playing_status.paused():
                                 cast.media_controller.pause()
                             break
-                        except RequestFailed as e:
-                            app_log.exception('seek failed')
+                        except (RequestFailed, RequestTimeout) as e:
+                            app_log.exception('seek "failed"')
                             if not IS_FROZEN or is_debug():
                                 print(f'encountered error while seeking: {type(e)} {e}')
                             # seeking is broken, prefer play instead
                             SYNC_WITH_CHROMECAST = time.time() + 5
-                            return play(position=new_position, autoplay=playing_status.playing())
-                        except (NotConnected, RequestTimeout):
+                            break
+                        except (NotConnected):
                             app_log.exception('seek failed')
                             cast.wait(WAIT_TIMEOUT)
             else:
@@ -2305,7 +2318,7 @@ if __name__ == '__main__':
         :param ignore_timestamps: whether to ignore timestamps for a track
         :return:
         """
-        app_log.info(f'next_track(from_timeout={from_timeout})')
+        app_log.info(f'(from_timeout={from_timeout})')
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
             # clicked next track when connected to cast and the app is not the media receiver app
             playing_status.stop()
@@ -2357,7 +2370,7 @@ if __name__ == '__main__':
 
 
     def prev_track(times=1, forced=False, ignore_timestamps=False):
-        app_log.info('prev_track()')
+        app_log.info('')
         if not forced and cast is not None and cast.app_id != APP_MEDIA_RECEIVER:
             playing_status.stop()
         elif forced or playing_status.busy() and not sar.alive:
@@ -2625,7 +2638,7 @@ if __name__ == '__main__':
     def activate_gui(selected_tab=None, url_option='url_play'):
         global gui_window
         # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
-        app_log.info(f'activate_main_window: selected_tab={selected_tab}')
+        app_log.info(f'selected_tab={selected_tab}')
         if gui_window.was_closed():
             State.using_tcl_theme = settings['experimental_features'] and os.path.exists(sun_valley_tcl_path)
             # create window if window not alive
@@ -3697,6 +3710,13 @@ if __name__ == '__main__':
             if msg is None and playing_status.busy():
                 # block/monitor in background thread
                 return cast.media_controller.update_status(callback_function=cast_monitor)
+        except AttributeError:
+            # don't need to monitor if device switched randomly
+            pass
+        except NotConnected:
+            # we might care if not connected
+            with suppress(RequestTimeout):
+                cast.wait(3)
         except Exception as e:
             handle_exception(e)
             return
@@ -3709,7 +3729,7 @@ if __name__ == '__main__':
                 if not is_stopped and playing_status.busy():
                     # sync track position with chromecast, also allows scrubbing from external apps
                     with suppress(IndexError):
-                        buffer = 2 if music_queue[0].startswith('http') else 0.5
+                        buffer = 2 if music_queue[0].startswith('http') else 0.6
                         if abs(media_controller.status.adjusted_current_time - OLD_CAST_POS) > buffer:
                             OLD_CAST_POS = track_position = media_controller.status.adjusted_current_time
                             track_start = time.monotonic() - track_position

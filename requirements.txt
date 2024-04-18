@@ -8,7 +8,7 @@ ujson~=5.5
 mutagen~=1.45
 Pillow~=10.3.0
 PyChromecast~=14.0
-# zeroconf~=0.132
+zeroconf~=0.130.0
 pynput~=1.4.5
 pypng~=0.0.20
 # pypresence
