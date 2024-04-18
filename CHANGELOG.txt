@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.18.4
+- [Fix] Increase wait timeout
+
 5.18.3
 - [Fix] Handle experimental feature error
 

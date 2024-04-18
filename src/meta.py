@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.18.3'
+VERSION = latest_version = '5.18.4'
 UPDATE_MESSAGE = """
 [NEW] Better Error Capturing
 [MSG] Language translators wanted
@@ -42,7 +42,7 @@ TOGGLEABLE_SETTINGS = {
 PID_FILENAME = 'music_caster.pid'
 LOCK_FILENAME = 'music_caster.lock'
 UNINSTALLER = 'unins000.exe'
-WAIT_TIMEOUT = 5
+WAIT_TIMEOUT = 10
 STREAM_CHUNK = 1024
 EMAIL = 'elijahllopezz@gmail.com'
 CONTACT_INFO = f'Elijah Lopez <{EMAIL}>'

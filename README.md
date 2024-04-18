@@ -125,4 +125,6 @@ Only I have access to this data, I will NEVER give it to anyone else. Will stop 
 
 ```sh
 python3.12 -m venv .venv
+.venv\Scripts\activate     # Windows
+source .venv/bin/activate  # Non-Windows
 ```

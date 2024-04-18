@@ -1858,6 +1858,7 @@ if __name__ == '__main__':
             try:
                 url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
+                # raises RequestTimeout
                 cast.wait(timeout=WAIT_TIMEOUT)
                 cast.set_volume(volume)
                 mc = cast.media_controller
