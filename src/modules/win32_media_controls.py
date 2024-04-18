@@ -72,7 +72,8 @@ class SystemMediaControls:
             _updater.type = media.MediaPlaybackType.MUSIC
             _updater.music_properties.artist = artist
             _updater.music_properties.title = title
-            _updater.music_properties.album_title = album
+            if album is not None:
+                _updater.music_properties.album_title = album
             import winrt.windows.storage.streams as streams
             assert isinstance(thumb_uri, str)
             assert thumb_uri.count('://', 1)

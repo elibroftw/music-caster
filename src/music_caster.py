@@ -1956,7 +1956,7 @@ if __name__ == '__main__':
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
         LAST_PLAYED = time.time()
-        return after_play(metadata['title'], metadata['artist'], metadata['album'], autoplay, switching_device)
+        return after_play(metadata['title'], metadata['artist'], metadata.get('album'), autoplay, switching_device)
 
 
     def metadata_key(filename, album_sort=True):
