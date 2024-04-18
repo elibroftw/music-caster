@@ -111,6 +111,7 @@ if __name__ == '__main__':
     os.chdir(working_dir)
     SETTINGS_FILE = Path('settings.json').absolute()
     PHANTOMJS_DIR = Path('phantomjs')
+    # c:\Users\maste\AppData\Local\Programs\Music Caster\settings.json
 
     def json_dumps(d):
         return json.dumps(d).encode('utf-8')
@@ -178,6 +179,7 @@ if __name__ == '__main__':
 
     from audio_player import AudioPlayer
     from utils import *
+    from threading import Thread
     from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in, get_initial_dpi_scale
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
@@ -213,7 +215,7 @@ if __name__ == '__main__':
         sun_valley_tcl_path = SUN_VALLEY_TCL
     sun_valley_tcl_path = os.path.abspath(sun_valley_tcl_path)
     # LOGS
-    log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d): %(message)s')
+    log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d) %(funcName)s(): %(message)s')
     # max 1 MB log file
     log_handler = RotatingFileHandler('music_caster.log', maxBytes=1000000, backupCount=1, encoding='UTF-8')
     log_handler.setFormatter(log_format)
@@ -248,12 +250,27 @@ if __name__ == '__main__':
     # seconds but using time()
     track_position = timer = track_end = track_length = track_start = 0
 
+    def get_downloads_folder():
+        if platform.system() == 'Windows':
+            from knownpaths import sh_get_known_folder_path, FOLDERID
+            return Path(sh_get_known_folder_path(FOLDERID.Downloads))
+        return Path.home() / 'Downloads'
+
+
+    def get_installer_path():
+        downloads_dir = get_downloads_folder()
+        if downloads_dir.exists():
+            return str(downloads_dir / 'music_caster_installer.exe')
+        return 'music_caster_installer.exe'
+
+
     def get_default_music_folder():
         if platform.system() == 'Windows':
             from knownpaths import sh_get_known_folder_path, FOLDERID
             return sh_get_known_folder_path(FOLDERID.Music)
         return str(Path.home() / 'Music')
 
+    print('Installer path:', get_installer_path())
     default_auto_update = os.path.exists(UNINSTALLER) or os.path.exists('Updater.exe')
     settings: dict = {  # default settings
         'device': None, 'window_locations': {}, 'smart_queue': False, 'skips': {}, 'theme': DEFAULT_THEME.copy(),
@@ -421,7 +438,10 @@ if __name__ == '__main__':
 
 
     def update_volume(new_vol, _from=''):
-        """new_vol: float[0, 100]"""
+        """
+        new_vol: float[0, 100]
+        AKA set_volume
+        """
         app_log.info(f'update_volume: set to {new_vol} from {_from}')
         gui_window.metadata['update_volume_slider'] = True
         if not isinstance(new_vol, (float, int)):
@@ -430,8 +450,10 @@ if __name__ == '__main__':
         with suppress(NameError):
             audio_player.set_volume(new_vol)
         if cast is not None:
-            with suppress(NotConnected, RequestTimeout, RequestFailed):
-                cast.set_volume(new_vol)
+            # this was threaded because otherwise it would block for over 0.2 seconds
+            # exceptions: NotConnected, RequestTimeout, RequestFailed
+            set_volume_Thread = Thread(target=cast.set_volume, args=(new_vol,), name='CastSetVolume', daemon=True)
+            set_volume_Thread.start()
 
 
     def cycle_repeat():
@@ -706,7 +728,8 @@ if __name__ == '__main__':
             # if music folders were modified, re-index library
             if music_folders != settings['music_folders'] or first_load:
                 music_folders = settings['music_folders']
-                if settings['scan_folders']: index_all_tracks()
+                if settings['scan_folders']:
+                    index_all_tracks()
             refresh_tray()
             theme = settings['theme']
             for k, v in theme.copy().items():
@@ -1104,7 +1127,6 @@ if __name__ == '__main__':
 
 
     def cast_try_reconnect():
-        app_log.info('cast_try_reconnect() started')
         global cast_browser, zconf
         cast_browser.stop_discovery()
         zconf = zeroconf.Zeroconf()
@@ -1113,19 +1135,22 @@ if __name__ == '__main__':
         wait_until = time.monotonic() + WAIT_TIMEOUT
         while cast is None and time.monotonic() < wait_until:
             time.sleep(0.2)
-        app_log.info('cast_try_reconnect() finished')
 
 
     @cmp_to_key
     def cast_info_sorter(ci1: CastInfo, ci2: CastInfo):
         # sort by groups, then by name, then by UUID
-        if ci1.cast_type == 'group' and ci2.cast_type != 'group': return -1
-        if ci1.cast_type != 'group' and ci2.cast_type == 'group': return 1
-        if ci1.friendly_name < ci2.friendly_name: return -1
-        if ci1.friendly_name > ci2.friendly_name: return 1
-        if str(ci1.uuid) > str(ci2.uuid): return 1
+        if ci1.cast_type == 'group' and ci2.cast_type != 'group':
+            return -1
+        if ci1.cast_type != 'group' and ci2.cast_type == 'group':
+            return 1
+        if ci1.friendly_name < ci2.friendly_name:
+            return -1
+        if ci1.friendly_name > ci2.friendly_name:
+            return 1
+        if str(ci1.uuid) > str(ci2.uuid):
+            return 1
         return -1
-
 
     def get_devices():
         lo_cis = sorted(cast_browser.devices.values(), key=cast_info_sorter)
@@ -1193,6 +1218,7 @@ if __name__ == '__main__':
         # UnboundLocalError is possible
         return pychromecast.get_chromecast_from_cast_info(cast_browser.devices[device_uuid], zconf)
 
+
     def change_device(new_uuid='local'):
         """switch_device
         if new_uuid is invalid, then the local device is selected
@@ -1226,7 +1252,7 @@ if __name__ == '__main__':
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             if playing_status.busy():
                 mc = cast.media_controller
-                with suppress(UnsupportedNamespace, NotConnected, RequestTimeout):
+                with suppress(UnsupportedNamespace, NotConnected, RequestTimeout, AssertionError):
                     mc.update_status()  # Switch device without playback loss
                     current_pos = mc.status.adjusted_current_time
                     if mc.status.player_is_playing or mc.status.player_is_paused:
@@ -1493,7 +1519,7 @@ if __name__ == '__main__':
                 tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (psa)')
                 change_device()
                 return handle_exception(e)
-            # cast_try_reconnect()
+            cast_try_reconnect()
             return play_system_audio(switching_device=switching_device, show_error=True)
         except Exception as e:
             handle_exception(e)
@@ -1811,7 +1837,7 @@ if __name__ == '__main__':
             if show_error:
                 tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play_url)')
                 return handle_exception(e)
-            # cast_try_reconnect()
+            cast_try_reconnect()
             return play_url(position, autoplay, switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -1821,7 +1847,7 @@ if __name__ == '__main__':
         after_play(title, artist, autoplay, switching_device)
         return True
 
-
+    # up to 4 seconds!
     def play(position=0, autoplay=True, switching_device=False, show_error=False):
         global cast, track_start, track_end, track_length, track_position, music_queue, playing_url, cast_browser, zconf
         uri = music_queue[0]
@@ -1859,7 +1885,9 @@ if __name__ == '__main__':
                 url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
                 # raises RequestTimeout
+                t1 = time.time()
                 cast.wait(timeout=WAIT_TIMEOUT)
+                print(f'cast.wait took {time.time() - t1:.2f} seconds')
                 cast.set_volume(volume)
                 mc = cast.media_controller
                 metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
@@ -1893,7 +1921,7 @@ if __name__ == '__main__':
                     tray_notify(t('ERROR') + f': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
                     return handle_exception(e)
-                # cast_try_reconnect()
+                cast_try_reconnect()
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -2183,7 +2211,7 @@ if __name__ == '__main__':
                     ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
                 if not gui_window.was_closed(): daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
-            except PyChromecastError as e:
+            except (PyChromecastError, AssertionError) as e:
                 print('error', e)
                 if music_queue: return play(position=track_position)
             return True
@@ -2224,33 +2252,49 @@ if __name__ == '__main__':
         AKA: seeking
         sets position of audio player or cast to new_position
         """
-        global track_position, track_start, track_end
-        app_log.info('trying to set playback position')
-        if cast is not None:
-            try:
-                cast.media_controller.update_status()
-            except PyChromecastError:
-                app_log.info('set_pos(1) trying to wait on cast')
-                cast.wait(WAIT_TIMEOUT)
-                app_log.info('set_pos(1) cast waited')
-            if cast.media_controller.status.player_is_idle and music_queue:
-                return play(position=new_position, autoplay=playing_status.playing())
+        global track_position, track_start, track_end, SYNC_WITH_CHROMECAST
+        with CAST_LOCK:
+            t1 = time.time()
+            app_log.info('trying to set playback position')
+            if cast is not None:
+                try:
+                    pass
+                    # cast.media_controller.update_status()
+                except (PyChromecastError, AssertionError):
+                    #   File "C:\Users\maste\Documents\GitHub\music-caster\.venv\Lib\site-packages\pychromecast\socket_client.py", line 891, in send_message
+                    #     assert self.socket is not None
+                    # AssertionError
+                    app_log.info('trying to wait on cast')
+                    cast.wait(WAIT_TIMEOUT)
+                    app_log.info(f'cast.wait took {time.time() - t1:.2f} seconds')
+                if cast.media_controller.status.player_is_idle and music_queue:
+                    app_log.info('called play instead')
+                    SYNC_WITH_CHROMECAST = time.time() + 5
+                    return play(position=new_position, autoplay=playing_status.playing())
+                else:
+                    for _ in range(2):
+                        t1 = time.time()
+                        try:
+                            cast.media_controller.seek(new_position, timeout=WAIT_TIMEOUT)
+                            if playing_status.paused():
+                                cast.media_controller.pause()
+                            break
+                        except RequestFailed as e:
+                            app_log.exception('seek failed')
+                            if not IS_FROZEN or is_debug():
+                                print(f'encountered error while seeking: {type(e)} {e}')
+                            # seeking is broken, prefer play instead
+                            SYNC_WITH_CHROMECAST = time.time() + 5
+                            return play(position=new_position, autoplay=playing_status.playing())
+                        except (NotConnected, RequestTimeout):
+                            app_log.exception('seek failed')
+                            cast.wait(WAIT_TIMEOUT)
             else:
-                for _ in range(2):
-                    try:
-                        cast.media_controller.seek(new_position)
-                        if playing_status.paused():
-                            cast.media_controller.pause()
-                        break
-                    except (NotConnected, RequestTimeout, RequestFailed):
-                        app_log.info('set_pos(2) trying to wait on cast')
-                        cast.wait()
-                        app_log.info('set_pos(2) cast waited')
-        else:
-            audio_player.set_pos(new_position)
-        track_position = new_position
-        track_start = time.monotonic() - track_position
-        track_end = track_start + track_length
+                audio_player.set_pos(new_position)
+            track_position = new_position
+            track_start = time.monotonic() - track_position
+            track_end = track_start + track_length
+            SYNC_WITH_CHROMECAST = time.time() + 0.5
 
 
     def next_track(from_timeout=False, times=1, forced=False, ignore_timestamps=False):
@@ -2832,7 +2876,8 @@ if __name__ == '__main__':
                 el = gui_window.find_element_with_focus()
                 if el is not None and el.Key in {'track_format', 'sys_audio_delay'}:
                     main_event, main_value = el.Key, main_values.get(el.Key)
-        if main_event == '__TIMEOUT__': pass  # avoids checking multiple if statements
+        if main_event == '__TIMEOUT__':
+            pass  # avoids checking multiple if statements
         # change/select tabs
         elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
             gui_window['tab_queue'].select()
@@ -3159,11 +3204,10 @@ if __name__ == '__main__':
                 return
             else:
                 track_position = main_values['progress_bar']
-                with CAST_LOCK:
-                    set_pos(track_position)
-                    SYNC_WITH_CHROMECAST = time.time() + 0.5
-                track_start = time.monotonic() - track_position
-                track_end = track_start + track_length
+                # set pos is slow and broken so just run it in a thread for now
+                set_pos_thread = Thread(target=set_pos, args=(track_position,), name='SetPos', daemon=True)
+                set_pos_thread.start()
+                SYNC_WITH_CHROMECAST = time.time() + 5
         # main window settings tab
         elif main_event == 'open_email':
             open_in_browser(create_email_url())
@@ -3559,11 +3603,12 @@ if __name__ == '__main__':
             gui_window['volume_slider'].update(0 if settings['muted'] else settings['volume'])
             gui_window.metadata['update_volume_slider'] = False
         # update progress bar
-        progress_bar: Sg.Slider = gui_window['progress_bar']
-        time_elapsed_text, time_left_text = create_progress_bar_texts(get_track_position(), track_length)
-        if time_elapsed_text != gui_window['time_elapsed'].get(): gui_window['time_elapsed'].update(time_elapsed_text)
-        if time_left_text != gui_window['time_left'].get(): gui_window['time_left'].update(time_left_text)
-        if music_queue and playing_status.busy() and not sar.alive: progress_bar.update(floor(track_position))
+        if time.time() > SYNC_WITH_CHROMECAST:
+            progress_bar: Sg.Slider = gui_window['progress_bar']
+            time_elapsed_text, time_left_text = create_progress_bar_texts(get_track_position(), track_length)
+            if time_elapsed_text != gui_window['time_elapsed'].get(): gui_window['time_elapsed'].update(time_elapsed_text)
+            if time_left_text != gui_window['time_left'].get(): gui_window['time_left'].update(time_left_text)
+            if music_queue and playing_status.busy() and not sar.alive: progress_bar.update(floor(track_position))
         return True
 
 
@@ -3601,23 +3646,20 @@ if __name__ == '__main__':
                     if platform.system() in {'Linux', 'Darwin'}:
                         tray_notify('update_available', context=latest_ver)
                     elif os.path.exists(UNINSTALLER):
+                        installer_path = get_installer_path()
                         # only show message on startup to not confuse the user
-                        cmd = ['mc_installer.exe', '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
+                        cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
                                '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
                         cmd.extend(sys.argv[1:])
-                        # cmd = 'mc_installer.exe /VERYSILENT /FORCECLOSEAPPLICATIONS /MERGETASKS="!desktopicon"'
-                        # cmd_args = ' '.join(sys.argv[1:])
-                        # cmd += f' && "Music Caster.exe" {cmd_args}'  # auto start is True when updating on startup
                         if gui_window.was_closed() and not args.minimized:
                             cmd.append('-m')
-                            # cmd += ' -m'
                         download_update = t('Downloading update $VER').replace('$VER', latest_ver)
                         tray_notify(download_update)
                         tray_tooltip = download_update
                         tray_process_queue.put({'tooltip': tray_tooltip})
                         try:
                             # download setup, close tray, run setup, and exit
-                            download(setup_dl_link, 'mc_installer.exe')
+                            download(setup_dl_link, installer_path)
                             tray_notify(t('Update downloaded, restarting now'))
                             time.sleep(0.3)
                             Popen(cmd, shell=True)
@@ -3649,11 +3691,17 @@ if __name__ == '__main__':
         global track_position, track_start, track_end, OLD_CAST_VOLUME, OLD_CAST_POS
         if cast is None:
             return
+        # assume this code can raise exceptions
+        #   since I did remove it from that try-catch block
         try:
-            CAST_LOCK.acquire()
             if msg is None and playing_status.busy():
                 # block/monitor in background thread
                 return cast.media_controller.update_status(callback_function=cast_monitor)
+        except Exception as e:
+            handle_exception(e)
+            return
+        try:
+            CAST_LOCK.acquire()
             if cast.app_id == APP_MEDIA_RECEIVER and time.time() > SYNC_WITH_CHROMECAST:
                 media_controller = cast.media_controller
                 is_stopped = media_controller.status.player_is_idle
@@ -3697,7 +3745,9 @@ if __name__ == '__main__':
         except Exception as e:
             handle_exception(e)
         finally:
-            CAST_LOCK.release()
+            with suppress(RuntimeError):
+                CAST_LOCK.release()
+
 
 
     def handle_action(action):
@@ -3758,7 +3808,10 @@ if __name__ == '__main__':
             with suppress(PermissionError):
                 add_reg_handlers(working_dir / 'Music Caster.exe', add_folder_context=settings['folder_context_menu'])
 
-        with suppress(FileNotFoundError, OSError): os.remove('mc_installer.exe')
+        # remove any existing installer file we might've already run
+        with suppress(FileNotFoundError, OSError):
+            os.remove(get_installer_path())
+
         rmtree('Update', ignore_errors=True)
         Thread(target=background_thread, daemon=True, name='BackgroundTasks').start()
         zconf = zeroconf.Zeroconf()
@@ -3909,7 +3962,6 @@ if __name__ == '__main__':
                         update_settings('plugged_in_res', get_initial_res())
                         update_settings('on_battery_res', get_initial_res())
                         tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
-
             if cast is not None:
                 cast_monitor()
             if not gui_window.was_closed():
