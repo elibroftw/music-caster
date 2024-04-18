@@ -245,6 +245,8 @@ if __name__ == '__main__':
     CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
+    # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
+    seek_queue = []
     playing_url = deezer_opened = attribute_error_reported = False
     recent_api_plays = {'play': 0, 'queue': 0, 'play_next': 0}
     # seconds but using time()
@@ -1849,7 +1851,7 @@ if __name__ == '__main__':
 
     # up to 4 seconds!
     @timing
-    def play(position=0, autoplay=True, switching_device=False, show_error=False):
+    def play(position=0, autoplay=True, switching_device=False, show_error=False, from_set_pos=False):
         global cast, track_start, track_end, track_length, track_position, music_queue, playing_url, cast_browser, zconf
         uri = music_queue[0]
         while not os.path.exists(uri):
@@ -1887,22 +1889,16 @@ if __name__ == '__main__':
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
                 cast.wait(timeout=WAIT_TIMEOUT)
                 app_log.info('cast.set_volume')
-                t1 = time.time()
-                with suppress(RequestTimeout):
-                    cast.set_volume(volume)
-                app_log.info(f'cast.set_volume took {time.time() - t1:.2f} seconds')
+                if not from_set_pos:
+                    with suppress(RequestTimeout):
+                        cast.set_volume(volume)
                 mc = cast.media_controller
                 metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
                             'albumName': str(metadata['album']), 'metadataType': 3}
                 ext = uri.split('.')[-1]
-                app_log.info('try playing media on media controller')
-                t1 = time.time()
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=f'{url}&thumbnail_only=true', autoplay=autoplay)
-                t2 = time.time()
-                app_log.info(f'play media took {t2 - t1:.2f} seconds')
                 mc.block_until_active(WAIT_TIMEOUT)
-                app_log.info(f'mc.block_until_active took {time.time() - t2:.2f} seconds')
                 app_log.info(f'mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError) as e:
                 app_log.error('Cast device is not connected')
@@ -2281,14 +2277,14 @@ if __name__ == '__main__':
                     app_log.info(f'cast.wait took {time.time() - t1:.2f} seconds')
                 if cast.media_controller.status.player_is_idle and music_queue:
                     app_log.info('called play instead')
-                    SYNC_WITH_CHROMECAST = time.time() + 5
-                    return play(position=new_position, autoplay=playing_status.playing())
+                    return play(position=new_position, autoplay=playing_status.playing(), from_set_pos=True)
                 else:
                     for _ in range(2):
-                        t1 = time.time()
                         try:
-                            app_log.info('trying call seek')
-                            cast.media_controller.seek(new_position, timeout=WAIT_TIMEOUT)
+                            # seek is unstable. use play instead
+                            app_log.info('call play with new position')
+                            return play(position=new_position, autoplay=playing_status.playing(), from_set_pos=True)
+                            # cast.media_controller.seek(new_position)
                             if playing_status.paused():
                                 cast.media_controller.pause()
                             break
@@ -2297,7 +2293,7 @@ if __name__ == '__main__':
                             if not IS_FROZEN or is_debug():
                                 print(f'encountered error while seeking: {type(e)} {e}')
                             # seeking is broken, prefer play instead
-                            SYNC_WITH_CHROMECAST = time.time() + 5
+                            return play(position=new_position, autoplay=playing_status.playing(), from_set_pos=True)
                             break
                         except (NotConnected):
                             app_log.exception('seek failed')
@@ -2421,7 +2417,7 @@ if __name__ == '__main__':
         While True tasks:
         - scans files
         """
-        global auto_updating
+        global auto_updating, SYNC_WITH_CHROMECAST
         # check for update and update if no must-run arguments were provided or if the update flag was used
         limited_args = len(sys.argv) == 1 or ['-m'] == sys.argv[1:]
         if (limited_args and settings['auto_update'] or args.update) and not args.nupdate: auto_update()
@@ -2429,7 +2425,6 @@ if __name__ == '__main__':
 
         import pynput.keyboard
         global track_position, track_start, track_end
-        app_log.info(f'entered background_thread')
         app_log.info(f'system: {platform.system()}')
         start_on_login_modifications()
         UpdateChecker()
@@ -2452,6 +2447,13 @@ if __name__ == '__main__':
                     gui_window.metadata['update_listboxes'] = True
             if scanned:
                 gui_window.metadata['update_listboxes'] = True
+
+            if seek_queue and time.time() > SYNC_WITH_CHROMECAST:
+                time_to_seek = seek_queue.pop()
+                seek_queue.clear()
+                set_pos_thread = Thread(target=set_pos, args=(time_to_seek,), name='SetPos', daemon=False)
+                set_pos_thread.start()
+                SYNC_WITH_CHROMECAST = time.time() + 1
             time.sleep(0.1)
 
 
@@ -3216,11 +3218,11 @@ if __name__ == '__main__':
                 gui_window['progress_bar'].update(disabled=True, value=0)
                 return
             else:
+                # debounce setting the track position
+                # background_thread will call set_pos
                 track_position = main_values['progress_bar']
-                # set pos is slow and broken so just run it in a thread for now
-                set_pos_thread = Thread(target=set_pos, args=(track_position,), name='SetPos', daemon=True)
-                set_pos_thread.start()
-                SYNC_WITH_CHROMECAST = time.time() + 5
+                seek_queue.append(track_position)
+                SYNC_WITH_CHROMECAST = time.time() + 1
         # main window settings tab
         elif main_event == 'open_email':
             open_in_browser(create_email_url())
