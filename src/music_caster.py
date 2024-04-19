@@ -2430,6 +2430,9 @@ if __name__ == '__main__':
             if release:
                 # avoid showing a notification for the same latest version
                 self.latest_version = release['version']
+                State.update_available = True
+                if not gui_window.was_closed():
+                    gui_window['install_update'].update(visible=True)
                 if settings['notifications']:
                     tray_notify('update_available', context=self.latest_version)
 
@@ -3707,9 +3710,6 @@ if __name__ == '__main__':
             if IS_FROZEN:
                 if platform.system() in {'Linux', 'Darwin'}:
                     tray_notify('update_available', context=latest_ver)
-                    State.update_available = True
-                    if not gui_window.was_closed():
-                        gui_window['install_update'].update(visible=True)
                 elif os.path.exists(UNINSTALLER):
                     installer_path = get_installer_path()
                     # only show message on startup to not confuse the user

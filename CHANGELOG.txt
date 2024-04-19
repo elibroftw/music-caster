@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.2
+- [Fix] Update from GUI
+
 5.19.1
 - [Fix] Windows-specific issues
 
