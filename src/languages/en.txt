@@ -199,3 +199,4 @@ copy URIs
 edit metadata
 Experimental features
 Playlist saved
+Install Update

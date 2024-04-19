@@ -1163,6 +1163,10 @@ if __name__ == '__main__':
         return lo_devices
 
 
+    class UpdateFailed(Exception):
+        pass
+
+
     class StatusCastListener(CastStatusListener):
         """Cast status listener"""
 
@@ -2416,8 +2420,8 @@ if __name__ == '__main__':
         latest_version = VERSION
 
         def __init__(self):
-            # check for an update every 4 hours
-            super().__init__(14_400, self.check_for_updates)
+            # check for an update every 30 minutes
+            super().__init__(1800, self.check_for_updates)
             self.daemon = True
             self.start()
 
@@ -2426,7 +2430,8 @@ if __name__ == '__main__':
             if release:
                 # avoid showing a notification for the same latest version
                 self.latest_version = release['version']
-                if settings['notifications']: tray_notify('update_available', context=self.latest_version)
+                if settings['notifications']:
+                    tray_notify('update_available', context=self.latest_version)
 
 
     def background_thread():
@@ -3220,6 +3225,11 @@ if __name__ == '__main__':
         elif main_event == 'select_folders':
             Thread(target=folder_action, name='FolderAction', daemon=True,
                    args=[main_values['fs_action']]).start()
+        elif main_event == 'install_update':
+            if not State.installing_update:
+                gui_window['install_update'].update(visible=False)
+                Thread(target=auto_update, daemon=True, name='Updater').start()
+
         # ???
         elif main_event == 'play_all':
             if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
@@ -3680,64 +3690,65 @@ if __name__ == '__main__':
     def auto_update():
         """ auto_start should be True when checking for updates at startup up,
             false when checking for updates before exiting """
-        with suppress(requests.RequestException):
+        State.installing_update = True
+        with suppress(requests.RequestException, UpdateFailed):
             app_log.info(f'called auto_update(), IS_FROZEN={IS_FROZEN}')
             release = get_latest_release(VERSION, VERSION, force=(not IS_FROZEN or is_debug()))
-            if release:
-                latest_ver = release['version']
-                setup_dl_link = release['setup']
-                app_log.info(f'Update found: v{latest_ver}')
-                print('Installer Link:', setup_dl_link)
-                if int(VERSION.split('.', 1)[0]) < int(latest_ver.split('.', 1)[0]):
-                    if not is_os_64bit():
-                        tray_notify(f"The update v{latest_ver}, is 64-bit only")
-                        tray_notify("I've turned off auto-update for you, so you don't have to worry")
-                        return update_settings('auto_update', False)
-                if is_debug() or not setup_dl_link:
-                    return app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
-                if IS_FROZEN:
-                    if platform.system() in {'Linux', 'Darwin'}:
-                        tray_notify('update_available', context=latest_ver)
-                    elif os.path.exists(UNINSTALLER):
-                        installer_path = get_installer_path()
-                        # only show message on startup to not confuse the user
-                        cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
-                               '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
-                        cmd.extend(sys.argv[1:])
-                        if gui_window.was_closed() and not args.minimized:
-                            cmd.append('-m')
-                        download_update = t('Downloading update $VER').replace('$VER', latest_ver)
-                        tray_notify(download_update)
-                        tray_tooltip = download_update
-                        tray_process_queue.put({'tooltip': tray_tooltip})
-                        try:
-                            # download setup, close tray, run setup, and exit
-                            download(setup_dl_link, installer_path)
-                            tray_notify(t('Update downloaded, restarting now'))
-                            time.sleep(0.3)
-                            Popen(cmd, shell=True)
-                            daemon_commands.put('__EXIT__')  # tell main thread to exit
-                        except OSError as e:
-                            if e.errno == errno.ENOSPC:
-                                tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
-                        except Exception:
-                            tray_notify('update_available', context=latest_ver)
-                    elif os.path.exists('Updater.exe'):
-                        # portable installation
-                        try:
-                            startfile('Updater')
-                            daemon_commands.put('__EXIT__')  # tell main thread to exit
-                        except OSError as e:
-                            if e == errno.ECANCELED:
-                                # user cancelled update, don't try auto-updating again
-                                # inform user what we were trying to do though
-                                update_settings('auto_update', False)
-                                tray_notify('update_available', context=latest_ver)
-                    else:
-                        # unins000.exe or updater.exe was deleted; better to inform user there is an update available
-                        tray_notify('update_available', context=latest_ver)
-            else:
+            if not release:
                 app_log.info(f'auto_update: no update found, or no internet, or API rate limited')
+                raise UpdateFailed
+            latest_ver = release['version']
+            setup_dl_link = release['setup']
+            app_log.info(f'Update found: v{latest_ver}')
+            print('Installer Link:', setup_dl_link)
+            if is_debug() or not setup_dl_link:
+                app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
+                raise UpdateFailed
+            if IS_FROZEN:
+                if platform.system() in {'Linux', 'Darwin'}:
+                    tray_notify('update_available', context=latest_ver)
+                    State.update_available = True
+                    if not gui_window.was_closed():
+                        gui_window['install_update'].update(visible=True)
+                elif os.path.exists(UNINSTALLER):
+                    installer_path = get_installer_path()
+                    # only show message on startup to not confuse the user
+                    cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
+                            '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
+                    cmd.extend(sys.argv[1:])
+                    if gui_window.was_closed() and not args.minimized:
+                        cmd.append('-m')
+                    download_update = t('Downloading update $VER').replace('$VER', latest_ver)
+                    tray_notify(download_update)
+                    tray_tooltip = download_update
+                    tray_process_queue.put({'tooltip': tray_tooltip})
+                    try:
+                        # download setup, close tray, run setup, and exit
+                        download(setup_dl_link, installer_path)
+                        tray_notify(t('Update downloaded, restarting now'))
+                        time.sleep(0.3)
+                        Popen(cmd, shell=True)
+                        daemon_commands.put('__EXIT__')  # tell main thread to exit
+                    except OSError as e:
+                        if e.errno == errno.ENOSPC:
+                            tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
+                    except Exception:
+                        tray_notify('update_available', context=latest_ver)
+                elif os.path.exists('Updater.exe'):
+                    # portable installation
+                    try:
+                        startfile('Updater')
+                        daemon_commands.put('__EXIT__')  # tell main thread to exit
+                    except OSError as e:
+                        if e == errno.ECANCELED:
+                            # user cancelled update, don't try auto-updating again
+                            # inform user what we were trying to do though
+                            update_settings('auto_update', False)
+                            tray_notify('update_available', context=latest_ver)
+                else:
+                    # unins000.exe or updater.exe was deleted; better to inform user there is an update available
+                    tray_notify('update_available', context=latest_ver)
+            State.installing_update = False
 
 
     def cast_monitor(sent: bool = True, msg: dict = None):

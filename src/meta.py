@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.18.9'
+VERSION = latest_version = '5.19.0'
 UPDATE_MESSAGE = """
 [NEW] Better Error Capturing
 [MSG] Language translators wanted
@@ -84,6 +84,8 @@ class State:
     # experimental setting
     using_tcl_theme = False
     settings = {}
+    update_available = False
+    installing_update = False
 
 
 class PlayingStatus:

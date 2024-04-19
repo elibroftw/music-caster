@@ -1,4 +1,4 @@
-# Sprache: Deutsch
+# Sprache: Deutsch (German)
 # Credits: Bernd Miller
 # Jede Zeile, die mit einem # beginnt, wird ignoriert!
 # Wenn eine Zeile $X enthält, $X nicht übersetzen, sondern im Kontext behandeln.
@@ -199,3 +199,4 @@ URIs kopieren
 metadaten bearbeiten
 experimentelle funktionen
 Playlist gespeichert
+Aktualisieren

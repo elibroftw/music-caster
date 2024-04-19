@@ -63,7 +63,7 @@ næste nummer
 Der er ikke nok plads på den valgte disk til at auto-opdatere
 Der er ikke nok plads på den valgte disk til at gemme indstillingerne
 Ingen timer sat
-Ikke forbundet til et 'cast device' 
+Ikke forbundet til et 'cast device'
 Ikke logget ind på deezer.com
 Intet afspilles
 Notifikationer
@@ -199,3 +199,4 @@ Kopier URIs
 rediger metadata
 Eksperimentelle funktioner
 Playlist gemt
+Opdatering

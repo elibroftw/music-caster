@@ -139,6 +139,7 @@ def QueueTab(queue, listbox_selected, listbox_height, accent_color, text_color, 
     select_file_values = [t('Play'), t('Queue'), t('Play Next')]
     select_files = t('Select Files')
     select_folder = t('Select Folder')
+    install_update_text = t('Install Update')
     biggest_word = len(max(*select_file_values, select_files, select_folder, key=len))
     combo_w = ceil(biggest_word * 0.95)
     queue_controls = [Sg.Column([[
@@ -149,6 +150,8 @@ def QueueTab(queue, listbox_selected, listbox_height, accent_color, text_color, 
                   button_width=biggest_word, pad=(5, (7, 5))),
         StyledButton(select_folder, accent_color, background_color, key='select_folders',
                   button_width=biggest_word),
+        StyledButton(install_update_text, accent_color, background_color, key='install_update',
+                  button_width=biggest_word, visible=State.update_available and not State.installing_update),
     ]], justification='center')]
     move_to_next_up = {'image_data': PLAY_NEXT_ICON, 'button_color': (background_color, background_color), 'tooltip': t('Move to next up')}
     listbox_controls = [

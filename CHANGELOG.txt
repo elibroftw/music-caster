@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.0
+- [Feat] Update from GUI
+
 5.18.9
 - [Fix] Locally played track scrubbing
 
