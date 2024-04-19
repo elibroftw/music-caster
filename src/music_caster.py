@@ -1473,10 +1473,10 @@ if __name__ == '__main__':
                 # artists is comma separated string
                 tray_notify(t('Playing') + f': {get_first_artist(artists)} - {title}')
             playing_status.play()
-            system_media_controls.set_playing()
+            # system_media_controls.set_playing()
         else:
             playing_status.pause()
-            system_media_controls.set_paused()
+            # system_media_controls.set_paused()
         refresh_tray()
         save_queues()
         DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artists}', details=title,
@@ -1495,8 +1495,8 @@ if __name__ == '__main__':
             album_art: Image.Image = Image.open(img_data)
             thumb_path = Path('thumb.jpg').absolute()
             album_art.save(thumb_path)
-            system_media_controls.set_metadata(title, artists, album, thumb_path.as_uri())
-            system_media_controls.update_time()
+            # system_media_controls.set_metadata(title, artists, album, thumb_path.as_uri())
+            # system_media_controls.update_time()
 
         if not gui_window.was_closed():
             gui_window.metadata['update_listboxes'] = True
@@ -2260,7 +2260,7 @@ if __name__ == '__main__':
         app_log.info(f'stopped from {stopped_from}, stop_cast={stop_cast}')
         # allow Windows to go to sleep
         if platform.system() == 'Windows':
-            system_media_controls.set_stopped()
+            # system_media_controls.set_stopped()
             ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
         playing_status.stop()
         sar.alive = playing_url = False
@@ -3893,7 +3893,7 @@ if __name__ == '__main__':
         except Exception as exception:
             tray_notify(t('WARNING: Failed to start audio player. Do not play on local device.'))
             handle_exception(exception)
-        system_media_controls = SystemMediaControls(on_smtc_btn_press)
+        # system_media_controls = SystemMediaControls(on_smtc_btn_press)
         # find a port to bind to
         socket_timeout = 0.5 if args.shell else 0.1
         while True:
