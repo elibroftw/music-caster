@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.18.9
+- [Fix] Locally played track scrubbing
+
 5.18.8
 - [Fix] Improve track scrubbing performance
 

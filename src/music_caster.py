@@ -2287,6 +2287,7 @@ if __name__ == '__main__':
             t1 = time.time()
             app_log.info('trying to set playback position')
             if cast is not None:
+                SYNC_WITH_CHROMECAST = time.time() + 1
                 try:
                     pass
                     # cast.media_controller.update_status()
@@ -2320,12 +2321,12 @@ if __name__ == '__main__':
                         except (NotConnected):
                             app_log.exception('seek failed')
                             cast.wait(WAIT_TIMEOUT)
+                SYNC_WITH_CHROMECAST = time.time() + 0.5
             else:
                 audio_player.set_pos(new_position)
             track_position = new_position
             track_start = time.monotonic() - track_position
             track_end = track_start + track_length
-            SYNC_WITH_CHROMECAST = time.time() + 0.5
 
 
     def next_track(from_timeout=False, times=1, forced=False, ignore_timestamps=False):
@@ -2475,7 +2476,6 @@ if __name__ == '__main__':
                 seek_queue.clear()
                 set_pos_thread = Thread(target=set_pos, args=(time_to_seek,), name='SetPos', daemon=False)
                 set_pos_thread.start()
-                SYNC_WITH_CHROMECAST = time.time() + 1
             time.sleep(0.1)
 
     # SystemMediaTransportControls.ButtonPressed
@@ -3252,11 +3252,15 @@ if __name__ == '__main__':
                 gui_window['progress_bar'].update(disabled=True, value=0)
                 return
             else:
-                # debounce setting the track position
-                # background_thread will call set_pos
-                track_position = main_values['progress_bar']
-                seek_queue.append(track_position)
-                SYNC_WITH_CHROMECAST = time.time() + 1
+                # do not debounce when playing locally
+                if cast is None:
+                    set_pos(track_position)
+                else:
+                    # debounce setting the track position
+                    # background_thread will call set_pos
+                    track_position = main_values['progress_bar']
+                    seek_queue.append(track_position)
+                    SYNC_WITH_CHROMECAST = time.time() + 1
         # main window settings tab
         elif main_event == 'open_email':
             open_in_browser(create_email_url())
