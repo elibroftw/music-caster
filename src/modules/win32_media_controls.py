@@ -1,4 +1,5 @@
-# https://learn.microsoft.com/en-us/windows/uwp/audio-video-camera/system-media-transport-controls
+# https://learn.microsoft.com/windows/uwp/audio-video-camera/system-media-transport-controls
+# https://github.com/microsoft/WindowsAppSDK/issues/127
 import enum
 import platform
 from datetime import timedelta
@@ -36,15 +37,19 @@ class SystemMediaControls:
         self.system_media_transport_controls.is_previous_enabled = True
         self.on_event = on_event
         self.system_media_transport_controls.add_button_pressed(self._on_btn_press)
-        # from winrt.windows.media.control import \
-        #     GlobalSystemMediaTransportControlsSessionManager as MediaManager
-        #  = media.SystemMediaTransportControls.get_for_current_view()
-        # media.
 
     if platform.system() == 'Windows':
         import winrt.windows.media as media
         def _on_btn_press(self, sender, args: media.SystemMediaTransportControlsButtonPressedEventArgs):
             self.on_event(args.button)
+
+    def set_source(self, source):
+        if platform.system() == 'Windows':
+            from winrt.windows.foundation import Uri
+            if source.startswith('htt'):
+                self.media_player.set_uri_source(Uri(source))
+            else:
+                self.media_player.set_uri_source(Uri(f'file://{source}'))
 
     def set_playing(self):
         if platform.system() == 'Windows':
@@ -92,18 +97,3 @@ class SystemMediaControls:
             timeline_properties.max_seek_time = timedelta(0)
             timeline_properties.end_time = timedelta(100)
             self.system_media_transport_controls.update_timeline_properties(timeline_properties)
-
-        pass
-    #     self.dll.ITaskbarList4_SetProgressState(self.session, 0x0)
-    #     self.dll.ITaskbarList4_SetProgressValue(self.session, 0, 100)
-    #     self.dll.ITaskbarList4_SetThumbnailClip(self.session, thumbnail_path)
-    #     self.dll.ITaskbarList4_SetThumbnailTooltip(self.session, title)
-    #     self.dll.ITaskbarList4_SetTitle(self.session, title)
-    #     self.dll.ITaskbarList4_SetDescription(self.session, f"{artist} - {album}")
-
-
-if __name__ == '__main__':
-    # Example usage
-    session = SystemMediaControls(lambda event: print(event))
-    # session.play()
-    # session.set_metadata("My Song", "My Artist", "My Album", "path/to/thumbnail.jpg")
