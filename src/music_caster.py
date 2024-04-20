@@ -3751,7 +3751,7 @@ if __name__ == '__main__':
             State.installing_update = False
 
 
-    def cast_monitor(sent: bool = True, msg: dict = None):
+    def cast_monitor(sent: bool = True, msg: dict = None, is_callback=True):
         global track_position, track_start, track_end, OLD_CAST_VOLUME, OLD_CAST_POS
         if cast is None:
             return
@@ -3760,6 +3760,11 @@ if __name__ == '__main__':
         try:
             if msg is None and playing_status.busy():
                 # block/monitor in background thread
+                if is_callback:
+                    # avoid recursion error
+                    if playing_status.playing():
+                        raise NotConnected
+                    return
                 return cast.media_controller.update_status(callback_function=cast_monitor)
         except AttributeError:
             # don't need to monitor if device switched randomly
@@ -4035,7 +4040,7 @@ if __name__ == '__main__':
                         update_settings('on_battery_res', get_initial_res())
                         tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
             if cast is not None:
-                cast_monitor()
+                cast_monitor(is_callback=False)
             if not gui_window.was_closed():
                 read_main_window()
             else:
