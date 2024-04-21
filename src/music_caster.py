@@ -1482,19 +1482,19 @@ if __name__ == '__main__':
         DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artists}', details=title,
                                large_text=t('Listening'))
         # update metadata of the player
-        if platform.system() == 'Windows':
-            bg = settings['theme']['background']
-            # base64
-            try:
-                album_art_data = resize_img(get_current_art(), bg, COVER_NORMAL, default_art=DEFAULT_ART)
-            except OSError as e:
-                handle_exception(e)
-                album_art_data = resize_img(DEFAULT_ART, bg, COVER_NORMAL)
-
-            img_data = io.BytesIO(base64.b64decode(album_art_data))
-            album_art: Image.Image = Image.open(img_data)
-            thumb_path = Path('thumb.jpg').absolute()
-            album_art.save(thumb_path)
+        # if platform.system() == 'Windows':
+            # bg = settings['theme']['background']
+            # # base64
+            # try:
+            #     album_art_data = resize_img(get_current_art(), bg, COVER_NORMAL, default_art=DEFAULT_ART)
+            # except OSError as e:
+            #     handle_exception(e)
+            #     album_art_data = resize_img(DEFAULT_ART, bg, COVER_NORMAL)
+            # img_data = io.BytesIO(base64.b64decode(album_art_data))
+            # album_art: Image.Image = Image.open(img_data)
+            # thumb_path = Path('thumb.jpg').absolute()
+            # TODO: convert to mode RGB in case RGBA
+            # album_art.save(thumb_path)
             # system_media_controls.set_metadata(title, artists, album, thumb_path.as_uri())
             # system_media_controls.update_time()
 
