@@ -1,7 +1,10 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.5
+- [Fix] Handling unresponsive cast device
+
 5.19.4
-- [Fix] Fix crash when playing
+- [Fix] Crash when playing
 
 5.19.3
 - [Fix] Cast syncing

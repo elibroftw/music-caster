@@ -1130,8 +1130,16 @@ if __name__ == '__main__':
         return Response(sar.get_audio_data(settings['sys_audio_delay']))
 
 
-    def cast_try_reconnect():
+    def cast_try_reconnect(switch_twice=False):
         global cast_browser, zconf
+        if switch_twice and cast is not None:
+            app_log.info('try changing devices to local and then back to cast')
+            cast_uuid = cast.uuid
+            if not playing_status.playing():
+                change_device()
+                change_device(cast_uuid)
+            app_log.info('try changing devices to local and then back to cast')
+        app_log.info('stop discovery')
         cast_browser.stop_discovery()
         zconf = zeroconf.Zeroconf()
         cast_browser = pychromecast.discovery.CastBrowser(MyCastListener(), zconf)
@@ -1250,7 +1258,7 @@ if __name__ == '__main__':
             new_device = None
         except UnboundLocalError as e:
             app_log.error('Could not connect to cast device', exc_info=e)
-            tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (cd)')
+            tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device'))
             return False
         if cast == new_device:
             # do not change device if local device is selected again
@@ -1276,13 +1284,19 @@ if __name__ == '__main__':
         update_settings('device', None if cast is None else str(cast.uuid))
         refresh_tray(True)
         if was_busy and (music_queue or sar.alive):
-            if not sar.alive:
-                play(position=current_pos, autoplay=autoplay, switching_device=True)
-            else:
+            app_log.info('continuing playback on new device')
+            if sar.alive:
                 play_system_audio(switching_device=True)
+            else:
+                play(position=current_pos, autoplay=autoplay, switching_device=True, show_error=True)
         else:
             if cast is not None:
-                cast.wait(timeout=WAIT_TIMEOUT)
+                with suppress(NotConnected):
+                    cast.quit_app()
+                try:
+                    cast.wait(timeout=WAIT_TIMEOUT)
+                except RequestTimeout:
+                    tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device'))
             update_volume(0 if settings['muted'] else settings['volume'], 'change_device')
         return True
 
@@ -1946,15 +1960,16 @@ if __name__ == '__main__':
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
                     return False
-                cast_try_reconnect()
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
             except (PyChromecastError, OSError, RuntimeError, AssertionError) as e:
                 app_log.error(f'play failed to cast {repr(e)}')
                 if show_error:
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
-                    return handle_exception(e)
-                cast_try_reconnect()
+                    handle_exception(e)
+                    switching_device=True
+                else:
+                    cast_try_reconnect()
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -2287,6 +2302,7 @@ if __name__ == '__main__':
         sets position of audio player or cast to new_position
         """
         global track_position, track_start, track_end, SYNC_WITH_CHROMECAST
+        app_log.info('acquiring CAST_LOCK')
         with CAST_LOCK:
             t1 = time.time()
             app_log.info('trying to set playback position')
