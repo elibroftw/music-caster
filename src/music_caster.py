@@ -1,4 +1,5 @@
 # flake8: noqa: E402
+from meta import State
 from meta import *
 import time
 
@@ -2738,10 +2739,15 @@ if __name__ == '__main__':
             if State.using_tcl_theme:
                 Sg.PySimpleGUI.TOOLTIP_BACKGROUND_COLOR = settings['theme']['background']
                 try:
-                    # as per State.using_tcl_theme, sun_valley_tcl_path exists
-                    gui_window.TKroot.tk.call('source', sun_valley_tcl_path)
+                    if not State.theme_sourced:
+                        # as per State.using_tcl_theme, sun_valley_tcl_path exists
+                        # source errors out if called more than once
+                        gui_window.TKroot.tk.call('source', sun_valley_tcl_path)
+                        State.theme_sourced = True
+                    # this needs to be called every time the GUI is constructed
                     gui_window.TKroot.tk.call('set_theme', 'dark')
                 except TclError as e:
+                    # _tkinter.TclError: Theme sun-valley-light already exists
                     if IS_FROZEN:
                         handle_exception(e)
                     else:
@@ -3649,10 +3655,14 @@ if __name__ == '__main__':
             gui_window['metadata_art'].update(data=None)
         elif main_event in {'metadata_save', 's:83'} and main_values.get('tab_group') == 'tab_metadata':
             if gui_window['metadata_file'].get():
-                mime, art = gui_window['metadata_art'].metadata
                 new_metadata = {'title': main_values['metadata_title'], 'artist': main_values['metadata_artist'],
-                                'album': main_values['metadata_album'], 'explicit': main_values['metadata_explicit'],
-                                'track_number': main_values['metadata_track_num'], 'mime': mime, 'art': art}
+                            'album': main_values['metadata_album'], 'explicit': main_values['metadata_explicit'],
+                            'track_number': main_values['metadata_track_num']}
+                # album art optional
+                if gui_window['metadata_art'].metadata is not None:
+                    mime, art = gui_window['metadata_art'].metadata
+                    new_metadata['mime'] = mime
+                    new_metadata['art'] = art
                 gui_window['metadata_msg'].update(value=t('Saving metadata'), text_color='yellow')
                 try:
                     set_metadata(gui_window['metadata_file'].get(), new_metadata)
@@ -3663,6 +3673,7 @@ if __name__ == '__main__':
                     gui_window['metadata_msg'].update(value=error, text_color='red')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
                 gui_window['title'].update(' ' + gui_window['title'].DisplayText + ' ')  # try updating now playing
+
         elif main_event == 'exit_program':
             exit_program()
         # other GUI updates

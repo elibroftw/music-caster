@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.19.5'
+VERSION = latest_version = '5.19.6'
 UPDATE_MESSAGE = """
 [NEW] Better Error Capturing
 [MSG] Language translators wanted
@@ -70,7 +70,6 @@ PL_COMBO_W = 37
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/591'
 SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 SPOTIFY_API = 'https://api.spotify.com/v1'
-SORT_BY_POPULAR = 0
 
 
 class State:
@@ -83,6 +82,7 @@ class State:
     PORT = 2001
     # experimental setting
     using_tcl_theme = False
+    theme_sourced = False
     settings = {}
     update_available = False
     installing_update = False

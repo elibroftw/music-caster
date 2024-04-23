@@ -55,7 +55,7 @@ import pypresence
 from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
 from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-from youtube_comment_downloader import YoutubeCommentDownloader
+from youtube_comment_downloader import YoutubeCommentDownloader, SORT_BY_POPULAR
 from meta import *
 from meta import AUDIO_HANDLER_EXTS
 
@@ -63,7 +63,7 @@ from meta import AUDIO_HANDLER_EXTS
 # CONSTANTS
 IS_FROZEN = getattr(sys, 'frozen', False)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-YTCommentDLer = YoutubeCommentDownloader()
+yt_comment_downloader = YoutubeCommentDownloader()
 # for stealing focus when bring window to front
 
 class SystemAudioRecorder:
@@ -448,7 +448,7 @@ def set_metadata(file_path: str, metadata: dict):
     track_number = track_place.split('/')[0]    # X
     rating = '1' if metadata['explicit'] else '0'
     # b64 album art data should be b64 as a string not as bytes
-    if 'art' in metadata and isinstance(metadata['art'], bytes):
+    if isinstance(metadata.get('art'), bytes):
         metadata['art'] = metadata['art'].decode()
     if '/' not in track_place:
         tracks = max(1, int(track_place))
@@ -469,7 +469,7 @@ def set_metadata(file_path: str, metadata: dict):
         # audio['TPUB'] = mutagen.id3.TPUB(text=metadata['publisher'])
         audio['TXXX:RATING'] = mutagen.id3._frames.TXXX(text=rating, desc='RATING')
         audio['TXXX:ITUNESADVISORY'] = mutagen.id3._frames.TXXX(text=rating, desc='ITUNESADVISORY')
-        if metadata['art'] is not None:
+        if metadata.get('art') is not None:
             img_data = b64decode(metadata['art'])
             audio['APIC:'] = mutagen.id3._frames.APIC(encoding=0, mime=metadata['mime'], type=3, data=img_data)
         else:  # remove all album art
@@ -485,7 +485,7 @@ def set_metadata(file_path: str, metadata: dict):
             audio['©alb'] = [album]
         audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
         audio['rtng'] = [int(rating)]
-        if metadata['art'] is not None:
+        if metadata.get('art') is not None:
             image_format = 14 if metadata['mime'].endswith('png') else 13
             img_data = b64decode(metadata['art'])
             audio['covr'] = [MP4Cover(img_data, imageformat=image_format)]
@@ -500,7 +500,7 @@ def set_metadata(file_path: str, metadata: dict):
             audio['album'] = [album]
         audio['rtng'] = [rating]
         audio['trkn'] = track_place
-        if metadata['art'] is not None:
+        if metadata.get('art') is not None:
             img_data = metadata['art']  # b64 data
             audio['metadata_block_picture'] = img_data
             audio['mime'] = metadata['mime']
@@ -514,7 +514,7 @@ def set_metadata(file_path: str, metadata: dict):
         audio['TRACKNUMBER'] = track_number  # type: ignore
         audio['TRACKTOTAL'] = track_place.split('/')[1]  # type: ignore
         audio['ITUNESADVISORY'] = rating  # type: ignore
-        if metadata['art'] is not None:
+        if metadata.get('art') is not None:
             if ext == '.flac':
                 img_data = b64decode(metadata['art'])
                 pic = mutagen.flac.Picture()
@@ -527,6 +527,7 @@ def set_metadata(file_path: str, metadata: dict):
                 audio['APIC:'] = metadata['art'] # type: ignore
                 audio['mime'] = metadata['mime'] # type: ignore
         else:
+            # remove existing album art
             if ext == '.flac':
                 audio.clear_pictures() # type: ignore
             else:
@@ -1279,7 +1280,7 @@ def custom_art(text):
 
 def get_youtube_comments(url, limit=-1):  # -> generator
     # TODO: use proxies = get_proxy()
-    return YTCommentDLer.get_comments_from_url(url, sort_by=SORT_BY_POPULAR, limit=limit)
+    return yt_comment_downloader.get_comments_from_url(url, sort_by=SORT_BY_POPULAR, limit=limit)
 
 
 def timestamp_to_time(text):
