@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.7
+- [Fix] Unexpected metadata while playing (dirty patch)
+
 5.19.6
 - [Fix] Experimental theme setting
 - [Fix] Saving metadata without album art

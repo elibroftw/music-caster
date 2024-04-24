@@ -1165,6 +1165,7 @@ if __name__ == '__main__':
             return 1
         return -1
 
+
     def get_devices():
         lo_cis = sorted(cast_browser.devices.values(), key=cast_info_sorter)
         lo_devices = [Device()]
@@ -1382,6 +1383,8 @@ if __name__ == '__main__':
                 if '-' in title:
                     artist, title = title.split('-', maxsplit=1)
                     artist, title = artist.strip(), title.strip()
+            else:
+                assert not isinstance(title, Unknown)
             if uri in url_metadata and '-' in title:
                 artist, title = title.split('-', maxsplit=1)
                 artist, title = artist.strip(), title.strip()
@@ -2003,11 +2006,14 @@ if __name__ == '__main__':
         If sort is False, shuffle being off does not sort items
         """
         temp_queue, albums_found = [], set()
-        unknown_album = Unknown('Album')
         for track in get_audio_uris(uris):
             album_name = get_uri_metadata(track)['album']
-            if album_name != unknown_album:
+            if not isinstance(album_name, Unknown):
                 albums_found.add(album_name)
+            elif album_name != Unknown('Album'):
+                # NOTE: debugging purpose
+                # TODO: remove condition
+                handle_exception(Exception(f'found incorrect {album_name} instead of Unknown("Album")'))
             temp_queue.append(track)
         if not temp_queue and return_if_empty:
             return False

@@ -258,6 +258,10 @@ class DiscordPresence:
             cls.rich_presence.close()
 
 
+# friendly interface to create system tray menus out of local device or cast device
+#   or in the future, other wireless devices
+# otherwise would have to write lots of conditionals to make things work smoothly
+# TODO: should be interloped with playback functionalities as well to abstract that PITA
 class Device:
     CHECK_MARK = '✓'
 
@@ -539,8 +543,9 @@ def set_metadata(file_path: str, metadata: dict):
 
 
 def get_metadata(file_path: str):
-    unknown_title, unknown_artist, unknown_album = Unknown('Title'), Unknown('Artist'), Unknown('Album')
-    title, artist, album = unknown_title, unknown_artist, unknown_album
+    title = unknown_title = Unknown('Title')
+    artist = unknown_artist = Unknown('Artist')
+    album = unknown_album = Unknown('Album')
     length = None
     try:
         a = mutagen.File(file_path)
