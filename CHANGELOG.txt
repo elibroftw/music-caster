@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.8
+- [Fix] Unexpected crash when chromecast stops working
+
 5.19.7
 - [Fix] Unexpected metadata while playing (dirty patch)
 

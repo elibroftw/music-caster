@@ -1270,7 +1270,7 @@ if __name__ == '__main__':
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             if playing_status.busy():
                 mc = cast.media_controller
-                with suppress(UnsupportedNamespace, NotConnected, RequestTimeout, AssertionError):
+                with suppress(UnsupportedNamespace, NotConnected, RequestTimeout, RequestFailed, AssertionError):
                     mc.update_status()  # Switch device without playback loss
                     current_pos = mc.status.adjusted_current_time
                     if mc.status.player_is_playing or mc.status.player_is_paused:
