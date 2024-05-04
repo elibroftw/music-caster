@@ -1619,6 +1619,7 @@ if __name__ == '__main__':
         return metadata
 
     def get_url_metadata(url, fetch_art=True) -> list:
+        # TODO: cache in the database for persistence
         # TODO: move to utils.py and add parameter url_metadata_cache
         """
         Tries to parse url and set url_metadata[url] to parsed metadata

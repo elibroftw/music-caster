@@ -745,7 +745,8 @@ def ydl(proxy=None, quiet=False):
     from yt_dlp import YoutubeDL
     opts = {
         'quiet': quiet,
-        'verbose': not quiet
+        'verbose': not quiet,
+        'socket_timeout': 10
     }
     if proxy is not None:
         opts['proxy'] = proxy

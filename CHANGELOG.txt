@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.9
+- [Fix] Playing offline if URL in queue
+
 5.19.8
 - [Fix] Unexpected crash when chromecast stops working
 
