@@ -1275,7 +1275,7 @@ if __name__ == '__main__':
                     current_pos = mc.status.adjusted_current_time
                     if mc.status.player_is_playing or mc.status.player_is_paused:
                         mc.stop()
-            with suppress(NotConnected):
+            with suppress(UnsupportedNamespace, NotConnected, RequestTimeout, RequestFailed, AssertionError):
                 cast.quit_app()
         elif cast is None and 'audio_player' in globals() and audio_player.is_busy():
             current_pos = audio_player.stop()
