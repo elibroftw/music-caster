@@ -1201,7 +1201,7 @@ if __name__ == '__main__':
 
     class MyCastListener(pychromecast.discovery.AbstractCastListener):
 
-        def add_cast(self, uuid, _service):
+        def add_cast(self, uuid, _service: str):
             """Called when a new cast has been discovered."""
             print(f'cast found found {uuid}')
             global cast
@@ -1218,7 +1218,7 @@ if __name__ == '__main__':
                     # cast.media_controller.register_status_listener(MediaCastListener(cast))
             refresh_tray(True)
 
-        def remove_cast(self, uuid, _service, cast_info):
+        def remove_cast(self, uuid, _service: str, cast_info):
             """Called when a cast has been lost (MDNS info expired or host down)."""
             global cast
             if cast is not None and cast.uuid == uuid:
@@ -1226,8 +1226,20 @@ if __name__ == '__main__':
                 app_log.info(f'Lost connection to {cast.name} ({uuid}), switching to local device')
             refresh_tray(True)
 
-        def update_cast(self, uuid, _service):
+        def update_cast(self, uuid, _service: str):
             """Called when a cast has been updated (MDNS info renewed or changed)."""
+            global cast
+            # not entirely sure what to do if this function is called
+            # due to recent connection errors, let's experiment
+            # if we should update the cast variable?
+            if cast is not None and cast.uuid == uuid:
+                cast_info = cast_browser.devices[uuid]
+                cast_2 = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
+                try:
+                    assert cast_2 == cast
+                except AssertionError as e:
+                    handle_exception(e)
+                cast = cast_2
             refresh_tray(True)
 
 
