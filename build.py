@@ -46,7 +46,7 @@ IS_VENV = sys.prefix != sys.base_prefix
 
 class ProgressUpload:
     # 1MB chunk size
-    def __init__(self, filename, chunk_size=1_000_000):
+    def __init__(self, filename, chunk_size=1_024_000):
         self.filename = filename
         self.chunk_size = chunk_size
         self.file_size = os.path.getsize(filename)
