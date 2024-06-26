@@ -201,7 +201,7 @@ def local_install():
 def test(title, fn, assert_statement=False):
     try:
         if assert_statement:
-            assert fn()
+            assert fn(), title
         else:
             fn()
     except Exception as _e:
@@ -591,7 +591,7 @@ if __name__ == '__main__':
             True,
         )
         time.sleep(2)
-        test('Music Caster Exit API',
+        test('Music Caster Should Accept Exit API',
              lambda: requests.post('http://[::1]:2001/exit'))
         time.sleep(2)
         test('Music Caster Should Have Exited',
