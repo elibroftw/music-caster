@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.12
+- [Fix] Local playback scrubbing
+
 5.19.11
 - [Experiment] Better connection?
 

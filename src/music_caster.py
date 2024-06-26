@@ -3307,12 +3307,12 @@ if __name__ == '__main__':
                 return
             else:
                 # do not debounce when playing locally
+                track_position = main_values['progress_bar']
                 if cast is None:
                     set_pos(track_position)
                 else:
                     # debounce setting the track position
                     # background_thread will call set_pos
-                    track_position = main_values['progress_bar']
                     seek_queue.append(track_position)
                     SYNC_WITH_CHROMECAST = time.time() + 1
         # main window settings tab
