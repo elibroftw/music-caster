@@ -9,7 +9,7 @@ CONF['distpath'] = './dist' # type: ignore
 block_cipher = None
 # CONF['workpath'] = './build'
 # TODO: test on MAC OSX
-data_files = [('Music Caster.VisualElementsManifest.xml', '.'), ('../CHANGELOG.txt', '.')]
+data_files = [('../CHANGELOG.txt', '.')]
 a = Analysis([f'{os.getcwd()}/src/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
