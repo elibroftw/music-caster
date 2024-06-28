@@ -6,10 +6,11 @@ from itertools import islice
 import threading
 import time
 import os
+from base64 import b64decode
 
 
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
-    from b64_images import FILLED_ICON, UNFILLED_ICON, b64decode
+    from b64_images import FILLED_ICON, UNFILLED_ICON
 
     if platform.system() == 'Linux':
         os.environ['PYSTRAY_BACKEND'] = 'appindicator'
@@ -29,13 +30,13 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
                 )
             )
         for element in lst:
-            if type(element) == list:
+            if isinstance(element, list):
                 items.append(
                     pystray.MenuItem(
                         element[0], create_menu(islice(element, 1, None), root=False)
                     )
                 )
-            elif type(element) == tuple and len(element) == 2:
+            elif isinstance(element, tuple) and len(element) == 2:
                 element, key = element
                 items.append(pystray.MenuItem(element, get_tray_action(element, key)))
             else:

@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.19.13
+- [Fix] Code cleanup
+- [Fix] Sort Library by artist by default (don't know why I took so many years to do this)
+
 5.19.12
 - [Fix] Local playback scrubbing
 

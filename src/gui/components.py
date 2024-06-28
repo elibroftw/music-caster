@@ -1,9 +1,10 @@
-import PySimpleGUI as Sg
-import io
-from meta import FONT_NORMAL, State
 import base64
-from PIL import Image, ImageDraw
+import io
+
 import pyqrcode
+import PySimpleGUI as Sg
+from meta import FONT_NORMAL, State
+from PIL import Image, ImageDraw
 
 
 def StyledButton(button_text, fill, text_color, tooltip=None, key=None, visible=True,
@@ -22,7 +23,7 @@ def StyledButton(button_text, fill, text_color, tooltip=None, key=None, visible=
     d.ellipse((btn_w - radius * 2 - 1, y0, btn_w - 1, height), fill=fill)
     d.rectangle((x0 + radius, y0, btn_w - radius, height), fill=fill)
     data = io.BytesIO()
-    btn_img.thumbnail((btn_w // 3, height // 3), resample=Image.LANCZOS)
+    btn_img.thumbnail((btn_w // 3, height // 3), resample=Image.Resampling.LANCZOS)
     btn_img.save(data, format='png', quality=100)
     btn_img = base64.b64encode(data.getvalue())
     return Sg.Button(button_text=button_text, image_data=btn_img, button_color=(text_color, text_color),

@@ -1,69 +1,71 @@
 # flake8: noqa: E402
 import audioop
 import base64
-from contextlib import suppress
 import ctypes
-from deezer import TrackFormats
-from functools import wraps, lru_cache
 import glob
 import io
-from itertools import cycle, repeat, chain
 import locale
 import logging
-from math import floor
 import os
-from pathlib import Path
 import platform
-from queue import LifoQueue, Empty
-from random import getrandbits
 import re
+import shutil
 import socket
-import sys
 import subprocess
-from subprocess import Popen, PIPE, DEVNULL, check_output, CalledProcessError
-from threading import Thread
+import sys
+import tarfile
+import tempfile
 import time
 import unicodedata
-from urllib.parse import urlparse, parse_qs, urlencode
+import webbrowser
+from base64 import b64decode, b64encode
+from contextlib import suppress
+from functools import lru_cache, wraps
+from itertools import chain, cycle, repeat
+from math import floor
+from pathlib import Path
+from queue import Empty, LifoQueue
+from random import getrandbits
+from subprocess import DEVNULL, PIPE, CalledProcessError, Popen, check_output
+from threading import Thread
+from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import getnode
-import tempfile
 from zipfile import ZipFile
-import tarfile
-import shutil
-# local imports
-from b64_images import *
-from base64 import b64encode, b64decode
+
 # 3rd party imports
 import deemix.utils.localpaths as __lp
-import webbrowser
+
+# local imports
+from b64_images import DEFAULT_ART, REPEAT_ALL_IMG, REPEAT_OFF_IMG, REPEAT_ONE_IMG
+from deezer import TrackFormats
+
 __lp.musicdata = '/dz'
 import mutagen
-from mutagen._util import MutagenError
 import mutagen._file
-from mutagen.aac import AAC
-from mutagen.oggopus import OggOpus
-from mutagen.oggvorbis import OggVorbis
 import mutagen.flac
 import mutagen.id3
-from mutagen.id3._util import ID3NoHeaderError
-from mutagen.mp3 import HeaderNotFoundError, EasyMP3, MP3
-from mutagen.mp4 import MP4, MP4Cover
-from mutagen.wave import WAVE
 import pyaudio
-from pychromecast import CastInfo
 import pypresence
-from PIL import Image, ImageFile, ImageDraw, ImageFont, UnidentifiedImageError
 import requests
-from wavinfo import WavInfoReader, WavInfoEOFError  # until mutagen supports .wav
-from youtube_comment_downloader import YoutubeCommentDownloader, SORT_BY_POPULAR
-from meta import *
-from meta import AUDIO_HANDLER_EXTS
-
+from meta import AUDIO_EXTS, AUDIO_HANDLER_EXTS, COVER_NORMAL, USER_AGENT, State
+from mutagen._util import MutagenError
+from mutagen.aac import AAC
+from mutagen.id3._util import ID3NoHeaderError
+from mutagen.mp3 import MP3, EasyMP3, HeaderNotFoundError
+from mutagen.mp4 import MP4, MP4Cover
+from mutagen.oggopus import OggOpus
+from mutagen.oggvorbis import OggVorbis
+from mutagen.wave import WAVE
+from PIL import Image, ImageDraw, ImageFile, ImageFont, UnidentifiedImageError
+from pychromecast import CastInfo
+from wavinfo import WavInfoEOFError, WavInfoReader  # until mutagen supports .wav
+from youtube_comment_downloader import SORT_BY_POPULAR, YoutubeCommentDownloader
 
 # CONSTANTS
 IS_FROZEN = getattr(sys, 'frozen', False)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 yt_comment_downloader = YoutubeCommentDownloader()
+SPOTIFY_API = 'https://api.spotify.com/v1'
 # for stealing focus when bring window to front
 
 class SystemAudioRecorder:
@@ -81,7 +83,8 @@ class SystemAudioRecorder:
         self.data_stream = LifoQueue()
 
     def get_audio_data(self, delay=0):
-        if not self.alive: return  # ensure that start() was called
+        if not self.alive:
+            return  # ensure that start() was called
         silent_wav = b'\x00' * self.STREAM_CHUNK
         yield self.get_wav_header()
         yield silent_wav * delay * 1000
@@ -109,7 +112,8 @@ class SystemAudioRecorder:
                 yield silent_wav
 
     def _start_recording(self):
-        if self.alive: return
+        if self.alive:
+            return
         self.alive = True
         selected_device = get_default_output_device()
         stream = self.create_stream(selected_device)
@@ -157,14 +161,16 @@ class SystemAudioRecorder:
     def start(self):
         if platform.system() == 'Windows':
             if not self.alive:
-                if self.pa is None: self.pa = pyaudio.PyAudio()
+                if self.pa is None:
+                    self.pa = pyaudio.PyAudio()
                 # initialization process takes ~0.2 seconds
                 Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
         else:
             print('TODO: SystemAudioRecorder')
 
 
-class InvalidAudioFile(Exception): pass
+class InvalidAudioFile(Exception):
+    pass
 
 
 class Unknown(str):
@@ -389,7 +395,8 @@ def get_translation(string, lang='', as_title=False):
     :return: string translated to display language """
     with suppress(IndexError, KeyError, FileNotFoundError):
         string = get_lang_pack(lang or get_display_lang())[get_lang_pack('en')[string]]
-    if as_title: string = ' '.join(word[0].upper() + word[1:] for word in string.split())
+    if as_title:
+        string = ' '.join(word[0].upper() + word[1:] for word in string.split())
     return string
 
 
@@ -512,9 +519,12 @@ def set_metadata(file_path: str, metadata: dict):
             audio.pop('APIC:', None)
             audio.pop('metadata_block_picture', None)
     else:  # FLAC?
-        if title: audio['TITLE'] = title # type: ignore
-        if artists: audio['ARTIST'] = artists # type: ignore
-        if album: audio['ALBUM'] = album # type: ignore
+        if title:
+            audio['TITLE'] = title # type: ignore
+        if artists:
+            audio['ARTIST'] = artists # type: ignore
+        if album:
+            audio['ALBUM'] = album # type: ignore
         audio['TRACKNUMBER'] = track_number  # type: ignore
         audio['TRACKTOTAL'] = track_place.split('/')[1]  # type: ignore
         audio['ITUNESADVISORY'] = rating  # type: ignore
@@ -599,9 +609,12 @@ def get_metadata(file_path: str):
             except AttributeError:
                 audio['artist'] = [unknown_artist]
         artist = ', '.join(audio['artist'])
-    if not title: title = unknown_title
-    if not artist: artist = unknown_artist
-    if not album: album = unknown_album
+    if not title:
+        title = unknown_title
+    if not artist:
+        artist = unknown_artist
+    if not album:
+        album = unknown_album
     if title == unknown_title or artist == unknown_artist:
         # if title or artist are unknown, use the basename of the URI (excluding extension)
         sort_key = get_file_name(file_path)
@@ -636,7 +649,8 @@ def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime
         audio = mutagen.File(file_path)
         if isinstance(audio, mutagen.flac.FLAC):
             pics = mutagen.flac.FLAC(file_path).pictures
-            with suppress(IndexError): return pics[0].mime, base64.b64encode(pics[0].data).decode()
+            with suppress(IndexError):
+                return pics[0].mime, base64.b64encode(pics[0].data).decode()
         elif isinstance(audio, MP4):
             with suppress(KeyError, IndexError):
                 cover = audio['covr'][0]
@@ -769,15 +783,20 @@ def ydl_extract_info(url, quiet=False):
 @lru_cache(maxsize=1)
 def get_yt_id(url, ignore_playlist=False):
     query = urlparse(url)
-    if query.hostname == 'youtu.be': return query.path[1:]
+    if query.hostname == 'youtu.be':
+        return query.path[1:]
     if query.hostname in {'www.youtube.com', 'youtube.com', 'music.youtube.com'}:
         if not ignore_playlist:
             with suppress(KeyError):
                 return parse_qs(query.query)['list'][0]
-        if query.path == '/watch': return parse_qs(query.query)['v'][0]
-        if query.path[:7] == '/watch/': return query.path.split('/')[2]
-        if query.path[:7] == '/embed/': return query.path.split('/')[2]
-        if query.path[:3] == '/v/': return query.path.split('/')[2]
+        if query.path == '/watch':
+            return parse_qs(query.query)['v'][0]
+        if query.path[:7] == '/watch/':
+            return query.path.split('/')[2]
+        if query.path[:7] == '/embed/':
+            return query.path.split('/')[2]
+        if query.path[:3] == '/v/':
+            return query.path.split('/')[2]
 
 
 def get_yt_urls(video_id):
@@ -804,8 +823,10 @@ def delete_sub_key(root, current_key):
             info_key = wr.QueryInfoKey(parent_key)
             for x in range(info_key[0]):
                 sub_key = wr.EnumKey(parent_key, x)
-                try: wr.DeleteKeyEx(parent_key, sub_key, access)
-                except OSError: delete_sub_key(root, '\\'.join([current_key, sub_key]))
+                try:
+                    wr.DeleteKeyEx(parent_key, sub_key, access)
+                except OSError:
+                    delete_sub_key(root, '\\'.join([current_key, sub_key]))
             wr.DeleteKeyEx(parent_key, '', access)
 
 
@@ -945,12 +966,12 @@ def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes
     w, h = art_img.size
     if w == h:
         # resize a square
-        img = art_img.resize(new_size, Image.LANCZOS)
+        img = art_img.resize(new_size, Image.Resampling.LANCZOS)
     else:
         # resize by shrinking the longest side to the new_size
         ratios = (1, h / w) if w > h else (w / h, 1)
         ratio_size = (round(new_size[0] * ratios[0]), round(new_size[1] * ratios[1]))
-        art_img = art_img.resize(ratio_size, Image.LANCZOS)
+        art_img = art_img.resize(ratio_size, Image.Resampling.LANCZOS)
         paste_width = (new_size[0] - ratio_size[0]) // 2
         paste_height = (new_size[1] - ratio_size[1]) // 2
         img = Image.new('RGB', new_size, color=bg)
@@ -982,7 +1003,8 @@ def parse_m3u(playlist_file):
             if not line.startswith('#'):
                 line = line.lstrip('file:').lstrip('/').rstrip()
                 # an m3u file cannot contain itself
-                if line != playlist_file: yield line
+                if line != playlist_file:
+                    yield line
 
 
 def get_latest_release(ver, this_version, force=False):
@@ -1009,7 +1031,9 @@ def get_latest_release(ver, this_version, force=False):
 
 @time_cache(600, maxsize=1)
 def get_proxies(add_local=True):
-    from bs4 import BeautifulSoup  # 0.32 seconds if at top level, here it is 0.1 seconds
+    from bs4 import (
+        BeautifulSoup,  # 0.32 seconds if at top level, here it is 0.1 seconds
+    )
     try:
         response = requests.get('https://free-proxy-list.net/', headers={'user-agent': USER_AGENT})
         scraped_proxies = set()
@@ -1031,7 +1055,8 @@ def get_proxies(add_local=True):
                     proxy += cell.text.replace('&nbsp;', '')
                     count += 1
         proxies: list = [None, None, None, None, None] if add_local else []
-        for proxy in sorted(scraped_proxies): proxies.extend(repeat(proxy, 3))
+        for proxy in sorted(scraped_proxies):
+            proxies.extend(repeat(proxy, 3))
     except (requests.RequestException, AttributeError):
         return cycle([None])
     return cycle(proxies)
@@ -1048,6 +1073,20 @@ def get_spotify_headers():
     r = requests.get('https://open.spotify.com/', headers={'user-agent': USER_AGENT})
     access_token = re.search('"accessToken":"([^"]*)', r.text).group(1)
     return {'Authorization': f'Bearer {access_token}'}
+
+
+# TODO: main_event == 'metadata_search_art' and gui_window['metadata_file'].get():
+def search_album_art_spotify(title, artist, mkt):
+    for mkt in {'MX', 'CA', 'US', 'UK', 'HK'}:
+        url = f'https://api.spotify.com/v1/search?q={title}'
+        if artist:
+            url += f'+artist:{artist}'
+        url += f'&type=track&market={mkt}'
+        r = requests.get(url, headers=get_spotify_headers()).json()
+        if 'tracks' in r:
+            for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
+                original_art = base64.b64encode(requests.get(art_link).content).decode()
+                return original_art
 
 
 def parse_spotify_track(track_obj, parent_url='') -> dict:
@@ -1123,8 +1162,9 @@ def get_cookies(domain_contains, cookie_name='', return_first=True, return_value
     """
     get_cookies('.youtube.com', '', False, False)
     """
-    import browser_cookie3 as bc3  # 0.388 seconds if on top level, 0.06 here
     import sqlite3
+
+    import browser_cookie3 as bc3  # 0.388 seconds if on top level, 0.06 here
     for cookie_storage in (bc3.chrome, bc3.firefox, bc3.opera, bc3.edge, bc3.chromium):
         cookies = []
         with suppress(bc3.BrowserCookieError, sqlite3.OperationalError):
@@ -1134,7 +1174,8 @@ def get_cookies(domain_contains, cookie_name='', return_first=True, return_value
                     formatted_cookie = f'{cookie.name}={cookie.value}'
                     if (not cookie_name or cookie.name == cookie_name) and not cookie.is_expired():
                         cookie_to_use = cookie.value if return_value else formatted_cookie
-                        if return_first: return cookie_to_use
+                        if return_first:
+                            return cookie_to_use
                         cookies.append(cookie_to_use)
         if cookies:
             return 'Cookie: ' + '; '.join(cookies)
@@ -1176,7 +1217,8 @@ def parse_deezer_track(track_obj) -> dict:
             if added_artist in artist:
                 include = False
                 break
-        if include: artists.append(artist)
+        if include:
+            artists.append(artist)
     artist_str = ', '.join(artists)
     art = f"https://cdns-images.dzcdn.net/images/cover/{track_obj['ALB_PICTURE']}/1000x1000-000000-80-0-0.jpg"
     title, album = track_obj['SNG_TITLE'], track_obj['ALB_TITLE']
@@ -1306,13 +1348,15 @@ def get_video_timestamps(video_info):
         return sorted(times)
     # try parsing description
     description_timestamps = timestamp_to_time(video_info['description'])
-    if len(description_timestamps) > 1: return description_timestamps
+    if len(description_timestamps) > 1:
+        return description_timestamps
     # try parsing comments
     url = video_info['webpage_url']
     with suppress(ValueError, RuntimeError):
         for count, comment in enumerate(get_youtube_comments(url, limit=10)):
             times = timestamp_to_time(comment['text'])
-            if len(times) > 2: return times
+            if len(times) > 2:
+                return times
     return []
 
 # GUI utilitiies
@@ -1329,12 +1373,14 @@ def create_progress_bar_texts(position, length):
     """":return: time_elapsed_text, time_left_text"""
     position = floor(position)
     mins_elapsed, secs_elapsed = floor(position / 60), floor(position % 60)
-    if secs_elapsed < 10: secs_elapsed = f'0{secs_elapsed}'
+    if secs_elapsed < 10:
+        secs_elapsed = f'0{secs_elapsed}'
     elapsed_text = f'{mins_elapsed}:{secs_elapsed}'
     try:
         time_left = round(length) - position
         mins_left, secs_left = time_left // 60, time_left % 60
-        if secs_left < 10: secs_left = f'0{secs_left}'
+        if secs_left < 10:
+            secs_left = f'0{secs_left}'
         time_left_text = f'{mins_left}:{secs_left}'
     except TypeError:
         time_left_text = '∞'
@@ -1373,11 +1419,14 @@ def get_cut_text(window, key):
     # fix for weird GUI cut/copy behaviour
     cut_text = ''
     new_text = window[key].get()
-    if not new_text: return window.metadata[key]
+    if not new_text:
+        return window.metadata[key]
     i = 0
     for v in window.metadata[key]:
-        if i >= len(new_text) or v != new_text[i]: cut_text += v
-        else: i += 1
+        if i >= len(new_text) or v != new_text[i]:
+            cut_text += v
+        else:
+            i += 1
     return cut_text
 
 
@@ -1399,7 +1448,7 @@ def start_on_login_win32(working_dir, create_key=True, is_debug=True):
 
 def rm_old_startup_shortcuts():
     if platform.system() == 'Windows':
-        from knownpaths import sh_get_known_folder_path, FOLDERID
+        from knownpaths import FOLDERID, sh_get_known_folder_path
         startup_dir = sh_get_known_folder_path(FOLDERID.Startup)
         shortcut_paths = (f"{startup_dir}\\{item}.lnk" for item in ('Music Caster', 'Music Caster (Python)', 'Music Caster  [DEBUG]'))
         for shortcut_path in shortcut_paths:

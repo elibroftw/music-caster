@@ -1,16 +1,60 @@
-from datetime import datetime
 import platform
 import time
+from datetime import datetime
 from math import ceil, floor
 
 import PySimpleGUI as Sg
-
-from b64_images import *
-from gui.components import Checkbox, IconButton, StyledButton, QRCode
-from meta import (CONTACT_INFO, COVER_NORMAL, FONT_LINK, FONT_MED, FONT_NORMAL, PlayingStatus,
-                  FONT_TAB, FONT_TITLE, LINK_COLOR, PL_COMBO_W, VERSION, State)
+from b64_images import (
+    CLEAR_QUEUE,
+    COPY_ICON,
+    DELETE_ICON,
+    DOWN_ICON,
+    EDIT_ICON,
+    EXPORT_PL,
+    LOCATE_FILE,
+    NEXT_BUTTON_IMG,
+    PAUSE_BUTTON_IMG,
+    PLAY_BUTTON_IMG,
+    PLAY_ICON,
+    PLAY_NEXT_ICON,
+    PLUS_ICON,
+    PREVIOUS_BUTTON_IMG,
+    QUEUE_ICON,
+    RESTORE_WINDOW,
+    SAVE_IMG,
+    SHUFFLE_OFF,
+    SHUFFLE_ON,
+    UP_ICON,
+    VOLUME_IMG,
+    VOLUME_MUTED_IMG,
+    X_ICON,
+)
+from meta import (
+    CONTACT_INFO,
+    COVER_NORMAL,
+    FONT_LINK,
+    FONT_MED,
+    FONT_NORMAL,
+    FONT_TAB,
+    FONT_TITLE,
+    LINK_COLOR,
+    PL_COMBO_W,
+    VERSION,
+    PlayingStatus,
+    State,
+)
 from modules.resolution_switcher import fmt_res, get_all_resolutions
-from utils import Device, get_languages, t, truncate_title, repeat_img_tooltip, get_first_artist, create_progress_bar_texts
+from utils import (
+    Device,
+    create_progress_bar_texts,
+    get_first_artist,
+    get_languages,
+    repeat_img_tooltip,
+    t,
+    truncate_title,
+)
+
+from gui.components import Checkbox, IconButton, QRCode, StyledButton
 
 
 def MiniPlayerWindow(playing_status, settings, title: str, artist: str, album_art_data: bytes,
@@ -74,7 +118,8 @@ def MainWindow(playing_status, settings, title: str, artist: str, album: str, al
     tabs_part = Sg.TabGroup(tab_group, font=FONT_TAB, border_width=0, title_color=text_color, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=background_color, selected_title_color=background_color, background_color=background_color)
-    if vertical_gui: return [[main_part], [tabs_part]]
+    if vertical_gui:
+        return [[main_part], [tabs_part]]
     return [[main_part, tabs_part]] if settings['flip_main_window'] else [[tabs_part, main_part]]
 
 
