@@ -1,62 +1,59 @@
-from meta import VERSION
+import io
+import os
+import platform
+import time
+from base64 import b64decode
+from contextlib import suppress
+from itertools import chain
+from pathlib import Path
+
+import pytest
+from b64_images import DEFAULT_ART
+from meta import COVER_MINI, COVER_NORMAL, VERSION
+from mutagen._util import MutagenError
+from PIL import Image
 from shared import get_running_processes, is_already_running
 from utils import (
-    get_file_name,
-    State,
-    get_lang_pack,
-    get_display_lang,
-    get_languages,
-    get_proxy,
-    get_translation,
-    Unknown,
-    get_audio_length,
-    InvalidAudioFile,
-    valid_audio_file,
-    natural_key_file,
-    fix_path,
-    get_deezer_tracks,
-    get_spotify_tracks,
-    ydl_extract_info,
-    get_latest_release,
-    get_youtube_comments,
-    parse_m3u,
-    export_playlist,
-    DEFAULT_ART,
-    resize_img,
-    COVER_MINI,
-    COVER_NORMAL,
-    SystemAudioRecorder,
-    get_default_output_device,
-    t,
-    repeat_img_tooltip,
     REPEAT_ALL_IMG,
     REPEAT_OFF_IMG,
     REPEAT_ONE_IMG,
+    InvalidAudioFile,
+    State,
+    SystemAudioRecorder,
+    Unknown,
+    better_shuffle,
+    create_progress_bar_texts,
     custom_art,
-    get_yt_id,
+    export_playlist,
+    fix_path,
     get_album_art,
-    get_mac,
-    get_metadata,
+    get_audio_length,
+    get_deezer_tracks,
+    get_default_output_device,
+    get_display_lang,
+    get_file_name,
     get_first_artist,
     get_ipv4,
     get_ipv6,
-    better_shuffle,
-    create_progress_bar_texts,
+    get_lang_pack,
+    get_languages,
+    get_latest_release,
+    get_mac,
+    get_metadata,
+    get_proxy,
+    get_spotify_tracks,
+    get_translation,
+    get_youtube_comments,
+    get_yt_id,
+    natural_key_file,
+    parse_m3u,
+    repeat_img_tooltip,
+    resize_img,
+    t,
+    valid_audio_file,
     valid_color_code,
+    ydl_extract_info,
 )
-from itertools import chain
-from base64 import b64decode
-from mutagen import MutagenError
-import io
-from PIL import Image
-from pathlib import Path
-import argparse
-from contextlib import suppress
-import os
-import platform
-import pytest
-import time
-
 
 MUSIC_FILE_WITH_ALBUM_ART = (
     r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3'
