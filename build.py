@@ -369,7 +369,7 @@ if __name__ == '__main__':
     if args.ver_update:
         sys.exit()
     install_to_user = '' if IS_VENV else '--user'
-    pip_cmd = f'"{sys.executable}" -m pip install --upgrade {install_to_user} -r "{REQUIREMENTS_FILE}" -r "{REQUIREMENTS_DEV_FILE}"'
+    pip_cmd = f'"{sys.executable}" -m pip install --upgrade {install_to_user} --upgrade-strategy eager -r "{REQUIREMENTS_FILE}" -r "{REQUIREMENTS_DEV_FILE}"'
     if args.deps or (not args.skip_build and not args.skip_deps):
         print('Installing and/or upgrading dependencies...')
         if platform.system() == 'Windows':
