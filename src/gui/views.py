@@ -440,10 +440,10 @@ def SettingsTab(settings, web_ui_url):
 def VideoTab(devices):
     select_files = t('Select Files')
     layout = [
-        [Sg.Combo(devices, key='video_cast_device', readonly=True, background_color=GuiContext.bg, expand_x=True, enable_events=True, pad=((5, 10), 10))]
+        [Sg.Text('Warning this is highly experimental and might not even work')],
+        [Sg.Combo(devices, key='video_cast_device', readonly=True, background_color=GuiContext.bg, expand_x=True, enable_events=True, pad=((5, 10), 10))],
         [StyledButton(select_files, GuiContext.accent_color, GuiContext.bg, key='video_select_file',
                   button_width=len(select_files), pad=(5, (7, 5)))],
         [Sg.Text('To shorten the time I spent programming this feature: playback will begin immediately upon file selection, use the google home app for scrubbing and volume adjustment, and this text will not be translated')],
-        [Sg.Text('Burnout is real which is why I put low effort into this feature and marked it as experimental 😳')]
     ]
     return Sg.Tab(t('Video'), layout)

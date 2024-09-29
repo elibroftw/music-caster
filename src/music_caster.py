@@ -2101,6 +2101,7 @@ if __name__ == '__main__':
                     with suppress(RequestTimeout):
                         cast.set_volume(volume)
                 mc = cast.media_controller
+                # https://developers.google.com/cast/docs/reference/web_receiver/cast.framework.messages#.MetadataType
                 metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
                             'albumName': str(metadata['album']), 'metadataType': 3}
                 ext = uri.split('.')[-1]
@@ -2270,7 +2271,7 @@ if __name__ == '__main__':
             Thread(target=play_all, kwargs={'queue_only': True}, daemon=True, name='PlayAll').start()
 
 
-    def open_dialog(title, for_dir=False, filetypes=None):
+    def open_dialog(title, for_dir=False, filetypes=None, single_file=False):
         if settings['use_last_folder']:
             prev_folder = initial_folder = settings['last_folder']
             while not os.path.exists(initial_folder):
@@ -2286,6 +2287,9 @@ if __name__ == '__main__':
             _root.iconbitmap(WINDOW_ICON)
         if for_dir:
             paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
+        elif single_file:
+            paths = [fd.askopenfilename(title=title, parent=_root, initialdir=initial_folder,
+                                        filetypes=filetypes)]
         else:
             paths = fd.askopenfilenames(title=title, parent=_root, initialdir=initial_folder,
                                         filetypes=filetypes)
@@ -2316,8 +2320,19 @@ if __name__ == '__main__':
 
 
     def video_file_action():
-        paths = open_dialog(t('Select Video Files'), filetypes=AUDIO_FILE_TYPES)
-        # TODO:
+        path = open_dialog(t('Select Video Files'), filetypes=AUDIO_FILE_TYPES, single_file=True)[0]
+        device_id = gui_window['devices'].get().id
+        url_args = urllib.parse.urlencode({'path': path, 'api_key': settings['api_key']})
+        url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
+        video_device: Chromecast = get_device(device_id)
+        video_device.wait(timeout=WAIT_TIMEOUT)
+        mc = cast.media_controller
+        # https://developers.google.com/cast/docs/reference/web_receiver/cast.framework.messages.MovieMediaMetadata
+        metadata = {'title': Path(path).stem, 'metadataType': 1}
+        ext = path.split('.')[-1]
+        mc.play_media(url, f'video/{ext}', metadata=metadata, autoplay=True)
+        mc.block_until_active(WAIT_TIMEOUT)
+
 
     def folder_action(action='pf'):
         """
@@ -3651,7 +3666,6 @@ if __name__ == '__main__':
         # video tab
         elif main_event == 'video_select_file':
             Thread(target=video_file_action(), name='VideoFileAction', daemon=True).start()
-            pass
         # timer tab
         elif main_event == 'cancel_timer':
             gui_window['timer_text'].update(t('No Timer Set'))
