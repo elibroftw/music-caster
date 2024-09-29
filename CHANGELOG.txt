@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.20.0
+- [Fix] Getting local IP address for casting
+
 5.19.13
 - [Fix] Code cleanup
 - [Fix] Sort Library by artist by default (don't know why I took so many years to do this)
