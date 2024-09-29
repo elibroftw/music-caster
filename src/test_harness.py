@@ -1,17 +1,19 @@
-import io
-import os
-import platform
-import time
 from base64 import b64decode
 from contextlib import suppress
+import io
 from itertools import chain
+import os
+import platform
 from pathlib import Path
+import sys
+import time
 
-import pytest
-from b64_images import DEFAULT_ART
-from meta import COVER_MINI, COVER_NORMAL, VERSION
 from mutagen._util import MutagenError
 from PIL import Image
+import pytest
+
+from b64_images import DEFAULT_ART
+from meta import COVER_MINI, COVER_NORMAL, VERSION
 from shared import get_running_processes, is_already_running
 from utils import (
     IPV4_GENERAL_PATTERN,
@@ -587,7 +589,9 @@ def test_deezer(url):
             assert isinstance(metadata['expiry'], (int, float))
             assert metadata['url']
 
+is_ci = len(sys.argv) >= 3 and sys.argv[2] == '--ci'
 
+@pytest.mark.skipif(is_ci, reason='running in CI which may have blocked IP addresses')
 @pytest.mark.parametrize(
     'url',
     ('https://www.youtube.com/watch?v=PNP0hku7hSo', 'https://youtu.be/5XADIh_mJM4'),
