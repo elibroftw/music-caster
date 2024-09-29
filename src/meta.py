@@ -52,6 +52,7 @@ IMG_FILE_TYPES = (
     ('Image', '*.gif *.pdf *.png *jpg *jpeg *.tiff *.webp *.' + ' *.'.join(AUDIO_EXTS)),
 )
 AUDIO_FILE_TYPES = (('Audio File', '*.' + ' *.'.join(AUDIO_EXTS) + ' *.m3u *.m3u8'),)
+VIDEO_FILE_TYPES = (('Media Container File', '*.' + ' *.'.join(('mp2t', 'mp3', 'mp4', 'ogg', 'wav', 'webm'))))
 # re-define AUDIO_EXTS
 AUDIO_EXTS = {f'.{ext}' for ext in AUDIO_EXTS}
 AUDIO_EXTS.add('.m3u')

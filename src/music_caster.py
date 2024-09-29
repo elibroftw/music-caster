@@ -2311,6 +2311,10 @@ if __name__ == '__main__':
             gui_window.metadata['last_event'] = 'file_action'
 
 
+    def video_file_action():
+        paths = open_dialog(t('Select Video Files'), filetypes=AUDIO_FILE_TYPES)
+        # TODO:
+
     def folder_action(action='pf'):
         """
         :param action: one of {'pf': 'Play Folder', 'qf': 'Queue Folder', 'pfn': 'Play Folder Next'}
@@ -3640,6 +3644,10 @@ if __name__ == '__main__':
                 uris_to_scan.put(inserted_url)
             gui_window['url_input'].set_focus()
             gui_window.metadata['update_listboxes'] = True
+        # video tab
+        elif main_event == 'video_select_file':
+            Thread(target=video_file_action(), name='VideoFileAction', daemon=True).start()
+            pass
         # timer tab
         elif main_event == 'cancel_timer':
             gui_window['timer_text'].update(t('No Timer Set'))
@@ -3903,7 +3911,6 @@ if __name__ == '__main__':
                     gui_window['metadata_msg'].update(value=error, text_color='red')
                 gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
                 gui_window['title'].update(' ' + gui_window['title'].DisplayText + ' ')  # try updating now playing
-
         elif main_event == 'exit_program':
             exit_program()
         # other GUI updates

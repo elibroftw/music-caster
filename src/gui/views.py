@@ -91,7 +91,7 @@ def MainWindow(playing_status, settings, title: str, artist: str, album: str, al
     combo_devices = [Sg.Combo(devices, key='devices', readonly=True, background_color=background_color, expand_x=True,
                               default_value=default_device, enable_events=True, pad=((5, 10), 10))]
     left_pad = settings['vertical_gui'] * 95 + 5
-    main_part = Sg.Column([
+    playing_section = Sg.Column([
         [Sg.Image(data=album_art_data, pad=(0, 0), size=COVER_NORMAL, key='artwork')] if album_art_data else [],
         [Sg.Text(album, font=FONT_MED, key='album', pad=((0, 0), (info_top_pad, 0)), enable_events=True,
                  size=(30, 2), justification='center')],
@@ -103,10 +103,15 @@ def MainWindow(playing_status, settings, title: str, artist: str, album: str, al
         pad=((left_pad, 5), 5 * vertical_gui))
 
     LISTBOX_HEIGHT = 21 - 7 * (vertical_gui or not show_album_art)
-
-    tab_group = [[
+    # do not allow casting to a music device
+    video_devices = list(filter(lambda device: device.id != settings['device'] or playing_status == PlayingStatus.NOT_PLAYING, devices))
+    tabs = [
         QueueTab(queue, listbox_selected, LISTBOX_HEIGHT, accent_color, text_color, background_color),
         URLTab(accent_color, background_color),
+    ]
+    if settings['experimental_features']:
+        tabs.append(VideoTab(accent_color, background_color, video_devices))
+    tabs.extend((
         LibraryTab(music_lib, LISTBOX_HEIGHT, accent_color, text_color, background_color, alternate_bg, vertical_gui, show_album_art),
         PlaylistsTab(settings['playlists'], accent_color, text_color,
                      background_color, vertical_gui, show_album_art),
@@ -114,13 +119,13 @@ def MainWindow(playing_status, settings, title: str, artist: str, album: str, al
                  settings['timer_shut_down'], settings['timer_hibernate'], settings['timer_sleep']),
         MetadataTab(accent_color, background_color),
         SettingsTab(settings, web_ui_url)
-    ]]
-    tabs_part = Sg.TabGroup(tab_group, font=FONT_TAB, border_width=0, title_color=text_color, key='tab_group',
+    ))
+    tabs_section = Sg.TabGroup([tabs], font=FONT_TAB, border_width=0, title_color=text_color, key='tab_group',
                             selected_background_color=accent_color, enable_events=True,
                             tab_background_color=background_color, selected_title_color=background_color, background_color=background_color)
     if vertical_gui:
-        return [[main_part], [tabs_part]]
-    return [[main_part, tabs_part]] if settings['flip_main_window'] else [[tabs_part, main_part]]
+        return [[playing_section], [tabs_section]]
+    return [[playing_section, tabs_section]] if settings['flip_main_window'] else [[tabs_section, playing_section]]
 
 
 def MusicControls(settings, playing_status: PlayingStatus, prev_button_pad=None):
@@ -417,3 +422,15 @@ def SettingsTab(settings, web_ui_url):
              [IconButton(X_ICON, 'remove_music_folder', t('remove selected folder'), bg)],
              [IconButton(PLUS_ICON, 'add_music_folder', t('add folder'), bg)]])]]
     return Sg.Tab(t('Settings'), layout, key='tab_settings')
+
+
+def VideoTab(accent_color, background_color, devices):
+    select_files = t('Select Files')
+    layout = [
+        [Sg.Combo(devices, key='video_cast_device', readonly=True, background_color=background_color, expand_x=True, enable_events=True, pad=((5, 10), 10))]
+        [StyledButton(select_files, accent_color, background_color, key='video_select_file',
+                  button_width=len(select_files), pad=(5, (7, 5)))],
+        [Sg.Text('To shorten the time I spent programming this feature: playback will begin immediately upon file selection, use the google home app for scrubbing and volume adjustment, and this text will not be translated')],
+        [Sg.Text('Burnout is real which is why I put low effort into this feature and marked it as experimental 😳')]
+    ]
+    return Sg.Tab(t('Video'), layout)
