@@ -1,3 +1,4 @@
+comtypes; sys_platform == 'win32'
 wheel
 build_files/PyAudio-0.2.14-cp312-cp312-win_amd64.whl; sys_platform == 'win32'
 pyaudio; sys_platform == 'darwin'

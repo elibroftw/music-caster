@@ -703,11 +703,22 @@ def get_ipv6():
 IPV4_WIFI_PATTERN = re.compile(r'Wireless LAN adapter Wi-Fi:((.|\n)*?)?\s+IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
 IPV4_GENERAL_PATTERN = re.compile(r'IPv4 Address.*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
 
+
+def clean_ipconfig(ipconfig_raw):
+    # TODO: there is a way to optimise this and return a single IP, but that requires matching each description
+    ipconfig_output_split = ipconfig_raw.split('\n\n')[1:]
+    filtered_output = ''
+    for i in range(len(ipconfig_output_split) // 2):
+        if 'WSL' not in ipconfig_output_split[i * 2] and 'Hyper-V' not in ipconfig_output_split[i * 2 + 1]:
+            filtered_output += ipconfig_output_split[i * 2] + ipconfig_output_split[i * 2 + 1]
+    return filtered_output
+
+
 def get_ipv4():
     try:
         if platform.system() != 'Windows':
             raise FileNotFoundError
-        ipconfig_output = check_output(['ipconfig'], shell=True, text=True, encoding='iso8859-2')
+        ipconfig_output = clean_ipconfig(check_output(['ipconfig'], shell=True, text=True, encoding='iso8859-2'))
         wifi_match = IPV4_WIFI_PATTERN.findall(ipconfig_output)
         if wifi_match:
             return wifi_match[-1][-1]
