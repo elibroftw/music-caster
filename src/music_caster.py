@@ -1,4 +1,5 @@
 # flake8: noqa: E402
+from gui.views import GuiContext
 from meta import (
     State,
     SUN_VALLEY_TCL,
@@ -857,6 +858,9 @@ if __name__ == '__main__':
             State.lang = settings['lang']
             State.track_format = settings['track_format']
             fg, bg, accent = theme['text'], theme['background'], theme['accent']
+
+            GuiContext.update(fg, bg, accent, settings['experimental_features'])
+
             Sg.set_options(text_color=fg, element_text_color=fg, input_text_color=fg,
                            button_color=(bg, accent), element_background_color=bg, scrollbar_color=bg,
                            text_element_background_color=bg, background_color=bg,
