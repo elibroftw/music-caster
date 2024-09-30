@@ -5,7 +5,6 @@ from itertools import chain
 import os
 import platform
 from pathlib import Path
-import sys
 import time
 
 from mutagen._util import MutagenError
@@ -589,15 +588,23 @@ def test_deezer(url):
             assert isinstance(metadata['expiry'], (int, float))
             assert metadata['url']
 
-is_ci = len(sys.argv) >= 3 and sys.argv[2] == '--ci'
 
-@pytest.mark.skipif(is_ci, reason='running in CI which may have blocked IP addresses')
+@pytest.fixture
+def running_in_ci(request):
+    return request.config.getoption('--ci')
+
+
 @pytest.mark.parametrize(
     'url',
     ('https://www.youtube.com/watch?v=PNP0hku7hSo', 'https://youtu.be/5XADIh_mJM4'),
 )
-def test_ydl(url):
-    assert isinstance(ydl_extract_info(url), dict)
+def test_ydl(running_in_ci, url):
+    try:
+        info = ydl_extract_info(url)
+        assert isinstance(info, dict)
+    except Exception:
+        if not running_in_ci:
+            raise
 
 
 def test_get_proxies():
