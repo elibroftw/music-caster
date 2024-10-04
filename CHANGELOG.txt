@@ -1,5 +1,8 @@
 Music Caster by Elijah Lopez Changelog
 
+5.20.1
+- [Fix] Getting local IP address for casting
+
 5.20.0
 - [Fix] Getting local IP address for casting
 

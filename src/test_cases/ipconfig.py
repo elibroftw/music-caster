@@ -45,7 +45,7 @@ Ethernet adapter Bluetooth Network Connection:
    Media State . . . . . . . . . . . : Media disconnected
    Connection-specific DNS Suffix  . :
 '''
-IPCONFIG_ERICCHAN1989 = '''
+IPCONFIG_ERICCHAN1989_ALL = '''
     Windows IP Configuration
 
 Unknown adapter NordLynx:
@@ -161,4 +161,70 @@ Default Gateway . . . . . . . . . :
 DHCPv6 IAID . . . . . . . . . . . : 838866269
 DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2E-2D-51-14-70-A6-CC-B2-9B-5C
 NetBIOS over Tcpip. . . . . . . . : Enabled
+'''
+
+IPCONFIG_ERICCHAN1989 = '''
+Windows IP Configuration
+
+
+Unknown adapter NordLynx:
+
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::e911:84b9:1c8:cded%55
+   IPv4 Address. . . . . . . . . . . : 10.5.0.2
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 0.0.0.0
+
+Ethernet adapter Ethernet:
+
+   Connection-specific DNS Suffix  . :
+   IPv4 Address. . . . . . . . . . . : 192.168.2.2
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 192.168.2.1
+
+Unknown adapter OpenVPN Data Channel Offload for NordVPN:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+
+Unknown adapter Local Area Connection:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+
+Wireless LAN adapter WiFi:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+
+Wireless LAN adapter Local Area Connection* 1:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+
+Wireless LAN adapter Local Area Connection* 10:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+
+Ethernet adapter Bluetooth Network Connection:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+
+Ethernet adapter vEthernet (Default Switch):
+
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::8593:9017:f01e:e94c%13
+   IPv4 Address. . . . . . . . . . . : 172.19.80.1
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . :
+
+Ethernet adapter vEthernet (WSL (Hyper-V firewall)):
+
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::b8db:cb1d:44eb:e56a%32
+   IPv4 Address. . . . . . . . . . . : 172.21.160.1
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . :
 '''

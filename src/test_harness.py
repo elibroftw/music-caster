@@ -14,7 +14,7 @@ import pytest
 from b64_images import DEFAULT_ART
 from meta import COVER_MINI, COVER_NORMAL, VERSION
 from shared import get_running_processes, is_already_running
-from test_cases.ipconfig import IPCONFIG_ELIBROFTW, IPCONFIG_ERICCHAN1989
+from test_cases.ipconfig import IPCONFIG_ELIBROFTW, IPCONFIG_ERICCHAN1989, IPCONFIG_ERICCHAN1989_ALL
 from utils import (
     IPV4_GENERAL_PATTERN,
     IPV4_WIFI_PATTERN,
@@ -373,9 +373,13 @@ def test_ipv4_wifi_match():
 
 
 def test_ipv4_general_match():
-    ipconfig_cleane = clean_ipconfig(IPCONFIG_ERICCHAN1989)
-    assert len(IPV4_WIFI_PATTERN.findall(ipconfig_cleane)) == 0
-    matches = IPV4_GENERAL_PATTERN.findall(ipconfig_cleane)
+    ipconfig_cleaned = clean_ipconfig(IPCONFIG_ERICCHAN1989_ALL)
+    assert len(IPV4_WIFI_PATTERN.findall(ipconfig_cleaned)) == 0
+    matches = IPV4_GENERAL_PATTERN.findall(ipconfig_cleaned)
+    assert matches[-1] == '192.168.2.2'
+    ipconfig_cleaned = clean_ipconfig(IPCONFIG_ERICCHAN1989)
+    assert len(IPV4_WIFI_PATTERN.findall(ipconfig_cleaned)) == 0
+    matches = IPV4_GENERAL_PATTERN.findall(ipconfig_cleaned)
     assert matches[-1] == '192.168.2.2'
 
 

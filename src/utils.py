@@ -709,7 +709,11 @@ def clean_ipconfig(ipconfig_raw):
     ipconfig_output_split = ipconfig_raw.split('\n\n')[1:]
     filtered_output = ''
     for i in range(len(ipconfig_output_split) // 2):
-        if 'WSL' not in ipconfig_output_split[i * 2] and 'Hyper-V' not in ipconfig_output_split[i * 2 + 1]:
+        if (
+            'WSL' not in ipconfig_output_split[i * 2]
+            and 'vEthernet' not in ipconfig_output_split[i * 2]
+            and 'Hyper-V' not in ipconfig_output_split[i * 2 + 1]
+        ):
             filtered_output += ipconfig_output_split[i * 2] + ipconfig_output_split[i * 2 + 1]
     return filtered_output
 
