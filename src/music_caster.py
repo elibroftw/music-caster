@@ -219,6 +219,7 @@ if __name__ == '__main__':
         startfile,
         custom_art,
         get_album_art,
+        get_lan_ip,
         get_metadata,
         Unknown,
         get_file_name,
