@@ -215,7 +215,7 @@ def QueueTab(queue, listbox_selected, listbox_height):
                   button_width=biggest_word),
         StyledButton(install_update_text, '#1f3139', '#b3edc9', outline='#1b583b', blend_color=GuiContext.bg, key='install_update',
                   button_width=biggest_word, visible=State.update_available and not State.installing_update),
-    ]], justification='center')]
+    ]], justification='left')]
     move_to_next_up = {'image_data': PLAY_NEXT_ICON, 'button_color': btn_color, 'tooltip': t('Move to next up')}
     listbox_controls = [
         [Sg.Button(key='mini_mode', image_data=RESTORE_WINDOW, button_color=btn_color, tooltip=t('Launch mini mode'))],
@@ -278,9 +278,9 @@ def PlaylistsTab(playlists, vertical_gui: bool, show_album_art: bool):
                   enable_events=True, default_value=default_pl_name, readonly=True)]]
     playlist_name = playlists_names[0] if playlists_names else ''
     pl_length_txt = [Sg.Text('', font=FONT_NORMAL, key='pl_length')]
-    add_tracks_btn = [StyledButton(t('Add files'), GuiContext.accent_color, GuiContext.bg, key='pl_add_tracks', button_width=13)]
-    url_input_btn = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True)]
-    add_url_btn = [StyledButton(t('Add URL'), GuiContext.accent_color, GuiContext.bg, key='pl_add_url', button_width=13)]
+    add_tracks_btn = [StyledButton(t('Add files'), GuiContext.accent_color, GuiContext.bg, key='pl_add_tracks', button_width=14)]
+    url_input_btn = [Sg.Input('', key='pl_url_input', size=(15, 1), font=FONT_NORMAL, border_width=1, enable_events=True, pad=(5, (20, 5)))]
+    add_url_btn = [StyledButton(t('Add URL'), GuiContext.accent_color, GuiContext.bg, key='pl_add_url', button_width=14)]
     pl_saved_txt = [Sg.Text(t('Playlist saved'), key='pl_saved', font=FONT_NORMAL, visible=False, text_color='green')]
     lb_height = 17 - 6 * (vertical_gui or not show_album_art)
     pl_name_text = t('Playlist name')
