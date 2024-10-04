@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.20.1'
+VERSION = latest_version = '5.20.2'
 UPDATE_MESSAGE = """
 [NEW] Update notifier (for real this time)
 [MSG] Language translators wanted

@@ -642,10 +642,10 @@ if __name__ == '__main__':
         body = '' if VERSION.endswith('.0') else old_release['body']
         body = add_new_changes(body)
         if any(Repo('.git').index.diff(None)):
-            if args.ci:
-                print('Warning: Changes detected.')
-                print(Repo('.git').index.diff(None))
-            else:
+            # possible if build.cmd -v wasn't run before
+            print('Warning: Changes detected.')
+            print(Repo('.git').index.diff(None))
+            if not args.ci:
                 input(
                     'Changed (not committed) files detected. Press enter to confirm upload.\n'
                 )

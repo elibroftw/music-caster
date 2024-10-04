@@ -214,7 +214,7 @@ def QueueTab(queue, listbox_selected, listbox_height):
         StyledButton(select_folder, GuiContext.accent_color, GuiContext.bg, key='select_folders',
                   button_width=biggest_word),
         StyledButton(install_update_text, '#1f3139', '#92c3a9', blend_color=GuiContext.bg, key='install_update',
-                  button_width=biggest_word, visible=True),
+                  button_width=biggest_word, visible=State.update_available and not State.installing_update),
     ]], justification='center')]
     move_to_next_up = {'image_data': PLAY_NEXT_ICON, 'button_color': btn_color, 'tooltip': t('Move to next up')}
     listbox_controls = [
