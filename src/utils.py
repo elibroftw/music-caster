@@ -27,7 +27,7 @@ from pathlib import Path
 from queue import Empty, LifoQueue
 from random import getrandbits
 from subprocess import DEVNULL, PIPE, CalledProcessError, Popen, check_output
-from threading import Thread
+from threading import Thread, Timer
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import getnode
 from zipfile import ZipFile
@@ -1527,8 +1527,3 @@ def install_phantomjs(install_directory):
         with tarfile.open(fileobj=r.raw, mode='r|bz2') as tf:
             tf.extractall(temp_dir)
     shutil.move(Path(temp_dir) / dir_name, install_directory)
-
-
-def test():
-    from pathlib import Path
-    install_phantomjs(Path('phantomjs'))

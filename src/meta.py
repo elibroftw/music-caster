@@ -1,6 +1,6 @@
 VERSION = latest_version = '5.20.1'
 UPDATE_MESSAGE = """
-[NEW] Better Error Capturing
+[NEW] Update notifier (for real this time)
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """

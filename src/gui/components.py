@@ -1,5 +1,6 @@
 import base64
 import io
+import platform
 
 import pyqrcode
 import PySimpleGUI as Sg
@@ -8,7 +9,7 @@ from PIL import Image, ImageDraw
 
 
 def StyledButton(button_text, fill, text_color, tooltip=None, key=None, visible=True,
-              pad=None, bind_return_key=False, button_width=None):
+              pad=None, bind_return_key=False, button_width=None, blend_color=None):
     if State.using_tcl_theme:
         return Sg.Button(button_text, use_ttk_buttons=True, key=key, visible=visible,
                          bind_return_key=bind_return_key, size=(button_width, 1), pad=pad)
@@ -26,9 +27,18 @@ def StyledButton(button_text, fill, text_color, tooltip=None, key=None, visible=
     btn_img.thumbnail((btn_w // 3, height // 3), resample=Image.Resampling.LANCZOS)
     btn_img.save(data, format='png', quality=100)
     btn_img = base64.b64encode(data.getvalue())
-    return Sg.Button(button_text=button_text, image_data=btn_img, button_color=(text_color, text_color),
+    btn_color = (text_color, blend_color)
+    if blend_color is None:
+        blend_color = text_color
+        mouseover_colors = (None, None)
+        highlight_colors = None
+    else:
+        mouseover_colors = btn_color if platform.system() == 'Windows' else None
+        highlight_colors = btn_color
+    return Sg.Button(button_text=button_text, image_data=btn_img, button_color=(text_color, blend_color),
                      tooltip=tooltip, key=key, pad=pad, enable_events=False, size=(button_width, 1),
-                     bind_return_key=bind_return_key, font=FONT_NORMAL, visible=visible)
+                     bind_return_key=bind_return_key, font=FONT_NORMAL, visible=visible,
+                     mouseover_colors=mouseover_colors, highlight_colors=highlight_colors)
 
 
 def IconButton(image_data, key, tooltip, bg):

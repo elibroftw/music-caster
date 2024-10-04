@@ -643,11 +643,12 @@ if __name__ == '__main__':
         body = add_new_changes(body)
         if any(Repo('.git').index.diff(None)):
             if args.ci:
-                print('Changes detected. Exiting.')
-                sys.exit(2)
-            input(
-                'Changed (not committed) files detected. Press enter to confirm upload.\n'
-            )
+                print('Warning: Changes detected.')
+                print(Repo('.git').index.diff(None))
+            else:
+                input(
+                    'Changed (not committed) files detected. Press enter to confirm upload.\n'
+                )
         print('Will upload and install at the same time!')
         t = threading.Thread(target=local_install)
         t.start()

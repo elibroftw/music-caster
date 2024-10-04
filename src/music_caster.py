@@ -1324,7 +1324,6 @@ if __name__ == '__main__':
 
         def add_cast(self, uuid, _service: str):
             """Called when a new cast has been discovered."""
-            print(f'cast found found {uuid}')
             global cast
             cast_info = cast_browser.devices[uuid]
             if str(cast_info.uuid) == settings['device']:
@@ -2648,17 +2647,20 @@ if __name__ == '__main__':
             self.daemon = True
             self.start()
 
+        def run(self):
+            while not self.finished.wait(self.interval):
+                self.function(*self.args, **self.kwargs)
+
         def check_for_updates(self):
+            # avoid showing a notification for the same latest version
             release = get_latest_release(self.latest_version, VERSION)
             if release:
-                # avoid showing a notification for the same latest version
                 self.latest_version = release['version']
                 State.update_available = True
                 if not gui_window.was_closed():
                     gui_window['install_update'].update(visible=True)
                 if settings['notifications']:
                     tray_notify('update_available', context=self.latest_version)
-
 
     def background_thread():
         """
