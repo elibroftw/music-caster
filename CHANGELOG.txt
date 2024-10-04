@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.21.0
+- [UI] Rounded rectangle buttons
+- [UI] Improve spacing and alignments
+
 5.20.2
 - [Fix] Hide install update button
 

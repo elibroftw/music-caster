@@ -1,5 +1,6 @@
-VERSION = latest_version = '5.20.2'
+VERSION = latest_version = '5.21.0'
 UPDATE_MESSAGE = """
+[NEW] Update notifier (for real this time)
 [NEW] Update notifier (for real this time)
 [MSG] Language translators wanted
 """.strip()
