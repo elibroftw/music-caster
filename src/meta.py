@@ -86,7 +86,7 @@ class State:
     theme_sourced = False
     settings = {}
     update_available = False
-    installing_update = False
+    installing_update = True
 
 
 class PlayingStatus:

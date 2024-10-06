@@ -173,7 +173,6 @@ if __name__ == '__main__':
 
     lock_file = ensure_single_instance(debugging=DEBUG)
     daemon_commands, tray_process_queue = mp.Queue(), mp.Queue()
-    auto_updating = True
     if args.exit:
         sys.exit()
     import asyncio
@@ -521,7 +520,7 @@ if __name__ == '__main__':
             settings['queues']['next'] = tuple(next_queue)
             save_settings()
 
-        if settings['persistent_queue'] and not save_queue_thread.is_alive() and not auto_updating:
+        if settings['persistent_queue'] and not save_queue_thread.is_alive() and not State.installing_update:
             save_queue_thread = Thread(target=_save_queue, name='SaveQueue')
             save_queue_thread.start()
 
@@ -2124,7 +2123,7 @@ if __name__ == '__main__':
                   File "pychromecast/socket_client.py", line 924, in send_message
                 pychromecast.error.NotConnected: Chromecast 192.168.1.9:8009 is connecting...
                 """
-                if not IS_FROZEN:
+                if not IS_FROZEN or is_debug():
                     print(e)
                 if show_error:
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
@@ -2640,7 +2639,9 @@ if __name__ == '__main__':
                 play()
 
     class UpdateChecker(threading.Timer):
+        latest_release = None
         latest_version = VERSION
+        check_immediately = False
 
         def __init__(self):
             # check for an update every 30 minutes
@@ -2656,12 +2657,81 @@ if __name__ == '__main__':
             # avoid showing a notification for the same latest version
             release = get_latest_release(self.latest_version, VERSION)
             if release:
-                self.latest_version = release['version']
+                self.latest_release = release
+                self.latest_release = release['version']
                 State.update_available = True
                 if not gui_window.was_closed():
                     gui_window['install_update'].update(visible=True)
                 if settings['notifications']:
                     tray_notify('update_available', context=self.latest_version)
+
+        def auto_update(self, install_update=True):
+            """ auto_start should be True when checking for updates at startup up,
+                false when checking for updates before exiting """
+            with suppress(requests.RequestException, UpdateFailed):
+                State.installing_update = True
+                app_log.info(f'called auto_update(), IS_FROZEN={IS_FROZEN}')
+                release = self.latest_release
+                if release is None:
+                    # since the Linux version is script, we want to force only in debug
+                    release = get_latest_release(VERSION, VERSION, force=is_debug())
+                if not release:
+                    app_log.info('auto_update: no update found, or no internet, or API rate limited')
+                    raise UpdateFailed
+                State.update_available = True
+                if not install_update:
+                    State.installing_update = False
+                    return release
+                latest_ver = release['version']
+                setup_dl_link = release['setup']
+                app_log.info(f'Update found: v{latest_ver}')
+                print('Installer Link:', setup_dl_link)
+                if is_debug() or not setup_dl_link:
+                    app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
+                    State.update_available = False
+                    raise UpdateFailed
+                if IS_FROZEN:
+                    if platform.system() in {'Linux', 'Darwin'}:
+                        tray_notify('update_available', context=latest_ver)
+                    elif os.path.exists(UNINSTALLER):
+                        installer_path = get_installer_path()
+                        # only show message on startup to not confuse the user
+                        cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
+                                '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
+                        cmd.extend(sys.argv[1:])
+                        if gui_window.was_closed() and not args.minimized:
+                            cmd.append('-m')
+                        download_update = t('Downloading update $VER').replace('$VER', latest_ver)
+                        tray_notify(download_update)
+                        tray_tooltip = download_update
+                        tray_process_queue.put({'tooltip': tray_tooltip})
+                        try:
+                            # download setup, close tray, run setup, and exit
+                            download(setup_dl_link, installer_path)
+                            tray_notify(t('Update downloaded, restarting now'))
+                            time.sleep(0.3)
+                            Popen(cmd, shell=True)
+                            daemon_commands.put('__EXIT__')  # tell main thread to exit
+                        except OSError as e:
+                            if e.errno == errno.ENOSPC:
+                                tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
+                        except Exception:
+                            tray_notify('update_available', context=latest_ver)
+                    elif os.path.exists('Updater.exe'):
+                        # portable installation
+                        try:
+                            startfile('Updater')
+                            daemon_commands.put('__EXIT__')  # tell main thread to exit
+                        except OSError as e:
+                            if e == errno.ECANCELED:
+                                # user cancelled update, don't try auto-updating again
+                                # inform user what we were trying to do though
+                                update_settings('auto_update', False)
+                                tray_notify('update_available', context=latest_ver)
+                    else:
+                        # unins000.exe or updater.exe was deleted; better to inform user there is an update available
+                        tray_notify('update_available', context=latest_ver)
+            State.installing_update = False
 
     def background_thread():
         """
@@ -2674,20 +2744,22 @@ if __name__ == '__main__':
         While True tasks:
         - scans files
         """
-        global auto_updating, SYNC_WITH_CHROMECAST
-        # check for update and update if no must-run arguments were provided or if the update flag was used
-        limited_args = len(sys.argv) == 1 or ['-m'] == sys.argv[1:]
-        if (
-            limited_args and settings['auto_update'] or args.update
-        ) and not args.nupdate:
-            auto_update()
-        auto_updating = False
+        global SYNC_WITH_CHROMECAST
 
         import pynput.keyboard
         global track_position, track_start, track_end
         app_log.info(f'system: {platform.system()}')
+
+        # check if update needs to be installed
+        # check for update and update if no must-run arguments were provided or if the update flag was used
+        limited_args = len(sys.argv) == 1 or ['-m'] == sys.argv[1:]
+        install_update = (
+            limited_args and settings['auto_update'] or args.update
+        ) and not args.nupdate
+        update_checker.auto_update(install_update=install_update)
+        State.installing_update = False
+
         start_on_login_modifications()
-        UpdateChecker()
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
         p.name = 'pynputListener'
         p.start()
@@ -3494,9 +3566,7 @@ if __name__ == '__main__':
         elif main_event == 'install_update':
             if not State.installing_update:
                 gui_window['install_update'].update(visible=False)
-                Thread(target=auto_update, daemon=True, name='Updater').start()
-
-        # ???
+                Thread(target=update_checker.auto_update, daemon=True, name='Updater').start()
         elif main_event == 'play_all':
             if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
                 Thread(target=play_all, name='PlayAll', daemon=True).start()
@@ -3990,66 +4060,6 @@ if __name__ == '__main__':
         else:
             print('TODO: start_on_login_modifications not implemented for', platform.system())
 
-    def auto_update():
-        """ auto_start should be True when checking for updates at startup up,
-            false when checking for updates before exiting """
-        State.installing_update = True
-        with suppress(requests.RequestException, UpdateFailed):
-            app_log.info(f'called auto_update(), IS_FROZEN={IS_FROZEN}')
-            release = get_latest_release(VERSION, VERSION, force=(not IS_FROZEN or is_debug()))
-            if not release:
-                app_log.info('auto_update: no update found, or no internet, or API rate limited')
-                raise UpdateFailed
-            latest_ver = release['version']
-            setup_dl_link = release['setup']
-            app_log.info(f'Update found: v{latest_ver}')
-            print('Installer Link:', setup_dl_link)
-            if is_debug() or not setup_dl_link:
-                app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
-                raise UpdateFailed
-            if IS_FROZEN:
-                if platform.system() in {'Linux', 'Darwin'}:
-                    tray_notify('update_available', context=latest_ver)
-                elif os.path.exists(UNINSTALLER):
-                    installer_path = get_installer_path()
-                    # only show message on startup to not confuse the user
-                    cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
-                            '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
-                    cmd.extend(sys.argv[1:])
-                    if gui_window.was_closed() and not args.minimized:
-                        cmd.append('-m')
-                    download_update = t('Downloading update $VER').replace('$VER', latest_ver)
-                    tray_notify(download_update)
-                    tray_tooltip = download_update
-                    tray_process_queue.put({'tooltip': tray_tooltip})
-                    try:
-                        # download setup, close tray, run setup, and exit
-                        download(setup_dl_link, installer_path)
-                        tray_notify(t('Update downloaded, restarting now'))
-                        time.sleep(0.3)
-                        Popen(cmd, shell=True)
-                        daemon_commands.put('__EXIT__')  # tell main thread to exit
-                    except OSError as e:
-                        if e.errno == errno.ENOSPC:
-                            tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
-                    except Exception:
-                        tray_notify('update_available', context=latest_ver)
-                elif os.path.exists('Updater.exe'):
-                    # portable installation
-                    try:
-                        startfile('Updater')
-                        daemon_commands.put('__EXIT__')  # tell main thread to exit
-                    except OSError as e:
-                        if e == errno.ECANCELED:
-                            # user cancelled update, don't try auto-updating again
-                            # inform user what we were trying to do though
-                            update_settings('auto_update', False)
-                            tray_notify('update_available', context=latest_ver)
-                else:
-                    # unins000.exe or updater.exe was deleted; better to inform user there is an update available
-                    tray_notify('update_available', context=latest_ver)
-            State.installing_update = False
-
 
     def cast_monitor(sent: bool = True, msg: dict = None, is_callback=True):
         global track_position, track_start, track_end, OLD_CAST_VOLUME, OLD_CAST_POS
@@ -4161,8 +4171,7 @@ if __name__ == '__main__':
             t('locate track', 1): locate_uri
         }
         actions.get(action, lambda: other_tray_actions(action))()
-
-
+    update_checker = UpdateChecker()
     try:
         start_time = time.monotonic()
         load_settings(True)  # starts indexing all tracks
@@ -4290,7 +4299,7 @@ if __name__ == '__main__':
         last_position_save = time.monotonic()
 
         # health check
-        if not IS_FROZEN:
+        if is_debug():
             api_key = settings['api_key']
             r = requests.get(f'http://127.0.0.1:{State.PORT}/?api_key={api_key}')
             assert r.ok
@@ -4361,5 +4370,5 @@ if __name__ == '__main__':
         app_log.exception('FATAL exception detected')
         # try to auto-update before exiting
         if not settings.get('DEBUG', False):
-            auto_update()
+            update_checker.auto_update()
         handle_exception(exception, True)
