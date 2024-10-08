@@ -23,6 +23,10 @@ cd ~/bin/music-caster
 
 # copy icons
 mkdir -p ~/Downloads/music-caster-tmp
+mkdir -p ~/.local/share/icons/hicolor/32x32/apps
+mkdir -p ~/.local/share/icons/hicolor/128x128/apps
+mkdir -p ~/.local/share/icons/hicolor/256x256/apps
+mkdir -p ~/.local/share/icons/hicolor/512x512/apps
 
 # 32x32
 cp -rf resources/icons/32x32.png ~/Downloads/music-caster-tmp
