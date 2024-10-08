@@ -19,7 +19,7 @@ fi
 echo "(music-caster) Installing dependencies"
 python -m pip install --upgrade -r requirements.txt
 # restore
-cd -
+cd ~/bin/music-caster
 
 # copy icons
 mkdir -p ~/Downloads/music-caster-tmp
