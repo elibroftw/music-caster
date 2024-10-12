@@ -7,6 +7,7 @@ import threading
 import time
 import os
 from base64 import b64decode
+import ctypes
 
 
 def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
@@ -14,6 +15,9 @@ def system_tray(main_queue: mp.Queue, child_queue: mp.Queue):
 
     if platform.system() == 'Linux':
         os.environ['PYSTRAY_BACKEND'] = 'appindicator'
+    elif platform.system() == 'Windows' and getattr(sys, 'frozen', False):
+        my_app_id = 'elijahlopez.music_caster'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(my_app_id)
     import pystray
     from PIL import Image
 
