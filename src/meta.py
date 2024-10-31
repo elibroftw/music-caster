@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.21.1'
+VERSION = latest_version = '5.21.2'
 UPDATE_MESSAGE = """
 [NEW] Update notifier (for real this time)
 [NEW] Rounded rectangle buttons
