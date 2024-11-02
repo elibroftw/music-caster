@@ -1,5 +1,9 @@
 Music Caster by Elijah Lopez Changelog
 
+5.21.3
+- [Fix] Auto update
+- [Fix] Button font legibility2
+
 5.21.2
 - [Fix] Notification app id
 - [Fix] Security update
