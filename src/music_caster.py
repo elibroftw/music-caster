@@ -1390,7 +1390,7 @@ if __name__ == '__main__':
             # local device selected (any non uuid string)
             new_device = None
         except UnboundLocalError as e:
-            app_log.error('Could not connect to cast device', exc_info=e)
+            app_log.error('Could not connect to cast device', exc_info=True)
             tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device'))
             return False
         if cast == new_device:
@@ -2658,7 +2658,7 @@ if __name__ == '__main__':
             release = get_latest_release(self.latest_version, VERSION)
             if release:
                 self.latest_release = release
-                self.latest_release = release['version']
+                self.latest_version = release['version']
                 State.update_available = True
                 if not gui_window.was_closed():
                     gui_window['install_update'].update(visible=True)
@@ -2670,13 +2670,13 @@ if __name__ == '__main__':
                 false when checking for updates before exiting """
             with suppress(requests.RequestException, UpdateFailed):
                 State.installing_update = True
-                app_log.info(f'called auto_update(), IS_FROZEN={IS_FROZEN}')
+                app_log.info(f'IS_FROZEN={IS_FROZEN}')
                 release = self.latest_release
                 if release is None:
                     # since the Linux version is script, we want to force only in debug
                     release = get_latest_release(VERSION, VERSION, force=is_debug())
                 if not release:
-                    app_log.info('auto_update: no update found, or no internet, or API rate limited')
+                    app_log.info('no update found, or no internet, or API rate limited')
                     raise UpdateFailed
                 State.update_available = True
                 if not install_update:
@@ -2687,7 +2687,7 @@ if __name__ == '__main__':
                 app_log.info(f'Update found: v{latest_ver}')
                 print('Installer Link:', setup_dl_link)
                 if is_debug() or not setup_dl_link:
-                    app_log.info(f'Not updating because: DEBUG: {DEBUG} or not setup_dl_link={setup_dl_link}')
+                    app_log.info(f'not updating because: DEBUG={DEBUG} or not setup_dl_link={setup_dl_link}')
                     State.update_available = False
                     raise UpdateFailed
                 if IS_FROZEN:
