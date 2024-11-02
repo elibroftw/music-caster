@@ -8,6 +8,11 @@ from meta import FONT_NORMAL, State
 from PIL import Image, ImageDraw
 
 
+def get_styled_button_font():
+    if platform.system() == 'Windows':
+        return 'Segoe UI Variable', 12
+
+
 def StyledButton(button_text, fill, text_color, tooltip=None, key=None, visible=True,
               pad=None, bind_return_key=False, button_width=None, blend_color=None, outline=None):
     if State.using_tcl_theme:
@@ -36,7 +41,7 @@ def StyledButton(button_text, fill, text_color, tooltip=None, key=None, visible=
         highlight_colors = btn_color
     return Sg.Button(button_text=button_text, image_data=btn_img, button_color=(text_color, blend_color),
                      tooltip=tooltip, key=key, pad=pad, enable_events=False, size=(button_width, 1),
-                     bind_return_key=bind_return_key, font=FONT_NORMAL, visible=visible,
+                     bind_return_key=bind_return_key, font=get_styled_button_font(), visible=visible,
                      mouseover_colors=mouseover_colors, highlight_colors=highlight_colors)
 
 
