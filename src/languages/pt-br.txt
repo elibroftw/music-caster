@@ -1,0 +1,202 @@
+# Idioma: Português - Brazil
+# Créditos: Cleiton Salvagni
+# Qualquer linha que começar com # é ignorada
+# Se uma linha contém $X, não traduza o $X, por favor use-o no contexto
+# Exemplo: "Update $VER is available" se tornará dinamicamente "Atualização v4.75.0 está disponível"
+# Tente manter a mesma capitalização ou falta de, como no arquivo original em inglês
+adicionar pasta
+Adicionar Music Caster ao menu de contexto da pasta
+Adicionar arquivos
+Adicionar URL
+Ocorreu um erro, reiniciando agora
+Ocorreu um Erro Interno no Servidor
+Seleção de Áudio
+Atualização automática
+Por
+Cancelar
+Cancelar Timer
+Limpar a fila
+Controles
+Não foi possível conectar ao dispositivo de transmissão
+Não foi possível encontrar um dispositivo de saída para gravação
+Não foi possível reproduzir $URL
+Não foi possível preencher a fila porque a varredura da biblioteca está desativada
+Não foi possível definir o timer
+Presença no Discord
+Baixando atualização $VER
+Digite minutos ou HH:MM
+Digite o Horário
+Digite o URL
+ERRO
+Sair
+Menu de contexto da pasta
+A pasta não contém arquivos de áudio
+Pastas
+Geral
+Hibernar quando o timer acabar
+Hibernar o Computador
+INFO
+Entrada Inválida (insira minutos ou HH:MM)
+URL inválida. URLs devem começar com http:// ou https://
+Arquivo de áudio inválido selecionado
+Arquivo de áudio inválido $FILE
+Manter modo mini no topo
+Iniciar modo mini
+Controles de música no lado esquerdo
+Biblioteca
+Indexação da biblioteca incompleta, apenas os arquivos escaneados foram adicionados
+Ouvindo
+Áudio do Sistema
+Dispositivo local
+localizar selecionado
+Conexão perdida com $DEVICE, alternando para dispositivo local
+Modo mini no topo
+Mais
+mover para baixo
+Mover para próximo
+Mover conteúdo da faixa para a esquerda
+mover para cima
+Music Caster está rodando na bandeja.
+mudo
+Novo
+próxima faixa
+Sem espaço no dispositivo para atualização automática
+Sem espaço no dispositivo para salvar configurações
+Nenhum Timer Definido
+Não conectado a um dispositivo de transmissão
+Não logado em deezer.com
+Nada Tocando
+Notificações
+Apenas Parar Reprodução
+Abrir
+Pausar
+Fila Persistente
+Reproduzir
+Reproduzir Tudo
+Reproduzir Arquivos
+Reproduzir Arquivos a Seguir
+Reproduzir Imediatamente
+Reproduzir Próximo
+Reproduzir URL
+Reproduzir URL a Seguir
+Tocando
+Nome da Playlist
+Playlists
+Aba de Playlists
+Preencher fila na inicialização
+Preencher fila com pastas na inicialização
+faixa anterior
+Fila
+enfileirar tudo
+Enfileirar Arquivos
+Enfileirar URL
+Atualizar Dispositivos
+Lembrar última pasta
+remover pasta selecionada
+remover
+Repetir
+Repetir Tudo
+Repetir Desativado
+Repetir Uma
+Opções de Repetição
+Reescanear Biblioteca
+Reescaneando biblioteca
+Continuar
+Inverter comportamento de próximo
+Próximo invertido
+Executar na inicialização
+Salvar fila entre sessões
+Salvar na playlist
+Salvar posições das janelas
+Escanear pastas
+rolar com a roda do mouse
+Buscar música...
+Selecionar Dispositivo
+Selecionar Pasta
+Selecionar Pastas
+Selecionar Arquivos
+Selecionar Arquivo
+Selecionar Arquivos de Áudio
+Envie-me um email
+defina DEBUG = true em `settings.json` para habilitar esta página
+Definir Timer
+Definir
+Configurações
+Mostrar capa do álbum
+Mostrar capa do álbum na GUI
+Mostrar índice na fila
+Mostrar número da faixa
+Mostrar número da faixa na fila
+aleatório
+Desligar quando o timer acabar
+Desligar o Computador
+Suspender quando o timer acabar
+Suspender o Computador
+Parar
+Enviar
+Obrigado por instalar Music Caster.
+Timer
+Timer cancelado
+Timer definido para $TIME
+Digite artista/faixas
+UI
+ativar som
+Atualização $VER disponível
+URL
+Usar cover.* para capa do álbum
+Usar cover.* para arte em vez da capa do arquivo
+imagem cover.* substitui capa do arquivo
+GUI Vertical
+Ver Links de Fonte dos Arquivos de Áudio
+Abrir GUI Web
+nova playlist
+exportar playlist
+excluir playlist
+reproduzir playlist
+enfileirar playlist
+Título Desconhecido
+Artista Desconhecido
+Álbum Desconhecido
+Sempre enfileirar biblioteca
+Reproduzir com Music Caster
+Enfileirar no Music Caster
+Reproduzir próximo no Music Caster
+Enfileirando
+Fila inteligente
+adicionar ao próximo
+Metadados
+Salvando metadados
+Metadados salvos
+Salvar
+Título
+Artista
+Álbum
+Número da Faixa
+Explícito
+Selecionar arte
+Buscar arte
+Remover arte
+Arte encontrada
+Nenhuma arte encontrada
+Buscando por arte...
+Carregando URL(s)
+URL(s) Adicionada(s)
+idioma
+reproduzir selecionado
+enfileirar selecionado
+adicionar selecionado ao próximo
+Atraso do Áudio do Sistema:
+segundos
+localizar faixa
+Alternando para dispositivo local
+Formato da Faixa:
+Não foi possível buscar áudio para $URL
+Sair do aplicativo ao fechar a GUI
+Resolução ao usar bateria
+Resolução ao usar energia
+Não foi possível definir resolução
+copiar URIs
+editar metadados
+Recursos experimentais
+Playlist salva
+Instalar Atualização
