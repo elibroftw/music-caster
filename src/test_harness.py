@@ -451,6 +451,7 @@ def test_resize_img(size):
         'https://open.spotify.com/playlist/37i9dQZF1DXarRysLJmuju',  # spotify playlist
     ),
 )
+@pytest.mark.skipif(True, reason='spotify web API access removal')
 def test_spotify(url):
     try:
         metadata_list = get_spotify_tracks(url)

@@ -1875,7 +1875,8 @@ if __name__ == '__main__':
                         if 'blocked it on copyright grounds' not in trace_back_msg:
                             attribute_error_reported = True
                             handle_exception(e)
-        elif url.startswith('https://open.spotify.com'):
+        # Spotify restricted web API access
+        elif url.startswith('https://open.spotify.com') and False:
             # spotify metadata has already been fetched, so just get youtube metadata
             if url in url_metadata and isinstance(url_metadata[url], dict):
                 metadata = url_metadata[url]
