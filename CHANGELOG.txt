@@ -1,4 +1,7 @@
-Music Caster by Elijah Lopez Changelog
+Music Caster Changelog
+
+5.22.1
+- [Fix] URL extraction
 
 5.22.0
 - [UI] Added Português (Brazil) translation

@@ -475,7 +475,7 @@ if __name__ == '__main__':
         # refresh playlists
         tray_playlists.clear()
         tray_playlists.append(t('Playlists Tab'))
-        tray_playlists.extend([(f'{pl}'.replace('&', '&&&'), f'PL:{pl}') for pl in settings['playlists']])
+        tray_playlists.extend([(pl.replace('&', '&&&'), f'PL:{pl}') for pl in settings['playlists']])
         # tell tray process to update
         # icon = FILLED_ICON if playing_status.playing() else UNFILLED_ICON
         icon = {'filled': None} if playing_status.playing() else {'unfilled': None}
