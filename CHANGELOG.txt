@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.3
+- [Feat] Support "System Audio" in REST API
+
 5.22.2
 - [Feat] Support "System Audio" in CLI
 

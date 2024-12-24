@@ -1046,9 +1046,12 @@ if __name__ == '__main__':
                     if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
                         queue_all()
             elif 'uri' in request_data:
-                play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
-                if settings['queue_library']:
-                    queue_all()
+                if request_data['uri'].lower().replace(' ', '').replace('_', '') == 'systemaudio':
+                    play_system_audio()
+                else:
+                    play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
+                    if settings['queue_library']:
+                        queue_all()
         else:
             recent_api_plays['play'] += 1
         return redirect('/') if request.method == 'GET' else api_state()
