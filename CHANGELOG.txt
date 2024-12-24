@@ -161,7 +161,7 @@ Music Caster Changelog
 - [Fix] Remove old startup shortcuts + background thread
 
 5.16.0
-- [Feature] Linux support
+- [Feat] Linux support
 - [Fix] Remove old startup shortcuts
 
 5.15.0
@@ -213,7 +213,7 @@ Music Caster Changelog
 - [Fix] Playlist tab
 
 5.13.30
-- [Feature] Playlist length
+- [Feat] Playlist length
 - [UI] ListBox controls alignment
 
 5.13.29
@@ -311,7 +311,7 @@ Music Caster Changelog
 - [Fix] Local address fetcher
 
 5.13.0
-- [Feature] Works with VPN
+- [Feat] Works with VPN
 
 5.12.12
 - [Fix] ytdlp
@@ -352,13 +352,13 @@ Music Caster Changelog
 - [Note] New REST API
 
 5.12.0
-- [Feature] Edit metadata of a track in the queue
-- [Feature] Save selected items in queue to playlist
-- [Feature] Alternative UI (Settings > Misc > Experimental features)
+- [Feat] Edit metadata of a track in the queue
+- [Feat] Save selected items in queue to playlist
+- [Feat] Alternative UI (Settings > Misc > Experimental features)
 - [Fix] Handle user prematurely removing bad uri
 
 5.11.0
-- [Feature] Copy playlist URIs
+- [Feat] Copy playlist URIs
 - [Fix] upgrade PyInstaller
 
 5.10.4
@@ -374,7 +374,7 @@ Music Caster Changelog
 - [Fix] Relative audio files in Portable mode
 
 5.10.0
-- [Feature] Copy URIs (text only)
+- [Feat] Copy URIs (text only)
 - [Fix] Move track up
 - [Fix] Discord presence blocking
 
@@ -419,7 +419,7 @@ Music Caster Changelog
 - [Fix] Audio playback
 
 5.9.0
-- [Feature] YouTube livestreams
+- [Feat] YouTube livestreams
 
 5.8.10
 - [Fix] Improve API
@@ -453,7 +453,7 @@ Music Caster Changelog
 - [Fix] Also dynamically update refresh rate
 
 5.8.0
-- [Feature] Battery Resolution Switcher
+- [Feat] Battery Resolution Switcher
 - [Fix] Upgrade dependencies
 
 5.7.9
@@ -473,7 +473,7 @@ Music Caster Changelog
 
 5.7.4
 - [Fix] Cancel timer
-- [Feature] Window only keyboard shortcuts
+- [Feat] Window only keyboard shortcuts
 
 5.7.3
 - [Fix] MP4/M4A track number
@@ -531,7 +531,7 @@ Music Caster Changelog
 - [Fix] ujson security update
 
 5.6.0
-- [Feature] Save queue also saves position
+- [Feat] Save queue also saves position
 
 5.5.7
 - [Fix] YouTube URL Metadata
@@ -547,7 +547,7 @@ Music Caster Changelog
 - [Fix] Queue multiple folders
 
 5.5.3
-- [Feature] &alb format
+- [Feat] &alb format
 
 5.5.2
 - [Fix] URL support
@@ -556,7 +556,7 @@ Music Caster Changelog
 - [Fix] Volume GUI shortcut
 
 5.5.0
-- [Feature] Support more URLs
+- [Feat] Support more URLs
 
 5.4.11
 - [Fix] Volume
@@ -602,7 +602,7 @@ Music Caster Changelog
 - [UI] Update Web UI settings modal
 
 5.3.0
-- [Feature] Exit app on GUI close
+- [Feat] Exit app on GUI close
 
 5.2.5
 - [Fix] Viewing changelog in python or portable mode
@@ -636,8 +636,8 @@ Music Caster Changelog
 - [Fix] command line arguments
 
 5.1.20
-- [Feature] --device=<device> option added to specify the device to use
-- [Feature] Ctrl + Shift + Q in GUI to exit program
+- [Feat] --device=<device> option added to specify the device to use
+- [Feat] Ctrl + Shift + Q in GUI to exit program
 
 5.1.19
 - [Fix] URL casting
@@ -823,7 +823,7 @@ Music Caster Changelog
 - [Fix] get ipv4
 
 4.90.134
-- [Feature] Mobile playback
+- [Feat] Mobile playback
 - [Fix] URL local muted playback
 
 4.90.133
@@ -965,13 +965,13 @@ Music Caster Changelog
 
 4.90.91
 - [Fix] Web UI Mobile CSS
-- [Feature] Web UI Dark Theme
+- [Feat] Web UI Dark Theme
 
 4.90.90
 - [Fix] Folder action when using a different language
 
 4.90.89
-- [Feature] New /devices/ API
+- [Feat] New /devices/ API
 - [Fix] Translation for "locate track"
 
 4.90.88
@@ -998,13 +998,13 @@ Music Caster Changelog
 
 4.90.81
 - [Fix] Window focus
-- [Feature] Specify delay (beta)
+- [Feat] Specify delay (beta)
 
 4.90.80
 - [Fix] Auto-update restart minimized
 
 4.90.79
-- [Feature] Open window when run
+- [Feat] Open window when run
 
 4.90.78
 - [Fix] Update dependencies
@@ -1064,7 +1064,7 @@ Music Caster Changelog
 - [Fix] GUI
 
 4.90.59
-- [Feature] Upload files to PC
+- [Feat] Upload files to PC
 
 4.90.58
 - [Fix] Buffering
@@ -1172,7 +1172,7 @@ Music Caster Changelog
 - [Fix] Queue all
 
 4.90.25
-- [Feature] Add Mini-mode shortcut
+- [Feat] Add Mini-mode shortcut
 - [Fix] Album art setting
 
 4.90.24
@@ -1255,13 +1255,13 @@ Music Caster Changelog
 - [Fix] YouTube playlists
 
 4.90.0
-- [Feature] Drag and Drop
+- [Feat] Drag and Drop
 
 4.89.0
-- [Feature] Smart URL F-FWD and RWD
+- [Feat] Smart URL F-FWD and RWD
 
 4.88.0
-- [Feature] Metadata setter
+- [Feat] Metadata setter
 
 4.87.6
 - [Fix] Playlists tab
@@ -1270,7 +1270,7 @@ Music Caster Changelog
 - [Fix] Playlists tab
 
 4.87.4
-- [Feature] Twitch support
+- [Feat] Twitch support
 
 4.87.3
 - [Fix] Playlists tab
@@ -1285,7 +1285,7 @@ Music Caster Changelog
 - [Fix] Multiple URL input support
 
 4.87.0
-- [Feature] Smart queue (auto skip)
+- [Feat] Smart queue (auto skip)
 
 4.86.6
 - [Fix] Mini-mode
@@ -1319,7 +1319,7 @@ Music Caster Changelog
 
 4.85.0
 - [Fix] Registry
-- [Feature] URL Protocol music-caster
+- [Feat] URL Protocol music-caster
 
 4.84.3
 - [Fix] Audio Player
@@ -1337,14 +1337,14 @@ Music Caster Changelog
 - [Fix] Playing URL's
 
 4.84.0
-- [Feature] Deezer support
+- [Feat] Deezer support
 - [Fix] Spotify album support
 - [Fix] System audio
 - [Fix] Move tracks within next queue
 
 4.83.0
-- [Feature] Locate tracks in playlists
-- [Feature] Added option to remember selected folder
+- [Feat] Locate tracks in playlists
+- [Feat] Added option to remember selected folder
 - [Optimization] Spotify URL
 - [Fix] YouTube/Soundcloud playlist/set support
 
@@ -1377,7 +1377,7 @@ Music Caster Changelog
 - [Fix] Metadata error
 - [Fix] Commandline arguments
 - [Optimization] Lowered CPU usage
-- [Feature] Queue library always
+- [Feat] Queue library always
 
 4.82.6
 - [Fix] Delete old files
@@ -1400,7 +1400,7 @@ Music Caster Changelog
 - [Fix] M3U support
 
 4.82.0
-- [Feature] M3U(8) beta support
+- [Feat] M3U(8) beta support
 - [Fix] Translations
 - [Fix] Playlists tab
 
@@ -1452,7 +1452,7 @@ Music Caster Changelog
 - [Fix] Spotify URL
 
 4.81.0
-- [Feature] Added Spotify support
+- [Feat] Added Spotify support
 
 4.80.6
 - [Fix] URL metadata
@@ -1474,11 +1474,11 @@ Music Caster Changelog
 - [Fix] Missing translation
 - [Fix] High pitch noise
 - [Fix] Locate track
-- [Feature] Add option to pick language
+- [Feat] Add option to pick language
 - [UI] Improved fonts and UI looks
 
 4.80.0
-- [Feature] Play URL on local device
+- [Feat] Play URL on local device
 - [Fix] Tray menu
 
 4.79.5
@@ -1499,8 +1499,8 @@ Music Caster Changelog
 - [Fix] Auto update notification
 
 4.79.0
-- [Feature] Added option to hide queue index
-- [Feature] Web GUI interactive queue
+- [Feat] Added option to hide queue index
+- [Feat] Web GUI interactive queue
 - [UI] Better queue
 - [UI] More intuitive mini-mode behaviour
 - [UI] Integrated URL window with main window
@@ -1513,7 +1513,7 @@ Music Caster Changelog
 - [UI] Created framework for translations
 
 4.77.0
-- [Feature] Support for YouTube playlists and SoundCloud Sets
+- [Feat] Support for YouTube playlists and SoundCloud Sets
 - [Fix] Playing YouTube links
 
 4.76.4
@@ -1529,7 +1529,7 @@ Music Caster Changelog
 - [Fix] Registry error
 
 4.76.0
-- [Feature] Move track in queue to next up
+- [Feat] Move track in queue to next up
 - [UI] Better queue button
 - [Optimization] Tray has its own process to reduce drag stuttering and high cpu usage
 
@@ -1537,7 +1537,7 @@ Music Caster Changelog
 - [Fix] Album and Title alignment resizing window
 
 4.75.0
-- [Feature] Live shuffle and un-shuffle the queue using the shuffle button
+- [Feat] Live shuffle and un-shuffle the queue using the shuffle button
 - [Optimization] Using deques instead of lists for internal queues (faster for massive queues)
 
 4.74.28
@@ -1664,13 +1664,13 @@ Music Caster Changelog
 - [UI] Improved mini-mode
 
 4.73.0
-- [Feature] Added shuffle to controls
+- [Feat] Added shuffle to controls
 
 4.72.1
 - [Fix] Random stops
 
 4.72.0
-- [Feature] Added setting to disable folder scan
+- [Feat] Added setting to disable folder scan
 
 4.71.43
 - [Fix] Removed default folder re-addition
@@ -1681,7 +1681,7 @@ Music Caster Changelog
 
 4.71.41
 - [Fix] Cleaner code
-- [Feature] Improved privacy by hashing MAC
+- [Feat] Improved privacy by hashing MAC
 
 4.71.40
 - [Fix] Play from explorer
@@ -1822,7 +1822,7 @@ Music Caster Changelog
 - [Fix] Web GUI view files
 
 4.71.0
-- [Feature] Added option to reverse play next behaviour
+- [Feat] Added option to reverse play next behaviour
 
 4.70.11
 - [Fix] Handle no space bug
@@ -1858,15 +1858,15 @@ Music Caster Changelog
 - [Fix] Track numbering
 
 4.70.0
-- [Feature] Added more to Web GUI
-- [Feature] Added timer options to Web GUI
+- [Feat] Added more to Web GUI
+- [Feat] Added timer options to Web GUI
 - [Fix] Web GUI resume
 - [Fix] Man window tabs order
 
 4.69.0
-- [Feature] Playlist Tab (play, queue, edit)
-- [Feature] Removed playlist related windows
-- [Feature] Playlists support URLs (youtube and soundcloud)
+- [Feat] Playlist Tab (play, queue, edit)
+- [Feat] Removed playlist related windows
+- [Feat] Playlists support URLs (youtube and soundcloud)
 - [Fix] Better email link
 
 4.68.3
@@ -1880,19 +1880,19 @@ Music Caster Changelog
 - [Fix] Settings field
 
 4.68.0
-- [Feature] Added format template in settings.json
+- [Feat] Added format template in settings.json
 - [Fix] Queue formatting
 
 4.67.0
-- [Feature] Queue all button
-- [Feature] Show track number
+- [Feat] Queue all button
+- [Feat] Show track number
 - [Fix] Play file queueing 1+ files
 - [Fix] Enable folder cover override
 - [Fix] Disable folder context menu
 
 4.66.0
-- [Feature] Exit command
-- [Feature] Shutdown API
+- [Feat] Exit command
+- [Feat] Shutdown API
 
 4.65.24
 - [Fix] Random crashes
@@ -1905,7 +1905,7 @@ Music Caster Changelog
 - [Fix] Play / queue from explorer
 
 4.65.21
-- [Feature] Command line supports playlist names
+- [Feat] Command line supports playlist names
 
 4.65.20
 - [Fix] Playing at launch
@@ -1918,8 +1918,8 @@ Music Caster Changelog
 - [Fix] Play / queue from explorer
 
 4.65.17
-- [Feature] Folder cover override option
-- [Feature] Queue from explorer
+- [Feat] Folder cover override option
+- [Feat] Queue from explorer
 - [Fix] Remove folder context menu
 - [Fix] Play from explorer
 
@@ -1972,10 +1972,10 @@ Music Caster Changelog
 - [Fix] Exit behaviour
 
 4.65.0
-- [Feature] URL actions links pasted by default
+- [Feat] URL actions links pasted by default
 
 4.64.25
-- [Feature] Multi dir support
+- [Feat] Multi dir support
 - [Fix] Weird looking folder selection
 
 4.64.24
@@ -2058,9 +2058,9 @@ Music Caster Changelog
 - [Fix] Main GUI queue rendering
 
 4.64.0
-- [Feature] Save queue as a playlist
-- [Feature] Update on exit
-- [Feature] Notify when updates available
+- [Feat] Save queue as a playlist
+- [Feat] Update on exit
+- [Feat] Notify when updates available
 - [UI] Better play URL window
 - [UI] Move Mini Mode button above clear queue
 - [Optimized] Better next and prev track from keyboard shortcuts
@@ -2131,7 +2131,7 @@ Music Caster Changelog
 - [Fix] GUI when playing live audio
 
 4.61.0
-- [Feature] Cast Live System Audio
+- [Feat] Cast Live System Audio
 
 4.60.8
 - [Web GUI] Added "Refresh Devices" to settings modal
@@ -2168,7 +2168,7 @@ Music Caster Changelog
 - [Fix] Better Registry Modifications
 
 4.60.0 (August 2020)
-- [Feature] Register Music Caster in the registry as a program to open audio files and folders
+- [Feat] Register Music Caster in the registry as a program to open audio files and folders
 
 4.59.5
 - [Optimized] Delete old files when updating
@@ -2192,15 +2192,15 @@ Music Caster Changelog
 - [Fix] Change device
 
 4.59.0
-- [Feature] Better progress bar
-- [Feature] Support for all formats locally (thanks to VLC bindings)
-- [Feature] 32-bit support
+- [Feat] Better progress bar
+- [Feat] Support for all formats locally (thanks to VLC bindings)
+- [Feat] 32-bit support
 
 4.58.0
-- [Feature] See and download available files through /files/
+- [Feat] See and download available files through /files/
 
 4.57.0
-- [Feature] Play URL supports SoundCloud
+- [Feat] Play URL supports SoundCloud
 - [Fix] Play URL
 - [Fix] WAV files
 
@@ -2256,10 +2256,10 @@ Music Caster Changelog
 
 4.54.1
 - [Fix] Auto-update
-- [Feature] Better url support
+- [Feat] Better url support
 
 4.54.0
-- [Feature] Change device via web GUI
+- [Feat] Change device via web GUI
 
 4.53.1
 - [Optimized] Faster startup time (-70%)
@@ -2276,7 +2276,7 @@ Music Caster Changelog
 - [Fix] Save window positions
 
 4.52.0
-- [Feature] Play URL works alright now (youtube only)
+- [Feat] Play URL works alright now (youtube only)
 - [Fix] Web shortcut icons
 
 4.51.3
@@ -2293,8 +2293,8 @@ Music Caster Changelog
 - [Fix] Main window closing after cancelling  queue file
 
 4.51.0
-- [Feature] Populate queue on startup
-- [Feature] Save queue between sessions
+- [Feat] Populate queue on startup
+- [Feat] Save queue between sessions
 
 4.50.2
 - [Fix] Startup error
@@ -2304,8 +2304,8 @@ Music Caster Changelog
 - [Fix] Play Folder
 
 4.50.0
-- [Feature] Music library will build in the background
-- [Feature] Added "Refresh Library" to tray
+- [Feat] Music library will build in the background
+- [Feat] Added "Refresh Library" to tray
 
 4.49.5
 - [Fix] Better update error handling
@@ -2322,33 +2322,33 @@ Music Caster Changelog
 - [Fix] Discord rich presence bug
 
 4.49.0
-- [Feature] Added do nothing to timer
+- [Feat] Added do nothing to timer
 - [Fix] .opus files
 
 4.48.1
 - [Fix] Icon Quality
 
 4.48.0
-- [Feature] Improved Quality of Icon
+- [Feat] Improved Quality of Icon
 
 4.47.1
 - [Fix] Forgot to update version
 
 4.47.0
-- [Feature] Reorganized Main Window Tab 2
-- [Feature] Added support for .wma files (cast only)
+- [Feat] Reorganized Main Window Tab 2
+- [Feat] Added support for .wma files (cast only)
 
 4.46.0
-- [Feature] Queue file now supports multiple files
-- [Feature] Play Youtube links (EXPERIMENTAL)
+- [Feat] Queue file now supports multiple files
+- [Feat] Play Youtube links (EXPERIMENTAL)
 - Does not support pause, skip, or any repeating
 - [Optimized] Settings file loading
 
 4.45.0
-- [Feature] Scroll to the playing song for Web GUI music queue
+- [Feat] Scroll to the playing song for Web GUI music queue
 
 4.44.0
-- [Feature] Added support for .wav
+- [Feat] Added support for .wav
 - [Fix] Better metadata logic
 
 4.43.3
@@ -2361,18 +2361,18 @@ Music Caster Changelog
 - [Fix] Auto-update will be disabled if something goes wrong while updating
 
 4.43.0
-- [Feature] Added View queue to Web GUI
-- [Feature] Added Volume Control to Web GUI
+- [Feat] Added View queue to Web GUI
+- [Feat] Added Volume Control to Web GUI
 
 4.42.2
-- [Feature] Changed default setting for discord RPC to false
-- [Feature] Web GUI title now includes the PC's name
+- [Feat] Changed default setting for discord RPC to false
+- [Feat] Web GUI title now includes the PC's name
 
 4.42.1
 - [Fix] Shortcut creation
 
 4.42.0
-- [Feature] Added setting UI to Web GUI
+- [Feat] Added setting UI to Web GUI
 
 4.41.3
 - [Fix] Music Queue double click to play
@@ -2381,10 +2381,10 @@ Music Caster Changelog
 - [Fix] Web GUI
 
 4.41.1
-- [Feature] Web GUI on mobile doesn't make the keyboard come up
+- [Feat] Web GUI on mobile doesn't make the keyboard come up
 
 4.41.0
-- [Feature] Added support for {*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav} (for non-local devices)
+- [Feat] Added support for {*.flac,*.m4a,*.mp4,*.aac,*.ogg,*.opus,*.wav} (for non-local devices)
 
 4.40.0
 - [Optimized] Reduced startup time by ~2 seconds
@@ -2410,22 +2410,22 @@ Music Caster Changelog
 - [Fix] Web GUI
 
 4.39.0
-- [Feature] Added search to web GUI
-- [Feature] Better mobile web GUI
+- [Feat] Added search to web GUI
+- [Feat] Better mobile web GUI
 
 4.38.1
 - [Fix] Handled more metadata errors
 - [Fix] Installer installs all files now
 
 4.38.0
-- [Feature] Can now play files from the web GUI
+- [Feat] Can now play files from the web GUI
 - [Fix] Removed duplicate code
 - [Fix] Better Chromecast detection
 
 4.37.0
-- [Feature] Added notification if MC was updated
-- [Feature] Double click a song in the music queue to play the song
-- [Feature] Locate File moved to second tab
+- [Feat] Added notification if MC was updated
+- [Feat] Double click a song in the music queue to play the song
+- [Feat] Locate File moved to second tab
 - [Fix] Opening Music Caster a second time
 
 4.36.1
@@ -2437,7 +2437,7 @@ Music Caster Changelog
 
 4.35.0
 - [Optimized] Image assets
-- [Feature] Main GUI volume image acts like mute/unmute button
+- [Feat] Main GUI volume image acts like mute/unmute button
 - [Fix] Settings window error
 
 4.34.2
@@ -2447,8 +2447,8 @@ Music Caster Changelog
 - [Fix] Errors are actually sent to me now
 
 4.34.0
-- [Feature] Added repeat off option (click repeat button 2x)
-- [Feature] Added "Save window positions" setting
+- [Feat] Added repeat off option (click repeat button 2x)
+- [Feat] Added "Save window positions" setting
 - [Optimized] Custom Chromecast finder (email me if MC doesn't detect any chromecasts)
 - [Optimized] Better CPU usage
 - [Optimized] More threading
@@ -2457,27 +2457,27 @@ Music Caster Changelog
 - [Fix] lag caused by Discord RPC
 
 4.33.2
-- [Feature] Added tooltips for the QR Code and web GUI link
+- [Feat] Added tooltips for the QR Code and web GUI link
 - Removed "Email:" text and added tooltip to the email link
 
 4.33.1
 - [Fix] Discord RPC bug when using web GUI
 
 4.33.0
-- [Feature] Added QR Code to settings for quick access to the web GUI
+- [Feat] Added QR Code to settings for quick access to the web GUI
 - [Fix] Error when handling exception
 - [Fix] Web GUI when no file is playing
 
 4.32.3
 - [Fix] Updater.exe AGAIN
-- [Feature] Added basic optional Discord RPC integration
+- [Feat] Added basic optional Discord RPC integration
 - [Fix] playlist editor window (window position is not saved for now)
 
 4.31.0
 - [Optimized] Executables size and startup time
 - [Optimized] Portable updater now in C#
-- [Feature] Window positions are now remembered
-- [Feature] Added some tooltips
+- [Feat] Window positions are now remembered
+- [Feat] Added some tooltips
 - [Fix] tray menu updates again if repeat is pressed
 
 4.30.4
@@ -2487,21 +2487,21 @@ Music Caster Changelog
 - [Fix] Playlist editor arrow key handler
 
 4.30.2
-- [Feature] Beefed up error messages that are sent to me
+- [Feat] Beefed up error messages that are sent to me
 - [Fix] Better temp music folder handling
 
 4.30.1
-- [Feature] You can now open a file with Music Caster
+- [Feat] You can now open a file with Music Caster
 - File handling in the context menu
 
 4.29.0
-- [Feature] Added "Queue Folder" to the main GUI (Tab 2)
-- [Feature] Added "Clear Queue" to main GUI (Tab 2)
+- [Feat] Added "Queue Folder" to the main GUI (Tab 2)
+- [Feat] Added "Clear Queue" to main GUI (Tab 2)
 - [Fix] Handled ID3 error when playing files
 - Reordered tray play menu
 
 4.28.0
-- [Feature] Added play folder to tray (found under tray play menu)
+- [Feat] Added play folder to tray (found under tray play menu)
 - Moved Playlists to Play tray menu
 
 4.27.4

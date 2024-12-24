@@ -101,12 +101,12 @@ if __name__ == '__main__':
     from sys_tray import system_tray
 
     parser = argparse.ArgumentParser(description='Music Caster')
-    parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows > 1 instance + no info sent')
+    parser.add_argument('--debug', '-d', default=False, action='store_true', help='allows more than one music caster instance and no telemetry')
     parser.add_argument('--start-playing', default=False, action='store_true', help='resume or shuffle play all')
-    parser.add_argument('--queue', '-q', default=False, action='store_true', help='uris are queued not played')
-    parser.add_argument('--playnext', '-n', default=False, action='store_true', help='paths are added to next up')
+    parser.add_argument('--queue', '-q', default=False, action='store_true', help='uris are queued rather than immediately played')
+    parser.add_argument('--playnext', '-n', default=False, action='store_true', help='paths are added to "next up"')
     parser.add_argument('--urlprotocol', default=False, action='store_true', help='launched using uri protocol')
-    parser.add_argument('--update', '-u', default=False, action='store_true', help='update MC even if --args provided')
+    parser.add_argument('--update', '-u', default=False, action='store_true', help='allow music caster to update when other CLI args are provided')
     parser.add_argument('--nupdate', default=False, action='store_true', help='start without auto-update')
     parser.add_argument('--exit', '-x', default=False, action='store_true',
                         help='exits any existing instance (including self)')
@@ -363,7 +363,7 @@ if __name__ == '__main__':
         'auto_update': default_auto_update, 'run_on_startup': os.path.exists(UNINSTALLER), 'notifications': True,
         'shuffle': False, 'repeat': None, 'discord_rpc': False, 'save_window_positions': True, 'mini_on_top': True,
         'populate_queue_startup': False, 'persistent_queue': False, 'volume': 20, 'muted': False, 'volume_delta': 5,
-        'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': False,
+        'scrubbing_delta': 5, 'flip_main_window': False, 'show_track_number': False, 'folder_cover_override': True,
         'show_album_art': True, 'folder_context_menu': True, 'vertical_gui': False, 'mini_mode': False,
         'gui_exits_app': False, 'update_check_hours': 1, 'timer_shut_down': False, 'timer_hibernate': False,
         'timer_sleep': False, 'show_queue_index': True, 'queue_library': False, 'lang': '', 'sys_audio_delay': 0,
