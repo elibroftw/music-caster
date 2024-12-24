@@ -1,7 +1,6 @@
-VERSION = latest_version = '5.22.1'
+VERSION = latest_version = '5.22.2'
 UPDATE_MESSAGE = """
-[NEW] Update notifier (for real this time)
-[NEW] Rounded rectangle buttons
+[NEW] Support "System Audio" in CLI
 [MSG] Language translators wanted
 """.strip()
 IMPORTANT_INFORMATION = """

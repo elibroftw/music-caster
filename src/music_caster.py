@@ -112,10 +112,10 @@ if __name__ == '__main__':
                         help='exits any existing instance (including self)')
     parser.add_argument('--minimized', '-m', default=False, action='store_true', help='start minimized to tray')
     parser.add_argument('--version', '-v', default=False, action='store_true', help='returns the version')
-    parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls to play/queue')
+    parser.add_argument('uris', nargs='*', default=[], help='list of files/dirs/playlists/urls/"System Audio" to play/queue')
     parser.add_argument('--position', default=0, help='position to start at if resume_playing')
     parser.add_argument('--shell', default=False, action='store_true', help='if from shell/explorer')
-    parser.add_argument('--device', action='store', help='device to use', default=None)
+    parser.add_argument('--device', action='store', help='select device to use (cast UUID or "local")', default=None)
     # freeze_support() adds the following
     parser.add_argument('--multiprocessing-fork', default=False, action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                     if args.exit:  # --exit argument
                         req = Request(f'{localhost}{port}/exit/', data=json_dumps(data))
                     elif args.uris:  # MC was supplied at least one path to a folder/file
-                        uri_data = json_dumps({**data, 'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext})
+                        uri_data = json_dumps({**data, 'uris': args.uris, 'queue': args.queue, 'play_next': args.playnext, 'device': args.device})
                         req = Request(f'{localhost}{port}/play/', data=uri_data, headers=headers)
                         timeout += 0.5
                     else:  # neither --exit nor paths was supplied
@@ -1014,34 +1014,43 @@ if __name__ == '__main__':
     @app.route('/play/', methods=['GET', 'POST'])
     def api_play():
         global last_play_command
-        request_data = get_request_data()
-        queue_only = str('' if request_data is None else request_data.get('queue', '')).casefold() == 'true'
-        play_next = str('' if request_data is None else request_data.get('play_next', '')).casefold() == 'true'
         merge_plays = time.monotonic() - last_play_command < 0.5
-        # reset recent_api_plays
-        if not merge_plays:
-            for opt in ('play', 'queue', 'play_next'):
-                recent_api_plays[opt] = 0
-        if queue_only:
-            opt = 'queue'
-        elif play_next:
-            opt = 'play_next'
-        else:
-            opt = 'play'
-        merge_plays = recent_api_plays[opt]
-        recent_api_plays[opt] += 1
         last_play_command = time.monotonic()
+
+        request_data = get_request_data()
         if request_data is not None:
+            queue_only = request_data.get('queue', '').casefold() == 'true'
+            play_next = request_data.get('play_next', '').casefold() == 'true'
+            device_id = request_data.get('device', None)
+            if device_id is not None:
+                change_device(device_id)
+            # reset recent_api_plays
+            if not merge_plays:
+                for opt in ('play', 'queue', 'play_next'):
+                    recent_api_plays[opt] = 0
+            if queue_only:
+                opt = 'queue'
+            elif play_next:
+                opt = 'play_next'
+            else:
+                opt = 'play'
+            merge_plays = recent_api_plays[opt]
+            recent_api_plays[opt] += 1
             if 'uris' in request_data:
                 uris = request_data['uris'] if isinstance(request_data, dict) else request_data.getlist('uris')
-                play_uris(uris, queue_uris=queue_only,
-                        play_next=play_next, merge_tracks=merge_plays)
-                if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
-                    queue_all()
+                if uris and uris[0].lower().replace(' ', '').replace('_', '') == 'systemaudio':
+                    play_system_audio()
+                else:
+                    play_uris(uris, queue_uris=queue_only,
+                            play_next=play_next, merge_tracks=merge_plays)
+                    if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
+                        queue_all()
             elif 'uri' in request_data:
                 play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
                 if settings['queue_library']:
                     queue_all()
+        else:
+            recent_api_plays['play'] += 1
         return redirect('/') if request.method == 'GET' else api_state()
 
 
@@ -4260,7 +4269,10 @@ if __name__ == '__main__':
             while not change_device(settings['device']) and time.monotonic() < end_time:
                 time.sleep(0.3)
         if args.uris:
-            play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
+            if args.uris[0].lower().replace(' ', '').replace('_', '') == 'systemaudio':
+                play_system_audio()
+            else:
+                play_uris(args.uris, queue_uris=args.queue, play_next=args.playnext)
         elif settings['persistent_queue']:
             # load saved queues from settings.json
             for queue_name in {'done', 'music', 'next'}:

@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.2
+- [Feat] Support "System Audio" in CLI
+
 5.22.1
 - [Fix] URL extraction
 
