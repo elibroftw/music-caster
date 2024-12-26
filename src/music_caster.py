@@ -1019,8 +1019,12 @@ if __name__ == '__main__':
 
         request_data = get_request_data()
         if request_data is not None:
-            queue_only = request_data.get('queue', '').casefold() == 'true'
-            play_next = request_data.get('play_next', '').casefold() == 'true'
+            queue_only = request_data.get('queue', False)
+            if isinstance(queue_only, str):
+                queue_only = queue_only.casefold() == 'true'
+            play_next = request_data.get('play_next', False)
+            if isinstance(play_next, str):
+                play_next = play_next.casefold() == 'true'
             device_id = request_data.get('device', None)
             if device_id is not None:
                 change_device(device_id)
