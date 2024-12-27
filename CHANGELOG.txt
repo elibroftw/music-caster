@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.5
+- [Fix] DE translation
+
 5.22.4
 - [Fix] Playing from shell (REST API)
 

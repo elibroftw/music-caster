@@ -1,4 +1,4 @@
-# Sprache: Deutsch (German)
+# Sprache: Deutsch
 # Credits: Bernd Miller
 # Jede Zeile, die mit einem # beginnt, wird ignoriert!
 # Wenn eine Zeile $X enthält, $X nicht übersetzen, sondern im Kontext behandeln.
@@ -6,7 +6,7 @@
 # Try to keep the same capitlization or lack of as in the English file
 Ordner hinzufügen
 Music Caster zum Ordner-Kontext-Menü hinzufügen
-Titel hinzufügen
+Dateien hinzufügen
 URL hinzufügen
 Ein Fehler ist aufgetreten, Neustart wird durchgeführt.
 Ein interner Serverfehler ist aufgetreten.
@@ -106,7 +106,7 @@ kehre das Verhalten von "spiele nächstes ab" um
 spiele vorheriges ab
 beim Start ausführen
 speichere die Warteschlange zwischen Sitzungen
-In Wiedergabeliste speichern
+speichere die Warteschlange als Wiedergabeliste
 speichere Fensterposition
 lese Ordner ein
 Blättern mit Mausrad
@@ -192,11 +192,11 @@ schalte auf lokales Gerät um
 Titelformat:
 konnte bei $URL kein Audio finden
 beende zusammen mit GUI
-Auf Batterieauflösung
-Eingesteckte Auflösung
-Auflösung konnte nicht eingestellt werden
-URIs kopieren
-metadaten bearbeiten
-experimentelle funktionen
-Playlist gespeichert
-Aktualisieren
+Auflösung bei Batteriebetrieb
+Auflösung bei Netzbetrieb
+Konnte Auflösung nicht setzen
+kopiere URIs
+Metadaten beatbeiten
+experimentelle Funktionen
+Warteschlange gespeichert
+installiere Update
