@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.6
+- [Fix] URL extraction
+
 5.22.5
 - [Fix] DE translation
 
