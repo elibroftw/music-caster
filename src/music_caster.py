@@ -415,6 +415,8 @@ if __name__ == '__main__':
                 tmp_file = SETTINGS_FILE.with_suffix('.json.tmp')
                 with open(tmp_file, 'w', encoding='utf-8') as outfile:
                     json.dump(settings, outfile, indent=2, escape_forward_slashes=False)
+                    # send to kernel buffer
+                    outfile.flush()
                     # force OS to write to disk to avoid a situation where the file is replaced but not written to
                     os.fsync(outfile.fileno())
                 # an atomic operation which avoids any settings file corruption at crash

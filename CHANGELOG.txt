@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.9
+- [Fix] Save file corruption on system crash
+
 5.22.8
 - [Fix] Save file corruption on system crash
 - [Fix] URL extraction
