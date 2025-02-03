@@ -411,8 +411,14 @@ if __name__ == '__main__':
         global settings_last_modified
         with settings_file_lock:
             try:
-                with open(SETTINGS_FILE, 'w', encoding='utf-8') as outfile:
+                # avoid corrupting settings file if the system crashes mid-write
+                tmp_file = SETTINGS_FILE.with_suffix('.json.tmp')
+                with open(tmp_file, 'w', encoding='utf-8') as outfile:
                     json.dump(settings, outfile, indent=2, escape_forward_slashes=False)
+                    # force OS to write to disk to avoid a situation where the file is replaced but not written to
+                    os.fsync(outfile.fileno())
+                # an atomic operation which avoids any settings file corruption at crash
+                os.replace(tmp_file, SETTINGS_FILE)
                 settings_last_modified = os.path.getmtime(SETTINGS_FILE)
             except OSError as e:
                 if e.errno == errno.ENOSPC:
