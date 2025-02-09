@@ -1,4 +1,3 @@
-# flake8: noqa: E402
 from gui.views import GuiContext
 from meta import (
     State,
@@ -284,6 +283,10 @@ if __name__ == '__main__':
     import pyperclip
     import requests
     from tempfile import NamedTemporaryFile
+    try:
+        import fcntl
+    except ImportError:
+        pass
     import scrapetube
     try:
         from TkinterDnD2 import DND_FILES, DND_ALL
@@ -418,7 +421,10 @@ if __name__ == '__main__':
                 # send to kernel buffer
                 tmp_file.flush()
                 # inform OS to write to disk to avoid a situation where the file is replaced but not written to
-                os.fsync(tmp_file.fileno())
+                if platform.system() == 'Darwin':
+                    fcntl.fcntl(tmp_file.fileno(), fcntl.F_FULLFSYNC)
+                else:
+                    os.fsync(tmp_file.fileno())
                 tmp_file.close()
                 # this atomic operation ensures that a settings.file will exist if the system crashes before/after the system call
                 os.replace(tmp_file.name, SETTINGS_FILE)
