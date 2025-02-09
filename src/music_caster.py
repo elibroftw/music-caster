@@ -283,6 +283,7 @@ if __name__ == '__main__':
     from pychromecast.models import CastInfo
     import pyperclip
     import requests
+    from tempfile import NamedTemporaryFile
     import scrapetube
     try:
         from TkinterDnD2 import DND_FILES, DND_ALL
@@ -409,18 +410,18 @@ if __name__ == '__main__':
 
     def save_settings():
         global settings_last_modified
+        # avoid corrupting settings file if the system crashes mid-write by using temporary file + sync + atomic rename
         with settings_file_lock:
             try:
-                # avoid corrupting settings file if the system crashes mid-write
-                tmp_file = SETTINGS_FILE.with_suffix('.json.tmp')
-                with open(tmp_file, 'w', encoding='utf-8') as outfile:
-                    json.dump(settings, outfile, indent=2, escape_forward_slashes=False)
-                    # send to kernel buffer
-                    outfile.flush()
-                    # force OS to write to disk to avoid a situation where the file is replaced but not written to
-                    os.fsync(outfile.fileno())
-                # an atomic operation which avoids any settings file corruption at crash
-                os.replace(tmp_file, SETTINGS_FILE)
+                tmp_file = NamedTemporaryFile(mode='w', encoding='utf-8', prefix=SETTINGS_FILE.name, dir=SETTINGS_FILE.parent, suffix='.tmp', delete=False)
+                json.dump(settings, tmp_file, indent=2, escape_forward_slashes=False)
+                # send to kernel buffer
+                tmp_file.flush()
+                # inform OS to write to disk to avoid a situation where the file is replaced but not written to
+                os.fsync(tmp_file.fileno())
+                tmp_file.close()
+                # this atomic operation ensures that a settings.file will exist if the system crashes before/after the system call
+                os.replace(tmp_file.name, SETTINGS_FILE)
                 settings_last_modified = os.path.getmtime(SETTINGS_FILE)
             except OSError as e:
                 if e.errno == errno.ENOSPC:
