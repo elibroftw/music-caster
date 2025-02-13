@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.10
+- [Fix] Track numbers from MP4/M4A files
+
 5.22.9
 - [Fix] Save file corruption on system crash
 

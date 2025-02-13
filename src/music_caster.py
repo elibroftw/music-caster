@@ -1553,10 +1553,10 @@ if __name__ == '__main__':
                 artist, title = artist.strip(), title.strip()
             formatted = settings['track_format'].replace('&artist', str(artist)).replace('&title', title)
             formatted = formatted.replace('&alb', str(album))
-            number = metadata.get('track_number', '')
+            number = metadata.get('track_number', '0').zfill(2)
             if '&trck' in formatted:
                 formatted = formatted.replace('&trck', str(number))
-            elif settings['show_track_number'] and number:
+            elif settings['show_track_number'] and number != '':
                 formatted = f'[{number}] {formatted}'
             if not _for:
                 return formatted

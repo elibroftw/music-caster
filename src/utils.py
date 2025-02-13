@@ -570,7 +570,7 @@ def get_metadata(file_path: str):
             for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
                 if tag in audio:
                     audio[normalized] = audio.pop(tag)
-            audio['tracknumber'] = str(audio.get('trkn', [('1', '1')])[0][0])
+            audio['tracknumber'] = audio.get('trkn', [('1', '1')])[0]
         elif isinstance(a, (OggOpus, OggVorbis)):
             audio = dict(a)
             if 'rtng' in audio:
