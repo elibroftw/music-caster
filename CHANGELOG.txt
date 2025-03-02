@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.11
+- [Fix] Add more logging
+
 5.22.10
 - [Fix] Track numbers from MP4/M4A files
 

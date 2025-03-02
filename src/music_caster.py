@@ -312,6 +312,7 @@ if __name__ == '__main__':
     # LOGGING
     logging.getLogger('pychromecast.socket_client').addHandler(log_handler)
     logging.getLogger('pychromecast').addHandler(log_handler)
+    logging.getLogger('pychromecast').setLevel(logging.INFO)
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     logging.getLogger('werkzeug').addHandler(log_handler)
     app_log.info(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
@@ -2591,6 +2592,10 @@ if __name__ == '__main__':
         app_log.info(f'(from_timeout={from_timeout})')
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
             # clicked next track when connected to cast and the app is not the media receiver app
+            if cast is None:
+                app_log.info('stopping internal playing_status because cast is None')
+            if cast.app_id != APP_MEDIA_RECEIVER and not forced:
+                app_log.info(f'stopping internal playing_status because cast present app id ({cast.app_id}) does not equal to APP_MEDIA_RECEIVER ({APP_MEDIA_RECEIVER})')
             playing_status.stop()
         elif (next_queue or music_queue) and (forced or playing_status.busy() and not sar.alive):
             # 1. there is something to play next
