@@ -231,23 +231,23 @@ class DiscordPresence:
 
     @classmethod
     @exception_wrapper
-    def set_rich_presence(cls):
+    def init_rpc(cls):
         if cls.rich_presence is None:
-            cls.rich_presence = pypresence.Presence(cls.MUSIC_CASTER_DISCORD_ID)
+            cls.rich_presence = pypresence.Presence(cls.MUSIC_CASTER_DISCORD_ID, timeout=2)
 
     @classmethod
     @exception_wrapper
     def connect(cls, confirm_connect=True):
         if confirm_connect:
-            cls.set_rich_presence()
+            cls.init_rpc()
             cls.rich_presence.connect()
 
     @classmethod
     @exception_wrapper
-    def update(cls, confirm_connect=True, state: str = None, details: str = None, large_text: str = None,
-               large_image='default', small_image='logo', small_text='Music Caster'):
+    def update(cls, state: str, details: str, large_text: str, end: int = 0,
+               large_image='default', small_image='logo', small_text='Music Caster', confirm_connect=True):
         if confirm_connect:
-            cls.set_rich_presence()
+            cls.init_rpc()
             cls.rich_presence.update(state=state, details=details, large_image=large_image, large_text=large_text,
                                      small_image=small_image, small_text=small_text)
 

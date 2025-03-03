@@ -1665,8 +1665,7 @@ if __name__ == '__main__':
             # system_media_controls.set_paused()
         refresh_tray()
         save_queues()
-        DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artists}', details=title,
-                               large_text=t('Listening'))
+        DiscordPresence.update(t('By') + f': {artists}', title, t('Listening'), confirm_connect=settings['discord_rpc'])
         # update metadata of the player
         # if platform.system() == 'Windows':
             # bg = settings['theme']['background']
@@ -1787,7 +1786,7 @@ if __name__ == '__main__':
             metadata['art'] = item['thumbnail']
         return metadata
 
-    def get_url_metadata(url, fetch_art=True) -> list:
+    def get_url_metadata(url, fetch_art=True) -> list[dict]:
         # TODO: cache in the database for persistence
         # TODO: move to utils.py and add parameter url_metadata_cache
         """
@@ -2036,7 +2035,7 @@ if __name__ == '__main__':
         url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
         api_key = settings['api_key']
         thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART&api_key={api_key}'
-        track_length = metadata['length']
+        track_length = int(metadata['length'])
         try:
             app_log.info(f'cast.socket_client.is_alive(): {cast.socket_client.is_alive()}')
             cast.wait(timeout=WAIT_TIMEOUT)
@@ -2434,14 +2433,14 @@ if __name__ == '__main__':
                     block_until = time.monotonic() + 5
                     while not mc.status.player_is_paused and time.monotonic() < block_until:
                         time.sleep(0.1)
-                    track_position = mc.status.adjusted_current_time
+                    if mc.status.adjusted_current_time is not None:
+                        track_position = mc.status.adjusted_current_time
                     app_log.info('paused cast device')
                 playing_status.pause()
                 if music_queue or sar.alive:
                     metadata = get_current_metadata()
                     title, artist = metadata['title'], metadata['artist']
-                    DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artist}', details=title,
-                                           large_text='Paused')
+                    DiscordPresence.update(t('By') + f': {artist}', title, 'Paused', confirm_connect=settings['discord_rpc'])
             except UnsupportedNamespace:
                 stop('pause')
             if not gui_window.was_closed():
@@ -2472,15 +2471,15 @@ if __name__ == '__main__':
                     mc.update_status()
                     mc.play()
                     mc.block_until_active(WAIT_TIMEOUT)
-                    track_position = mc.status.adjusted_current_time
+                    if mc.status.adjusted_current_time is not None:
+                        track_position = mc.status.adjusted_current_time
                 track_start = time.monotonic() - track_position
                 if track_length is not None:
                     track_end = track_start + track_length
                 playing_status.play()
                 metadata = get_current_metadata()
                 title, artist = metadata['title'], get_first_artist(metadata['artist'])
-                DiscordPresence.update(settings['discord_rpc'], state=t('By') + f': {artist}', details=title,
-                                       large_text=t('Listening'))
+                DiscordPresence.update(t('By') + f': {artist}',title, t('Listening'), confirm_connect=settings['discord_rpc'])
                 if platform.system() == 'Windows':
                     ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
                 if not gui_window.was_closed():
@@ -2528,7 +2527,7 @@ if __name__ == '__main__':
         refresh_tray()
 
 
-    def set_pos(new_position):
+    def set_pos(new_position: int):
         """
         AKA: seeking
         sets position of audio player or cast to new_position
@@ -3233,7 +3232,8 @@ if __name__ == '__main__':
     def read_main_window():
         global track_position, track_start, track_end, timer, music_queue, done_queue, SYNC_WITH_CHROMECAST
         global OLD_CAST_POS, OLD_CAST_VOLUME
-        main_event, main_values = gui_window.read(timeout=100)
+        window_read_tuple: (str, dict) = gui_window.read(timeout=100) # type: ignore
+        main_event, main_values = window_read_tuple
         if main_event == 'KeyPress':
             e = gui_window.user_bind_event
             main_event = e.char if e.char else str(e.keysym) + ':' + str(e.keycode)
@@ -3638,7 +3638,7 @@ if __name__ == '__main__':
                 return
             else:
                 # do not debounce when playing locally
-                track_position = main_values['progress_bar']
+                track_position = int(main_values['progress_bar'])
                 if cast is None:
                     set_pos(track_position)
                 else:
@@ -3676,8 +3676,8 @@ if __name__ == '__main__':
                             metadata = url_metadata['SYSTEM_AUDIO'] if sar.alive else get_uri_metadata(music_queue[0])
                             title, artist = metadata['title'], get_first_artist(metadata['artist'])
                             DiscordPresence.connect()
-                            DiscordPresence.update(state=t('By') + f': {artist}', details=title,
-                                                   large_text='Listening')
+                            if track_start is not None and track_length is not None:
+                                DiscordPresence.update(t('By') + f': {artist}', title, 'Listening', end=track_start + track_length)
                     elif not main_value:
                         DiscordPresence.clear()
             elif main_event in {'show_album_art', 'vertical_gui', 'flip_main_window'}:
@@ -4133,10 +4133,11 @@ if __name__ == '__main__':
                     # sync track position with chromecast, also allows scrubbing from external apps
                     with suppress(IndexError):
                         buffer = 2 if music_queue[0].startswith('http') else 0.6
-                        if abs(media_controller.status.adjusted_current_time - OLD_CAST_POS) > buffer:
-                            OLD_CAST_POS = track_position = media_controller.status.adjusted_current_time
+                        current_time = media_controller.status.adjusted_current_time
+                        if current_time is not None and abs(current_time - OLD_CAST_POS) > buffer:
+                            OLD_CAST_POS = track_position = current_time
                             track_start = time.monotonic() - track_position
-                            if not is_live:
+                            if track_length is not None:
                                 track_end = track_start + track_length
                 if media_controller.status.player_is_paused and playing_status.playing():
                     pause('cast_monitor')
@@ -4146,7 +4147,8 @@ if __name__ == '__main__':
                     # if cast says nothing is playing, only stop if we are not at the end of the track
                     #  this will prevent false positives
                     stop('cast_monitor', False)
-                cast_volume = round(cast.status.volume_level * 100, 1)
+                if cast.status is not None:
+                    cast_volume = round(cast.status.volume_level * 100, 1)
                 if settings['volume'] != OLD_CAST_VOLUME:
                     if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
                                                     abs(settings['volume'] - cast_volume) > 0.05):

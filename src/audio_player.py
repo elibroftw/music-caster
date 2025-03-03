@@ -138,7 +138,7 @@ class AudioPlayer:
         """position is in seconds from start"""
         self.player.set_time(int(position * unit))
 
-    def get_pos(self, unit=AudioPlayerUnit.SECOND):
+    def get_pos(self, unit=AudioPlayerUnit.SECOND) -> float:
         """
         returns the position of the audio playing
         position meaning the time in seconds from the start of the audio data/file
@@ -165,7 +165,7 @@ class AudioPlayer:
     def unmute(self):
         self.player.audio_set_mute(False)
 
-    def get_length(self, unit=AudioPlayerUnit.SECOND):
+    def get_length(self, unit=AudioPlayerUnit.SECOND) -> float:
         return self.player.get_length() / unit
 
     def get_sample_rate(self):
