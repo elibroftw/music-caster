@@ -373,7 +373,7 @@ if __name__ == '__main__':
     # yanked by developer so need to hard code
     # v5 has a timeout (cough cough malware) before it breaks and it might break automatically
     # PySimpleGUI==4.60.5
-    pip_cmd_2 = '"{sys.executable}" -m pip install -i https://PySimpleGUI.net/install PySimpleGUI==4.60.5'
+    pip_cmd_2 = f'"{sys.executable}" -m pip install -i https://PySimpleGUI.net/install PySimpleGUI==4.60.5'
     if args.deps or (not args.skip_build and not args.skip_deps):
         print('Installing and/or upgrading dependencies...')
         if platform.system() == 'Windows':
