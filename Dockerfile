@@ -9,7 +9,7 @@ RUN dnf upgrade -y && dnf install -y \
     dnf-plugins-core libappindicator-gtk3 binutils
 # install some dependencies here to reduce the dependencies installed at run time
 COPY requirements.txt build_files/ music-caster/
-RUN $PY -m pip install --upgrade pip && $PY -m pip install pyaudio && $PY -m pip install -i https://PySimpleGUI.net/install PySimpleGUI==4.60.5
+RUN $PY -m pip install --upgrade pip && $PY -m pip install pyaudio
 RUN cd music-caster && $PY -m pip install --upgrade -r requirements.txt
 RUN rm -rf ./music-caster
 # when running this image, need to mount the work directory to /var/music-caster
@@ -17,7 +17,6 @@ CMD if [ ! -d /var/music-caster ] ; then git clone https://github.com/elibroftw/
     $PY -m pip install --upgrade pip && \
     $PY -m pip install --upgrade -r requirements.txt && \
     $PY -m pip install -r requirements-dev.txt && \
-    $PY -m pip install -i https://PySimpleGUI.net/install PySimpleGUI==4.60.5 && \
     $PY -O -m PyInstaller build_files/onedir.spec && \
     echo "done! check your dist folder"
     # TODO: create AppImage from dist/Music Caster OneDir
