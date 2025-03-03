@@ -21,9 +21,6 @@ pypng~=0.0.20
 # pypresence
 https://github.com/elibroftw/pypresence/archive/master.tar.gz
 pyqrcode~=1.2.1
-# yanked by developer so need to hard code
-# v5 has a timeout (cough cough malware) before it breaks and it might break automatically
-PySimpleGUI==4.60.5
 pystray~=0.19.1
 requests~=2.28
 urllib3~=1.26.7

@@ -18,6 +18,7 @@ fi
 
 echo "(music-caster) Installing dependencies"
 python -m pip install --upgrade -r requirements.txt
+python -m pip install -i https://PySimpleGUI.net/install PySimpleGUI==4.60.5
 # restore
 cd ~/bin/music-caster
 

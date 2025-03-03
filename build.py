@@ -370,6 +370,10 @@ if __name__ == '__main__':
         sys.exit()
     install_to_user = '' if IS_VENV else '--user'
     pip_cmd = f'"{sys.executable}" -m pip install --upgrade {install_to_user} --upgrade-strategy eager -r "{REQUIREMENTS_FILE}" -r "{REQUIREMENTS_DEV_FILE}"'
+    # yanked by developer so need to hard code
+    # v5 has a timeout (cough cough malware) before it breaks and it might break automatically
+    # PySimpleGUI==4.60.5
+    pip_cmd_2 = '"{sys.executable}" -m pip install -i https://PySimpleGUI.net/install PySimpleGUI==4.60.5'
     if args.deps or (not args.skip_build and not args.skip_deps):
         print('Installing and/or upgrading dependencies...')
         if platform.system() == 'Windows':
@@ -397,12 +401,18 @@ if __name__ == '__main__':
                 )
         install_time_start = time.time()
         p = Popen(pip_cmd, stdin=DEVNULL, stdout=None if args.deps else DEVNULL, text=True)
+        p2 = Popen(pip_cmd_2, stdin=DEVNULL, stdout=None if args.deps else DEVNULL, text=True)
         if p.wait() > 0:
             print(
-                'ERROR: the following command to install dependencies failed\n',
+                'ERROR: pip install failed\n',
                 pip_cmd,
             )
             sys.exit()
+        if p2.wait() > 0:
+            print(
+                'ERROR: failed to install PySimpleGUI\n',
+                pip_cmd_2,
+            )
         if args.deps:
             print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
             sys.exit()
