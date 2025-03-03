@@ -1,4 +1,4 @@
-import PySimpleGUI as Sg
+import FreeSimpleGUI as Sg
 import platform
 from .views import *
 import ctypes

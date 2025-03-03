@@ -25,10 +25,12 @@ git+https://github.com/elibroftw/pypresence.git
 git+https://github.com/andor-pierdelacabeza/PySimpleGUI-4-foss.git/
 git+https://github.com/yt-dlp/yt-dlp.git
 git+https://github.com/elibroftw/youtube-comment-downloader.git
+git+https://github.com/spyoungtech/FreeSimpleGUI/@db26fd15f2abec79fcd93d966c9677e1a3464753
 pyqrcode~=1.2.1
 pystray~=0.19.1
 requests~=2.28
 urllib3~=1.26.7
+FreeSimpleGUI
 waitress~=3.0
 wavinfo~=2.1
 scrapetube

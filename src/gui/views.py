@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from math import ceil, floor
 
-import PySimpleGUI as Sg
+import FreeSimpleGUI as Sg
 from b64_images import (
     CLEAR_QUEUE,
     COPY_ICON,

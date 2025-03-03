@@ -14,9 +14,6 @@ src/.flatpak-builder
 .env
 settings.json
 settings.json.bak
-PySimpleGUI.py
-PySimpleGUIWx.py
-tempCodeRunnerFile.py
 test.*
 demo.py
 error.log

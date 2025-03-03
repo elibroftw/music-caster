@@ -264,7 +264,7 @@ if __name__ == '__main__':
     from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in, get_initial_dpi_scale
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
-    import PySimpleGUI as Sg
+    import FreeSimpleGUI as Sg
     from modules.db import DatabaseConnection, init_db
 
     # 0.5 seconds gone to 3rd party imports
@@ -3066,7 +3066,7 @@ if __name__ == '__main__':
                                    use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
                                    location=window_location, metadata=window_metadata, debugger_enabled=is_debug())
             if State.using_tcl_theme:
-                Sg.PySimpleGUI.TOOLTIP_BACKGROUND_COLOR = settings['theme']['background']
+                Sg.TOOLTIP_BACKGROUND_COLOR = settings['theme']['background']
                 try:
                     if not State.theme_sourced:
                         # as per State.using_tcl_theme, sun_valley_tcl_path exists

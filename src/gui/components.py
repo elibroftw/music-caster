@@ -3,7 +3,7 @@ import io
 import platform
 
 import pyqrcode
-import PySimpleGUI as Sg
+import FreeSimpleGUI as Sg
 from meta import FONT_NORMAL, State
 from PIL import Image, ImageDraw
 
