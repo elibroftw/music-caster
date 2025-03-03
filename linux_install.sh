@@ -17,7 +17,7 @@ fi
 . .venv/bin/activate
 
 echo "(music-caster) Installing dependencies"
-python -m pip install --upgrade -r requirements.txt
+python -m pip install -i https://PySimpleGUI.net/install --upgrade -r requirements.txt
 # restore
 cd ~/bin/music-caster
 
