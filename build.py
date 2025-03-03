@@ -407,12 +407,13 @@ if __name__ == '__main__':
                 'ERROR: pip install failed\n',
                 pip_cmd,
             )
-            sys.exit()
+            sys.exit(1)
         if p2.wait() > 0:
             print(
                 'ERROR: failed to install PySimpleGUI\n',
                 pip_cmd_2,
             )
+            sys.exit(1)
         if args.deps:
             print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
             sys.exit()
