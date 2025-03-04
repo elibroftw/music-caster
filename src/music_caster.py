@@ -2589,7 +2589,7 @@ if __name__ == '__main__':
         :return:
         """
         app_log.info(f'(from_timeout={from_timeout})')
-        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and not forced:
+        if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and cast.app_id is not None and not forced:
             # clicked next track when connected to cast and the app is not the media receiver app
             if cast is None:
                 app_log.info('stopping internal playing_status because cast is None')

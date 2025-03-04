@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.12
+- [Fix] Do not stop if cast app id is None
+
 5.22.11
 - [Fix] Add more logging
 
