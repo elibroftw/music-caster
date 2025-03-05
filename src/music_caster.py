@@ -2601,8 +2601,8 @@ if __name__ == '__main__':
         elif (next_queue or music_queue) and (forced or playing_status.busy() and not sar.alive):
             # 1. there is something to play next
             # 2. we are already playing a track (or are forcing)
-            with suppress(IndexError, TypeError):  # TypeError:  if track_length is None
-                if track_length > 600 and not ignore_timestamps:
+            with suppress(IndexError):
+                if track_length is not None and track_length > 600 and not ignore_timestamps:
                     if url_metadata.get(music_queue[0], {}).get('timestamps'):
                         # smart next track if playing a long URL with multiple tracks
                         timestamps = url_metadata[music_queue[0]]['timestamps']
