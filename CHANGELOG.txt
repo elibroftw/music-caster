@@ -1,13 +1,16 @@
 Music Caster Changelog
 
+5.22.14
+- [Fix] Track position syncing with cast
+
 5.22.13
-- [Fix] Add more logging
+- [Misc] Add more logging
 
 5.22.12
 - [Fix] Do not stop if cast app id is None
 
 5.22.11
-- [Fix] Add more logging
+- [Misc] Add more logging
 
 5.22.10
 - [Fix] Track numbers from MP4/M4A files

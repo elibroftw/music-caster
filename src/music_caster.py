@@ -2175,6 +2175,7 @@ if __name__ == '__main__':
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
+        app_log.info(f'track_end = {track_end}, track_start = {track_start}, track_length = {track_length}')
         LAST_PLAYED = time.time()
         return after_play(metadata['title'], metadata['artist'], metadata.get('album'), autoplay, switching_device)
 
@@ -4134,16 +4135,21 @@ if __name__ == '__main__':
                 is_live = track_length is None
                 if not is_stopped and playing_status.busy():
                     # sync track position with chromecast, also allows scrubbing from external apps
-                    with suppress(IndexError):
+                    with suppress(IndexError):  # music_queue may be mutated
                         buffer = 2 if music_queue[0].startswith('http') else 0.6
                         current_time = media_controller.status.adjusted_current_time
                         if current_time is not None and abs(current_time - OLD_CAST_POS) > buffer:
                             if current_time < OLD_CAST_POS:
-                                app_log.info(f'updating track position from {track_position} to {current_time}')
-                            OLD_CAST_POS = track_position = current_time
-                            track_start = time.monotonic() - track_position
-                            if track_length is not None:
-                                track_end = track_start + track_length
+                                app_log.info(f'cast player state: {media_controller.status.player_state}')
+                                app_log.info(f'updating OLD_CAST_POS from {OLD_CAST_POS} to {current_time}')
+                            OLD_CAST_POS = current_time
+                            # update track position only if out of buffer position
+                            if abs(current_time - get_track_position()) > buffer:
+                                if current_time < track_position:
+                                    app_log.info(f'updating track position from {track_position} to {current_time}')
+                                track_start = time.monotonic() - track_position
+                                if track_length is not None:
+                                    track_end = track_start + track_length
                 if media_controller.status.player_is_paused and playing_status.playing():
                     pause('cast_monitor')
                 elif media_controller.status.player_is_playing and playing_status.paused():
