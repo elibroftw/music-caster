@@ -315,7 +315,7 @@ if __name__ == '__main__':
     logging.getLogger('pychromecast').setLevel(logging.INFO)
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     logging.getLogger('werkzeug').addHandler(log_handler)
-    app_log.info(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
+    app_log.debug(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
 
     gui_window = Sg.Window('', metadata={})
     gui_window.close()
@@ -2588,7 +2588,9 @@ if __name__ == '__main__':
         :param ignore_timestamps: whether to ignore timestamps for a track
         :return:
         """
-        app_log.info(f'(from_timeout={from_timeout})')
+        app_log.info(f'from_timeout={from_timeout}')
+        if music_queue:
+            app_log.info(f'current track = {Path(music_queue[0]).name}')
         if cast is not None and cast.app_id != APP_MEDIA_RECEIVER and cast.app_id is not None and not forced:
             # clicked next track when connected to cast and the app is not the media receiver app
             if cast is None:
@@ -2616,6 +2618,7 @@ if __name__ == '__main__':
             if settings['repeat'] in {False, None} or not music_queue or not from_timeout:
                 if settings['repeat']:
                     update_settings('repeat', False)
+                app_log.info(f'will move the next {times} tracks from music_queue and then next_queue into the done queue')
                 for _ in range(times):
                     if music_queue:
                         done_queue.append(music_queue.popleft())
@@ -2784,7 +2787,7 @@ if __name__ == '__main__':
 
         import pynput.keyboard
         global track_position, track_start, track_end
-        app_log.info(f'system: {platform.system()}')
+        app_log.info('start')
 
         # check if update needs to be installed
         # check for update and update if no must-run arguments were provided or if the update flag was used
@@ -4336,8 +4339,8 @@ if __name__ == '__main__':
         if not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')
         TIME_TO_START = time.monotonic() - start_time
-        app_log.info(f'Time to start (excluding imports) is {TIME_TO_START:.2f} seconds')
-        app_log.info(f'Time to start (including imports) is {TIME_TO_START + TIME_TO_IMPORT:.2f} seconds')
+        app_log.debug(f'Time to start (excluding imports) is {TIME_TO_START:.2f} seconds')
+        app_log.debug(f'Time to start (including imports) is {TIME_TO_START + TIME_TO_IMPORT:.2f} seconds')
         last_position_save = time.monotonic()
 
         # health check
@@ -4350,7 +4353,7 @@ if __name__ == '__main__':
             while not daemon_commands.empty():
                 handle_action(daemon_commands.get())
             if playing_status.playing() and track_length is not None and time.monotonic() > track_end:
-                app_log.info(f'going to next track because monotonic time is past {track_end}')
+                app_log.info('calling next track because monotonic time is greater than track_end')
                 next_track(from_timeout=time.monotonic() > track_end)
             elif timer and time.time() > timer:
                 stop('timer')
