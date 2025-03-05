@@ -4138,6 +4138,8 @@ if __name__ == '__main__':
                         buffer = 2 if music_queue[0].startswith('http') else 0.6
                         current_time = media_controller.status.adjusted_current_time
                         if current_time is not None and abs(current_time - OLD_CAST_POS) > buffer:
+                            if current_time < OLD_CAST_POS:
+                                app_log.info(f'updating track position from {track_position} to {current_time}')
                             OLD_CAST_POS = track_position = current_time
                             track_start = time.monotonic() - track_position
                             if track_length is not None:
