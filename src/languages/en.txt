@@ -200,3 +200,4 @@ edit metadata
 Experimental features
 Playlist saved
 Install Update
+Downloaded $VER. Relaunching...

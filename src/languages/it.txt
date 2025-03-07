@@ -200,3 +200,4 @@ modificare i metadati
 caratteristiche sperimentali
 Playlist salvata
 Aggiornamento
+Scaricato $VER. Riavvio...

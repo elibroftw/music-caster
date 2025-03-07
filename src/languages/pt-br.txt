@@ -200,3 +200,4 @@ editar metadados
 Recursos experimentais
 Playlist salva
 Instalar Atualização
+Baixado $VER. Reiniciando...

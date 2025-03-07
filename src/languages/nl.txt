@@ -200,3 +200,4 @@ metagegevens bewerken
 experimentele functies
 Afspeellijst opgeslagen
 Installeer update
+Gedownload $VER. Opnieuw starten...

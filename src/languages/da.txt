@@ -200,3 +200,4 @@ rediger metadata
 Eksperimentelle funktioner
 Playlist gemt
 Opdatering
+Downloadet $VER. Relancering...

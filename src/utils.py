@@ -394,8 +394,12 @@ def get_translation(string, lang='', as_title=False):
     :param lang: Optional code to translate to. Defaults to using display language
     :param as_title: The phrase returned has each word capitalized
     :return: string translated to display language """
-    with suppress(IndexError, KeyError, FileNotFoundError):
+    try:
         string = get_lang_pack(lang or get_display_lang())[get_lang_pack('en')[string]]
+    except (IndexError, KeyError, FileNotFoundError):
+        # TODO: log this as an error
+        log = logging.getLogger('music_caster')
+        log.error('failed to translate `{string}` to {lang}', exc_info=True)
     if as_title:
         string = ' '.join(word[0].upper() + word[1:] for word in string.split())
     return string

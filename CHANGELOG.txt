@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.17
+- [Fix] Translation for restarting
+
 5.22.16
 - [Fix] Album art optimization for cast devices
 

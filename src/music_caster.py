@@ -2753,7 +2753,7 @@ if __name__ == '__main__':
                         try:
                             # download setup, close tray, run setup, and exit
                             download(setup_dl_link, installer_path)
-                            tray_notify(t('Update downloaded, restarting now'))
+                            tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
                             time.sleep(0.3)
                             Popen(cmd, shell=True)
                             daemon_commands.put('__EXIT__')  # tell main thread to exit

@@ -200,3 +200,4 @@ editar metadatos
 caracteristicas experimentales
 Lista de reproducción guardada
 Actualizar
+Descargado $VER. Reiniciando...
