@@ -1411,19 +1411,21 @@ if __name__ == '__main__':
         try:
             if not isinstance(new_uuid, UUID):
                 new_uuid = UUID(hex=new_uuid)
-            with suppress(AttributeError):
+            try:
                 if cast.uuid == new_uuid:
-                    # do not change device if same cast is selected
+                    app_log.info('noop because we are already connected to device wanting to change to')
                     return True
+                app_log.info(f'changing device from {cast.cast_info.friendly_name} ({cast.uuid})')
+            except AttributeError:
+                app_log.info('changing device from local')
             if new_uuid not in cast_browser.devices:
                 return False
-            # cast_info = cast_browser.devices[new_uuid]
-            # new_device = pychromecast.get_chromecast_from_cast_info(cast_info, zconf)
             new_device = get_device(new_uuid)
+            app_log.info(f'new device name: {new_device.cast_info.friendly_name}')
         except (ValueError, TypeError):
             # local device selected (any non uuid string)
             new_device = None
-        except UnboundLocalError as e:
+        except UnboundLocalError:
             app_log.error('Could not connect to cast device', exc_info=True)
             tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device'))
             return False
@@ -2128,9 +2130,10 @@ if __name__ == '__main__':
             try:
                 url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
+                app_log.info(f'calling cast.wait on device {cast.cast_info.friendly_name} / {cast.uuid}')
                 cast.wait(timeout=WAIT_TIMEOUT)
-                app_log.info('cast.set_volume')
                 if not from_set_pos:
+                    app_log.info(f'try: cast.set_volume({volume})')
                     with suppress(RequestTimeout):
                         cast.set_volume(volume)
                 mc = cast.media_controller
@@ -2177,7 +2180,7 @@ if __name__ == '__main__':
         track_position = position
         track_start = time.monotonic() - track_position
         track_end = track_start + track_length
-        app_log.info(f'track_end = {track_end}, track_start = {track_start}, track_length = {track_length}')
+        app_log.info(f'track_end = {track_end:.2f}, track_start = {track_start:.2f}, track_length = {track_length:.2f}')
         LAST_PLAYED = time.time()
         return after_play(metadata['title'], metadata['artist'], metadata.get('album'), autoplay, switching_device)
 
