@@ -4148,7 +4148,7 @@ if __name__ == '__main__':
                             # update track position only if out of buffer position
                             if abs(current_time - get_track_position()) > buffer:
                                 if current_time < track_position:
-                                    app_log.info(f'updating track position from {track_position} to {current_time}')
+                                    app_log.info(f'updating track position from {track_position:.2f} to {current_time:.2f}')
                                 track_start = time.monotonic() - track_position
                                 if track_length is not None:
                                     track_end = track_start + track_length
