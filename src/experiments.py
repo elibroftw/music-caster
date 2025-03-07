@@ -1,8 +1,11 @@
+from base64 import b64decode
 import soundfile as sf
 import numpy as np
 import matplotlib.pyplot as plt
 import io
 from PIL import Image
+
+from utils import get_album_art
 
 
 def get_audio_wave(file):
@@ -27,5 +30,11 @@ def get_audio_wave(file):
 
 
 test_file = 'C:/Users/maste/MEGA/Music/No Mana - Memories of Nothing.flac'
-
 get_audio_wave(test_file)
+
+img_file = r"C:\Users\maste\Documents\MEGA\Music\KETTAMA & Interplanterary Criminal - Yosemite.flac"
+mime_type, img_data = get_album_art(img_file, False)
+img = Image.open(io.BytesIO(b64decode(img_data)))
+data = io.BytesIO()
+img.convert('RGB').save(data, format='JPEG')
+assert data

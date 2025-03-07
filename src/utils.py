@@ -16,6 +16,7 @@ import sys
 import tarfile
 import tempfile
 import time
+from typing import Tuple
 import unicodedata
 import webbrowser
 from base64 import b64decode, b64encode
@@ -27,7 +28,7 @@ from pathlib import Path
 from queue import Empty, LifoQueue
 from random import getrandbits
 from subprocess import DEVNULL, PIPE, CalledProcessError, Popen, check_output
-from threading import Thread, Timer
+from threading import Thread
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import getnode
 from zipfile import ZipFile
@@ -637,7 +638,7 @@ def open_in_browser(url):
     return t
 
 
-def get_album_art(file_path: str, folder_cover_override=False) -> tuple:  # mime: str, data: str
+def get_album_art(file_path: str, folder_cover_override=False) -> Tuple[str, str]:  # mime: str, data: str
     with suppress(MutagenError, AttributeError):
         folder = os.path.dirname(file_path)
         if folder_cover_override:

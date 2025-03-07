@@ -187,6 +187,7 @@ if __name__ == '__main__':
     from copy import deepcopy
     from datetime import datetime, timedelta
     import errno
+    from functools import lru_cache
     import logging
     from logging.handlers import RotatingFileHandler
     from math import log10, floor
@@ -1216,6 +1217,13 @@ if __name__ == '__main__':
         else:  # GET request
             return str(timer)
 
+    @lru_cache(maxsize=12)
+    def get_cover_jpg_data(file_path) -> io.BytesIO:
+        img_data = get_album_art(file_path, settings['folder_cover_override'])[1]
+        img_data = io.BytesIO(b64decode(img_data))
+        new_img_data = io.BytesIO()
+        Image.open(img_data).convert('RGB').save(new_img_data, format='JPEG')
+        return new_img_data
 
     @app.route('/file/')
     def api_get_file():
@@ -1223,14 +1231,8 @@ if __name__ == '__main__':
             file_path = request.args['path']
             if os.path.isfile(file_path) and valid_audio_file(file_path) or file_path == 'DEFAULT_ART':
                 if request.args.get('thumbnail_only', False) or file_path == 'DEFAULT_ART':
-                    mime_type, img_data = get_album_art(file_path, settings['folder_cover_override'])
-                    img_data = b64decode(img_data)
-                    try:
-                        ext = mime_type.rsplit('/', 1)[1]
-                    except IndexError:
-                        ext = 'png'
-                    return send_file(io.BytesIO(img_data), download_name=f'cover.{ext}',
-                                     mimetype=mime_type, as_attachment=True, max_age=360000, conditional=True)
+                    return send_file(get_cover_jpg_data(file_path), download_name='cover.jpg',
+                                     mimetype='image/jpeg', as_attachment=True, max_age=360000, conditional=True)
                 return send_file(file_path, conditional=True, as_attachment=True, max_age=360000)
         return '400'
 
