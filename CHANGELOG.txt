@@ -29,13 +29,13 @@ Music Caster Changelog
 
 5.22.8
 - [Fix] Save file corruption on system crash
-- [Fix] URL extraction
+- [Fix] URL processing
 
 5.22.7
-- [Fix] URL extraction
+- [Fix] URL processing
 
 5.22.6
-- [Fix] URL extraction
+- [Fix] URL processing
 
 5.22.5
 - [Fix] DE translation
@@ -50,11 +50,11 @@ Music Caster Changelog
 - [Feat] Support "System Audio" in CLI
 
 5.22.1
-- [Fix] URL extraction
+- [Fix] URL processing
 
 5.22.0
 - [UI] Added Português (Brazil) translation
-- [Fix] URL playback
+- [Fix] URL processing
 
 5.21.3
 - [Fix] Auto update
