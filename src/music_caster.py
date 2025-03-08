@@ -1219,9 +1219,11 @@ if __name__ == '__main__':
 
     @lru_cache(maxsize=12)
     def get_cover_jpg_data(file_path) -> io.BytesIO:
-        img_data = get_album_art(file_path, settings['folder_cover_override'])[1]
-        img_data = io.BytesIO(b64decode(img_data))
         new_img_data = io.BytesIO()
+        mime, img_data = get_album_art(file_path, settings['folder_cover_override'])
+        img_data = io.BytesIO(b64decode(img_data))
+        if mime.lower().endswith('jpeg'):
+            return img_data
         Image.open(img_data).convert('RGB').save(new_img_data, format='JPEG')
         return new_img_data
 
@@ -1231,11 +1233,12 @@ if __name__ == '__main__':
             file_path = request.args['path']
             if os.path.isfile(file_path) and valid_audio_file(file_path) or file_path == 'DEFAULT_ART':
                 if request.args.get('thumbnail_only', False) or file_path == 'DEFAULT_ART':
-                    return send_file(get_cover_jpg_data(file_path), download_name='cover.jpg',
+                    jpeg_buffer = get_cover_jpg_data(file_path)
+                    jpeg_buffer.seek(0)
+                    return send_file(jpeg_buffer, download_name='cover.jpeg',
                                      mimetype='image/jpeg', as_attachment=True, max_age=360000, conditional=True)
                 return send_file(file_path, conditional=True, as_attachment=True, max_age=360000)
         return '400'
-
 
     @app.route('/dz/')
     def api_get_dz():

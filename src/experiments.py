@@ -1,11 +1,14 @@
 from base64 import b64decode
+from pathlib import Path
+import urllib.parse
 import soundfile as sf
 import numpy as np
 import matplotlib.pyplot as plt
 import io
 from PIL import Image
+import urllib
 
-from utils import get_album_art
+from utils import get_album_art, get_ipv4
 
 
 def get_audio_wave(file):
@@ -29,12 +32,16 @@ def get_audio_wave(file):
     # return im.resize((int(im.size[0] / 3), int(im.size[1] / 3)))
 
 
-test_file = 'C:/Users/maste/MEGA/Music/No Mana - Memories of Nothing.flac'
-get_audio_wave(test_file)
+# test_file = 'C:/Users/maste/MEGA/Music/No Mana - Memories of Nothing.flac'
+# get_audio_wave(test_file)
 
-img_file = r"C:\Users\maste\Documents\MEGA\Music\KETTAMA & Interplanterary Criminal - Yosemite.flac"
+img_file = r'C:\Users\maste\Documents\MEGA\Music\KETTAMA & Interplanterary Criminal - Yosemite.flac'
 mime_type, img_data = get_album_art(img_file, False)
 img = Image.open(io.BytesIO(b64decode(img_data)))
 data = io.BytesIO()
 img.convert('RGB').save(data, format='JPEG')
+img.save('dist/test.jpg', format='JPEG')
 assert data
+url_args = urllib.parse.urlencode({'path': Path(img_file).as_posix()})
+url = f'http://{get_ipv4()}:2001/file?{url_args}&thumbnail_only=true'
+print(url)

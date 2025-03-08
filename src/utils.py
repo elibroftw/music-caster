@@ -388,6 +388,12 @@ def get_display_lang():
         return os.environ['LANG'].split('_', 1)[0]
 
 
+@lru_cache
+def log_translation_error(string, lang):
+    log = logging.getLogger('music_caster')
+    log.error(f'failed to translate `{string}` to {lang}', exc_info=True)
+
+
 def get_translation(string, lang='', as_title=False):
     """ Translates string from English to lang or display language if valid
     :param string: English string
@@ -397,9 +403,8 @@ def get_translation(string, lang='', as_title=False):
     try:
         string = get_lang_pack(lang or get_display_lang())[get_lang_pack('en')[string]]
     except (IndexError, KeyError, FileNotFoundError):
-        # TODO: log this as an error
-        log = logging.getLogger('music_caster')
-        log.error('failed to translate `{string}` to {lang}', exc_info=True)
+        if lang != 'en':
+            log_translation_error(string, lang)
     if as_title:
         string = ' '.join(word[0].upper() + word[1:] for word in string.split())
     return string
