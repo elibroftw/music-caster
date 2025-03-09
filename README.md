@@ -128,3 +128,7 @@ python3.12 -m venv .venv
 .venv\Scripts\activate     # Windows
 source .venv/bin/activate  # Non-Windows
 ```
+
+### Resources
+
+- [Generate sound waves for any audio file](https://gist.github.com/elibroftw/0fc6ed102dbe3f99863829a7e989dcc2)
