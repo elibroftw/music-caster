@@ -15,17 +15,17 @@ ujson~=5.5
 mutagen~=1.45
 Pillow~=10.3.0
 PyChromecast~=14.0
-zeroconf~=0.132.2
+zeroconf~=0.146
 pynput~=1.4.5
 pypng~=0.0.20
+# use zip for faster install than git
 # pypresence
-git+https://github.com/elibroftw/pypresence.git
-# git+https://github.com/qwertyquerty/pypresence.git
-# PySimpleGUI 4.60.5 no longer available on pypi, therefore use a mirror
-git+https://github.com/andor-pierdelacabeza/PySimpleGUI-4-foss.git/
-git+https://github.com/yt-dlp/yt-dlp.git
-git+https://github.com/elibroftw/youtube-comment-downloader.git
-git+https://github.com/spyoungtech/FreeSimpleGUI/@db26fd15f2abec79fcd93d966c9677e1a3464753
+https://github.com/elibroftw/pypresence/archive/master.zip
+# https://github.com/qwertyquerty/pypresence/archive/master.zip
+https://github.com/yt-dlp/yt-dlp/archive/master.zip
+https://github.com/elibroftw/youtube-comment-downloader/archive/master.zip
+# PySimpleGUI 4.60.5 no longer available on pypi, therefore use FreeSimpleGUI commit hash
+https://github.com/spyoungtech/FreeSimpleGUI/archive/db26fd15f2abec79fcd93d966c9677e1a3464753.zip
 pyqrcode~=1.2.1
 pystray~=0.19.1
 requests~=2.28
