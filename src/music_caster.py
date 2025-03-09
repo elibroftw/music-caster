@@ -2915,7 +2915,10 @@ if __name__ == '__main__':
         return w, h
 
 
-    def metadata_process_file(file):
+    def metadata_process_file(file: None | os.PathLike, callback_source):
+        if file is None:
+            handle_exception(TypeError(f'metadata_process_file recevied file = None. Called from {callback_source}'))
+            return False
         if not os.path.isfile(file):
             return False
         try:
@@ -3031,7 +3034,7 @@ if __name__ == '__main__':
 
                 tk_frame = gui_window['tab_metadata'].TKFrame
                 drop_target_register(tk_frame, DND_FILES)
-                dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0]))
+                dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0], 'tkdnd'))
 
                 tk_lb = gui_window['music_folders'].TKListbox
                 drop_target_register(tk_lb, DND_FILES)
@@ -3505,7 +3508,7 @@ if __name__ == '__main__':
                     pyperclip.copy(text_to_copy)
         elif main_event == 'edit_metadata':
             indices = gui_window['queue'].get_indexes()
-            if len(indices) == 1 and metadata_process_file(uri_at_idx(indices[0])):
+            if len(indices) == 1 and metadata_process_file(uri_at_idx(indices[0]), 'read_main_window:edit_metadata'):
                 gui_window['tab_metadata'].select()
         elif main_event == 'move_to_next_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
@@ -4006,7 +4009,7 @@ if __name__ == '__main__':
             initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
             selected_file = Sg.popup_get_file('Select audio file', initial_folder=initial_folder, no_window=True,
                                               file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
-            metadata_process_file(selected_file)
+            metadata_process_file(selected_file, f'read_main_window:{main_event}')
         elif main_event == 'metadata_select_art' and gui_window['metadata_file'].get():
             selected_file = Sg.popup_get_file('Select image/audio file', no_window=True,
                                               file_types=IMG_FILE_TYPES, icon=WINDOW_ICON)
