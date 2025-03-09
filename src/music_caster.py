@@ -78,10 +78,15 @@ def ensure_single_instance(debugging=False):
             if debugging:
                 print('not exiting because we are DEBUGGING')
             else:
-                activate_instance(port=port, default_timeout=5)
+                try:
+                    activate_instance(port=port, default_timeout=5)
+                except Exception as activation_e:
+                    app_log.error('Failed to activate existing instance', exc_info=True)
+                    handle_exception(activation_e, restart_program=False)
                 sys.exit()
         else:
-            print('instance not found, lock broken?', repr(e))
+            app_log.error('Instance was not found. Is the lock broken?', exc_info=True)
+            handle_exception(e, restart_program=False)
     return file
 
 
@@ -628,7 +633,7 @@ if __name__ == '__main__':
             sys.exit()
         return False
 
-    def get_current_art():
+    def get_current_art() -> bytes:
         if sar.alive:
             return custom_art('SYS')
         if playing_status.busy() and music_queue:
@@ -1227,6 +1232,15 @@ if __name__ == '__main__':
         Image.open(img_data).convert('RGB').save(new_img_data, format='JPEG')
         return new_img_data
 
+    @lru_cache()
+    def report_album_art_buffer_error(file_path: str):
+        msg_1 = f'{Path(file_path).name} has img_data with size 0; returning DEFUALT_ART instead'
+        app_log.info(msg_1)
+        _raw_album_art_mime, _raw_album_art_data = get_album_art(file_path, settings['folder_cover_override'])
+        msg_2 = f'{Path(file_path).name} has album art with mime {_raw_album_art_mime} and data of size {len(_raw_album_art_data)}'
+        app_log.info(msg_2)
+        handle_exception(ValueError('\n'.join((msg_1, msg_2))))
+
     @app.route('/file/')
     def api_get_file():
         if 'path' in request.args:
@@ -1235,6 +1249,10 @@ if __name__ == '__main__':
                 if request.args.get('thumbnail_only', False) or file_path == 'DEFAULT_ART':
                     jpeg_buffer = get_cover_jpg_data(file_path)
                     jpeg_buffer.seek(0)
+                    if (len(jpeg_buffer.getvalue()) == 0):
+                        report_album_art_buffer_error(file_path)
+                        return send_file(io.BytesIO(DEFAULT_ART), download_name='cover.jpeg',
+                                        mimetype='image/jpeg', as_attachment=True, max_age=360000, conditional=True)
                     return send_file(jpeg_buffer, download_name='cover.jpeg',
                                      mimetype='image/jpeg', as_attachment=True, max_age=360000, conditional=True)
                 return send_file(file_path, conditional=True, as_attachment=True, max_age=360000)
@@ -3999,7 +4017,7 @@ if __name__ == '__main__':
                     img = Image.open(selected_file).convert('RGB')
                     data = io.BytesIO()
                     img.save(data, format='jpeg', quality=95)
-                    mime, artwork = 'image/jpeg', b64encode(data.getvalue()).decode()
+                    mime, artwork = 'image/jpeg', b64encode(data.getvalue())
                 artwork = None if artwork == DEFAULT_ART else artwork
                 if artwork is not None:
                     try:

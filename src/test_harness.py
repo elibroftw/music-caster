@@ -419,7 +419,8 @@ def test_custom_art():
 
 @pytest.mark.parametrize('file', TEST_MUSIC_FILES + ['DEFAULT_ART'])
 def test_album_art(file):
-    get_album_art(file)
+    _mime, img_data = get_album_art(file)
+    assert isinstance(img_data, bytes)
 
 
 @pytest.mark.parametrize(

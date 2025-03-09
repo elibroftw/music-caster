@@ -647,7 +647,7 @@ def open_in_browser(url):
     return t
 
 
-def get_album_art(file_path: str, folder_cover_override=False) -> Tuple[str, str]:  # mime: str, data: str
+def get_album_art(file_path: str, folder_cover_override=False) -> Tuple[str, bytes]:  # mime: str, data: str
     with suppress(MutagenError, AttributeError):
         folder = os.path.dirname(file_path)
         if folder_cover_override:
@@ -656,30 +656,36 @@ def get_album_art(file_path: str, folder_cover_override=False) -> Tuple[str, str
                 if os.path.exists(folder_cover):
                     with open(folder_cover, 'rb') as f:
                         return ext, base64.b64encode(f.read())
-        audio = mutagen.File(file_path)
+        audio = mutagen.File(file_path) # type: ignore
         if isinstance(audio, mutagen.flac.FLAC):
             pics = mutagen.flac.FLAC(file_path).pictures
             with suppress(IndexError):
-                return pics[0].mime, base64.b64encode(pics[0].data).decode()
+                return pics[0].mime, base64.b64encode(pics[0].data)
         elif isinstance(audio, MP4):
             with suppress(KeyError, IndexError):
                 cover = audio['covr'][0]
                 image_format = cover.imageformat
                 mime = 'image/png' if image_format == 14 else 'image/jpeg'
-                return mime, base64.b64encode(cover).decode()
+                return mime, base64.b64encode(cover)
         elif isinstance(audio, (OggOpus, OggVorbis)):
             with suppress(KeyError, IndexError):
-                return audio.get('mime', ['image/jpeg'])[0], audio['metadata_block_picture'][0]
+                mime = audio.get('mime')
+                if mime is None:
+                    mime = ['image/jpeg']
+                mime = mime[0]
+                return mime, audio['metadata_block_picture'][0]
         else:
             # ID3 or something else
             if audio is not None:
                 for tag in audio.keys():
                     if 'APIC' in tag:
                         try:
-                            return audio[tag].mime, base64.b64encode(audio[tag].data).decode()
+                            return audio[tag].mime, base64.b64encode(audio[tag].data)
                         except AttributeError:
                             mime = audio['mime'][0].value if 'mime' in audio else 'image/jpeg'
-                            return mime, base64.b64encode(audio[tag][0].value).decode()
+                            return mime, base64.b64encode(audio[tag][0].value)
+    app_logger = logging.getLogger('music_caster')
+    app_logger.info(f'File {Path(file_path).name} does not have album art. Returning image/jpeg, DEFAULT_ART instead')
     return 'image/jpeg', DEFAULT_ART
 
 
@@ -977,7 +983,7 @@ def get_default_output_device():
     return active_device_name
 
 
-def resize_img(base64data, bg, new_size=COVER_NORMAL, default_art=None) -> bytes:
+def resize_img(base64data: bytes, bg, new_size=COVER_NORMAL, default_art=None) -> bytes:
     """ Resize and return b64 img data to new_size (w, h). (use .decode() on return statement for str) """
 
     try:
