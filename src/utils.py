@@ -403,7 +403,7 @@ def get_translation(string, lang='', as_title=False):
     try:
         string = get_lang_pack(lang or get_display_lang())[get_lang_pack('en')[string]]
     except (IndexError, KeyError, FileNotFoundError):
-        if lang != 'en':
+        if lang != 'en' and lang != '':
             log_translation_error(string, lang)
     if as_title:
         string = ' '.join(word[0].upper() + word[1:] for word in string.split())
