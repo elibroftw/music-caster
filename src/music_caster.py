@@ -7,7 +7,6 @@ from meta import (
     VERSION,
     UNINSTALLER,
     DEFAULT_THEME,
-    PlayingStatus,
     EMAIL,
     FONT_NORMAL,
     WAIT_TIMEOUT,
@@ -216,6 +215,7 @@ if __name__ == '__main__':
     from audio_player import AudioPlayer
     from modules.win32_media_controls import SystemMediaTransportControlsButton # SystemMediaControls
     from mutagen._util import MutagenError
+    from modules.playing_status import PlayingStatus
     from utils import (
         get_first_artist,
         t,
@@ -343,6 +343,7 @@ if __name__ == '__main__':
     playing_url = deezer_opened = attribute_error_reported = False
     recent_api_plays = {'play': 0, 'queue': 0, 'play_next': 0}
     # seconds but using time()
+    playing_status = PlayingStatus()
     track_position = timer = track_end = track_length = track_start = 0
 
     def get_downloads_folder():
@@ -385,7 +386,6 @@ if __name__ == '__main__':
         'api_key': secrets.token_urlsafe(16)}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
-    playing_status = PlayingStatus()
     sar = SystemAudioRecorder()
     app = Flask(__name__)
 
@@ -1743,9 +1743,10 @@ if __name__ == '__main__':
                 time.sleep(0.05)
             mc.play()
             sar.lag = time.monotonic() - stream_start_time  # ~1 second
+            playing_status.play_system_audio()
             track_length = None
             track_position = 0
-            track_start = time.monotonic() - track_position
+            track_start = time.monotonic()
             after_play(title, artist, album, True, switching_device)
             return True
         except OSError:
@@ -2102,6 +2103,7 @@ if __name__ == '__main__':
                 return handle_exception(e)
             cast_try_reconnect()
             return play_url(position, autoplay, switching_device, show_error=True)
+        playing_status.play_uri(position, track_length, cast is None)
         track_position = position
         track_start = time.monotonic() - track_position
         if track_length is not None:
@@ -2146,6 +2148,7 @@ if __name__ == '__main__':
         volume = 0 if settings['muted'] else settings['volume'] / 100
         if cast is None:  # play locally
             audio_player.play(uri, volume=volume, start_playing=autoplay, start_from=position)
+            playing_status.play_uri(position, track_length, True)
         else:
             # track_end = time.monotonic() + WAIT_TIMEOUT * 2 + 1
             try:
@@ -2166,6 +2169,7 @@ if __name__ == '__main__':
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=f'{url}&thumbnail_only=true', autoplay=autoplay)
                 mc.block_until_active(WAIT_TIMEOUT)
+                playing_status.play_uri(position, track_length, False)
                 app_log.info(f'mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError) as e:
                 app_log.error('cast device is not connected', exc_info=True)

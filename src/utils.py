@@ -275,6 +275,7 @@ class Device:
     def __init__(self, cast_info_or_none=None):
         self.__device = cast_info_or_none
         self.is_cast_info = isinstance(self.__device, CastInfo)
+        self.is_local_device = not self.is_cast_info
 
     @property
     def id(self):
@@ -286,7 +287,7 @@ class Device:
 
     @property
     def name(self):
-        if self.is_cast_info:
+        if isinstance(self.__device, CastInfo):
             return self.__device.friendly_name
         return self.LOCAL_DEVICE()
 

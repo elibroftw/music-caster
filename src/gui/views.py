@@ -40,9 +40,9 @@ from meta import (
     LINK_COLOR,
     PL_COMBO_W,
     VERSION,
-    PlayingStatus,
     State,
 )
+from modules.playing_status import PlayingStatus
 from modules.resolution_switcher import fmt_res, get_all_resolutions
 from utils import (
     Device,
