@@ -118,7 +118,7 @@ def add_new_changes(prev_changes: str):
 
 def set_spec_debug(debug_option):
     for file_name in (ONEDIR_SPEC, PORTABLE_SPEC, UPDATER_SPEC_FILE):
-        with open(file_name, 'r+', encoding='utf-8') as _f:
+        with open(file_name, 'r+', encoding='utf-8', newline='\n') as _f:
             new_spec = _f.read().replace(f'debug={not debug_option}',
                                          f'debug={debug_option}')
             new_spec = new_spec.replace(f'console={not debug_option}',
@@ -142,7 +142,7 @@ def create_zip(zip_filename, files_to_zip, compression=zipfile.ZIP_BZIP2):
 
 def update_versions(version):
     """Update versions of version file and installer script"""
-    with open(VERSION_FILE, 'r+', encoding='utf-8') as version_info_file:
+    with open(VERSION_FILE, 'r+', encoding='utf-8', newline='\n') as version_info_file:
         lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('    prodvers'):
@@ -165,7 +165,7 @@ def update_versions(version):
         version_info_file.writelines(lines)
         version_info_file.truncate()
 
-    with open(INSTALLER_SCRIPT, 'r+', encoding='utf-8') as version_info_file:
+    with open(INSTALLER_SCRIPT, 'r+', encoding='utf-8', newline='\n') as version_info_file:
         lines = version_info_file.readlines()
         for i, line in enumerate(lines):
             if line.startswith('#define MyAppVersion'):
@@ -226,7 +226,7 @@ def upgrade_yt_dlp():
         maj, _min, fix = VERSION.split('.')
         fix = int(fix) + 1
         new_version = f'{maj}.{_min}.{fix}'
-        with open('meta.py', 'r+', encoding='utf-8') as f:
+        with open('meta.py', 'r+', encoding='utf-8', newline='\n') as f:
             # VERSION = latest_version = '5.0.0'
             new_txt = f.read().replace(
                 f"VERSION = latest_version = '{VERSION}'",
@@ -234,7 +234,7 @@ def upgrade_yt_dlp():
             )
             f.seek(0)
             f.write(new_txt)
-        with open(CHANGELOG_FILE, 'r+', encoding='utf-8') as f:
+        with open(CHANGELOG_FILE, 'r+', encoding='utf-8', newline='\n') as f:
             content = ''.join(
                 (f.readline(), f'\n{VERSION}\n- Upgrade dependencies\n',
                  f.read()))
