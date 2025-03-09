@@ -2134,6 +2134,7 @@ if __name__ == '__main__':
                 url_args = urllib.parse.urlencode({'path': uri, 'api_key': settings['api_key']})
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
                 app_log.info(f'calling cast.wait on device {cast.cast_info.friendly_name} / {cast.uuid}')
+                app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
                 cast.wait(timeout=WAIT_TIMEOUT)
                 if not from_set_pos:
                     app_log.info(f'try: cast.set_volume({volume})')
@@ -2149,8 +2150,9 @@ if __name__ == '__main__':
                 mc.block_until_active(WAIT_TIMEOUT)
                 app_log.info(f'mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError) as e:
-                app_log.error('Cast device is not connected')
-                """
+                app_log.error('cast device is not connected', exc_info=True)
+                app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
+                r"""
                 2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009]
                 Failed to connect to service HostServiceInfo(type='mdns',
                 data='Google-Home-Mini-$HASH._googlecast._tcp.local.'), retrying in 5.0s
@@ -2171,7 +2173,15 @@ if __name__ == '__main__':
                     return False
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
             except (PyChromecastError, OSError, RuntimeError, AssertionError) as e:
-                app_log.error(f'play failed to cast {repr(e)}')
+                r"""
+                Traceback (most recent call last):
+                File "music_caster.py", line 2137, in play
+                File "pychromecast\__init__.py", line 505, in wait
+                pychromecast.error.RequestTimeout: Execution of wait timed out after 5 s.
+                """
+                app_log.error('play failed to cast', exc_info=True)
+                app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
+                app_log.info('falling back to playing on local device')
                 if show_error:
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
@@ -4110,7 +4120,7 @@ if __name__ == '__main__':
             print('TODO: start_on_login_modifications not implemented for', platform.system())
 
 
-    def cast_monitor(sent: bool = True, msg: dict = None, is_callback=True):
+    def cast_monitor(sent: bool = True, msg: dict | None = None, is_callback=True):
         global track_position, track_start, track_end, OLD_CAST_VOLUME, OLD_CAST_POS
         if cast is None:
             return
@@ -4148,7 +4158,7 @@ if __name__ == '__main__':
                         current_time = media_controller.status.adjusted_current_time
                         if current_time is not None and abs(current_time - OLD_CAST_POS) > buffer:
                             if current_time < OLD_CAST_POS:
-                                app_log.info(f'cast player state: {media_controller.status.player_state}')
+                                app_log.info(f'cast.media_controller player state: {media_controller.status.player_state}')
                                 app_log.info(f'updating OLD_CAST_POS from {OLD_CAST_POS} to {current_time}')
                             OLD_CAST_POS = current_time
                             # update track position only if out of buffer position
@@ -4355,6 +4365,8 @@ if __name__ == '__main__':
         if not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')
         TIME_TO_START = time.monotonic() - start_time
+        app_log.info('--------------------------------')
+        app_log.info(f'Music Caster Version: {VERSION}')
         app_log.debug(f'Time to start (excluding imports) is {TIME_TO_START:.2f} seconds')
         app_log.debug(f'Time to start (including imports) is {TIME_TO_START + TIME_TO_IMPORT:.2f} seconds')
         last_position_save = time.monotonic()
