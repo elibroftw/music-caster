@@ -2164,7 +2164,7 @@ if __name__ == '__main__':
                 url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
                 app_log.info(f'calling cast.wait on device {cast.cast_info.friendly_name} / {cast.uuid}')
                 app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
-                cast.wait(timeout=WAIT_TIMEOUT)
+                cast.wait(timeout=15 if show_error else WAIT_TIMEOUT)
                 if not from_set_pos:
                     app_log.info(f'try: cast.set_volume({volume})')
                     with suppress(RequestTimeout):
@@ -2174,6 +2174,7 @@ if __name__ == '__main__':
                 metadata = {'title': str(metadata['title']), 'artist': str(metadata['artist']),
                             'albumName': str(metadata['album']), 'metadataType': 3}
                 ext = uri.split('.')[-1]
+                # pychromecast.error.NotConnected: Chromecast unknown:8009 is connecting..
                 mc.play_media(url, f'audio/{ext}', current_time=position,
                               metadata=metadata, thumb=f'{url}&thumbnail_only=true', autoplay=autoplay)
                 mc.block_until_active(WAIT_TIMEOUT)
@@ -2217,8 +2218,8 @@ if __name__ == '__main__':
                     if cast.media_controller.status.player_state == 'UNKNOWN':
                         try:
                             cast.media_controller.stop()
-                            cast.quit_app(10)
-                            cast.wait(10)
+                            cast.quit_app(15)
+                            cast.wait(15)
                             try_reconnecting = False
                         except PyChromecastError as e:
                             app_log.error('failed to stop, quit, or wait on cast device', exc_info=True)
