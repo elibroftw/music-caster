@@ -1,7 +1,11 @@
 Music Caster Changelog
 
+5.22.21
+- [Fix] Volume syncing
+- [Fix] Improved reconnecting upon abrupt disconnect
+
 5.22.20
-- Fix Album art for cast devices
+- [Fix] Album art for cast devices
 
 5.22.19
 - Upgrade dependencies

@@ -1324,6 +1324,9 @@ if __name__ == '__main__':
         wait_until = time.monotonic() + WAIT_TIMEOUT
         while cast is None and time.monotonic() < wait_until:
             time.sleep(0.2)
+        if cast is None:
+            app_log.error('could not reconnect to cast')
+        return cast is not None
 
 
     @cmp_to_key
@@ -1388,7 +1391,12 @@ if __name__ == '__main__':
                 else:
                     # otherwise, update the cast variable
                     cast = pychromecast.get_chromecast_from_cast_info(cast_info, zconf=zconf)
-                    cast.wait()
+                    try:
+                        if cast.is_idle:
+                            cast.wait(30)
+                    except Exception as e:
+                        app_log.error('could not wait on cast', exc_info=True)
+                        handle_exception(e)
                     # cast.register_status_listener(StatusCastListener(cast))
                     # cast.media_controller.register_status_listener(MediaCastListener(cast))
             refresh_tray(True)
@@ -1458,13 +1466,13 @@ if __name__ == '__main__':
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
             if playing_status.busy():
                 mc = cast.media_controller
-                with suppress(UnsupportedNamespace, NotConnected, RequestTimeout, RequestFailed, AssertionError):
+                with suppress(PyChromecastError, AssertionError):
                     mc.update_status()  # Switch device without playback loss
                     current_pos = mc.status.adjusted_current_time
                     if mc.status.player_is_playing or mc.status.player_is_paused:
                         mc.stop()
-            with suppress(UnsupportedNamespace, NotConnected, RequestTimeout, RequestFailed, AssertionError):
-                cast.quit_app()
+            with suppress(PyChromecastError, AssertionError):
+                cast.quit_app(30)
         elif cast is None and 'audio_player' in globals() and audio_player.is_busy():
             current_pos = audio_player.stop()
         autoplay = playing_status.playing()
@@ -1481,8 +1489,8 @@ if __name__ == '__main__':
                 play(position=current_pos, autoplay=autoplay, switching_device=True, show_error=True)
         else:
             if cast is not None:
-                with suppress(NotConnected):
-                    cast.quit_app()
+                with suppress(PyChromecastError):
+                    cast.quit_app(30)
                 try:
                     cast.wait(timeout=WAIT_TIMEOUT)
                 except RequestTimeout:
@@ -2204,13 +2212,24 @@ if __name__ == '__main__':
                 app_log.error('play failed to cast', exc_info=True)
                 app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
                 app_log.info('falling back to playing on local device')
+                if not show_error:
+                    try_reconnecting = True
+                    if cast.media_controller.status.player_state == 'UNKNOWN':
+                        try:
+                            cast.media_controller.stop()
+                            cast.quit_app(10)
+                            cast.wait(10)
+                            try_reconnecting = False
+                        except PyChromecastError as e:
+                            app_log.error('failed to stop, quit, or wait on cast device', exc_info=True)
+                            handle_exception(e)
+                    if try_reconnecting and not cast_try_reconnect():
+                        show_error = True
                 if show_error:
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
                     change_device()
                     handle_exception(e)
                     switching_device=True
-                else:
-                    cast_try_reconnect()
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
         track_position = position
         track_start = time.monotonic() - track_position
@@ -2285,7 +2304,8 @@ if __name__ == '__main__':
             try:
                 temp_queue.sort(key=lambda filename: metadata_key(filename, album_sort=len(albums_found) > 1))
             except Exception as e:
-                print('error', e)
+                app_log.error('could not sort temp_queue', exc_info=True)
+                handle_exception(e)
         # add to next queue condition
         if play_next:
             if settings['reversed_play_next']:
@@ -2465,8 +2485,8 @@ if __name__ == '__main__':
                     try:
                         mc.pause()
                     except (RequestTimeout, RequestFailed):
-                        cast.wait()
                         try:
+                            cast.wait(30)
                             cast.media_controller.pause()
                         except (RequestTimeout, RequestFailed):
                             app_log.error('failed to pause cast device', exc_info=True)
@@ -2561,7 +2581,11 @@ if __name__ == '__main__':
                 ) and time.monotonic() > block_until:
                     time.sleep(0.1)
                 if status.player_is_playing or status.player_is_paused:
-                    cast.quit_app()
+                    try:
+                        cast.quit_app(30)
+                    except PyChromecastError as e:
+                        app_log.error('cast.quit_app failed', exc_info=True)
+                        handle_exception(e)
         track_start = track_position = track_end = track_length = 0
         if not gui_window.was_closed():
             daemon_commands.put('__UPDATE_GUI__')
@@ -3221,7 +3245,11 @@ if __name__ == '__main__':
             if cast is None:
                 stop('exit program')
             elif cast is not None and cast.app_id == APP_MEDIA_RECEIVER and playing_status.busy():
-                cast.quit_app()
+                try:
+                    cast.quit_app(30)
+                except PyChromecastError as e:
+                    app_log.error('could not cast.quit_app', exc_info=True)
+                    handle_exception(e)
         DiscordPresence.close()
         if settings['persistent_queue'] and not quick_exit:
             save_queues()
@@ -4162,11 +4190,13 @@ if __name__ == '__main__':
                 return cast.media_controller.update_status(callback_function=cast_monitor)
         except AttributeError:
             # don't need to monitor if device switched randomly
-            pass
-        except NotConnected:
+            return
+        except (NotConnected, UnsupportedNamespace):
+            app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
             # we might care if not connected
             with suppress(RequestTimeout):
                 cast.wait(3)
+            return
         except Exception as e:
             handle_exception(e)
             return
@@ -4203,14 +4233,15 @@ if __name__ == '__main__':
                     stop('cast_monitor', False)
                 if cast.status is not None:
                     cast_volume = round(cast.status.volume_level * 100, 1)
-                if settings['volume'] != OLD_CAST_VOLUME:
-                    if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
-                                                    abs(settings['volume'] - cast_volume) > 0.05):
-                        # if volume was changed via Google Home App
-                        OLD_CAST_VOLUME = cast_volume
-                        if update_settings('volume', cast_volume) and settings['muted']:
-                            update_settings('muted', False)
-                        gui_window.metadata['update_volume_slider'] = True
+                    # volume sync
+                    if settings['volume'] != cast_volume:
+                        if not settings['muted'] and (not isinstance(settings['volume'], (float, int)) or
+                                                        abs(settings['volume'] - cast_volume) > 0.05):
+                            # if volume was changed via Google Home App
+                            OLD_CAST_VOLUME = cast_volume
+                            if update_settings('volume', cast_volume) and settings['muted']:
+                                update_settings('muted', False)
+                            gui_window.metadata['update_volume_slider'] = True
             elif playing_status.playing() and cast.media_controller.status.player_is_idle and time.time() - LAST_PLAYED > 300:
                 # paused for more than 5 minutes
                 stop('cast_monitor. app was not running')
