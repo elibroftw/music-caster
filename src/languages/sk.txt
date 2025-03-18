@@ -1,0 +1,203 @@
+# Language: Slovak
+# Credits: PalVac
+# Any line starting with a # is ignored
+# If a line contains $X do not translate the $X, please use it in context
+# e.g. "Update $VER is available" will dynamically become "Update v4.75.0 is available"
+# Try to keep the same capitalization or lack of as in the English file
+prida prieinok
+Prida Music Caster do kontextovej ponuky prieinka
+Prida sbory
+Prida URL
+Vyskytla sa chyba, aplikcia sa retartuje
+Vyskytla sa vntorn chyba servera
+Vber zvuku
+Automatick aktualizcia
+Autor
+Zrui
+Zrui asova
+Vymaza frontu
+Ovldanie
+Nepodarilo sa pripoji k streamovaciemu zariadeniu
+Nepodarilo sa njs vstupn zariadenie na nahrvanie
+Nepodarilo sa prehra $URL
+Nepodarilo sa naplni frontu, pretoe skenovanie kninice mdi je zakzan
+Nepodarilo sa nastavi asova
+Aktualizova stav v Discord
+Sahuje sa aktualizcia $VER
+Zadajte minty alebo HH:MM
+Zadajte as
+Zadajte URL
+CHYBA
+Ukoni
+Kontextov menu prieinka
+Prieinok neobsahuje zvukov sbory
+Prieinky
+Veobecn
+Prepn pota do reimu hiberncie po uplynut asovaa
+Prepn pota do reimu hiberncie
+INFORMCIA
+Neplatn vstup (zadajte minty alebo HH:MM)
+Neplatn URL. URL musia zana na http:// alebo https://
+Vybrali ste neplatn zvukov sbor
+Neplatn zvukov sbor $FILE
+Ponecha mini reim navrchu
+Spusti mini reim
+Ovldanie hudby vavo
+Kninica
+Indexovanie kninice je nepln, boli pridan iba naskenovan sbory
+Povanie
+Systmov zvuk
+Miestne zariadenie
+njs vybran
+Stratilo sa spojenie s $DEVICE, prepn na loklne zariadenie
+Mini reim navrchu
+Viac
+posun nadol
+Prejs na alie
+Presun obsah skladby doava
+posun hore
+Music Caster je spusten v tray.
+stlmi
+Nov
+alia skladba
+Vo vaom zariaden nie je dostatok miesta na automatick aktualizcie
+Vo vaom zariaden nie je dostatok miesta na uloenie nastaven
+Nebol nastaven iadny asova
+Nie je pripojen k streamovaciemu zariadeniu
+Nie ste prihlsen/- na deezer.com
+Ni sa neprehrva
+Oznmenia
+Iba zastavi prehrvanie
+Otvori
+Pozastavi
+Uloen front
+Prehra
+Prehra vetky
+Prehra sbory
+Prehra sbory nasledovne
+Prehra okamite
+Prehra aliu
+Prehra URL
+Prehra aliu URL
+Prehrvanie
+Nzov playlistu
+Playlisty
+Karta playlistov
+Naplni front pri spusten
+Naplni frontu prieinkov pri spusten
+predchdzajca skladba
+Fronta
+zaradi vetky
+Sbory frontu
+Fronta prepojen
+Obnovi zariadenia
+Zapamta si posledn prieinok
+odstrni vybran prieinok
+odstrni
+Opakova
+Opakova vetky
+Vypn opakovanie
+Opakova jednu
+Monosti opakovania
+Preskenova kninicu
+Preskenovanie kninice
+Pokraova
+Zmena nasledujceho reimu prehrvania
+Prehra nasledovn v opanom porad
+Spusti pri tarte
+Uloi front medzi relciami
+Uloi do playlistu
+Uloi polohu okien
+Skenova prieinky
+Posvanie myou
+Hada hudbu...
+Vybra zariadenie
+Vybra prieinok
+Vybra prieinky
+Vybra sbory
+Vybra sbor
+Vybra zvukov sbory
+Poli mi email
+nastavte DEBUG = true v `settings.json` pre aktivciu tejto strnky
+Nastavi asova
+Nastavi
+Nastavenia
+Zobrazi obal albumu
+Zobrazi obalu albumu v grafickom rozhran
+Zobrazi index vo fronte
+Zobrazi slo skladby
+Zobrazi sla skladieb vo fronte
+nhodn vber
+Vypn po uplynut asovaa
+Vypn pota
+Uspa po vypran asovaa
+Uspa pota
+Zastavi
+Odosla
+akujeme za intalciu Music Caster.
+asova
+asova zruen
+asova nastaven na $TIME
+Zadajte interpreta/skladby
+UI
+zapn zvuk
+Dostupn aktualizcia na $VER
+URL
+Poui cover.* ako obal albumu
+Poui cover.* ako obal albumu namiesto vloenia do sboru
+cover.* obrzok nahrad obrzok obalu vloen v sbore
+Vertiklne pouvatesk rozhranie
+Zobrazi odkazy na zdroje zvukovch sborov
+Otvori webov grafick rozhranie
+nov playlist
+exportova playlist
+vymaza playlist
+prehra playlist
+fronta playlistu
+Neznmy nzov
+Neznmy umelec
+Neznmy album
+Vdy zaraova kninicu do frontu
+Prehra v Music Caster
+Poradie v Music Caster
+Prehra alie v Music Caster
+Zaraovanie do fronty
+Inteligentn fronta
+prida do alej
+Metadta
+Ukladaj sa metadta
+Metadta uloen
+Uloi
+Nzov
+Umelec
+Album
+slo skladby
+Explicitn
+Vybra obal
+Hada obal
+Odstrni obal
+Obal njden
+Obal nenjden
+Had sa obal...
+Natava URL
+Pridan URL
+jazyk
+prehra vybran
+vybran fronta
+prida vybran na alie
+Oneskorenie zvuku systmu:
+seknd
+njs skladbu
+Prepnanie na loklne zariadenie
+Formt nzvu piesne:
+Nepodarilo sa nata zvuk pre $URL
+Ukoni program pri zatvoren pouvateskho rozhrania
+Rozlenie pri napjan z batrie
+Rozlenie pri napjan zo zdroja
+Nepodarilo sa nastavi rozlenie
+koprova cestu
+upravi metadta
+Experimentlne funkcie
+Playlist uloen
+Naintalova aktualizciu
+Stiahnut $VER. Relaunching...
