@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.22.22
+- [Fix] Radio-like streams
+
 5.22.21
 - [Fix] Volume syncing
 - [Fix] Improved reconnecting upon abrupt disconnect

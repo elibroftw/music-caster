@@ -2069,7 +2069,8 @@ if __name__ == '__main__':
         url = metadata['audio_url'] if cast is None and 'audio_url' in metadata else metadata['url']
         api_key = settings['api_key']
         thumbnail = metadata['art'] if 'art' in metadata else f'{get_ipv4()}/file?path=DEFAULT_ART&api_key={api_key}'
-        track_length = int(metadata['length'])
+        # can be None
+        track_length = metadata['length']
         try:
             app_log.info(f'cast.socket_client.is_alive(): {cast.socket_client.is_alive()}')
             cast.wait(timeout=WAIT_TIMEOUT)
