@@ -527,7 +527,7 @@ if __name__ == '__main__':
                 daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             elif settings_key == 'shuffle':
-                if not gui_window.was_closed():
+                if not gui_window.is_closed():
                     daemon_commands.put('__UPDATE_GUI__')
                 shuffle_queue() if new_value else un_shuffle_queue()
         return new_value
@@ -1027,7 +1027,7 @@ if __name__ == '__main__':
         _metadata = get_current_metadata()
         now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
                        'title': str(_metadata['title']), 'artist': str(_metadata['artist']),
-                       'album': str(_metadata['album']), 'gui_open': not gui_window.was_closed(),
+                       'album': str(_metadata['album']), 'gui_open': not gui_window.is_closed(),
                        'track_position': get_track_position(), 'track_length': track_end - track_start,
                        'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
         return jsonify(now_playing)
@@ -1636,7 +1636,7 @@ if __name__ == '__main__':
 
 
     def update_gui():
-        if gui_window.was_closed():
+        if gui_window.is_closed():
             return
         try:
             if playing_status.stopped():
@@ -1678,7 +1678,7 @@ if __name__ == '__main__':
             shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
             gui_window['shuffle'].update(image_data=shuffle_image_data)
         except TclError as e:
-            app_log.info(f'gui_window.was_closed() = {gui_window.was_closed()}')
+            app_log.info(f'gui_window.is_closed() = {gui_window.is_closed()}')
             handle_exception(e)
 
 
@@ -1688,7 +1688,7 @@ if __name__ == '__main__':
         if autoplay:
             if platform.system() == 'Windows':
                 ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
-            if settings['notifications'] and not switching_device and gui_window.was_closed():
+            if settings['notifications'] and not switching_device and gui_window.is_closed():
                 # artists is comma separated string
                 tray_notify(t('Playing') + f': {get_first_artist(artists)} - {title}')
             playing_status.play()
@@ -1716,7 +1716,7 @@ if __name__ == '__main__':
             # system_media_controls.set_metadata(title, artists, album, thumb_path.as_uri())
             # system_media_controls.update_time()
 
-        if not gui_window.was_closed():
+        if not gui_window.is_closed():
             gui_window.metadata['update_listboxes'] = True
             daemon_commands.put('__UPDATE_GUI__')
         return True
@@ -2506,7 +2506,7 @@ if __name__ == '__main__':
                     DiscordPresence.update(t('By') + f': {artist}', title, 'Paused', confirm_connect=settings['discord_rpc'])
             except UnsupportedNamespace:
                 stop('pause')
-            if not gui_window.was_closed():
+            if not gui_window.is_closed():
                 daemon_commands.put('__UPDATE_GUI__')
             refresh_tray()
             LAST_PLAYED = time.time()
@@ -2545,7 +2545,7 @@ if __name__ == '__main__':
                 DiscordPresence.update(t('By') + f': {artist}',title, t('Listening'), confirm_connect=settings['discord_rpc'])
                 if platform.system() == 'Windows':
                     ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
-                if not gui_window.was_closed():
+                if not gui_window.is_closed():
                     daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except (PyChromecastError, AssertionError) as e:
@@ -2589,7 +2589,7 @@ if __name__ == '__main__':
                         app_log.error('cast.quit_app failed', exc_info=True)
                         handle_exception(e)
         track_start = track_position = track_end = track_length = 0
-        if not gui_window.was_closed():
+        if not gui_window.is_closed():
             daemon_commands.put('__UPDATE_GUI__')
         refresh_tray()
 
@@ -2766,7 +2766,7 @@ if __name__ == '__main__':
                 self.latest_release = release
                 self.latest_version = release['version']
                 State.update_available = True
-                if not gui_window.was_closed():
+                if not gui_window.is_closed():
                     gui_window['install_update'].update(visible=True)
                 if settings['notifications']:
                     tray_notify('update_available', context=self.latest_version)
@@ -2805,7 +2805,7 @@ if __name__ == '__main__':
                         cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
                                 '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
                         cmd.extend(sys.argv[1:])
-                        if gui_window.was_closed() and not args.minimized:
+                        if gui_window.is_closed(quick_check=True) and not args.minimized:
                             cmd.append('-m')
                         download_update = t('Downloading update $VER').replace('$VER', latest_ver)
                         tray_notify(download_update)
@@ -3102,7 +3102,7 @@ if __name__ == '__main__':
         global gui_window
         # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
         app_log.info(f'selected_tab={selected_tab}')
-        if gui_window.was_closed():
+        if gui_window.is_closed():
             State.using_tcl_theme = settings['experimental_features'] and os.path.exists(sun_valley_tcl_path)
             # create window if window not alive
             lb_tracks = create_track_list()
@@ -4491,7 +4491,7 @@ if __name__ == '__main__':
                         tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
             if cast is not None:
                 cast_monitor(is_callback=False)
-            if not gui_window.was_closed():
+            if not gui_window.is_closed():
                 read_main_window()
             else:
                 time.sleep(0.3)
