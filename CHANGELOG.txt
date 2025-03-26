@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.23.1
+- [Fix] URL processing
+
 5.23.0
 - [UI] Added Slovak translation
 
