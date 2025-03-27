@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.23.2
+- [Fix] Reopen GUI on Restart
+
 5.23.1
 - [Fix] URL processing
 

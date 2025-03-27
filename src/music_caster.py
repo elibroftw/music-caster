@@ -2771,7 +2771,7 @@ if __name__ == '__main__':
                 if settings['notifications']:
                     tray_notify('update_available', context=self.latest_version)
 
-        def auto_update(self, install_update=True):
+        def auto_update(self, install_update=True, from_gui=False):
             """ auto_start should be True when checking for updates at startup up,
                 false when checking for updates before exiting """
             with suppress(requests.RequestException, UpdateFailed):
@@ -2804,8 +2804,14 @@ if __name__ == '__main__':
                         # only show message on startup to not confuse the user
                         cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
                                 '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
-                        cmd.extend(sys.argv[1:])
-                        if gui_window.is_closed(quick_check=True) and not args.minimized:
+                        if not from_gui:
+                            cmd.extend(
+                                filter(
+                                    lambda arg: arg not in {'-m', '--minimized'},
+                                    sys.argv[1:],
+                                )
+                            )
+                        if gui_window.is_closed(quick_check=True):
                             cmd.append('-m')
                         download_update = t('Downloading update $VER').replace('$VER', latest_ver)
                         tray_notify(download_update)
@@ -3680,7 +3686,7 @@ if __name__ == '__main__':
         elif main_event == 'install_update':
             if not State.installing_update:
                 gui_window['install_update'].update(visible=False)
-                Thread(target=update_checker.auto_update, daemon=True, name='Updater').start()
+                Thread(target=update_checker.auto_update, kwargs={'from_gui': True}, daemon=True, name='Updater').start()
         elif main_event == 'play_all':
             if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
                 Thread(target=play_all, name='PlayAll', daemon=True).start()
