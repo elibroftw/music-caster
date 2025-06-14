@@ -1431,7 +1431,7 @@ if __name__ == '__main__':
         return pychromecast.get_chromecast_from_cast_info(cast_browser.devices[device_uuid], zconf)
 
 
-    def change_device(new_uuid='local'):
+    def change_device(new_uuid='local', unresponsive_cast=False):
         """switch_device
         if new_uuid is invalid, then the local device is selected
         """
@@ -1464,7 +1464,7 @@ if __name__ == '__main__':
         # cache information
         current_pos = 0
         if cast is not None and cast.app_id == APP_MEDIA_RECEIVER:
-            if playing_status.busy():
+            if not unresponsive_cast and playing_status.busy():
                 mc = cast.media_controller
                 with suppress(PyChromecastError, AssertionError):
                     mc.update_status()  # Switch device without playback loss
@@ -1472,7 +1472,7 @@ if __name__ == '__main__':
                     if mc.status.player_is_playing or mc.status.player_is_paused:
                         mc.stop()
             with suppress(PyChromecastError, AssertionError):
-                cast.quit_app(30)
+                cast.quit_app(10)
         elif cast is None and 'audio_player' in globals() and audio_player.is_busy():
             current_pos = audio_player.stop()
         autoplay = playing_status.playing()
@@ -1763,7 +1763,7 @@ if __name__ == '__main__':
             app_log.error(f'play_sys_audio failed to cast {repr(e)}')
             if show_error:
                 tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (psa)')
-                change_device()
+                change_device(unresponsive_cast=True)
                 return handle_exception(e)
             cast_try_reconnect()
             return play_system_audio(switching_device=switching_device, show_error=True)
@@ -2098,7 +2098,7 @@ if __name__ == '__main__':
                 + t('Could not connect to cast device')
                 + ' (play_url)'
             )
-            change_device()
+            change_device(unresponsive_cast=True)
             return False
         except (PyChromecastError, OSError) as e:
             app_log.error(f'play_url failed to cast {repr(e)}')
@@ -2201,7 +2201,7 @@ if __name__ == '__main__':
                     print(e)
                 if show_error:
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
-                    change_device()
+                    change_device(unresponsive_cast=True)
                     return False
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)
             except (PyChromecastError, OSError, RuntimeError, AssertionError) as e:
@@ -2229,7 +2229,7 @@ if __name__ == '__main__':
                         show_error = True
                 if show_error:
                     tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (play)')
-                    change_device()
+                    change_device(unresponsive_cast=True)
                     handle_exception(e)
                     switching_device=True
                 return play(position=position, autoplay=autoplay, switching_device=switching_device, show_error=True)

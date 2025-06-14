@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.23.7
+- [Fix] Death loop
+
 5.23.6
 - [Fix] URL processing
 
