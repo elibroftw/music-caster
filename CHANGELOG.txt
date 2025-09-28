@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.23.9
+- [Fix] URL processing
+
 5.23.8
 - [Fix] URL processing
 

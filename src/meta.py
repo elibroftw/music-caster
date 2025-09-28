@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.23.8'
+VERSION = latest_version = '5.23.9'
 UPDATE_MESSAGE = """
 [NEW] Support "System Audio" in CLI
 [MSG] Language translators wanted
