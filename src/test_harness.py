@@ -494,6 +494,7 @@ def running_in_ci(request):
     return request.config.getoption('--ci')
 
 
+@pytest.mark.no_ci
 @pytest.mark.parametrize(
     'url',
     ('https://www.youtube.com/watch?v=PNP0hku7hSo', 'https://youtu.be/5XADIh_mJM4'),

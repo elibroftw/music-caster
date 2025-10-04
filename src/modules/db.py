@@ -22,6 +22,22 @@ class DatabaseConnection:
         self.conn.close()
 
 
+CONCERT_SCHEMA = '''
+CREATE TABLE IF NOT EXISTS concert_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist TEXT NOT NULL,
+    event_name TEXT NOT NULL,
+    venue TEXT NOT NULL,
+    city TEXT NOT NULL,
+    state TEXT,
+    country TEXT,
+    date TEXT NOT NULL,
+    url TEXT,
+    last_checked REAL NOT NULL,
+    UNIQUE(artist, event_name, venue, city, date)
+);
+'''
+
 METADATA_SCHEMA = '''
 CREATE TABLE IF NOT EXISTS file_metadata (
     file_path TEXT PRIMARY KEY NOT NULL,
@@ -36,7 +52,7 @@ CREATE TABLE IF NOT EXISTS file_metadata (
 );
 
 CREATE TABLE IF NOT EXISTS url_metadata (
-    src TEXT PRIMARY KEY NOT NULL, 
+    src TEXT PRIMARY KEY NOT NULL,
     title TEXT,
     artist TEXT,
     album TEXT,
@@ -53,9 +69,29 @@ CREATE TABLE IF NOT EXISTS url_metadata (
 '''
 
 
+def save_metadata_batch(metadata_list, table_name='file_metadata', key_column='file_path'):
+    """Batch insert or replace metadata records into the database."""
+    if not metadata_list:
+        return
+
+    with DatabaseConnection() as conn:
+        cur = conn.cursor()
+        for i, (uri, metadata) in enumerate(metadata_list):
+            values = [uri]
+            values.extend((int(x) if isinstance(x, bool) else x for x in metadata.values()))
+            columns = ','.join(metadata.keys())
+            placeholders = ','.join('?' * len(values))
+            sql = f'INSERT OR REPLACE INTO {table_name}({key_column},{columns}) VALUES({placeholders})'
+            cur.execute(sql, values)
+
+            if i % 20 == 0:
+                conn.commit()
+        conn.commit()
+
+
 def init_db(reset=False):
     with DatabaseConnection() as connection:
         if reset:
-            connection.executescript('DROP TABLE file_metadata;DROP TABLE url_metadata;')
-        connection.executescript(METADATA_SCHEMA)
+            connection.executescript('DROP TABLE file_metadata;DROP TABLE url_metadata;DROP TABLE concert_events;')
+        connection.executescript(CONCERT_SCHEMA + METADATA_SCHEMA)
         connection.commit()

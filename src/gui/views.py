@@ -32,6 +32,7 @@ from b64_images import (
 from meta import (
     CONTACT_INFO,
     COVER_NORMAL,
+    EMAIL,
     FONT_LINK,
     FONT_MED,
     FONT_NORMAL,
@@ -126,6 +127,7 @@ def MainWindow(playing_status, settings, title: str, artist: str, album: str, al
     ]
     if settings['experimental_features']:
         tabs.append(VideoTab(video_devices))
+        tabs.append(ConcertsTab())
     tabs.extend((
         LibraryTab(music_lib, LISTBOX_HEIGHT, alternate_bg, vertical_gui, show_album_art),
         PlaylistsTab(settings['playlists'], vertical_gui, show_album_art),
@@ -435,6 +437,24 @@ def SettingsTab(settings, web_ui_url):
              [IconButton(X_ICON, 'remove_music_folder', t('remove selected folder'), GuiContext.bg)],
              [IconButton(PLUS_ICON, 'add_music_folder', t('add folder'), GuiContext.bg)]])]]
     return Sg.Tab(t('Settings'), layout, key='tab_settings')
+
+
+def ConcertsTab():
+    from modules.concert_api import MockConcertScraper
+    scraper = MockConcertScraper()
+    artist_counts = scraper.get_artist_counts()
+    # Sort artists by count (most frequent first) and take top 10
+    artists = sorted(artist_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    # Format as "Artist (count)" for display
+    artists = [f"{artist} ({count})" for artist, count in artists]
+    link_params = {'text_color': LINK_COLOR, 'font': FONT_LINK, 'click_submits': True}
+    layout = [
+        [Sg.Text(t('Concerts are a future feature. Stay tuned for updates!'), font=FONT_MED, justification='center')],
+        [Sg.Text(t('Top Artists:'), font=FONT_NORMAL)],
+        [Sg.Listbox(artists, size=(50, 10), text_color=GuiContext.fg, background_color=GuiContext.bg, font=FONT_NORMAL, disabled=True)],
+        [Sg.Text(f'Contact: {EMAIL}', **link_params, key='concerts_email')]
+    ]
+    return Sg.Tab(t('Concerts'), [[Sg.Column(layout, pad=(5, 20))]], key='tab_concerts')
 
 
 def VideoTab(devices):

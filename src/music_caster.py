@@ -271,7 +271,7 @@ if __name__ == '__main__':
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
-    from modules.db import DatabaseConnection, init_db
+    from modules.db import DatabaseConnection, init_db, save_metadata_batch
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
@@ -335,7 +335,7 @@ if __name__ == '__main__':
     cast: Chromecast = None  # type: ignore
     all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = '✓'
+    CHECK_MARK = 'Ã¢Å“â€œ'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -383,7 +383,7 @@ if __name__ == '__main__':
         'track_format': '&artist - &title', 'reversed_play_next': False, 'update_message': '', 'important_message': '',
         'music_folders': [get_default_music_folder()], 'playlists': {}, 'queues': {'done': [], 'music': [], 'next': []},
         'position': 0, 'plugged_in_res': None, 'on_battery_res': None, 'experimental_features': False,
-        'api_key': secrets.token_urlsafe(16)}
+        'api_key': secrets.token_urlsafe(16), 'concert_location': 'New York'}
     default_settings = deepcopy(settings)
     indexing_tracks_thread = save_queue_thread = Thread()
     sar = SystemAudioRecorder()
@@ -573,7 +573,7 @@ if __name__ == '__main__':
         return update_settings('repeat', new_repeat_setting)
 
 
-    def create_email_url():
+    def create_support_email_url():
         try:
             with open('music_caster.log', encoding='utf-8') as f:
                 log_lines = f.read().splitlines()[-10:]  # get last 10 lines of the log
@@ -758,40 +758,34 @@ if __name__ == '__main__':
             all_tracks_temp = {}
             dict_to_use = all_tracks_temp if use_temp else all_tracks
             # scan items in queue and library
-            with DatabaseConnection() as conn:
-                cur = conn.cursor()
-                for i, uri in enumerate(get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True)):
-                    if uri.startswith('http'):
-                        url_metadatas = get_url_metadata(uri)
-                        for m in url_metadatas:
-                            values = [uri]
-                            values.extend((int(x) if isinstance(x, bool) else x for x in m.values()))
-                            columns = ','.join(m.keys())
-                            placeholders = ','.join('?' * len(values))
-                            sql = f'INSERT OR REPLACE INTO url_metadata(src,{columns}) VALUES({placeholders})'
-                            cur.execute(sql, values)
-                    else:
-                        m = get_metadata_wrapped(uri)
-                        dict_to_use[uri] = m
-                        values = [uri]
-                        values.extend((int(x) if isinstance(x, bool) else x for x in m.values()))
-                        columns = ','.join(m.keys())
-                        placeholders = ','.join('?' * len(values))
-                        sql = f'INSERT OR REPLACE INTO file_metadata(file_path,{columns}) VALUES({placeholders})'
-                        cur.execute(sql, values)
-                    if i % 20 == 0:
-                        conn.commit()
-                conn.commit()
-                if use_temp:
-                    all_tracks = all_tracks_temp
-                gui_window.metadata['update_listboxes'] = True
-                # TODO
-                # tracks = cur.execute('SELECT * FROM file_metadata ORDER BY sort_key').fetchall()
-                all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
-                # scan items in playlists
-                for _ in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
-                    # the function scans for us
-                    pass
+            file_metadata_list = []
+            url_metadata_list = []
+
+            for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
+                if uri.startswith('http'):
+                    url_metadatas = get_url_metadata(uri)
+                    for m in url_metadatas:
+                        url_metadata_list.append((uri, m))
+                else:
+                    m = get_metadata_wrapped(uri)
+                    dict_to_use[uri] = m
+                    file_metadata_list.append((uri, m))
+
+            # Batch save metadata
+            save_metadata_batch(file_metadata_list, 'file_metadata', 'file_path')
+            save_metadata_batch(url_metadata_list, 'url_metadata', 'src')
+
+            if use_temp:
+                all_tracks = all_tracks_temp
+            gui_window.metadata['update_listboxes'] = True
+            # TODO
+            # tracks = cur.execute('SELECT * FROM file_metadata ORDER BY sort_key').fetchall()
+            all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
+            # scan items in playlists
+            for _ in get_audio_uris(settings['playlists'].values(), ignore_m3u=True):
+                # the function scans for us
+                pass
+
         if not update_global:
             temp_tracks = all_tracks.copy()
             for ignore_file in ignore_files:
@@ -3731,7 +3725,10 @@ if __name__ == '__main__':
                     SYNC_WITH_CHROMECAST = time.time() + 1
         # main window settings tab
         elif main_event == 'open_email':
-            open_in_browser(create_email_url())
+            open_in_browser(create_support_email_url())
+        elif main_event in 'concerts_email':
+            # TODO
+            open_in_browser(create_support_email_url())
         elif main_event == 'open_github':
             open_in_browser('https://github.com/elibroftw/music-caster')
         elif main_event == 'web_gui':
