@@ -26,6 +26,9 @@ jobs:
           cache: pip
       - uses: actions/setup-go@v5
 
+      - name: Install Inno Setup
+        run: choco install innosetup --yes
+
       - name: Install system deps
         run: python build.py --deps
 
