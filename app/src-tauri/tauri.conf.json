@@ -18,7 +18,7 @@
     ],
     "resources": [],
     "externalBin": [
-			"../../dist/Music Caster"
+			"../../dist/music-caster-daemon"
     ],
     "category": "DeveloperTool",
     "shortDescription": "",
@@ -48,6 +48,9 @@
   "version": "../package.json",
   "identifier": "App.Name",
   "plugins": {
+    "sql": {
+      "preload": ["sqlite:music_caster.db"]
+    },
     "updater": {
       "endpoints": [
         "https://youtu.be/ZXjlZBisYPQ"

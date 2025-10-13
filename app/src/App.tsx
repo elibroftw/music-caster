@@ -24,6 +24,7 @@ import { ScrollToTop } from './components/ScrollToTop';
 import SettingsModal from './components/SettingsModal';
 import { useTauriContext } from './tauri/TauriProvider';
 import { TitleBar } from './tauri/TitleBar';
+import Developer from './views/Developer';
 import ExampleView from './views/ExampleView';
 import FallbackAppRender from './views/FallbackErrorBoundary';
 import FallbackSuspense from './views/FallbackSuspense';
@@ -181,7 +182,6 @@ export default function () {
 		<AppShell padding='md'
 			header={{ height: 0 }}
 			footer={showFooter ? { height: 60 } : undefined}
-			navbar={{ width: 0 }}
 			aside={{ width: 350, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
 			className={classes.appShell}>
 			<AppShell.Main>
@@ -200,8 +200,8 @@ export default function () {
 							<Tabs.Panel value="queue" pt="md">
 								<Queue />
 							</Tabs.Panel>
-							<Tabs.Panel value="queue" pt="md">
-								<></>
+							<Tabs.Panel value="dev" pt="md">
+								<Developer />
 							</Tabs.Panel>
 						</Tabs>
 					</ErrorBoundary>

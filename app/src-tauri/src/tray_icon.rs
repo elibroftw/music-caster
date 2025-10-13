@@ -1,9 +1,9 @@
+use crate::MusicCasterState;
 use serde::Serialize;
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
-use tauri::{self, command, Emitter, Manager, Runtime};
-use crate::MusicCasterState;
+use tauri::{self, Emitter, Manager, Runtime, command};
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
@@ -51,7 +51,6 @@ pub fn create_tray_menu<R: Runtime>(
     // Menu for when Music Caster is running
     MenuBuilder::new(app)
       .items(&[
-        &MenuItemBuilder::with_id("mc-settings", "Settings").build(app)?,
         &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
         &MenuItemBuilder::with_id("mc-refresh", "Refresh Devices").build(app)?,
         &SubmenuBuilder::new(app, "Select Device")
@@ -64,11 +63,13 @@ pub fn create_tray_menu<R: Runtime>(
           .build()?,
         &SubmenuBuilder::new(app, "Controls")
           .item(&MenuItemBuilder::with_id("locate-track", "Locate Track").build(app)?)
-          .item(&SubmenuBuilder::new(app, "Repeat Options")
-            .item(&MenuItemBuilder::with_id("repeat-all", "Repeat All").build(app)?)
-            .item(&MenuItemBuilder::with_id("repeat-one", "Repeat One ✓").build(app)?)
-            .item(&MenuItemBuilder::with_id("repeat-off", "Repeat Off").build(app)?)
-            .build()?)
+          .item(
+            &SubmenuBuilder::new(app, "Repeat Options")
+              .item(&MenuItemBuilder::with_id("repeat-all", "Repeat All").build(app)?)
+              .item(&MenuItemBuilder::with_id("repeat-one", "Repeat One ✓").build(app)?)
+              .item(&MenuItemBuilder::with_id("repeat-off", "Repeat Off").build(app)?)
+              .build()?,
+          )
           .item(&MenuItemBuilder::with_id("mc-controls-stop", "Stop").build(app)?)
           .item(&MenuItemBuilder::with_id("mc-controls-prev", "Previous Track").build(app)?)
           .item(&MenuItemBuilder::with_id("mc-controls-next", "Next Track").build(app)?)
@@ -76,24 +77,32 @@ pub fn create_tray_menu<R: Runtime>(
           .build()?,
         &SubmenuBuilder::new(app, "Play")
           .item(&MenuItemBuilder::with_id("play-system", "System Audio").build(app)?)
-          .item(&SubmenuBuilder::new(app, "URL")
-            .item(&MenuItemBuilder::with_id("url-play", "Play URL").build(app)?)
-            .item(&MenuItemBuilder::with_id("url-queue", "Queue URL").build(app)?)
-            .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
-            .build()?)
-          .item(&SubmenuBuilder::new(app, "Folders")
-            .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
-            .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
-            .build()?)
-          .item(&SubmenuBuilder::new(app, "Playlists")
-            .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
-            .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
-            .build()?)
-          .item(&SubmenuBuilder::new(app, "Select Files")
-            .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
-            .item(&MenuItemBuilder::with_id("queue-files", "Queue Files").build(app)?)
-            .item(&MenuItemBuilder::with_id("play-files-next", "Play Files Next").build(app)?)
-            .build()?)
+          .item(
+            &SubmenuBuilder::new(app, "URL")
+              .item(&MenuItemBuilder::with_id("url-play", "Play URL").build(app)?)
+              .item(&MenuItemBuilder::with_id("url-queue", "Queue URL").build(app)?)
+              .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
+              .build()?,
+          )
+          .item(
+            &SubmenuBuilder::new(app, "Folders")
+              .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
+              .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
+              .build()?,
+          )
+          .item(
+            &SubmenuBuilder::new(app, "Playlists")
+              .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
+              .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
+              .build()?,
+          )
+          .item(
+            &SubmenuBuilder::new(app, "Select Files")
+              .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
+              .item(&MenuItemBuilder::with_id("queue-files", "Queue Files").build(app)?)
+              .item(&MenuItemBuilder::with_id("play-files-next", "Play Files Next").build(app)?)
+              .build()?,
+          )
           .item(&MenuItemBuilder::with_id("play-all", "Play All").build(app)?)
           .build()?,
         &MenuItemBuilder::with_id("mc-exit", "Exit").build(app)?,
@@ -103,7 +112,6 @@ pub fn create_tray_menu<R: Runtime>(
     // Menu for when Music Caster is not running
     MenuBuilder::new(app)
       .items(&[
-        &MenuItemBuilder::with_id("mc-settings", "Settings").build(app)?,
         &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
         &MenuItemBuilder::with_id("mc-refresh", "Refresh Devices").build(app)?,
         &SubmenuBuilder::new(app, "Select Device")
@@ -116,24 +124,32 @@ pub fn create_tray_menu<R: Runtime>(
           .build()?,
         &SubmenuBuilder::new(app, "Play")
           .item(&MenuItemBuilder::with_id("play-system", "System Audio").build(app)?)
-          .item(&SubmenuBuilder::new(app, "URL")
-            .item(&MenuItemBuilder::with_id("url-play", "Play URL").build(app)?)
-            .item(&MenuItemBuilder::with_id("url-queue", "Queue URL").build(app)?)
-            .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
-            .build()?)
-          .item(&SubmenuBuilder::new(app, "Folders")
-            .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
-            .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
-            .build()?)
-          .item(&SubmenuBuilder::new(app, "Playlists")
-            .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
-            .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
-            .build()?)
-          .item(&SubmenuBuilder::new(app, "Select Files")
-            .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
-            .item(&MenuItemBuilder::with_id("queue-files", "Queue Files").build(app)?)
-            .item(&MenuItemBuilder::with_id("play-files-next", "Play Files Next").build(app)?)
-            .build()?)
+          .item(
+            &SubmenuBuilder::new(app, "URL")
+              .item(&MenuItemBuilder::with_id("url-play", "Play URL").build(app)?)
+              .item(&MenuItemBuilder::with_id("url-queue", "Queue URL").build(app)?)
+              .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
+              .build()?,
+          )
+          .item(
+            &SubmenuBuilder::new(app, "Folders")
+              .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
+              .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
+              .build()?,
+          )
+          .item(
+            &SubmenuBuilder::new(app, "Playlists")
+              .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
+              .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
+              .build()?,
+          )
+          .item(
+            &SubmenuBuilder::new(app, "Select Files")
+              .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
+              .item(&MenuItemBuilder::with_id("queue-files", "Queue Files").build(app)?)
+              .item(&MenuItemBuilder::with_id("play-files-next", "Play Files Next").build(app)?)
+              .build()?,
+          )
           .item(&MenuItemBuilder::with_id("play-all", "Play All").build(app)?)
           .build()?,
         &MenuItemBuilder::with_id("mc-exit", "Exit").build(app)?,
@@ -146,7 +162,11 @@ static TRAY_ID: &'static str = "tray-main";
 
 pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error> {
   TrayIconBuilder::with_id(TRAY_ID)
-		.icon(tauri::image::Image::from_bytes(include_bytes!("../icons/SystemTray1.ico")).ok().expect("SystemTray1.icon not found"))
+    .icon(
+      tauri::image::Image::from_bytes(include_bytes!("../icons/SystemTray1.ico"))
+        .ok()
+        .expect("SystemTray1.icon not found"),
+    )
     .menu(&create_tray_menu(app, "en".into())?)
     .menu_on_left_click(true)
     .on_menu_event(move |app, event| {

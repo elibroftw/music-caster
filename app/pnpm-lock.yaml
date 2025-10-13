@@ -30,7 +30,7 @@ importers:
         specifier: ^2.8.0
         version: 2.8.0
       '@tauri-apps/plugin-autostart':
-        specifier: ^2.5.0
+        specifier: ~2
         version: 2.5.0
       '@tauri-apps/plugin-deep-link':
         specifier: ^2.4.3
@@ -59,6 +59,9 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ^2.3.1
         version: 2.3.1
+      '@tauri-apps/plugin-sql':
+        specifier: ~2.3.0
+        version: 2.3.0
       '@tauri-apps/plugin-store':
         specifier: ^2.4.0
         version: 2.4.0
@@ -892,6 +895,9 @@ packages:
 
   '@tauri-apps/plugin-shell@2.3.1':
     resolution: {integrity: sha512-jjs2WGDO/9z2pjNlydY/F5yYhNsscv99K5lCmU5uKjsVvQ3dRlDhhtVYoa4OLDmktLtQvgvbQjCFibMl6tgGfw==}
+
+  '@tauri-apps/plugin-sql@2.3.0':
+    resolution: {integrity: sha512-JYwIocfsLaDWa41LMiZWuzts7yCJR+EpZPRmgpO7Gd7XiAS9S67dKz306j/k/d9XntB0YopMRBol2OIWMschuA==}
 
   '@tauri-apps/plugin-store@2.4.0':
     resolution: {integrity: sha512-PjBnlnH6jyI71MGhrPaxUUCsOzc7WO1mbc4gRhME0m2oxLgCqbksw6JyeKQimuzv4ysdpNO3YbmaY2haf82a3A==}
@@ -2757,6 +2763,10 @@ snapshots:
       '@tauri-apps/api': 2.8.0
 
   '@tauri-apps/plugin-shell@2.3.1':
+    dependencies:
+      '@tauri-apps/api': 2.8.0
+
+  '@tauri-apps/plugin-sql@2.3.0':
     dependencies:
       '@tauri-apps/api': 2.8.0
 
