@@ -1,6 +1,7 @@
+audioop-lts; python_version>='3.13'
 comtypes; sys_platform == 'win32'
 wheel
-build_files/PyAudio-0.2.14-cp312-cp312-win_amd64.whl; sys_platform == 'win32'
+build_files/pyaudio-0.2.14-cp314-cp314-win_amd64.whl; sys_platform == 'win32'
 pyaudio; sys_platform == 'darwin'
 pywin32; sys_platform == 'win32'
 winrt-Windows.Media; sys_platform == 'win32'
@@ -13,31 +14,31 @@ pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
 ujson~=5.5
 mutagen~=1.45
-Pillow~=10.3.0
+Pillow~=11.3.0
 PyChromecast~=14.0
 zeroconf~=0.146
 pynput~=1.4.5
 pypng~=0.0.20
 # use zip for faster install than git
-# pypresence
 https://github.com/elibroftw/pypresence/archive/master.zip
 # https://github.com/qwertyquerty/pypresence/archive/master.zip
 https://github.com/yt-dlp/yt-dlp/archive/master.zip
 https://github.com/elibroftw/youtube-comment-downloader/archive/master.zip
 # PySimpleGUI 4.60.5 no longer available on pypi, therefore use FreeSimpleGUI commit hash
-https://github.com/spyoungtech/FreeSimpleGUI/archive/db26fd15f2abec79fcd93d966c9677e1a3464753.zip
+https://github.com/spyoungtech/FreeSimpleGUI/archive/a0634800bca051c824d879d31e14ae3b201e5667.zip
 pyqrcode~=1.2.1
 pystray~=0.19.1
 requests~=2.28
 urllib3~=2.5
 FreeSimpleGUI
 waitress~=3.0
-wavinfo~=2.1
+wavinfo~=4.0
 scrapetube
 pyperclip~=1.8
 werkzeug~=3.0
 python-vlc==3.0.20123
-lz4==3.1.3; sys_platform == 'win32'
+# why was this fixed to 3.13?
+lz4~=4.4.4; sys_platform == 'win32'
 lz4; sys_platform != 'win32'
 browser_cookie3
 beautifulsoup4~=4.10
@@ -51,7 +52,5 @@ numpy~=1.21
 matplotlib~=3.6
 soundfile~=0.11
 python-tkdnd; sys_platform != 'win32'
-# webview
-pywebview
-pythonnet
-# https://github.com/AbstractUmbra/audioop/archive/main.tar.gz  # for Python 3.13+
+# 1.2.2+ was causing issues
+dateparser==1.2.1

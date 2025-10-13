@@ -1,7 +1,7 @@
 # this images allows building music caster into a folder that can be run
 #
 FROM fedora:latest
-ENV PY=python3.12
+ENV PY=python3.14
 ENV PIP_ROOT_USER_ACTION=ignore
 # install required packages
 RUN dnf upgrade -y && dnf install -y \

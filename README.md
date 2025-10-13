@@ -123,8 +123,10 @@ Only I have access to this data, I will NEVER give it to anyone else. Will stop 
 
 ### Virtualenv
 
+You need to use the free threading version (python3.14).
+
 ```sh
-python3.12 -m venv .venv
+python3.14 -m venv .venv
 .venv\Scripts\activate     # Windows
 source .venv/bin/activate  # Non-Windows
 ```
@@ -132,3 +134,24 @@ source .venv/bin/activate  # Non-Windows
 ### Resources
 
 - [Generate sound waves for any audio file](https://gist.github.com/elibroftw/0fc6ed102dbe3f99863829a7e989dcc2)
+
+## Upgrading Python Version
+
+Update the version found in the following files
+
+- .github/workflows/build.yml
+- Dockerfile
+- README#virtualenv
+- linux_install.sh
+- scripts/debian-install.sh
+
+1. Next, in a another directory clone PyInstaller like so: `git clone git@github.com:pyinstaller/pyinstaller.git`
+2. We need to [build the bootloader](https://pyinstaller.org/en/stable/bootloader-building.html) ourselves to avoid being flagged by Anti Virus.
+3. Run `py -m build` (not in the bootloader directory)
+4. Compile [pyaudio_portaudio](https://github.com/elibroftw/pyaudio_portaudio)
+5. After this, we need to update the requirements-dev.txt.
+6. Create venv
+
+From here, you can test the app in the newer version of Python (need to initialize a new virtualenv)
+
+Lastly, build the app and submit it to Microsoft for false positive. I'm not sure when I'll buy a cert to ensure we don't encounter this again.

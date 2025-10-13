@@ -25,10 +25,10 @@ Tk window and all its descendants."""
 
 try:
     import Tkinter as tkinter # type: ignore
-    import Tix as tix # type: ignore
+    import tkinter.ttk as ttk # type: ignore
 except ImportError:
     import tkinter
-    from tkinter import tix
+    import tkinter.ttk as ttk
 
 TkdndVersion = None
 
@@ -287,10 +287,10 @@ class Tk(tkinter.Tk, DnDWrapper):
         self.TkdndVersion = _require(self)
 
 
-class TixTk(tix.Tk, DnDWrapper):
-    """Creates a new instance of a tix.Tk() window; all methods of the
+class TixTk(tkinter.Tk, DnDWrapper):
+    """Creates a new instance of a tkinter.Tk() window with ttk support; all methods of the
     DnDWrapper class apply to this window and all its descendants."""
 
     def __init__(self, *args, **kw):
-        tix.Tk.__init__(self, *args, **kw)
+        tkinter.Tk.__init__(self, *args, **kw)
         self.TkdndVersion = _require(self)

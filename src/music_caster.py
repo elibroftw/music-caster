@@ -19,6 +19,7 @@ from meta import (
     IMG_FILE_TYPES,
     SUBMIT_EVENTS,
     TOGGLEABLE_SETTINGS,
+    TKDND_ENABLED,
 )
 import time
 
@@ -3034,7 +3035,8 @@ if __name__ == '__main__':
 
         gui_window.hidden_master_root.report_callback_exception = report_callback_exception
 
-        if platform.system() == 'Windows':
+        # tkdnd stopped working for some reason in python 3.14
+        if platform.system() == 'Windows' and TKDND_ENABLED:
             gui_window.TKroot.tk.call('package', 'require', 'tkdnd')
 
         if not settings['mini_mode']:
@@ -3052,27 +3054,28 @@ if __name__ == '__main__':
                               'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
                 gui_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
 
-            try:
-                # drag and drop callbacks
-                tk_lb = gui_window['queue'].TKListbox
-                drop_target_register(tk_lb, DND_ALL)
-                dnd_bind(tk_lb, '<<Drop>>', dnd_queue)
+            if TKDND_ENABLED:
+                try:
+                    # drag and drop callbacks
+                    tk_lb = gui_window['queue'].TKListbox
+                    drop_target_register(tk_lb, DND_ALL)
+                    dnd_bind(tk_lb, '<<Drop>>', dnd_queue)
 
-                tk_lb = gui_window['pl_tracks'].TKListbox
-                drop_target_register(tk_lb, DND_ALL)
-                dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
+                    tk_lb = gui_window['pl_tracks'].TKListbox
+                    drop_target_register(tk_lb, DND_ALL)
+                    dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
 
-                tk_frame = gui_window['tab_metadata'].TKFrame
-                drop_target_register(tk_frame, DND_FILES)
-                dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0], 'tkdnd'))
+                    tk_frame = gui_window['tab_metadata'].TKFrame
+                    drop_target_register(tk_frame, DND_FILES)
+                    dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0], 'tkdnd'))
 
-                tk_lb = gui_window['music_folders'].TKListbox
-                drop_target_register(tk_lb, DND_FILES)
-                dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
-            except NameError:
-                # https://github.com/rdbende/tkinterDnD
-                print('TODO: DND Not Implemented')
-        else:
+                    tk_lb = gui_window['music_folders'].TKListbox
+                    drop_target_register(tk_lb, DND_FILES)
+                    dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
+                except NameError:
+                    # https://github.com/rdbende/tkinterDnD
+                    print('TODO: DND Not Implemented')
+        elif TKDND_ENABLED:
             try:
                 root = gui_window.TKroot
                 drop_target_register(root, DND_ALL)

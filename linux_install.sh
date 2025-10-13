@@ -5,7 +5,7 @@ echo "(music-caster) Updating..."
 # git fetch
 # git reset --hard "@{u}"
 
-PYTHON=python3.12
+PYTHON=python3.14
 ./scripts/pre-req.sh $PYTHON
 
 echo "(music-caster) Creating $PYTHON virtual environment"
