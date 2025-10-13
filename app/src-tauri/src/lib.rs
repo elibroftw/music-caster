@@ -172,9 +172,9 @@ pub fn run() {
     .plugin(tauri_plugin_window_state::Builder::default().build())
     // custom setup code
     .setup(|app| {
-      let _ = create_tray_icon(app.handle());
       app.manage(Mutex::new(TrayState::NotPlaying));
       app.manage(MusicCasterState(Mutex::new(None)));
+      let _ = create_tray_icon(app.handle());
 
       let app_handle = app.handle().clone();
       tauri::async_runtime::spawn(async move { long_running_thread(&app_handle).await });

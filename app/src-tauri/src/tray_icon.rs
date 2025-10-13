@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{self, command, Emitter, Manager, Runtime};
+use crate::MusicCasterState;
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
@@ -17,41 +18,128 @@ impl IconTrayPayload {
   }
 }
 
+#[derive(Clone)]
 pub enum TrayState {
   NotPlaying,
   Paused,
   Playing,
 }
 
+// TODO: tray internationalization https://docs.rs/rust-i18n/latest/rust_i18n/
+// ENTER rust_i18n::set_locale(lang) IF LOCAL=lang DOES NOT COMPILE
 // https://v2.tauri.app/start/migrate/from-tauri-1/#migrate-to-menu-module
 pub fn create_tray_menu<R: Runtime>(
   app: &tauri::AppHandle<R>,
-  lang: String,
+  _lang: String,
 ) -> Result<Menu<R>, tauri::Error> {
-  // TODO: tray internationalization https://docs.rs/rust-i18n/latest/rust_i18n/
-  // untested, not sure if the macro accepts dynamic languages
-  // ENTER rust_i18n::set_locale(lang) IF LOCAL=lang DOES NOT COMPILE
-  // .add_item("id".to_string(), t!("Label", locale = lang))
-  // .add_item("id".to_string(), t!("Label")
-  let toggle = MenuItemBuilder::with_id("toggle-visibility", "Hide Window")
-    .accelerator("Ctrl+Shift+T")
-    .build(app)?;
-  MenuBuilder::new(app)
-    .items(&[
-      &SubmenuBuilder::new(app, "Sub Menu!")
-        // .item(...)
-        // .items(...)
-        .text("bf-sep", "Before Separator")
-        .separator()
-        .text("af-sep", "After Separator")
-        .build()?,
-      &toggle,
-      &MenuItemBuilder::with_id("quit", "Quit")
-        .accelerator("Ctrl+Q")
-        .build(app)?,
-      &MenuItemBuilder::with_id("toggle-tray-icon", "Toggle the tray icon").build(app)?,
-    ])
-    .build()
+  // Get current state to determine menu
+  let music_caster_running = {
+    let state = app.state::<MusicCasterState>();
+    let guard = state.0.lock().unwrap();
+    guard.is_some()
+  };
+
+  let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
+
+  if music_caster_running {
+    let text = match tray_state {
+      TrayState::Playing => "Resume",
+      TrayState::Paused => "Resume",
+      TrayState::NotPlaying => "Play",
+    };
+
+    // Menu for when Music Caster is running
+    MenuBuilder::new(app)
+      .items(&[
+        &MenuItemBuilder::with_id("mc-settings", "Settings").build(app)?,
+        &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
+        &MenuItemBuilder::with_id("mc-refresh", "Refresh Devices").build(app)?,
+        &SubmenuBuilder::new(app, "Select Device")
+          .item(&MenuItemBuilder::with_id("device-1", "Device 1").build(app)?)
+          .item(&MenuItemBuilder::with_id("device-2", "Device 2").build(app)?)
+          .build()?,
+        &SubmenuBuilder::new(app, "Timer")
+          .item(&MenuItemBuilder::with_id("timer-set", "Set Timer").build(app)?)
+          .item(&MenuItemBuilder::with_id("timer-cancel", "Cancel Timer").build(app)?)
+          .build()?,
+        &SubmenuBuilder::new(app, "Controls")
+          .item(&MenuItemBuilder::with_id("locate-track", "Locate Track").build(app)?)
+          .item(&SubmenuBuilder::new(app, "Repeat Options")
+            .item(&MenuItemBuilder::with_id("repeat-all", "Repeat All").build(app)?)
+            .item(&MenuItemBuilder::with_id("repeat-one", "Repeat One ✓").build(app)?)
+            .item(&MenuItemBuilder::with_id("repeat-off", "Repeat Off").build(app)?)
+            .build()?)
+          .item(&MenuItemBuilder::with_id("mc-controls-stop", "Stop").build(app)?)
+          .item(&MenuItemBuilder::with_id("mc-controls-prev", "Previous Track").build(app)?)
+          .item(&MenuItemBuilder::with_id("mc-controls-next", "Next Track").build(app)?)
+          .item(&MenuItemBuilder::with_id("mc-controls-pause", &text).build(app)?)
+          .build()?,
+        &SubmenuBuilder::new(app, "Play")
+          .item(&MenuItemBuilder::with_id("play-system", "System Audio").build(app)?)
+          .item(&SubmenuBuilder::new(app, "URL")
+            .item(&MenuItemBuilder::with_id("url-play", "Play URL").build(app)?)
+            .item(&MenuItemBuilder::with_id("url-queue", "Queue URL").build(app)?)
+            .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
+            .build()?)
+          .item(&SubmenuBuilder::new(app, "Folders")
+            .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
+            .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
+            .build()?)
+          .item(&SubmenuBuilder::new(app, "Playlists")
+            .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
+            .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
+            .build()?)
+          .item(&SubmenuBuilder::new(app, "Select Files")
+            .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
+            .item(&MenuItemBuilder::with_id("queue-files", "Queue Files").build(app)?)
+            .item(&MenuItemBuilder::with_id("play-files-next", "Play Files Next").build(app)?)
+            .build()?)
+          .item(&MenuItemBuilder::with_id("play-all", "Play All").build(app)?)
+          .build()?,
+        &MenuItemBuilder::with_id("mc-exit", "Exit").build(app)?,
+      ])
+      .build()
+  } else {
+    // Menu for when Music Caster is not running
+    MenuBuilder::new(app)
+      .items(&[
+        &MenuItemBuilder::with_id("mc-settings", "Settings").build(app)?,
+        &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
+        &MenuItemBuilder::with_id("mc-refresh", "Refresh Devices").build(app)?,
+        &SubmenuBuilder::new(app, "Select Device")
+          .item(&MenuItemBuilder::with_id("device-1", "Device 1").build(app)?)
+          .item(&MenuItemBuilder::with_id("device-2", "Device 2").build(app)?)
+          .build()?,
+        &SubmenuBuilder::new(app, "Timer")
+          .item(&MenuItemBuilder::with_id("timer-set", "Set Timer").build(app)?)
+          .item(&MenuItemBuilder::with_id("timer-cancel", "Cancel Timer").build(app)?)
+          .build()?,
+        &SubmenuBuilder::new(app, "Play")
+          .item(&MenuItemBuilder::with_id("play-system", "System Audio").build(app)?)
+          .item(&SubmenuBuilder::new(app, "URL")
+            .item(&MenuItemBuilder::with_id("url-play", "Play URL").build(app)?)
+            .item(&MenuItemBuilder::with_id("url-queue", "Queue URL").build(app)?)
+            .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
+            .build()?)
+          .item(&SubmenuBuilder::new(app, "Folders")
+            .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
+            .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
+            .build()?)
+          .item(&SubmenuBuilder::new(app, "Playlists")
+            .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
+            .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
+            .build()?)
+          .item(&SubmenuBuilder::new(app, "Select Files")
+            .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
+            .item(&MenuItemBuilder::with_id("queue-files", "Queue Files").build(app)?)
+            .item(&MenuItemBuilder::with_id("play-files-next", "Play Files Next").build(app)?)
+            .build()?)
+          .item(&MenuItemBuilder::with_id("play-all", "Play All").build(app)?)
+          .build()?,
+        &MenuItemBuilder::with_id("mc-exit", "Exit").build(app)?,
+      ])
+      .build()
+  }
 }
 
 static TRAY_ID: &'static str = "tray-main";
@@ -61,9 +149,29 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
     .menu(&create_tray_menu(app, "en".into())?)
     .menu_on_left_click(true)
     .on_menu_event(move |app, event| {
+      // Forward tray events to the frontend with Music Caster prefix
       if let Some(main_window) = app.get_webview_window("main") {
         let _ = main_window.emit("systemTray", IconTrayPayload::new(&event.id().as_ref()));
       }
+
+      // Handle Music Caster tray events by forwarding them to MC if running
+      if let Some(event_id) = event.id().as_ref().strip_prefix("mc-") {
+        match event_id {
+          "exit" => {
+            // Send exit command to Music Caster process
+            let state = app.state::<MusicCasterState>();
+            let mut guard = state.0.lock().unwrap();
+            if let Some(mut child) = guard.take() {
+              let _ = child.kill();
+            }
+          }
+          _ => {
+            // Forward other commands to Music Caster via invoke
+            println!("Forwarding tray command '{}' to Music Caster", event_id);
+          }
+        }
+      }
+
       let tray_icon = app.tray_by_id(TRAY_ID).unwrap();
 
       // TODO: FIGURE OUT HOW TO GET THE ITEM HANDLER IN v2

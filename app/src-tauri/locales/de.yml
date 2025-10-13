@@ -1,0 +1,197 @@
+add folder: Ordner hinzufügen
+Add Music Caster to folder context menu: Music Caster zum Ordner-Kontext-Menü hinzufügen
+Add files: Dateien hinzufügen
+Add URL: URL hinzufügen
+An error occurred, restarting now: Ein Fehler ist aufgetreten, Neustart wird durchgeführt.
+An Internal Server Error occurred: Ein interner Serverfehler ist aufgetreten.
+Audio Selection: Audio Auswahl
+Auto update: Auto Update
+By: von
+Cancel: abbrechen
+Cancel Timer: Zeitsteuerung abbrechen
+Clear the queue: Warteschlange löschen
+Controls: Bedienelemente
+Could not connect to cast device: konnte nicht mit dem Castgerät verbinden
+Could not find an output device to record: konnte kein Ausgangsgerät zum Aufnehmen finden
+couldNotPlayURL: konnte %{URL} nicht abspielen
+Could not populate queue because library scan is disabled: konnte die Warteschlange nicht befüllen, da der Bibliotheksscan deaktiviert ist.
+Could not set timer: konnte Zeitsteuerung nicht setzten.
+Discord presence: Discord-Präsenz
+downloadingUpdate: lade Update %{VER} herunter
+Enter minutes or HH:MM: Minuten oder HH:MM eingeben
+Enter Time: Zeit eingeben
+Enter URL: URL eingeben
+ERROR: FEHLER
+Exit: beenden
+Folder context menu: Ordner-Kontext-Menü
+Folder does not contain audio files: Ordner enthält keine Audiodateien
+Folders: Ordner
+General: allgemein
+Hibernate when timer runs out: Ruhezustand wenn die Zeitsteuerung abgelaufen ist.
+Hibernate Computer: Computer in den Ruhezustand versetzen.
+INFO: INFO
+invalidTimerInput: ungültige Eingabe (Minutes or HH:MM eingeben)
+invalidURL: ungültige URL. (URL's müssen mit http:// or https:// beginnen)
+Invalid audio file selected: ungültige Audio Datei ausgewählt
+Invalid audio file %{FILE}: ungültige Audio Datei %{FILE}
+Keep mini mode on top: Mini Mode immer sichtbar
+Launch mini mode: Mini Mode starten
+Left-side music controls: Musik-Bedienelemente links
+Library: Bibliothek
+Library indexing incomplete, only scanned files have been added: Indizierung der Bibliothek unvollständig, nur bereits analysierte Dateien wurden hinzugefügt.
+Listening: hören
+System Audio: System Audio
+Local device: lokales Gerät
+locate selected: lokalisiere Auswahl
+Lost connection to %{DEVICE}, switching to local device: Verbindung zu %{DEVICE} verloren, schalte auf lokales Gerät um.
+Mini mode on top: Mini Mode immer oben
+More: mehr
+move down: nach unten schieben
+Move to next up: weiter zum nächsten
+Move track content to the left: Titelinhalt nach links verschieben
+move up: nach oben schieben
+Music Caster is running in the tray.: Music Caster läuft in der Taskleiste.
+mute: stummschalten
+New: neu
+next track: nächster Titel
+No space left on device to auto-update: nicht genügend Speicherplatz für automatisches Update auf dem Gerät verfügbar.
+No space left on device to save settings: Einstellungen können nicht gespeichert werden, da nicht genügend Speicherplatz auf dem Gerät verfügbar ist.
+No Timer Set: keine Zeitsteuerung gesetzt
+Not connected to a cast device: nicht mit einem Castgerät verbunden
+Not logged into deezer.com: nicht bei deezer.com angemeldet
+Nothing Playing: nichts wird abgespielt
+Notifications: Benachrichtigungen
+Only Stop Playback: Nur die Wiedergabe anhalten
+Open: öffnen
+Pause: Pause
+Persistent queue: dauerhafte Warteschlange
+Play: abspielen
+Play All: alles abspielen
+Play Files: Dateien abspielen
+Play Files Next: Dateien als nächstes abspielen
+Play Immediately: sofort abspielen
+Play Next: nächstes abspielen
+Play URL: URL abspielen
+Play URL Next: URL als nächstes abspielen
+Playing: wird abgespielt
+Playlist name: Wiedergabelistenname
+Playlists: Wiedergabelisten
+Playlists Tab: Wiedergabelisten Tab
+Populate queue on startup: Warteschlange bei Start füllen
+Populates queue from folders on startup: Warteschlange mit Ordnern beim Start befüllen
+previous track: vorheriger Track
+Queue: Warteschlange
+queue all: alle Warteschlangen
+Queue Files: Datei Warteschlangen
+Queue URL: URL Warteschlangen
+Refresh Devices: Neueinlesen der Geräte
+Remember last folder: letzten Ordner merken
+remove selected folder: entferne selektierten Ordner
+remove: entfernen
+Repeat: wiederhole
+Repeat All: wiederhole alles
+Repeat Off: wiederholen aus
+Repeat One: wiederhole eins
+Repeat Options: Wiederholoptionen
+Rescan Library: Bibliothek einlesen
+Rescanning library: lese Bibliothek ein
+Resume: fortsetzen
+Reverse play next behaviour: kehre das Verhalten von "spiele nächstes ab" um
+Reversed play next: spiele vorheriges ab
+Run on startup: beim Start ausführen
+Save queue between sessions: speichere die Warteschlange zwischen Sitzungen
+Save to playlist: speichere die Warteschlange als Wiedergabeliste
+Save window positions: speichere Fensterposition
+Scan folders: lese Ordner ein
+scroll mousewheel: Blättern mit Mausrad
+Search for music...: Suche nach Musik...
+Select Device: wähle Gerät
+Select Folder: wähle Ordner
+Select Folders: wähle Ordner
+Select Files: wähle Dateien
+Select File: wähle Datei
+Select Audio Files: wähle Audio Dateien
+Send me an email: sende mir eine Email
+set DEBUG = true in `settings.json` to enable this page: setze DEBUG = true in `settings.json` um diese Seite zu aktivieren
+Set Timer: setze Zeitsteuerung
+Set: setze
+Settings: Einstellungen
+Show album art: zeige Albumcover
+Show album art in GUI: zeige Albumcover im GUI
+Show index in queue: zeige Index in Warteschlange
+Show track number: zeige Titelnummer
+Show track number in queue: zeige Titelnummer in Warteschlange
+shuffle: zufällige Reihenfolge
+Shut down when timer runs out: Wenn die Zeitsteuerung abgelaufen ist herunterfahren.
+Shut Down Computer: Computer herunterfahren
+Sleep when timer runs out: Wenn die Zeitsteuerung abgelaufen ist Energie sparen.
+Sleep Computer: Computer Energie sparen aktivieren
+Stop: Stop
+Submit: übermitteln
+Thanks for installing Music Caster.: Vielen Dank, dass Sie Music Caster installiert haben.
+Timer: Zeitsteuerung
+Timer cancelled: Zeitsteuerung abgebrochen
+Timer set for %{TIME}: Zeitsteuerung auf %{TIME} setzen
+Type in artist/tracks: schreibe Artist/Titel
+UI: Benutzerschnittstelle
+unmute: Stummschaltung aufheben
+updateAvail: Update %{VER} ist verfügbar
+URL: URL
+Use cover.* for album art: benutze cover.* für Albumcover
+Use cover.* for art instead of file's album art: benutze cover.* für Bilder anstatt Albumcover der Datei
+cover.* image overrides file cover: cover.* Bild überschreibt Albumcover der Datei
+Vertical GUI: vertikales GUI
+View Audio Files Source Links: zeige Audiodateiquellenverknüpfungen
+Open Web GUI: öffne Web GUI
+new playlist: neue Wiedergabeliste
+export playlist: exportiere Wiedergabeliste
+delete playlist: lösche Wiedergabeliste
+play playlist: Wiedergabeliste abspielen
+queue playlist: Wiedergabeliste zur Warteschlange hinzufügen
+Unknown Title: unbekannter Titel
+Unknown Artist: unbekannter Artist
+Unknown Album: unbekanntes Album
+Always queue library: Bibliothek als Warteschlange
+Play with Music Caster: mit Music Caster abspielen
+Queue in Music Caster: zur Music Caster Warteschlange hinzufügen
+Play next in Music Caster: als nächstes in Music Caster abspielen
+Queueing: anstehend
+Smart queue: intelligente Warteschlange
+add to next up: als nächtes oben hinzufügen
+Metadata: Metadaten
+Saving metadata: speichere Metadaten
+Metadata saved: Metadaten gespeichert
+Save: speichern
+Title: Titel
+Artist: Artist
+Album: Album
+Track Number: Track Nummer
+Explicit: explizit
+Select artwork: wähle Albumcover
+Search artwork: suche Albumcover
+Remove artwork: entferne Albumcover
+Artwork found: Albumcover gefunden
+No artwork found: kein Albumcover gefunden
+Searching for artwork...: suche nach Albumcover...
+Loading URL(s): lade URL(s)
+Added URL(s): hinzugefügte URL(s)
+language: Sprache
+play selected: spiele markiertes ab
+queue selected: markiertes in die Warteschlange
+add selected to next up: füge markiertes als nächstes oben ein
+system_audio_delay: System Audio Verzögerung
+seconds: Sekunden
+locate_track: Titel lokalisieren
+switching_to_local_device: schalte auf lokales Gerät um
+track_format: Titelformat
+urlAudioFetchFailed: konnte bei %{URL} kein Audio finden
+Exit app on GUI close: beende zusammen mit GUI
+On battery resolution: Auflösung bei Batteriebetrieb
+Plugged in resolution: Auflösung bei Netzbetrieb
+Could not set resolution: Konnte Auflösung nicht setzen
+copy URIs: kopiere URIs
+edit metadata: Metadaten beatbeiten
+Experimental features: experimentelle Funktionen
+Playlist saved: Warteschlange gespeichert
+Install Update: installiere Update
+Downloaded %{VER}. Relaunching...: Heruntergeladen %{VER}. Relaunch...
