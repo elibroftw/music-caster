@@ -1,0 +1,7 @@
+curl
+wget
+patchelf
+libwebkit2gtk-4.1-dev
+libappindicator3-dev
+librsvg2-dev
+libgtk-3-dev

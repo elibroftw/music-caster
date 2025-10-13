@@ -566,6 +566,10 @@ if __name__ == '__main__':
                       'DOES NOT EXIST!')
                 dist_files_exist = False
 
+    onefile_dist = DIST_DIR / 'Music Caster.exe'
+    if onefile_dist.exists():
+        shutil.copy2(onefile_dist, DIST_DIR / 'Music Caster-x86_64-pc-windows-msvc.exe')
+
     if not args.skip_tests and dist_files_exist:
         try:
             sys.argv = sys.argv[:1]
