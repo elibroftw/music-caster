@@ -89,6 +89,21 @@ def save_metadata_batch(metadata_list, table_name='file_metadata', key_column='f
         conn.commit()
 
 
+def get_url_metadata_from_db(conn, uri):
+    cur = conn.cursor()
+    result = cur.execute('SELECT * FROM url_metadata WHERE src = ?', (uri,)).fetchone()
+
+    if not result:
+        return None
+
+    m = dict(result)
+    m.pop('src', None)
+    if 'live' in m:
+        m['is_live'] = bool(m.pop('live'))
+
+    return m
+
+
 def init_db(reset=False):
     with DatabaseConnection() as connection:
         if reset:

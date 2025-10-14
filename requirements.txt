@@ -49,8 +49,9 @@ deemix~=3.5
 six~=1.16
 portalocker~=2.4
 numpy~=1.21
-matplotlib~=3.6
-soundfile~=0.11
 python-tkdnd; sys_platform != 'win32'
 # 1.2.2+ was causing issues
 dateparser==1.2.1
+# experiments
+# matplotlib~=3.6
+# soundfile~=0.11

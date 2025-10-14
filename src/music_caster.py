@@ -272,7 +272,7 @@ if __name__ == '__main__':
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
-    from modules.db import DatabaseConnection, init_db, save_metadata_batch
+    from modules.db import DatabaseConnection, init_db, save_metadata_batch, get_url_metadata_from_db
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
@@ -336,7 +336,7 @@ if __name__ == '__main__':
     cast: Chromecast = None  # type: ignore
     all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = 'Ã¢Å“â€œ'
+    CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -760,21 +760,31 @@ if __name__ == '__main__':
             dict_to_use = all_tracks_temp if use_temp else all_tracks
             # scan items in queue and library
             file_metadata_list = []
-            url_metadata_list = []
+            urls_to_fetch = []
 
             for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
                 if uri.startswith('http'):
-                    url_metadatas = get_url_metadata(uri)
-                    for m in url_metadatas:
-                        url_metadata_list.append((uri, m))
+                    m = get_url_metadata_from_db(connection, uri)
+
+                    if m is None:
+                        # we don't care about expiry because URL might not be immediate
+                        # We could do an enumerate and check if index < len(settings['queues]) - 5 to consider expiry
+                        urls_to_fetch.append(uri)
                 else:
                     m = get_metadata_wrapped(uri)
                     dict_to_use[uri] = m
                     file_metadata_list.append((uri, m))
 
-            # Batch save metadata
             save_metadata_batch(file_metadata_list, 'file_metadata', 'file_path')
-            save_metadata_batch(url_metadata_list, 'url_metadata', 'src')
+            gui_window.metadata['update_listboxes'] = True
+
+            for url in urls_to_fetch:
+                url_metadata_list = get_url_metadata(url)
+                batch_to_save = []
+                for m in url_metadata_list:
+                    batch_to_save.append((url, m))
+                if batch_to_save:
+                    save_metadata_batch(batch_to_save, 'url_metadata', 'src')
 
             if use_temp:
                 all_tracks = all_tracks_temp
