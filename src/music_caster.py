@@ -278,10 +278,9 @@ if __name__ == '__main__':
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
-    from modules.db import DatabaseConnection, init_db, DATABASE_FILE
+    from modules.db import DatabaseConnection, init_db
     if args.db_path:
-        DATABASE_FILE = Path(args.db_path).absolute()
-        DatabaseConnection.DATABASE_FILE = DATABASE_FILE
+        DatabaseConnection.DATABASE_FILE = Path(args.db_path).absolute()
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
