@@ -1,8 +1,8 @@
 Music Caster Changelog
 
 5.24.0
+- [Feat] Performance when indexing many URLs
 - [Fix] Maintenance (Python 3.14)
-- [Fix] Performance when indexing many URLs
 
 5.23.8
 - [Fix] URL processing

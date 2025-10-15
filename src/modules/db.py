@@ -22,23 +22,29 @@ class DatabaseConnection:
         self.conn.close()
 
 
-CONCERT_SCHEMA = '''
-CREATE TABLE IF NOT EXISTS concert_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    artist TEXT NOT NULL,
-    event_name TEXT NOT NULL,
-    venue TEXT NOT NULL,
-    city TEXT NOT NULL,
-    state TEXT,
-    country TEXT,
-    date TEXT NOT NULL,
+SCHEMA_2 = """
+DROP TABLE IF EXISTS concert_events;
+DROP TABLE IF EXISTS url_metadata;
+CREATE TABLE IF NOT EXISTS url_metadata (
+    src TEXT PRIMARY KEY NOT NULL,
+    title TEXT,
+    artist TEXT,
+    album TEXT,
+    length REAL,
     url TEXT,
-    last_checked REAL NOT NULL,
-    UNIQUE(artist, event_name, venue, city, date)
+    audio_url TEXT,
+    ext TEXT,
+    album_cover_url TEXT,
+    expiry REAL,
+    id TEXT,
+    type TEXT,
+    playlist_url TEXT,
+    live BOOLEAN DEFAULT 0 NOT NULL CHECK (live IN (0, 1)),
+    timestamps TEXT
 );
-'''
+"""
 
-METADATA_SCHEMA = '''
+SCHEMA_1 = """
 CREATE TABLE IF NOT EXISTS file_metadata (
     file_path TEXT PRIMARY KEY NOT NULL,
     title TEXT,
@@ -66,47 +72,26 @@ CREATE TABLE IF NOT EXISTS url_metadata (
     pl_src TEXT,
     live BOOLEAN DEFAULT 0 NOT NULL CHECK (live IN (0, 1))
 );
-'''
+"""
+
+MIGRATIONS = [SCHEMA_1, SCHEMA_2]
 
 
-def save_metadata_batch(metadata_list, table_name='file_metadata', key_column='file_path'):
-    """Batch insert or replace metadata records into the database."""
-    if not metadata_list:
-        return
-
-    with DatabaseConnection() as conn:
-        cur = conn.cursor()
-        for i, (uri, metadata) in enumerate(metadata_list):
-            values = [uri]
-            values.extend((int(x) if isinstance(x, bool) else x for x in metadata.values()))
-            columns = ','.join(metadata.keys())
-            placeholders = ','.join('?' * len(values))
-            sql = f'INSERT OR REPLACE INTO {table_name}({key_column},{columns}) VALUES({placeholders})'
-            cur.execute(sql, values)
-
-            if i % 20 == 0:
-                conn.commit()
-        conn.commit()
-
-
-def get_url_metadata_from_db(conn, uri):
-    cur = conn.cursor()
-    result = cur.execute('SELECT * FROM url_metadata WHERE src = ?', (uri,)).fetchone()
-
-    if not result:
-        return None
-
-    m = dict(result)
-    m.pop('src', None)
-    if 'live' in m:
-        m['is_live'] = bool(m.pop('live'))
-
-    return m
-
-
-def init_db(reset=False):
+def init_db():
+    RESET_DB = False
     with DatabaseConnection() as connection:
-        if reset:
-            connection.executescript('DROP TABLE file_metadata;DROP TABLE url_metadata;DROP TABLE concert_events;')
-        connection.executescript(CONCERT_SCHEMA + METADATA_SCHEMA)
+        current_version = connection.execute('PRAGMA user_version').fetchone()[0]
+
+        if RESET_DB:
+            connection.executescript(
+                'DROP TABLE IF EXISTS file_metadata;DROP TABLE IF EXISTS url_metadata;DROP TABLE IF EXISTS concert_events;'
+            )
+            connection.executescript('PRAGMA user_version = 0;')
+            current_version = 0
+
+        for i, schema_migration in enumerate(MIGRATIONS):
+            version = i + 1
+            if current_version < version:
+                connection.executescript(schema_migration)
+                connection.execute(f'PRAGMA user_version = {version};')
         connection.commit()

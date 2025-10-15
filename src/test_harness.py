@@ -59,6 +59,7 @@ from utils import (
     valid_color_code,
     ydl_extract_info,
 )
+from modules.url_metadata import ydl_get_metadata
 
 MUSIC_FILE_WITH_ALBUM_ART = (
     r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3'
@@ -503,6 +504,26 @@ def test_ydl(running_in_ci, url):
     try:
         info = ydl_extract_info(url)
         assert isinstance(info, dict)
+        metadata = ydl_get_metadata(info)
+
+        assert metadata['title']
+        assert metadata['artist']
+        assert metadata['url']
+        assert metadata['src']
+        assert metadata['url']
+        assert metadata['audio_url']
+        assert metadata['expiry']
+        assert metadata['id']
+        assert metadata['ext']
+        assert metadata['album']
+        assert metadata['ytid']
+        assert isinstance(metadata['duration'], int)
+        assert metadata['timestamps']
+        assert isinstance(metadata['is_live'], bool)
+        assert metadata.type == 'youtube'
+
+        if 'thumbnail' in info:
+            assert metadata['album_cover_url'] is not None
     except Exception:
         if not running_in_ci:
             raise

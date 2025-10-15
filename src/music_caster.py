@@ -217,6 +217,7 @@ if __name__ == '__main__':
     from modules.win32_media_controls import SystemMediaTransportControlsButton # SystemMediaControls
     from mutagen._util import MutagenError
     from modules.playing_status import PlayingStatus
+    from modules.url_metadata import ydl_get_metadata, URLMetadata
     from utils import (
         get_first_artist,
         t,
@@ -272,7 +273,7 @@ if __name__ == '__main__':
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
-    from modules.db import DatabaseConnection, init_db, save_metadata_batch, get_url_metadata_from_db
+    from modules.db import DatabaseConnection, init_db
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
@@ -334,7 +335,8 @@ if __name__ == '__main__':
     last_play_command = settings_last_modified = 0
     update_last_checked = time.time()  # check every hour
     cast: Chromecast = None  # type: ignore
-    all_tracks, url_metadata, all_tracks_sorted = {}, {}, []
+    all_tracks, all_tracks_sorted = {}, []
+    url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
     CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
@@ -399,7 +401,6 @@ if __name__ == '__main__':
     OLD_CAST_VOLUME = 0
     OLD_CAST_POS = 0
     LAST_PLAYED = time.time()
-    connection = DatabaseConnection.create_connection()
     init_db()
 
     def get_line_number():
@@ -640,6 +641,12 @@ if __name__ == '__main__':
         if playing_status.busy() and music_queue:
             uri = music_queue[0]
             if uri.startswith('http'):
+                with DatabaseConnection() as conn:
+                    maybe_url_metadata = URLMetadata.from_db(conn, uri)
+                if isinstance(maybe_url_metadata, URLMetadata):
+                    return maybe_url_metadata.get_cover_image()
+                if isinstance(url_metadata.get(uri), URLMetadata):
+                    return url_metadata[uri].get_cover_image()
                 if url_metadata.get(uri, {}).get('art') in ('None', None):
                     return custom_art('URL')
                 if 'art_data' in url_metadata[uri]:
@@ -671,6 +678,10 @@ if __name__ == '__main__':
         # raises KeyError
         uri = uri.replace('\\', '/')
         if uri.startswith('http'):
+            with DatabaseConnection() as conn:
+                maybe_url_metadata = URLMetadata.from_db(conn, uri)
+                if maybe_url_metadata is not None:
+                    return maybe_url_metadata
             if uri in url_metadata:
                 return url_metadata[uri]
             return {'title': Unknown('Title'), 'artist': Unknown('Artist'), 'explicit': False,
@@ -690,7 +701,7 @@ if __name__ == '__main__':
         raise KeyError
 
 
-    def get_current_metadata() -> dict:
+    def get_current_metadata() -> dict | URLMetadata:
         if sar.alive:
             return url_metadata['SYSTEM_AUDIO']
         if music_queue and playing_status.busy():
@@ -761,31 +772,27 @@ if __name__ == '__main__':
             # scan items in queue and library
             file_metadata_list = []
             urls_to_fetch = []
+            with DatabaseConnection() as conn:
+                for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
+                    if uri.startswith('http'):
+                        if not URLMetadata.from_db(conn, uri):
+                            urls_to_fetch.append(uri)
+                    else:
+                        m = get_metadata_wrapped(uri)
+                        dict_to_use[uri] = m
+                        file_metadata_list.append((uri, m))
+                cur = conn.cursor()
+                # save_metadata_batch(file_metadata_list, 'file_metadata', 'file_path')
+                gui_window.metadata['update_listboxes'] = True
 
-            for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
-                if uri.startswith('http'):
-                    m = get_url_metadata_from_db(connection, uri)
-
-                    if m is None:
-                        # we don't care about expiry because URL might not be immediate
-                        # We could do an enumerate and check if index < len(settings['queues]) - 5 to consider expiry
-                        urls_to_fetch.append(uri)
-                else:
-                    m = get_metadata_wrapped(uri)
-                    dict_to_use[uri] = m
-                    file_metadata_list.append((uri, m))
-
-            save_metadata_batch(file_metadata_list, 'file_metadata', 'file_path')
-            gui_window.metadata['update_listboxes'] = True
-
-            for url in urls_to_fetch:
-                url_metadata_list = get_url_metadata(url)
-                batch_to_save = []
-                for m in url_metadata_list:
-                    batch_to_save.append((url, m))
-                if batch_to_save:
-                    save_metadata_batch(batch_to_save, 'url_metadata', 'src')
-
+                for url in urls_to_fetch:
+                    url_metadata_list = get_url_metadata(url)
+                    batch_to_save = []
+                    for m in url_metadata_list:
+                        batch_to_save.append((url, m))
+                        if isinstance(m, URLMetadata):
+                            m.save_to_db(cur)
+                conn.commit()
             if use_temp:
                 all_tracks = all_tracks_temp
             gui_window.metadata['update_listboxes'] = True
@@ -1785,47 +1792,7 @@ if __name__ == '__main__':
             return False
         return expiry_time < time.time()
 
-
-    def tbr_audio_key(item):
-        return (item.get('tbr', 0) or 0) * (item.get('vcodec', 'none') == 'none')
-
-    def tbr_video_key(item):
-        return (item.get('height', 0) or 0), (item.get('tbr', 0) or 0)
-
-    def ydl_get_metadata(item, duration_helper=True):
-        if 'formats' in item:
-            audio_url = max(item['formats'], key=tbr_audio_key)['url']
-            try:
-                formats = [_f for _f in item['formats'] if _f.get('acodec') != 'none' and _f.get('vcodec') != 'none']
-                selected_format = max(formats, key=tbr_video_key)
-                ext, _url = selected_format['ext'], selected_format['url']
-            except ValueError:
-                # url is audio only
-                ext, _url = item['ext'] if item['ext'] != 'unknown_video' else item['format_id'], audio_url
-        else:
-            ext = item['ext']
-            _url = audio_url = item['url']
-        if item.get('is_live', False) and 'duration' not in item and duration_helper:
-            helper_ap = AudioPlayer()
-            helper_ap.play(audio_url, False)
-            item['duration'] = helper_ap.get_length()
-        expiry_time = time.time() + max(1800, item.get('duration', 0))
-        length = item['duration'] if item.get('duration', 0) else None
-        src_url = item['webpage_url']
-        split_url = src_url.rsplit('/', 2)
-        backup_artist = split_url[-1] if split_url[-1] != '' else split_url[-2]
-        artist = item.get('artist', item.get('uploader', backup_artist))
-        album = item.get('album', item.get('playlist'))
-        if album is None:
-            album = item['extractor_key']
-        metadata = {'title': item.get('track', item['title']), 'artist': artist, 'url': _url,
-                    'expiry': expiry_time, 'id': item['id'], 'ext': ext, 'audio_url': audio_url, 'src': src_url,
-                    'album': album, 'length': length, 'is_live': item.get('is_live', False)}
-        if 'thumbnail' in item:
-            metadata['art'] = item['thumbnail']
-        return metadata
-
-    def get_url_metadata(url, fetch_art=True) -> list[dict]:
+    def get_url_metadata(url, fetch_art=True) -> list[dict | URLMetadata]:
         # TODO: cache in the database for persistence
         # TODO: move to utils.py and add parameter url_metadata_cache
         """
@@ -1837,6 +1804,10 @@ if __name__ == '__main__':
         ytsearch = 'ytsearch1'
         metadata_list = []
         app_log.info('get_url_metadata: ' + url)
+        with DatabaseConnection() as conn:
+            maybe_metadata = URLMetadata.from_db(conn, url)
+            if maybe_metadata and not maybe_metadata.is_expired:
+                return [maybe_metadata]
         if url in url_metadata and not url_expired(url):
             return [url_metadata[url]]
         if url.startswith('www'):
@@ -1899,10 +1870,17 @@ if __name__ == '__main__':
                             m['pl_src'] = src_url
                             metadata_list.extend(m_lst)
                     else:
-                        metadata = {'title': video['title']['runs'][0]['text'],
-                                    'artist': video['shortBylineText']['runs'][0]['text'], 'album': 'YouTube',
-                                    'id': video['videoId'], 'src': _url, 'pl_src': src_url, 'expiry': 0,
-                                    'art': f'https://img.youtube.com/vi/{ytid}/maxresdefault.jpg'}
+                        metadata = URLMetadata(
+                            src=_url,
+                            url_type='YouTube',
+                            title=video['title']['runs'][0]['text'],
+                            artist=video['shortBylineText']['runs'][0]['text'],
+                            album='YouTube',
+                            id= video['videoId'],
+                            playlist_url=src_url,
+                            expiry=0,
+                            album_cover_url=f'https://img.youtube.com/vi/{ytid}/maxresdefault.jpg'
+                        )
                         url_metadata[_url] = metadata
                         metadata_list.append(metadata)
             else:

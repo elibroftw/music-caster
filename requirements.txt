@@ -55,3 +55,4 @@ dateparser==1.2.1
 # experiments
 # matplotlib~=3.6
 # soundfile~=0.11
+appdirs
