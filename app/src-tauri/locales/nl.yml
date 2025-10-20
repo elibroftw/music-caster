@@ -1,0 +1,197 @@
+add folder: map toevoegen
+Add Music Caster to folder context menu: Voeg Music Caster toe aan het contextmenu van de map
+Add files: Liedjes toevoegen
+Add URL: URL toevoegen
+An error occurred, restarting now: Er is een fout opgetreden, nu aan het herstarten
+An Internal Server Error occurred: Er heeft een interne server fout plaatsgevonden
+Audio Selection: Audio Selectie
+Auto update: Automatische update
+By: Door
+Cancel: Annuleren
+Cancel Timer: Annuleer Timer
+Clear the queue: Wis de wachtrij
+Controls: Bediening
+Could not connect to cast device: Kon niet verbinden met cast-apparaat
+Could not find an output device to record: Kon geen uitvoerapparaat vinden om op te nemen
+couldNotPlayURL: Kan %{URL} niet afspelen
+Could not populate queue because library scan is disabled: Kan de wachtrij niet vullen omdat bibliotheekscan is uitgeschakeld
+Could not set timer: Kon de timer niet instellen
+Discord presence: Discord aanwezig
+downloadingUpdate: downloadingUpdate
+Enter minutes or HH:MM: Voer het aantal minuten in of UU:MM
+Enter Time: Voer tijd in
+Enter URL: Vul URL in
+ERROR: FOUT
+Exit: Exit
+Folder context menu: Contextmenu van de map
+Folder does not contain audio files: Deze map bevat geen audio bestanden
+Folders: Mappen
+General: Algemeen
+Hibernate when timer runs out: Ga in slaapstand als de timer afloopt
+Hibernate Computer: Slaapstand Computer
+INFO: INFO
+invalidTimerInput: Verkeerde ingave (geef aantal minuten in of UU:MM)
+invalidURL: Ongeldige URL. URL's moeten beginnen met http:// of https://
+Invalid audio file selected: Ongeldig audiobestand geselecteerd
+Invalid audio file %{FILE}: Ongeldig audiobestand %{FILE}
+Keep mini mode on top: Houdt mini modus zichtbaar
+Launch mini mode: Start mini modus
+Left-side music controls: Muziekbediening aan de linkerkant
+Library: Bibliotheek
+Library indexing incomplete, only scanned files have been added: Bibliotheekindexering onvolledig, alleen gescande bestanden zijn toegevoegd
+Listening: Aan het luisteren
+System Audio: Systeemaudio
+Local device: Lokale apparaten
+locate selected: lokaliseren geselecteerd
+Lost connection to %{DEVICE}, switching to local device: Mini-modus bovenaan
+Mini mode on top: Verbinding met %{DEVICE} verbroken, overschakelen naar lokaal apparaat
+More: Meer
+move down: omlaag
+Move to next up: verplaatsen naar volgende te spelen
+Move track content to the left: Nummerinhoud naar links verplaatsen
+move up: omhoog
+Music Caster is running in the tray.: Music Caster is geminimaliseerd in de taakbalk.
+mute: mute
+New: Nieuw
+next track: volgend nummer
+No space left on device to auto-update: Geen ruimte over op het apparaat om automatisch te updaten
+No space left on device to save settings: Geen ruimte meer op het apparaat om instellingen op te slaan
+No Timer Set: Geen timer ingesteld
+Not connected to a cast device: Niet verbonden met een cast-apparaat
+Not logged into deezer.com: Niet ingelogd bij deezer.com
+Nothing Playing: Niets aan het spelen
+Notifications: Meldingen
+Only Stop Playback: Alleen afspelen stoppen
+Open: Open
+Pause: Pause
+Persistent queue: Aanhoudende wachtrij
+Play: Afspelen
+Play All: Speel alles af
+Play Files: Speel bestanden
+Play Files Next: Speel volgende bestanden
+Play Immediately: Speel meteen
+Play Next: Speel volgende
+Play URL: Speel URL
+Play URL Next: Speel volgende URL
+Playing: Afspelen
+Playlist name: Naam afspeellijst
+Playlists: Afspeellijsten
+Playlists Tab: Tabblad Afspeellijsten
+Populate queue on startup: Wachtrij vullen bij opstarten
+Populates queue from folders on startup: Vult wachtrij uit mappen bij opstarten
+previous track: vorige nummer
+Queue: Wachtrij
+queue all: alles naar de wachtrij
+Queue Files: Bestanden naar wachtrij
+Queue URL: URL naar wachtrij
+Refresh Devices: Ververs apparaten
+Remember last folder: Onthoud laatste map
+remove selected folder: verwijder geselecteerde map
+remove: verwijder
+Repeat: Herhaal
+Repeat All: Herhaal alles
+Repeat Off: Herhalen uit
+Repeat One: Herhaal een keer
+Repeat Options: Herhaal opties
+Rescan Library: Bibliotheek opnieuw scannen
+Rescanning library: Bibliotheek aan het herscannen
+Resume: Hervatten
+Reverse play next behaviour: Omgekeerd afspelen volgende gedrag
+Reversed play next: Omgekeerd afspelen volgende
+Run on startup: Uitvoeren bij het starten
+Save queue between sessions: Wachtrij tussen sessies opslaan
+Save to playlist: opslaan in afspeellijst
+Save window positions: Vensterposities opslaan
+Scan folders: Mappen scannen
+scroll mousewheel: scroll muiswiel
+Search for music...: Muziek aan het zoeken...
+Select Device: Selecteer apparaat
+Select Folder: Selecteer map
+Select Folders: Selecteer mappen
+Select Files: Selecteer bestanden
+Select File: Selecteer bestand
+Select Audio Files: Selecteer Audio bestanden
+Send me an email: Stuur een e-mail
+set DEBUG = true in `settings.json` to enable this page: set DEBUG = true in `settings.json` om deze pagina in te schakelen
+Set Timer: Stel Timer in
+Set: Instellen
+Settings: Instellingen
+Show album art: Albumhoezen weergeven
+Show album art in GUI: Albumhoezen weergeven in Grafische gebruikers-interface
+Show index in queue: Toon index in wachtrij
+Show track number: Toon tracknummer
+Show track number in queue: Toon tracknummer in wachtrij
+shuffle: shuffle
+Shut down when timer runs out: Afsluiten wanneer de timer afloopt
+Shut Down Computer: Computer afsluiten
+Sleep when timer runs out: Ga in slaapstand als de timer afloopt
+Sleep Computer: Computer slaapstand
+Stop: Stop
+Submit: Indienen
+Thanks for installing Music Caster.: Bedankt voor het installeren van Music Caster.
+Timer: Timer
+Timer cancelled: Timer geannuleerd
+Timer set for %{TIME}: Timer gezet voor %{TIME}
+Type in artist/tracks: Geef artiest/tracks in
+UI: Gebruikersinterface
+unmute: mute opheffen
+updateAvail: Update %{VER} is beschikbaar
+URL: URL
+Use cover.* for album art: Gebruik cover.* voor albumhoezen
+Use cover.* for art instead of file's album art: Gebruik cover.* voor albumhoed in plaats van de albumhoes van het bestand
+cover.* image overrides file cover: cover.* afbeelding heeft voorrang op de albumhoes van het bestand
+Vertical GUI: Verticale Grafische gebruikers-interface
+View Audio Files Source Links: Bekijk de bronlinks van de audiobestanden
+Open Web GUI: QR Code voor de webgebaseerde gebruikers-interface (Klikken of scannen)
+new playlist: nieuwe afspeellijst
+export playlist: afspeellijst exporteren
+delete playlist: afspeellijst verwijderen
+play playlist: afspeellijst afspelen
+queue playlist: afspeellijst in de wachtrij zetten
+Unknown Title: Onbekende titel
+Unknown Artist: Onbekende artiest
+Unknown Album: Onbekend album
+Always queue library: Bibliotheek altijd in wachtrij plaatsen
+Play with Music Caster: Afspelen met Music Caster
+Queue in Music Caster: In de wachtrij van Music Caster zetten
+Play next in Music Caster: Volgende afspelen in Music Caster
+Queueing: In de wachtrij zetten
+Smart queue: Slimme wachtrij
+add to next up: toevoegen aan volgende te spelen
+Metadata: Metagegevens
+Saving metadata: Metagegevens opslaan
+Metadata saved: Metagegevens opgeslagen
+Save: Opslaan
+Title: Titel
+Artist: Artiest
+Album: Album
+Track Number: Tracknummer
+Explicit: Expliciet
+Select artwork: Selecteer afbeelding
+Search artwork: Zoek afbeelding
+Remove artwork: Verwijder afbeelding
+Artwork found: Afbeelding gevonden
+No artwork found: Geen afbeelding gevonden
+Searching for artwork...: Zoeken naar afbeelding...
+Loading URL(s): URL(s) laden
+Added URL(s): Toegevoegde URL(s)
+language: Taal
+play selected: Speel selectie
+queue selected: Zet selectie in de wachtrij
+add selected to next up: voeg selectie to aan volgende te spelen
+system_audio_delay: Systeem Audio Vertraging
+seconds: seconden
+locate_track: track zoeken
+switching_to_local_device: Overschakelen naar lokaal apparaat
+track_format: Trackformaat
+urlAudioFetchFailed: Kan geen audio ophalen voor %{URL}
+Exit app on GUI close: Sluit app op GUI sluiten
+On battery resolution: Op batterij resolutie
+Plugged in resolution: Aangesloten resolutie
+Could not set resolution: Kan resolutie niet instellen
+copy URIs: kopieer URI
+edit metadata: metagegevens bewerken
+Experimental features: experimentele functies
+Playlist saved: Afspeellijst opgeslagen
+Install Update: Installeer update
+Downloaded %{VER}. Relaunching...: Gedownload %{VER}. Opnieuw starten...

@@ -7,17 +7,21 @@
 use serde::Serialize;
 use std::sync::Mutex;
 use tauri::{
-  // state is used in Linux
   self,
   Emitter,
   Manager,
 };
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
+use tauri_plugin_shell::ShellExt;
 use tauri_plugin_store;
 use tauri_plugin_window_state;
 
+mod api;
 mod tray_icon;
 mod utils;
 
+use api::*;
+use tauri_plugin_sql::{Migration, MigrationKind};
 use tray_icon::{create_tray_icon, tray_update_lang, TrayState};
 use utils::long_running_thread;
 
@@ -26,9 +30,6 @@ struct SingleInstancePayload {
   args: Vec<String>,
   cwd: String,
 }
-
-#[derive(Debug)]
-struct MusicCasterState(Mutex<Option<std::process::Child>>);
 
 #[derive(Debug, Default, Serialize)]
 struct Example<'a> {
@@ -45,84 +46,59 @@ fn process_file(filepath: String) -> String {
   "Hello from Rust!".into()
 }
 
-#[tauri::command]
-async fn start_music_caster(app_handle: tauri::AppHandle) -> Result<String, String> {
-  use std::process::{Command, Stdio};
+fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String> {
+  let app_data_dir = app_handle
+    .path()
+    .app_data_dir()
+    .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
-  // Check if it's already running
-  let state = app_handle.state::<MusicCasterState>();
-  if let Ok(guard) = state.0.lock() {
-    if guard.is_some() {
-      return Err("Music Caster is already running".to_string());
-    }
-  }
+  std::fs::create_dir_all(&app_data_dir)
+    .map_err(|e| format!("Failed to create app data directory: {}", e))?;
 
-  // Use the bundled binary - tauri handles path resolution for externalBin
-  #[cfg(debug_assertions)]
-  let exe_path = std::path::PathBuf::from("../../dist/Music Caster.exe");
+  let db_path = app_data_dir.join("music_caster.db").display().to_string();
+  let settings_path = app_data_dir.join("settings.json").display().to_string();
+	println!("settings path: {}", &settings_path);
+	println!("db_path: {}", &db_path);
 
-  #[cfg(not(debug_assertions))]
-  let exe_path = String::from("Music Caster");
+  let sidecar_command = app_handle
+    .shell()
+    .sidecar("music-caster-daemon")
+    .map_err(|e| format!("Failed to create sidecar command: {}", e))?
+    .args([
+      "--db-path",
+      &db_path,
+      "--settings-path",
+      &settings_path,
+    ]);
 
-  println!("Starting Music Caster from: {:?}", exe_path);
-
-  #[cfg(debug_assertions)]
-  println!("Exe path exists: {}", exe_path.exists());
-
-  // Spawn the process
-  let child = std::process::Command::new(&exe_path)
-    .stdout(std::process::Stdio::null())
-    .stderr(std::process::Stdio::null())
+  let (mut rx, child) = sidecar_command
     .spawn()
-    .map_err(|e| format!("Failed to start Music Caster: {}", e))?;
+    .map_err(|e| format!("Failed to spawn Music Caster: {}", e))?;
 
-  // Store the child process
-  *app_handle
-    .state::<MusicCasterState>()
-    .0
-    .lock()
-    .map_err(|e| format!("State lock error: {}", e))? = Some(child);
-
-  Ok("Music Caster started successfully".to_string())
-}
-
-#[tauri::command]
-async fn stop_music_caster(app_handle: tauri::AppHandle) -> Result<String, String> {
-  let state = app_handle.state::<MusicCasterState>();
-  let mut guard = state.0.lock().map_err(|e| format!("State lock error: {}", e))?;
-  let mut child_opt = std::mem::replace(&mut *guard, None);
-
-  if let Some(mut child) = child_opt.take() {
-    println!("Stopping Music Caster process...");
-    if let Err(e) = child.kill() {
-      eprintln!("Warning: Failed to kill Music Caster process: {}", e);
-    }
-    if let Err(e) = child.wait() {
-      eprintln!("Warning: Failed to wait for Music Caster process: {}", e);
-    }
-    Ok("Music Caster stopped successfully".to_string())
-  } else {
-    Ok("Music Caster was not running".to_string())
-  }
-}
-
-#[tauri::command]
-async fn is_music_caster_running(app_handle: tauri::AppHandle) -> Result<bool, String> {
-  let state = app_handle.state::<MusicCasterState>();
-  let mut guard = state.0.lock().map_err(|e| format!("State lock error: {}", e))?;
-
-  if let Some(child) = guard.as_mut() {
-    match child.try_wait() {
-      Ok(None) => Ok(true), // Still running
-      Ok(Some(_)) => Ok(false), // Exited
-      Err(e) => {
-        eprintln!("Warning: Failed to check process status: {}", e);
-        Ok(false)
+  tauri::async_runtime::spawn(async move {
+    while let Some(event) = rx.recv().await {
+      match event {
+        CommandEvent::Stdout(line_bytes) => {
+          let line = String::from_utf8_lossy(&line_bytes);
+          println!("[Music Caster] {}", line);
+        }
+        CommandEvent::Stderr(line_bytes) => {
+          let line = String::from_utf8_lossy(&line_bytes);
+          eprintln!("[Music Caster Error] {}", line);
+        }
+        CommandEvent::Error(err) => {
+          eprintln!("[Music Caster] Error: {}", err);
+        }
+        CommandEvent::Terminated(payload) => {
+          println!("[Music Caster] Terminated with code: {:?}", payload.code);
+          break;
+        }
+        _ => {}
       }
     }
-  } else {
-    Ok(false) // Not running
-  }
+  });
+
+  Ok(())
 }
 
 #[cfg(target_os = "linux")]
@@ -139,8 +115,68 @@ fn main_prelude() {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   main_prelude();
+
+  let migrations = vec![Migration {
+    version: 1,
+    description: "create_initial_tables",
+    sql: "CREATE TABLE IF NOT EXISTS concert_events (
+            artist TEXT NOT NULL,
+            event_name TEXT NOT NULL,
+            venue TEXT NOT NULL,
+            city TEXT NOT NULL,
+            state TEXT,
+            country TEXT,
+            date TEXT NOT NULL,
+            url TEXT,
+            last_checked REAL NOT NULL,
+            UNIQUE(artist, event_name, venue, city, date)
+        );
+
+        CREATE TABLE IF NOT EXISTS file_metadata (
+            file_path TEXT PRIMARY KEY NOT NULL,
+            title TEXT,
+            artist TEXT,
+            album TEXT,
+            length INTEGER UNSIGNED,
+            explicit BOOLEAN DEFAULT 0 NOT NULL CHECK (explicit IN (0, 1)),
+            track_number INTEGER UNSIGNED DEFAULT 1 NOT NULL,
+            sort_key TEXT DEFAULT file_path NOT NULL,
+            time_modified REAL
+        );
+
+        CREATE TABLE IF NOT EXISTS url_metadata (
+            src TEXT PRIMARY KEY NOT NULL,
+            title TEXT,
+            artist TEXT,
+            album TEXT,
+            length REAL,
+            url TEXT,
+            audio_url TEXT,
+            ext TEXT,
+            art TEXT,
+            expiry REAL,
+            id TEXT,
+            pl_src TEXT,
+            live BOOLEAN DEFAULT 0 NOT NULL CHECK (live IN (0, 1))
+        );
+
+        CREATE TABLE IF NOT EXISTS queues (
+            name TEXT NOT NULL UNIQUE,
+            tracks TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL
+        );",
+    kind: MigrationKind::Up,
+  }];
+
   // main window should be invisible to allow either the setup delay or the plugin to show the window
   tauri::Builder::default()
+    .plugin(tauri_plugin_autostart::Builder::new().build())
+    .plugin(
+      tauri_plugin_sql::Builder::default()
+        .add_migrations("sqlite:music_caster.db", migrations)
+        .build(),
+    )
     .plugin(tauri_plugin_log::Builder::new().build())
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_store::Builder::new().build())
@@ -151,13 +187,31 @@ pub fn run() {
     .plugin(tauri_plugin_notification::init())
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_fs::init())
-    // custom commands
+    .plugin(tauri_plugin_http::init())
     .invoke_handler(tauri::generate_handler![
       tray_update_lang,
       process_file,
-      start_music_caster,
-      stop_music_caster,
-      is_music_caster_running
+      api_is_running,
+      api_activate,
+      api_get_devices,
+      api_change_device,
+      api_play,
+      api_pause,
+      api_next,
+      api_prev,
+      api_toggle_repeat,
+      api_toggle_shuffle,
+      api_get_state,
+      api_play_uris,
+      api_exit,
+      api_change_setting,
+      api_refresh_devices,
+      api_rescan_library,
+      api_set_timer,
+      api_get_timer,
+      api_cancel_timer,
+      api_get_file_url,
+      api_get_stream_url
     ])
     // allow only one instance and propagate args and cwd to existing instance
     .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
@@ -172,9 +226,8 @@ pub fn run() {
     .plugin(tauri_plugin_window_state::Builder::default().build())
     // custom setup code
     .setup(|app| {
-      let _ = create_tray_icon(app.handle());
       app.manage(Mutex::new(TrayState::NotPlaying));
-      app.manage(MusicCasterState(Mutex::new(None)));
+      let _ = create_tray_icon(app.handle());
 
       let app_handle = app.handle().clone();
       tauri::async_runtime::spawn(async move { long_running_thread(&app_handle).await });
@@ -184,8 +237,34 @@ pub fn run() {
         dbus::blocking::SyncConnection::new_session().ok(),
       )));
 
-      // TODO: AUTOSTART
-      // FOLLOW: https://v2.tauri.app/plugin/autostart/
+      // Start music caster daemon automatically after database is initialized
+      let app_handle = app.handle().clone();
+      if let Err(e) = start_music_caster_daemon(&app_handle) {
+        eprintln!("Failed to start Music Caster daemon: {}", e);
+      }
+
+      #[cfg(desktop)]
+      {
+        use tauri_plugin_autostart::MacosLauncher;
+        use tauri_plugin_autostart::ManagerExt;
+
+        let _ =app.handle().plugin(tauri_plugin_autostart::init(
+          MacosLauncher::LaunchAgent,
+          Some(vec!["--flag1", "--flag2"]),
+        ));
+
+        // Get the autostart manager
+        let autostart_manager = app.autolaunch();
+        // Enable autostart
+        let _ = autostart_manager.enable();
+        // Check enable state
+        println!(
+          "registered for autostart? {}",
+          autostart_manager.is_enabled().unwrap()
+        );
+        // Disable autostart
+        let _ = autostart_manager.disable();
+      }
 
       Ok(())
     })

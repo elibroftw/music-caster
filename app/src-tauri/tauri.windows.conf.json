@@ -2,10 +2,10 @@
 	"app": {
 		"windows": [
 			{
-				"title": "tauri.windows.conf.json > tauri > windows > title",
+				"title": "Music Caster",
 				"label": "main",
 				"minWidth": 1000,
-				"minHeight": 600,
+				"minHeight": 700,
 				"resizable": true,
 				"fullscreen": false,
 				"visible": false,

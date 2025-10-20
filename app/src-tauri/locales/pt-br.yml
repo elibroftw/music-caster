@@ -1,0 +1,197 @@
+add folder: adicionar pasta
+Add Music Caster to folder context menu: Adicionar Music Caster ao menu de contexto da pasta
+Add files: Adicionar arquivos
+Add URL: Adicionar URL
+An error occurred, restarting now: Ocorreu um erro, reiniciando agora
+An Internal Server Error occurred: Ocorreu um Erro Interno no Servidor
+Audio Selection: Seleção de Áudio
+Auto update: Atualização automática
+By: Por
+Cancel: Cancelar
+Cancel Timer: Cancelar Timer
+Clear the queue: Limpar a fila
+Controls: Controles
+Could not connect to cast device: Não foi possível conectar ao dispositivo de transmissão
+Could not find an output device to record: Não foi possível encontrar um dispositivo de saída para gravação
+couldNotPlayURL: Não foi possível reproduzir %{URL}
+Could not populate queue because library scan is disabled: Não foi possível preencher a fila porque a varredura da biblioteca está desativada
+Could not set timer: Não foi possível definir o timer
+Discord presence: Presença no Discord
+downloadingUpdate: Baixando atualização %{VER}
+Enter minutes or HH:MM: Digite minutos ou HH:MM
+Enter Time: Digite o Horário
+Enter URL: Digite o URL
+ERROR: ERRO
+Exit: Sair
+Folder context menu: Menu de contexto da pasta
+Folder does not contain audio files: A pasta não contém arquivos de áudio
+Folders: Pastas
+General: Geral
+Hibernate when timer runs out: Hibernar quando o timer acabar
+Hibernate Computer: Hibernar o Computador
+INFO: INFO
+invalidTimerInput: Entrada Inválida (insira minutos ou HH:MM)
+invalidURL: URL inválida. URLs devem começar com http:// ou https://
+Invalid audio file selected: Arquivo de áudio inválido selecionado
+Invalid audio file %{FILE}: Arquivo de áudio inválido %{FILE}
+Keep mini mode on top: Manter modo mini no topo
+Launch mini mode: Iniciar modo mini
+Left-side music controls: Controles de música no lado esquerdo
+Library: Biblioteca
+Library indexing incomplete, only scanned files have been added: Indexação da biblioteca incompleta, apenas os arquivos escaneados foram adicionados
+Listening: Ouvindo
+System Audio: Áudio do Sistema
+Local device: Dispositivo local
+locate selected: localizar selecionado
+Lost connection to %{DEVICE}, switching to local device: Conexão perdida com %{DEVICE}, alternando para dispositivo local
+Mini mode on top: Modo mini no topo
+More: Mais
+move down: mover para baixo
+Move to next up: Mover para próximo
+Move track content to the left: Mover conteúdo da faixa para a esquerda
+move up: mover para cima
+Music Caster is running in the tray.: Music Caster está rodando na bandeja.
+mute: mudo
+New: Novo
+next track: próxima faixa
+No space left on device to auto-update: Sem espaço no dispositivo para atualização automática
+No space left on device to save settings: Sem espaço no dispositivo para salvar configurações
+No Timer Set: Nenhum Timer Definido
+Not connected to a cast device: Não conectado a um dispositivo de transmissão
+Not logged into deezer.com: Não logado em deezer.com
+Nothing Playing: Nada Tocando
+Notifications: Notificações
+Only Stop Playback: Apenas Parar Reprodução
+Open: Abrir
+Pause: Pausar
+Persistent queue: Fila Persistente
+Play: Reproduzir
+Play All: Reproduzir Tudo
+Play Files: Reproduzir Arquivos
+Play Files Next: Reproduzir Arquivos a Seguir
+Play Immediately: Reproduzir Imediatamente
+Play Next: Reproduzir Próximo
+Play URL: Reproduzir URL
+Play URL Next: Reproduzir URL a Seguir
+Playing: Tocando
+Playlist name: Nome da Playlist
+Playlists: Playlists
+Playlists Tab: Aba de Playlists
+Populate queue on startup: Preencher fila na inicialização
+Populates queue from folders on startup: Preencher fila com pastas na inicialização
+previous track: faixa anterior
+Queue: Fila
+queue all: enfileirar tudo
+Queue Files: Enfileirar Arquivos
+Queue URL: Enfileirar URL
+Refresh Devices: Atualizar Dispositivos
+Remember last folder: Lembrar última pasta
+remove selected folder: remover pasta selecionada
+remove: remover
+Repeat: Repetir
+Repeat All: Repetir Tudo
+Repeat Off: Repetir Desativado
+Repeat One: Repetir Uma
+Repeat Options: Opções de Repetição
+Rescan Library: Reescanear Biblioteca
+Rescanning library: Reescaneando biblioteca
+Resume: Continuar
+Reverse play next behaviour: Inverter comportamento de próximo
+Reversed play next: Próximo invertido
+Run on startup: Executar na inicialização
+Save queue between sessions: Salvar fila entre sessões
+Save to playlist: Salvar na playlist
+Save window positions: Salvar posições das janelas
+Scan folders: Escanear pastas
+scroll mousewheel: rolar com a roda do mouse
+Search for music...: Buscar música...
+Select Device: Selecionar Dispositivo
+Select Folder: Selecionar Pasta
+Select Folders: Selecionar Pastas
+Select Files: Selecionar Arquivos
+Select File: Selecionar Arquivo
+Select Audio Files: Selecionar Arquivos de Áudio
+Send me an email: Envie-me um email
+set DEBUG = true in `settings.json` to enable this page: defina DEBUG = true em `settings.json` para habilitar esta página
+Set Timer: Definir Timer
+Set: Definir
+Settings: Configurações
+Show album art: Mostrar capa do álbum
+Show album art in GUI: Mostrar capa do álbum na GUI
+Show index in queue: Mostrar índice na fila
+Show track number: Mostrar número da faixa
+Show track number in queue: Mostrar número da faixa na fila
+shuffle: aleatório
+Shut down when timer runs out: Desligar quando o timer acabar
+Shut Down Computer: Desligar o Computador
+Sleep when timer runs out: Suspender quando o timer acabar
+Sleep Computer: Suspender o Computador
+Stop: Parar
+Submit: Enviar
+Thanks for installing Music Caster.: Obrigado por instalar Music Caster.
+Timer: Timer
+Timer cancelled: Timer cancelado
+Timer set for %{TIME}: Timer definido para %{TIME}
+Type in artist/tracks: Digite artista/faixas
+UI: UI
+unmute: ativar som
+updateAvail: Atualização %{VER} disponível
+URL: URL
+Use cover.* for album art: Usar cover.* para capa do álbum
+Use cover.* for art instead of file's album art: Usar cover.* para arte em vez da capa do arquivo
+cover.* image overrides file cover: imagem cover.* substitui capa do arquivo
+Vertical GUI: GUI Vertical
+View Audio Files Source Links: Ver Links de Fonte dos Arquivos de Áudio
+Open Web GUI: Abrir GUI Web
+new playlist: nova playlist
+export playlist: exportar playlist
+delete playlist: excluir playlist
+play playlist: reproduzir playlist
+queue playlist: enfileirar playlist
+Unknown Title: Título Desconhecido
+Unknown Artist: Artista Desconhecido
+Unknown Album: Álbum Desconhecido
+Always queue library: Sempre enfileirar biblioteca
+Play with Music Caster: Reproduzir com Music Caster
+Queue in Music Caster: Enfileirar no Music Caster
+Play next in Music Caster: Reproduzir próximo no Music Caster
+Queueing: Enfileirando
+Smart queue: Fila inteligente
+add to next up: adicionar ao próximo
+Metadata: Metadados
+Saving metadata: Salvando metadados
+Metadata saved: Metadados salvos
+Save: Salvar
+Title: Título
+Artist: Artista
+Album: Álbum
+Track Number: Número da Faixa
+Explicit: Explícito
+Select artwork: Selecionar arte
+Search artwork: Buscar arte
+Remove artwork: Remover arte
+Artwork found: Arte encontrada
+No artwork found: Nenhuma arte encontrada
+Searching for artwork...: Buscando por arte...
+Loading URL(s): Carregando URL(s)
+Added URL(s): URL(s) Adicionada(s)
+language: idioma
+play selected: reproduzir selecionado
+queue selected: enfileirar selecionado
+add selected to next up: adicionar selecionado ao próximo
+system_audio_delay: Atraso do Áudio do Sistema
+seconds: segundos
+locate_track: localizar faixa
+switching_to_local_device: Alternando para dispositivo local
+track_format: Formato da Faixa
+urlAudioFetchFailed: Não foi possível buscar áudio para %{URL}
+Exit app on GUI close: Sair do aplicativo ao fechar a GUI
+On battery resolution: Resolução ao usar bateria
+Plugged in resolution: Resolução ao usar energia
+Could not set resolution: Não foi possível definir resolução
+copy URIs: copiar URIs
+edit metadata: editar metadados
+Experimental features: Recursos experimentais
+Playlist saved: Playlist salva
+Install Update: Instalar Atualização
+Downloaded %{VER}. Relaunching...: Baixado %{VER}. Reiniciando...
