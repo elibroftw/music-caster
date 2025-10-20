@@ -150,7 +150,7 @@ if __name__ == '__main__':
     if IS_FROZEN:
         SETTINGS_FILE = Path(args.settings_path).absolute() if args.settings_path and USING_TAURI_FRONTEND else DEFAULT_SETTINGS_FILE
         if OLD_SETTINGS_FILE.exists():
-            SETTINGS_FILE.mkdir(parents=True, exist_ok=True)
+            SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
             os.rename(OLD_SETTINGS_FILE, SETTINGS_FILE)
 
     PHANTOMJS_DIR = Path('phantomjs')
@@ -292,7 +292,7 @@ if __name__ == '__main__':
     if IS_FROZEN:
         DatabaseConnection.DATABASE_FILE = Path(args.db_path).absolute() if args.db_path and USING_TAURI_FRONTEND else DatabaseConnection.DEFAULT_DATABASE_FILE
         if DatabaseConnection.OLD_DATABASE_FILE.exists():
-            DatabaseConnection.DATABASE_FILE.mkdir(parents=True, exist_ok=True)
+            DatabaseConnection.DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
             if DatabaseConnection.DATABASE_FILE.exists():
                 print('not moving database because file already exists')
             else:
