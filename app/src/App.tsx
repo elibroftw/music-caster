@@ -1,4 +1,4 @@
-import { ActionIcon, AppShell, Burger, Button, Group, Space, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
+import { ActionIcon, AppShell, Burger, Button, Group, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
@@ -19,12 +19,17 @@ import 'simplebar-react/dist/simplebar.min.css';
 import classes from './App.module.css';
 import { useCookie, useLocalForage } from './common/utils';
 import LanguageHeaders from './components/LanguageHeaders';
+import PlaybackAside from './components/PlaybackAside';
 import { ScrollToTop } from './components/ScrollToTop';
+import SettingsModal from './components/SettingsModal';
 import { useTauriContext } from './tauri/TauriProvider';
 import { TitleBar } from './tauri/TitleBar';
+import Developer from './views/Developer';
 import ExampleView from './views/ExampleView';
 import FallbackAppRender from './views/FallbackErrorBoundary';
 import FallbackSuspense from './views/FallbackSuspense';
+import MusicLibrary from './views/MusicLibrary';
+import Queue from './views/Queue';
 // if some views are large, you can use lazy loading to reduce the initial app load time
 const LazyView = lazy(() => import('./views/LazyView'));
 
@@ -43,6 +48,8 @@ export default function () {
 
 	// left sidebar
 	const views: View[] = [
+		{ component: MusicLibrary, path: '/library', name: 'Music Library' },
+		{ component: Queue, path: '/queue', name: 'Queue' },
 		{ component: ExampleView, path: '/example-view', name: t('ExampleView') },
 		{ component: () => <Text>Woo, routing works</Text>, path: '/example-view-2', name: 'Test Routing' },
 		{ component: LazyView, path: '/lazy-view', name: 'Lazy Load' }
@@ -61,6 +68,10 @@ export default function () {
 	const [desktopNavOpenedCookie, setDesktopNavOpenedCookie] = useCookie('desktop-nav-opened', 'true');
 	const desktopNavOpened = desktopNavOpenedCookie === 'true';
 	const toggleDesktopNav = () => setDesktopNavOpenedCookie(o => o === 'true' ? 'false' : 'true');
+
+	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
+	const [selectedTrack, setSelectedTrack] = useState<any>(null);
+	const [activeTab, setActiveTab] = useState<string | null>('library');
 
 	const [scroller, setScroller] = useState<HTMLElement | null>(null);
 	// load preferences using localForage
@@ -150,17 +161,6 @@ export default function () {
 		}, []);
 	}
 
-	function NavLinks() {
-		// TODO: useHotkeys and abstract this
-		return views.map((view, index) =>
-			<NavLink to={view.path} key={index} end={view.exact} onClick={() => toggleMobileNav()}
-				className={({ isActive }) => classes.navLink + ' ' + (isActive ? classes.navLinkActive : classes.navLinkInactive)}>
-				{/* TODO: Icons */}
-				<Group><Text>{view.name ? view.name : view.name}</Text></Group>
-			</NavLink>
-		);
-	}
-
 	const FOOTER_KEY = 'footer[0]';
 	const showFooter = FOOTER_KEY && !footersSeenLoading && !(FOOTER_KEY in footersSeen);
 	// assume key is always available
@@ -176,53 +176,44 @@ export default function () {
 	}, [usingCustomTitleBar, showFooter]);
 
 	return <>
+		<SettingsModal opened={settingsOpened} onClose={closeSettings} />
+
 		{usingCustomTitleBar && <TitleBar />}
 		<AppShell padding='md'
-			header={{ height: 60 }}
+			header={{ height: 0 }}
 			footer={showFooter ? { height: 60 } : undefined}
-			navbar={{ width: 200, breakpoint: 'sm', collapsed: { mobile: !mobileNavOpened, desktop: !desktopNavOpened } }}
-			aside={{ width: 300, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
+			aside={{ width: 350, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
 			className={classes.appShell}>
 			<AppShell.Main>
 				{usingCustomTitleBar && <Space h='xl' />}
 				<SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}>
-					<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={e => tauriLogger.error(e.message)}>
-						<Routes>
-							{views[0] !== undefined && <Route path='/' element={<Navigate to={views[0].path} />} />}
-							{views.map((view, index) => <Route key={index} path={view.path} element={<Suspense fallback={<FallbackSuspense />}><view.component /></Suspense>} />)}
-						</Routes>
+					<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
+						<Tabs value={activeTab} onChange={setActiveTab} >
+							<Tabs.List>
+								<Tabs.Tab value="library">Music Library</Tabs.Tab>
+								<Tabs.Tab value="queue">Queue</Tabs.Tab>
+								<Tabs.Tab value="dev">Developer</Tabs.Tab>
+							</Tabs.List>
+							<Tabs.Panel value="library" pt="md">
+								<MusicLibrary />
+							</Tabs.Panel>
+							<Tabs.Panel value="queue" pt="md">
+								<Queue />
+							</Tabs.Panel>
+							<Tabs.Panel value="dev" pt="md">
+								<Developer />
+							</Tabs.Panel>
+						</Tabs>
 					</ErrorBoundary>
 					{/* prevent the footer from covering bottom text of a route view */}
 					<Space h={showFooter ? 70 : 50} />
 					<ScrollToTop scroller={scroller} bottom={showFooter ? 70 : 20} />
 				</SimpleBar>
 			</AppShell.Main>
-			<AppShell.Header data-tauri-drag-region p='md' className={classes.header}>
-				<Group h='100%'>
-					<Burger hiddenFrom='sm' opened={mobileNavOpened} onClick={toggleMobileNav} size='sm' />
-					<Burger visibleFrom='sm' opened={desktopNavOpened} onClick={toggleDesktopNav} size='sm' />
-					<Text>HEADER_TITLE</Text>
-				</Group>
-				<Group className={classes.headerRightItems} h='110%'>
-					<LanguageHeaders />
-					<ActionIcon id='toggle-theme' title='Ctrl + J' variant='default' onClick={toggleColorScheme} size={30}>
-						{/* icon to show based on colorScheme */}
-						{colorScheme === 'dark' ? <IoSunnySharp size={'1.5em'} /> : <BsMoonStarsFill />}
-					</ActionIcon>
-				</Group>
-			</AppShell.Header>
-
-			<AppShell.Navbar className={classes.titleBarAdjustedHeight} h='100%' w={{ sm: 200 }} p='xs' hidden={!mobileNavOpened}>
-				<AppShell.Section grow><NavLinks /></AppShell.Section>
-				<AppShell.Section>
-					{/* Bottom of Navbar Example: https://github.com/mantinedev/mantine/blob/master/src/mantine-demos/src/demos/core/AppShell/_user.tsx */}
-					<Space h={navbarClearance} /> {/* Account for footer */}
-				</AppShell.Section>
-			</AppShell.Navbar >
 
 			<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-				<Text>Right Side. Use for help, support, quick action menu? For example, if we were building a trading app, we could use the aside for the trade parameters while leaving the main UI with the data</Text>
-			</AppShell.Aside >
+				<PlaybackAside onOpenSettings={openSettings} selectedTrack={selectedTrack} />
+			</AppShell.Aside>
 
 			{showFooter &&
 				<AppShell.Footer ref={footerRef} p='md' className={classes.footer}>
