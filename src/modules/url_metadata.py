@@ -10,6 +10,8 @@ from utils import custom_art
 import ujson as json
 from utils import get_yt_id
 from meta import BUNDLE_IDENTIFIER
+from PIL import Image
+from io import BytesIO
 
 def tbr_audio_key(item):
     return (item.get('tbr', 0) or 0) * (item.get('vcodec', 'none') == 'none')
@@ -70,6 +72,7 @@ class URLMetadata:
     DB_COLUMNS = {'title', 'artist', 'album', 'length', 'url', 'audio_url', 'ext', 'art', 'expiry', 'id', 'pl_src', 'live', 'type'}
     MAPPED_FIELDS = {'url': 'src', 'ytid': 'id', 'is_live': 'live', 'art': 'album_cover_url'}
     FIELDS_TO_IGNORE = set()
+    ALBUM_COVER_CACHE_DIR = Path(appdirs.user_cache_dir()) / BUNDLE_IDENTIFIER / 'Cache' / 'Album Covers'
 
     def __init__(self, src: str, url_type: str, title: str, artist: str, album: str, live: bool | None = None, length: float | None = None,
                  url: str | None = None, audio_url: str | None  = None, ext: str | None = None, expiry=None, id=None, album_cover_url=None,
@@ -209,7 +212,7 @@ class URLMetadata:
 
     @property
     def image_cache_path(self):
-        return Path(appdirs.user_cache_dir()) / BUNDLE_IDENTIFIER / 'Cache' / 'Album Covers' / f'{self.hash()}.jpg'
+        return self.ALBUM_COVER_CACHE_DIR / f'{self.hash()}.jpg'
 
     @property
     def is_expired(self):
@@ -218,13 +221,13 @@ class URLMetadata:
         return self.expiry < time.time()
 
     def get_cover_image(self) -> bytes:
-        if self.image_cache_path.exists():
-            with open(self.image_cache_path, 'rb') as f:
-                return b64encode(f.read())
-        if self.album_cover_url:
-            img_data = requests.get(self.album_cover_url).content
-            self.image_cache_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.image_cache_path, 'wb') as f:
-                f.write(img_data)
-            return b64encode(img_data)
-        return custom_art('URL')
+        if not self.image_cache_path.exists():
+            if not self.album_cover_url:
+                return custom_art('URL')
+            Image.open(BytesIO(requests.get(self.album_cover_url).content)).convert('RGB').save(self.image_cache_path, 'JPEG', quality=95)
+        with open(self.image_cache_path, 'rb') as f:
+            return b64encode(f.read())
+
+
+# only run once to reduce OS calls
+URLMetadata.ALBUM_COVER_CACHE_DIR.mkdir(parents=True, exist_ok=True)
