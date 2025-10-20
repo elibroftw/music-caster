@@ -1,0 +1,197 @@
+add folder: prida prieinok
+Add Music Caster to folder context menu: Prida Music Caster do kontextovej ponuky prieinka
+Add files: Prida sbory
+Add URL: Prida URL
+An error occurred, restarting now: Vyskytla sa chyba, aplikcia sa retartuje
+An Internal Server Error occurred: Vyskytla sa vntorn chyba servera
+Audio Selection: Vber zvuku
+Auto update: Automatick aktualizcia
+By: Autor
+Cancel: Zrui
+Cancel Timer: Zrui asova
+Clear the queue: Vymaza frontu
+Controls: Ovldanie
+Could not connect to cast device: Nepodarilo sa pripoji k streamovaciemu zariadeniu
+Could not find an output device to record: Nepodarilo sa njs vstupn zariadenie na nahrvanie
+couldNotPlayURL: Nepodarilo sa prehra %{URL}
+Could not populate queue because library scan is disabled: Nepodarilo sa naplni frontu, pretoe skenovanie kninice mdi je zakzan
+Could not set timer: Nepodarilo sa nastavi asova
+Discord presence: Aktualizova stav v Discord
+downloadingUpdate: Sahuje sa aktualizcia %{VER}
+Enter minutes or HH:MM: Zadajte minty alebo HH:MM
+Enter Time: Zadajte as
+Enter URL: Zadajte URL
+ERROR: CHYBA
+Exit: Ukoni
+Folder context menu: Kontextov menu prieinka
+Folder does not contain audio files: Prieinok neobsahuje zvukov sbory
+Folders: Prieinky
+General: Veobecn
+Hibernate when timer runs out: Prepn pota do reimu hiberncie po uplynut asovaa
+Hibernate Computer: Prepn pota do reimu hiberncie
+INFO: INFORMCIA
+invalidTimerInput: Neplatn vstup (zadajte minty alebo HH:MM)
+invalidURL: Neplatn URL. URL musia zana na http:// alebo https://
+Invalid audio file selected: Vybrali ste neplatn zvukov sbor
+Invalid audio file %{FILE}: Neplatn zvukov sbor %{FILE}
+Keep mini mode on top: Ponecha mini reim navrchu
+Launch mini mode: Spusti mini reim
+Left-side music controls: Ovldanie hudby vavo
+Library: Kninica
+Library indexing incomplete, only scanned files have been added: Indexovanie kninice je nepln, boli pridan iba naskenovan sbory
+Listening: Povanie
+System Audio: Systmov zvuk
+Local device: Miestne zariadenie
+locate selected: njs vybran
+Lost connection to %{DEVICE}, switching to local device: Stratilo sa spojenie s %{DEVICE}, prepn na loklne zariadenie
+Mini mode on top: Mini reim navrchu
+More: Viac
+move down: posun nadol
+Move to next up: Prejs na alie
+Move track content to the left: Presun obsah skladby doava
+move up: posun hore
+Music Caster is running in the tray.: Music Caster je spusten v tray.
+mute: stlmi
+New: Nov
+next track: alia skladba
+No space left on device to auto-update: Vo vaom zariaden nie je dostatok miesta na automatick aktualizcie
+No space left on device to save settings: Vo vaom zariaden nie je dostatok miesta na uloenie nastaven
+No Timer Set: Nebol nastaven iadny asova
+Not connected to a cast device: Nie je pripojen k streamovaciemu zariadeniu
+Not logged into deezer.com: Nie ste prihlsen/- na deezer.com
+Nothing Playing: Ni sa neprehrva
+Notifications: Oznmenia
+Only Stop Playback: Iba zastavi prehrvanie
+Open: Otvori
+Pause: Pozastavi
+Persistent queue: Uloen front
+Play: Prehra
+Play All: Prehra vetky
+Play Files: Prehra sbory
+Play Files Next: Prehra sbory nasledovne
+Play Immediately: Prehra okamite
+Play Next: Prehra aliu
+Play URL: Prehra URL
+Play URL Next: Prehra aliu URL
+Playing: Prehrvanie
+Playlist name: Nzov playlistu
+Playlists: Playlisty
+Playlists Tab: Karta playlistov
+Populate queue on startup: Naplni front pri spusten
+Populates queue from folders on startup: Naplni frontu prieinkov pri spusten
+previous track: predchdzajca skladba
+Queue: Fronta
+queue all: zaradi vetky
+Queue Files: Sbory frontu
+Queue URL: Fronta prepojen
+Refresh Devices: Obnovi zariadenia
+Remember last folder: Zapamta si posledn prieinok
+remove selected folder: odstrni vybran prieinok
+remove: odstrni
+Repeat: Opakova
+Repeat All: Opakova vetky
+Repeat Off: Vypn opakovanie
+Repeat One: Opakova jednu
+Repeat Options: Monosti opakovania
+Rescan Library: Preskenova kninicu
+Rescanning library: Preskenovanie kninice
+Resume: Pokraova
+Reverse play next behaviour: Zmena nasledujceho reimu prehrvania
+Reversed play next: Prehra nasledovn v opanom porad
+Run on startup: Spusti pri tarte
+Save queue between sessions: Uloi front medzi relciami
+Save to playlist: Uloi do playlistu
+Save window positions: Uloi polohu okien
+Scan folders: Skenova prieinky
+scroll mousewheel: Posvanie myou
+Search for music...: Hada hudbu...
+Select Device: Vybra zariadenie
+Select Folder: Vybra prieinok
+Select Folders: Vybra prieinky
+Select Files: Vybra sbory
+Select File: Vybra sbor
+Select Audio Files: Vybra zvukov sbory
+Send me an email: Poli mi email
+set DEBUG = true in `settings.json` to enable this page: nastavte DEBUG = true v `settings.json` pre aktivciu tejto strnky
+Set Timer: Nastavi asova
+Set: Nastavi
+Settings: Nastavenia
+Show album art: Zobrazi obal albumu
+Show album art in GUI: Zobrazi obalu albumu v grafickom rozhran
+Show index in queue: Zobrazi index vo fronte
+Show track number: Zobrazi slo skladby
+Show track number in queue: Zobrazi sla skladieb vo fronte
+shuffle: nhodn vber
+Shut down when timer runs out: Vypn po uplynut asovaa
+Shut Down Computer: Vypn pota
+Sleep when timer runs out: Uspa po vypran asovaa
+Sleep Computer: Uspa pota
+Stop: Zastavi
+Submit: Odosla
+Thanks for installing Music Caster.: akujeme za intalciu Music Caster.
+Timer: asova
+Timer cancelled: asova zruen
+Timer set for %{TIME}: asova nastaven na %{TIME}
+Type in artist/tracks: Zadajte interpreta/skladby
+UI: UI
+unmute: zapn zvuk
+updateAvail: Dostupn aktualizcia na %{VER}
+URL: URL
+Use cover.* for album art: Poui cover.* ako obal albumu
+Use cover.* for art instead of file's album art: Poui cover.* ako obal albumu namiesto vloenia do sboru
+cover.* image overrides file cover: cover.* obrzok nahrad obrzok obalu vloen v sbore
+Vertical GUI: Vertiklne pouvatesk rozhranie
+View Audio Files Source Links: Zobrazi odkazy na zdroje zvukovch sborov
+Open Web GUI: Otvori webov grafick rozhranie
+new playlist: nov playlist
+export playlist: exportova playlist
+delete playlist: vymaza playlist
+play playlist: prehra playlist
+queue playlist: fronta playlistu
+Unknown Title: Neznmy nzov
+Unknown Artist: Neznmy umelec
+Unknown Album: Neznmy album
+Always queue library: Vdy zaraova kninicu do frontu
+Play with Music Caster: Prehra v Music Caster
+Queue in Music Caster: Poradie v Music Caster
+Play next in Music Caster: Prehra alie v Music Caster
+Queueing: Zaraovanie do fronty
+Smart queue: Inteligentn fronta
+add to next up: prida do alej
+Metadata: Metadta
+Saving metadata: Ukladaj sa metadta
+Metadata saved: Metadta uloen
+Save: Uloi
+Title: Nzov
+Artist: Umelec
+Album: Album
+Track Number: slo skladby
+Explicit: Explicitn
+Select artwork: Vybra obal
+Search artwork: Hada obal
+Remove artwork: Odstrni obal
+Artwork found: Obal njden
+No artwork found: Obal nenjden
+Searching for artwork...: Had sa obal...
+Loading URL(s): Natava URL
+Added URL(s): Pridan URL
+language: jazyk
+play selected: prehra vybran
+queue selected: vybran fronta
+add selected to next up: prida vybran na alie
+system_audio_delay: Oneskorenie zvuku systmu
+seconds: seknd
+locate_track: njs skladbu
+switching_to_local_device: Prepnanie na loklne zariadenie
+track_format: Formt nzvu piesne
+urlAudioFetchFailed: Nepodarilo sa nata zvuk pre %{URL}
+Exit app on GUI close: Ukoni program pri zatvoren pouvateskho rozhrania
+On battery resolution: Rozlenie pri napjan z batrie
+Plugged in resolution: Rozlenie pri napjan zo zdroja
+Could not set resolution: Nepodarilo sa nastavi rozlenie
+copy URIs: koprova cestu
+edit metadata: upravi metadta
+Experimental features: Experimentlne funkcie
+Playlist saved: Playlist uloen
+Install Update: Naintalova aktualizciu
+Downloaded %{VER}. Relaunching...: Stiahnut %{VER}. Relaunching...

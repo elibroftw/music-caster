@@ -11,11 +11,14 @@
   "permissions": [
     "updater:default",
     "store:default",
-    "autostart:default",
+		"autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
     "opener:default",
     "autostart:default",
     "log:default",
-		"core:window:allow-toggle-maximize",
-		"fs:allow-download-write-recursive"
+    "core:window:allow-toggle-maximize",
+    "fs:allow-download-write-recursive",
+    "sql:default"
   ]
 }

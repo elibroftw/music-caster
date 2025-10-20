@@ -7,8 +7,8 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
     },
-    "publisher": "Unknown Publisher",
-    "copyright": "Copyright Notice",
+    "publisher": "Elijah Lopez",
+    "copyright": "Copyright",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -18,9 +18,9 @@
     ],
     "resources": [],
     "externalBin": [
-			"../../dist/Music Caster"
+			"../../dist/music-caster-daemon"
     ],
-    "category": "DeveloperTool",
+    "category": "Music",
     "shortDescription": "",
     "longDescription": "",
     "macOS": {
@@ -43,11 +43,14 @@
     "frontendDist": "../build",
     "devUrl": "http://localhost:1420"
   },
-  "productName": "Product Name",
-  "mainBinaryName": "Product Name",
+  "productName": "Music Caster",
+  "mainBinaryName": "Music Caster",
   "version": "../package.json",
-  "identifier": "App.Name",
+  "identifier": "ca.elijahlopez.music-caster",
   "plugins": {
+    "sql": {
+      "preload": ["sqlite:music_caster.db"]
+    },
     "updater": {
       "endpoints": [
         "https://youtu.be/ZXjlZBisYPQ"
@@ -61,10 +64,10 @@
     },
     "windows": [
       {
-        "title": "tauri.conf.json > tauri > windows > title",
+        "title": "Music Caster",
         "label": "main",
         "minWidth": 1000,
-        "minHeight": 600,
+        "minHeight": 700,
         "resizable": true,
         "fullscreen": false,
         "visible": false,
