@@ -36,7 +36,7 @@ wavinfo~=4.0
 scrapetube
 pyperclip~=1.8
 werkzeug~=3.0
-python-vlc==3.0.20123
+python-vlc==3.0.21203
 # why was this fixed to 3.13?
 lz4~=4.4.4; sys_platform == 'win32'
 lz4; sys_platform != 'win32'

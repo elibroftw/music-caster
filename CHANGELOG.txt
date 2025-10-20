@@ -2,6 +2,7 @@ Music Caster Changelog
 
 5.25.0
 - [Fix] Forwards compatibility for v6
+- [Fix] Maintenance (Python 3.14)
 
 5.24.0
 - [Feat] Performance when indexing many URLs
