@@ -20,6 +20,7 @@ from meta import (
     SUBMIT_EVENTS,
     TOGGLEABLE_SETTINGS,
     TKDND_ENABLED,
+    USING_TAURI_FRONTEND,
 )
 import time
 
@@ -58,6 +59,8 @@ def parse_pid_file():
 
 def ensure_single_instance(debugging=False):
     file = open(LOCK_FILENAME, 'w+', encoding='utf-8')
+    if USING_TAURI_FRONTEND:
+        return file
     # no old running instances found, try locking file
     try:
         # exclusively locked
@@ -120,6 +123,8 @@ if __name__ == '__main__':
     parser.add_argument('--position', default=0, help='position to start at if resume_playing')
     parser.add_argument('--shell', default=False, action='store_true', help='if from shell/explorer')
     parser.add_argument('--device', action='store', help='select device to use (cast UUID or "local")', default=None)
+    parser.add_argument('--db-path', action='store', help='path to sqlite database file', default=None)
+    parser.add_argument('--settings-path', action='store', help='path to settings.json file', default=None)
     # freeze_support() adds the following
     parser.add_argument('--multiprocessing-fork', default=False, action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -137,7 +142,7 @@ if __name__ == '__main__':
     IS_FROZEN = getattr(sys, 'frozen', False)
     working_dir = Path(sys.argv[0]).absolute().parent
     os.chdir(working_dir)
-    SETTINGS_FILE = Path('settings.json').absolute()
+    SETTINGS_FILE = Path(args.settings_path).absolute() if args.settings_path else Path('settings.json').absolute()
     PHANTOMJS_DIR = Path('phantomjs')
     # c:\Users\maste\AppData\Local\Programs\Music Caster\settings.json
 
@@ -274,6 +279,8 @@ if __name__ == '__main__':
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
     from modules.db import DatabaseConnection, init_db
+    if args.db_path:
+        DatabaseConnection.DATABASE_FILE = Path(args.db_path).absolute()
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
@@ -338,7 +345,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = '✓'
+    CHECK_MARK = 'Ã¢Å“â€œ'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -4355,9 +4362,10 @@ if __name__ == '__main__':
                 # only want to store PID of original instance
                 lock_file.read()
             create_pid_file(port=State.PORT)
-        tray_process = mp.Process(target=system_tray, name='Music Caster Tray',
-                                  args=(daemon_commands, tray_process_queue), daemon=True)
-        tray_process.start()
+        if not USING_TAURI_FRONTEND:
+            tray_process = mp.Process(target=system_tray, name='Music Caster Tray',
+                                      args=(daemon_commands, tray_process_queue), daemon=True)
+            tray_process.start()
         api_key = settings['api_key']
         print(f'Running on http://127.0.0.1:{State.PORT}/?api_key={api_key}')
         print(f'Running on http://[::1]:{State.PORT}/?api_key={api_key}')
@@ -4414,7 +4422,7 @@ if __name__ == '__main__':
             except RuntimeError:
                 tray_notify(t('ERROR') + ':' + t('Could not populate queue because library scan is disabled'))
         # open window if minimized argument not given
-        if not args.minimized and not settings.get('DEBUG', False):
+        if not USING_TAURI_FRONTEND and not args.minimized and not settings.get('DEBUG', False):
             daemon_commands.put('__ACTIVATED__')
         TIME_TO_START = time.monotonic() - start_time
         app_log.info('--------------------------------')

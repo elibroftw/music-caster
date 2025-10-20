@@ -73,6 +73,8 @@ SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 
 TKDND_ENABLED = False
 
+USING_TAURI_FRONTEND = True
+
 class State:
     """
     attributes in State are modified by music_caster.py

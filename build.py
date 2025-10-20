@@ -19,7 +19,7 @@ from multiprocessing import freeze_support
 if __name__ == '__main__':
     freeze_support()
 
-from src.meta import VERSION
+from src.meta import VERSION, USING_TAURI_FRONTEND
 
 # build constants
 script_dir = Path(__file__).parent
@@ -30,6 +30,7 @@ SETUP_OUTPUT_NAME = 'Music Caster Setup'
 VERSION_FILE = build_files / 'mc_version_info.txt'
 INSTALLER_SCRIPT = build_files / 'setup_script.iss'
 PORTABLE_SPEC = build_files / 'portable.spec'
+DAEMON_SPEC = build_files / 'daemon.spec'
 ONEDIR_SPEC = build_files / 'onedir.spec'
 UPDATER_SPEC_FILE = build_files / 'updater.spec'
 CHANGELOG_FILE = script_dir / 'CHANGELOG.txt'
@@ -458,54 +459,65 @@ if __name__ == '__main__':
         additional_args = '--log=DEBUG' if args.debug else ''
         if args.clean:
             additional_args += ' --clean'
-        # build frontend
-        # check_call('yarn build', cwd=SRC_FRONTEND, shell=True)
-        if platform.system() == 'Windows':
-            s1 = Popen(
-                f'{sys.executable} -O -m PyInstaller -y {additional_args} {PORTABLE_SPEC}',
+
+        if USING_TAURI_FRONTEND:
+            # Only build daemon for Tauri frontend
+            print('Building daemon for Tauri frontend...')
+            check_call(
+                f'{sys.executable} -O -m PyInstaller -y {additional_args} {DAEMON_SPEC}',
                 shell=True,
             )
-        else:
             s1 = None
-        try:
-            # build Updater
-            # install go dependencies
-            check_call('go install github.com/akavel/rsrc@latest')
-            check_call(
-                f'rsrc -manifest "{UPDATER_MANIFEST_FILE}" -ico "{UPDATER_ICO}"'
-            )
-            check_call(
-                f'go build -ldflags "-s -w -H windowsgui" -o "{UPDATER_DIST}"',
-                cwd=SRC_DIR)
-        except Exception as e:
-            if args.upload:
-                raise Exception('failed to build updater') from e
-            print(f'WARNING: {e}')
-        check_call(
-            f'{sys.executable} -O -m PyInstaller -y {additional_args} {ONEDIR_SPEC}',
-            shell=True,
-        )
-        try:
-            if platform.system() == 'Windows':
-                s4 = Popen(f'iscc "{INSTALLER_SCRIPT}"')
-            else:
-                s4 = None
-        except FileNotFoundError:
             s4 = None
-            print(
-                'WARNING: could not create an installer because iscc is not installed or is not on PATH'
+        else:
+            # build frontend
+            # check_call('yarn build', cwd=SRC_FRONTEND, shell=True)
+            if platform.system() == 'Windows':
+                s1 = Popen(
+                    f'{sys.executable} -O -m PyInstaller -y {additional_args} {PORTABLE_SPEC}',
+                    shell=True,
+                )
+            else:
+                s1 = None
+            try:
+                # build Updater
+                # install go dependencies
+                check_call('go install github.com/akavel/rsrc@latest')
+                check_call(
+                    f'rsrc -manifest "{UPDATER_MANIFEST_FILE}" -ico "{UPDATER_ICO}"'
+                )
+                check_call(
+                    f'go build -ldflags "-s -w -H windowsgui" -o "{UPDATER_DIST}"',
+                    cwd=SRC_DIR)
+            except Exception as e:
+                if args.upload:
+                    raise Exception('failed to build updater') from e
+                print(f'WARNING: {e}')
+            check_call(
+                f'{sys.executable} -O -m PyInstaller -y {additional_args} {ONEDIR_SPEC}',
+                shell=True,
             )
+            try:
+                if platform.system() == 'Windows':
+                    s4 = Popen(f'iscc "{INSTALLER_SCRIPT}"')
+                else:
+                    s4 = None
+            except FileNotFoundError:
+                s4 = None
+                print(
+                    'WARNING: could not create an installer because iscc is not installed or is not on PATH'
+                )
 
-        try:
-            portable_failed = s1.wait()
-        except AttributeError:
-            portable_failed = False
-        if args.debug:
-            set_spec_debug(False)
-        if portable_failed:
-            print('Portable installation failed')
-            print(s1.communicate()[1])
-            sys.exit()
+            try:
+                portable_failed = s1.wait()
+            except AttributeError:
+                portable_failed = False
+            if args.debug:
+                set_spec_debug(False)
+            if portable_failed:
+                print('Portable installation failed')
+                print(s1.communicate()[1])
+                sys.exit()
 
         # Portable
         if platform.system() == 'Windows':
@@ -566,7 +578,11 @@ if __name__ == '__main__':
                       'DOES NOT EXIST!')
                 dist_files_exist = False
 
-    if not args.skip_tests and dist_files_exist:
+    daemon_dist = DIST_DIR / 'Music Caster Daemon.exe'
+    if daemon_dist.exists() and USING_TAURI_FRONTEND:
+        shutil.copy2(daemon_dist, DIST_DIR / 'music-caster-daemon-x86_64-pc-windows-msvc.exe')
+
+    if not args.skip_tests and dist_files_exist and not USING_TAURI_FRONTEND:
         try:
             sys.argv = sys.argv[:1]
             pytest_args = ['pytest']

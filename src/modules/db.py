@@ -1,10 +1,10 @@
 import sqlite3
 from pathlib import Path
 
-DATABASE_FILE = Path('music_caster.db').absolute()
-
 
 class DatabaseConnection:
+    DATABASE_FILE = Path('music_caster.db').absolute()
+
     @staticmethod
     def create_connection():
         conn = sqlite3.connect(DATABASE_FILE)
