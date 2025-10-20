@@ -73,7 +73,8 @@ SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 
 TKDND_ENABLED = False
 
-USING_TAURI_FRONTEND = True
+USING_TAURI_FRONTEND = False
+BUNDLE_IDENTIFIER = 'ca.elijahlopez.music-caster'
 
 class State:
     """

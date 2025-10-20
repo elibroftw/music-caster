@@ -1,13 +1,18 @@
 import sqlite3
 from pathlib import Path
-
+import os
+import appdirs
+import sys
+from meta import BUNDLE_IDENTIFIER
 
 class DatabaseConnection:
-    DATABASE_FILE = Path('music_caster.db').absolute()
+    OLD_DATABASE_FILE = Path('music_caster.db').absolute()
+    DEFAULT_DATABASE_FILE = (Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / 'settings.json').absolute()
+    DATABASE_FILE = OLD_DATABASE_FILE
 
     @staticmethod
     def create_connection():
-        conn = sqlite3.connect(DATABASE_FILE)
+        conn = sqlite3.connect(DatabaseConnection.DATABASE_FILE)
         conn.row_factory = sqlite3.Row
         return conn
 

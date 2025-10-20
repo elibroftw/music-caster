@@ -9,6 +9,7 @@ from base64 import b64encode, b64decode
 from utils import custom_art
 import ujson as json
 from utils import get_yt_id
+from meta import BUNDLE_IDENTIFIER
 
 def tbr_audio_key(item):
     return (item.get('tbr', 0) or 0) * (item.get('vcodec', 'none') == 'none')
@@ -208,7 +209,7 @@ class URLMetadata:
 
     @property
     def image_cache_path(self):
-        return Path(appdirs.user_cache_dir()) / 'Music Caster' / 'Cache' / 'Album Covers' / f'{self.hash()}.jpg'
+        return Path(appdirs.user_cache_dir()) / BUNDLE_IDENTIFIER / 'Cache' / 'Album Covers' / f'{self.hash()}.jpg'
 
     @property
     def is_expired(self):

@@ -21,6 +21,7 @@ from meta import (
     TOGGLEABLE_SETTINGS,
     TKDND_ENABLED,
     USING_TAURI_FRONTEND,
+    BUNDLE_IDENTIFIER
 )
 import time
 
@@ -101,6 +102,7 @@ if __name__ == '__main__':
     from urllib.request import pathname2url, urlopen, Request
     from urllib.error import URLError
 
+    import appdirs
     import portalocker
     from portalocker.exceptions import LockException
     import ujson as json
@@ -142,7 +144,15 @@ if __name__ == '__main__':
     IS_FROZEN = getattr(sys, 'frozen', False)
     working_dir = Path(sys.argv[0]).absolute().parent
     os.chdir(working_dir)
-    SETTINGS_FILE = Path(args.settings_path).absolute() if args.settings_path else Path('settings.json').absolute()
+    OLD_SETTINGS_FILE = Path('settings.json').absolute()
+    DEFAULT_SETTINGS_FILE = Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / 'settings.json'
+    SETTINGS_FILE = OLD_SETTINGS_FILE
+    if IS_FROZEN:
+        SETTINGS_FILE = Path(args.settings_path).absolute() if args.settings_path and USING_TAURI_FRONTEND else DEFAULT_SETTINGS_FILE
+        if OLD_SETTINGS_FILE.exists():
+            SETTINGS_FILE.mkdir(parents=True, exist_ok=True)
+            os.rename(OLD_SETTINGS_FILE, SETTINGS_FILE)
+
     PHANTOMJS_DIR = Path('phantomjs')
     # c:\Users\maste\AppData\Local\Programs\Music Caster\settings.json
 
@@ -279,8 +289,14 @@ if __name__ == '__main__':
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
     from modules.db import DatabaseConnection, init_db
-    if args.db_path:
-        DatabaseConnection.DATABASE_FILE = Path(args.db_path).absolute()
+    if IS_FROZEN:
+        DatabaseConnection.DATABASE_FILE = Path(args.db_path).absolute() if args.db_path and USING_TAURI_FRONTEND else DatabaseConnection.DEFAULT_DATABASE_FILE
+        if DatabaseConnection.OLD_DATABASE_FILE.exists():
+            DatabaseConnection.DATABASE_FILE.mkdir(parents=True, exist_ok=True)
+            if DatabaseConnection.DATABASE_FILE.exists():
+                print('not moving database because file already exists')
+            else:
+                os.rename(DatabaseConnection.OLD_DATABASE_FILE, DatabaseConnection.DATABASE_FILE)
 
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
