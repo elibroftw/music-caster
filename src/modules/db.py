@@ -7,7 +7,7 @@ from meta import BUNDLE_IDENTIFIER
 
 class DatabaseConnection:
     OLD_DATABASE_FILE = Path('music_caster.db').absolute()
-    DEFAULT_DATABASE_FILE = (Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / 'settings.json').absolute()
+    DEFAULT_DATABASE_FILE = (Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / 'music_caster.db').absolute()
     DATABASE_FILE = OLD_DATABASE_FILE
 
     @staticmethod
