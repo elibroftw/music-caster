@@ -1,8 +1,6 @@
 import sqlite3
 from pathlib import Path
-import os
 import appdirs
-import sys
 from meta import BUNDLE_IDENTIFIER
 
 class DatabaseConnection:
