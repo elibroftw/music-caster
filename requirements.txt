@@ -22,7 +22,7 @@ pypng~=0.0.20
 # use zip for faster install than git
 https://github.com/elibroftw/pypresence/archive/master.zip
 # https://github.com/qwertyquerty/pypresence/archive/master.zip
-https://github.com/yt-dlp/yt-dlp/archive/master.zip
+yt-dlp[default]
 https://github.com/elibroftw/youtube-comment-downloader/archive/master.zip
 # PySimpleGUI 4.60.5 no longer available on pypi, therefore use FreeSimpleGUI commit hash
 https://github.com/spyoungtech/FreeSimpleGUI/archive/a0634800bca051c824d879d31e14ae3b201e5667.zip
