@@ -25,6 +25,8 @@ from meta import (
 )
 import time
 
+from utils import install_deno
+
 start_time = time.monotonic()
 from contextlib import suppress
 from itertools import islice, chain
@@ -1910,6 +1912,7 @@ if __name__ == '__main__':
                     metadata_list.append(metadata)
         # youtube
         elif (ytid := get_yt_id(url)) is not None or url.startswith(f'{ytsearch}:'):
+            install_deno()
             # lazily get videos in the playlist
             if ytid is not None and ytid.startswith('PL'):
                 videos = scrapetube.get_playlist(ytid)
