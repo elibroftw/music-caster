@@ -1,4 +1,4 @@
-import { Box, Flex, Paper, ScrollArea, Stack, Text } from '@mantine/core';
+import { Box, Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
 import { useContext, useEffect, useRef } from 'react';
 import { PlayerStateContext } from '../common/contexts';
 
@@ -13,6 +13,22 @@ export default function Queue() {
 			scrolledRef.current = true;
 		}
 	}, [playerState]);
+
+	if (playerState?.status === 'NOT_RUNNING') {
+		return (
+			<Box style={{ height: 'calc(100vh - 150px)' }}>
+				<Paper shadow="sm" p="md" style={{ height: '100%', overflow: 'hidden' }}>
+					<ScrollArea style={{ height: '100%' }}>
+						<Stack gap="xs">
+							{[...Array(10)].map((_, index) => (
+								<Skeleton key={index} height={60} />
+							))}
+						</Stack>
+					</ScrollArea>
+				</Paper>
+			</Box>
+		);
+	}
 
 	return (
 		<Box style={{ height: 'calc(100vh - 150px)' }}>

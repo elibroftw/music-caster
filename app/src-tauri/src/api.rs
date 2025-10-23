@@ -10,6 +10,7 @@ pub enum PlaybackStatus {
   NotPlaying,
   Playing,
   Paused,
+	NotRunning
 }
 
 impl PlaybackStatus {
@@ -41,7 +42,7 @@ impl ApiState {
     Self {
       port: RwLock::new(2001),
       player_state: RwLock::new(PlayerState {
-        status: PlaybackStatus::NotPlaying,
+        status: PlaybackStatus::NotRunning,
         volume: 20.0,
         lang: String::from("en"),
         title: String::from("Nothing Playing"),
@@ -423,18 +424,18 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
                 false
               };
 
+							if let Ok(mut is_running) = api_state.is_running.write() {
+								*is_running = true;
+							}
+
+							if let Ok(mut player_state) = api_state.player_state.write() {
+								*player_state = new_state;
+							}
+
               if state_changed {
                 if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
                   log::error!("[Player State Poll] Failed to emit event: {}", e);
                 }
-              }
-
-              if let Ok(mut player_state) = api_state.player_state.write() {
-                *player_state = new_state;
-              }
-
-              if let Ok(mut is_running) = api_state.is_running.write() {
-                *is_running = true;
               }
             }
             Err(e) => {

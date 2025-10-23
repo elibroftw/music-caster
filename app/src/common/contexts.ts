@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-export type PlaybackStatus = 'NOT_PLAYING' | 'PLAYING' | 'PAUSED';
+export type PlaybackStatus = 'NOT_PLAYING' | 'PLAYING' | 'PAUSED' | 'NOT_RUNNING';
 
 export interface PlayerState {
   status: PlaybackStatus;
