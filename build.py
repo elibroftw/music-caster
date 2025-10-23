@@ -550,12 +550,18 @@ if __name__ == '__main__':
               'seconds')
         print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
 
+    daemon_dist = DIST_DIR / 'Music Caster Daemon.exe'
+    dist_files = []
+
     if platform.system() == 'Windows':
-        dist_files = ('Music Caster Setup.exe', 'Portable.zip')
+        if USING_TAURI_FRONTEND:
+            dist_files.append(str(daemon_dist))
+        else:
+            dist_files.extend(('Music Caster Setup.exe', 'Portable.zip'))
     elif platform.system() == 'Darwin':
-        dist_files = ('Music Caster (OSX).zip', )
+        dist_files.append('Music Caster (OSX).zip')
     else:
-        dist_files = ('Music Caster (Linux).zip', )
+        dist_files.append('Music Caster (Linux).zip')
 
     # check if all files were built
     dist_files_exist = True
@@ -578,8 +584,7 @@ if __name__ == '__main__':
                       'DOES NOT EXIST!')
                 dist_files_exist = False
 
-    daemon_dist = DIST_DIR / 'Music Caster Daemon.exe'
-    if daemon_dist.exists() and USING_TAURI_FRONTEND:
+    if USING_TAURI_FRONTEND and platform.system() == 'Windows':
         shutil.copy2(daemon_dist, DIST_DIR / 'music-caster-daemon-x86_64-pc-windows-msvc.exe')
 
     if not args.skip_tests and dist_files_exist and not USING_TAURI_FRONTEND:
