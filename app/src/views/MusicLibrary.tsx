@@ -1,7 +1,8 @@
-import { Box, Button, Group, Menu, Modal, Paper, Radio, ScrollArea, Stack, Table, Text, TextInput } from '@mantine/core';
-import { useState } from 'react';
+import { Box, Button, Group, Menu, Modal, Paper, Radio, ScrollArea, Skeleton, Stack, Table, Text, TextInput } from '@mantine/core';
+import { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import TrackContextMenu from '../components/TrackContextMenu';
+import { PlayerStateContext } from '../common/contexts';
 
 interface Track {
 	artist: string;
@@ -15,6 +16,7 @@ interface Track {
 
 export default function MusicLibrary() {
 	const { t } = useTranslation();
+	const playerState = useContext(PlayerStateContext);
 	const [tracks] = useState<Track[]>([]);
 	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 	const [sortColumn, setSortColumn] = useState<keyof Track>('artist');
@@ -80,6 +82,23 @@ export default function MusicLibrary() {
 	const handleCopyUris = (track: Track) => {
 		console.log('Copy URIs:', track);
 	};
+
+	if (playerState?.status === 'NOT_RUNNING') {
+		return (
+			<Paper shadow="sm" p="md" style={{ height: 'calc(100vh - 150px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+				<ScrollArea style={{ flex: 1 }}>
+					<Stack gap="xs">
+						{[...Array(15)].map((_, index) => (
+							<Skeleton key={index} height={40} />
+						))}
+					</Stack>
+				</ScrollArea>
+				<Box px="md" py="xs" style={{ borderTop: '1px solid #e0e0e0' }}>
+					<Skeleton height={40} />
+				</Box>
+			</Paper>
+		);
+	}
 
 	return (
 		<>

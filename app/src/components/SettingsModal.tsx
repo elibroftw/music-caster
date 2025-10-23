@@ -1,4 +1,6 @@
-import { Button, Checkbox, Group, Modal, Stack, Tabs, TextInput } from '@mantine/core';
+import { Button, Checkbox, Group, Modal, Skeleton, Stack, Tabs, TextInput } from '@mantine/core';
+import { useContext } from 'react';
+import { PlayerStateContext } from '../common/contexts';
 
 interface SettingsModalProps {
 	opened: boolean;
@@ -6,6 +8,8 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
+	const playerState = useContext(PlayerStateContext);
+
 	return (
 		<Modal
 			opened={opened}
@@ -14,6 +18,11 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 			size="xl"
 			centered
 		>
+			{playerState?.status === 'NOT_RUNNING' ? (
+				<Stack gap="md">
+					{[...Array(8)].map((_, i) => <Skeleton key={i} height={40} />)}
+				</Stack>
+			) : (
 			<Tabs defaultValue="general">
 				<Tabs.List>
 					<Tabs.Tab value="general">General</Tabs.Tab>
@@ -79,6 +88,7 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 					</Stack>
 				</Tabs.Panel>
 			</Tabs>
+			)}
 		</Modal>
 	);
 }

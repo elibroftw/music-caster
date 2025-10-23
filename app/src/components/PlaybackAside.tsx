@@ -1,4 +1,4 @@
-import { ActionIcon, Anchor, Box, Button, Group, Modal, Paper, Radio, SimpleGrid, Slider, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Anchor, Box, Button, Group, Modal, Paper, Radio, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { Progress } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useContext, useEffect, useState } from 'react';
@@ -104,6 +104,36 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 			console.error('Failed to toggle repeat:', error);
 		}
 	};
+
+	if (playerState?.status === 'NOT_RUNNING') {
+		return (
+			<Stack h='100%' justify='space-between'>
+				<Group align='flex-start' gap='xs' wrap='nowrap'>
+					<Paper shadow="sm" p="md" style={{ flex: 1, minWidth: '250px' }}>
+						<Stack gap="md">
+							<Skeleton height={250} />
+							<Stack gap="xs" align='center'>
+								<Skeleton height={20} width="60%" />
+								<Skeleton height={20} width="40%" />
+								<Skeleton height={20} width="50%" />
+							</Stack>
+						</Stack>
+					</Paper>
+					<SimpleGrid cols={1} spacing='lg' verticalSpacing='5'>
+						{[...Array(8)].map((_, i) => <Skeleton key={i} height={40} />)}
+					</SimpleGrid>
+				</Group>
+				<Stack gap='md'>
+					<Skeleton height={48} />
+					<Stack gap='xs'>
+						<Skeleton height={30} />
+						<Skeleton height={30} />
+					</Stack>
+					<Skeleton height={50} />
+				</Stack>
+			</Stack>
+		);
+	}
 
 	return (
 		<>
