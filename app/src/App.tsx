@@ -18,6 +18,7 @@ import SimpleBar from 'simplebar-react';
 import 'simplebar-react/dist/simplebar.min.css';
 import classes from './App.module.css';
 import { useCookie, useLocalForage } from './common/utils';
+import { PlayerState, PlayerStateContext } from './common/contexts';
 import LanguageHeaders from './components/LanguageHeaders';
 import PlaybackAside from './components/PlaybackAside';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -45,19 +46,6 @@ export default function () {
 	const { t } = useTranslation();
 	// check if using custom titlebar to adjust other components
 	const { usingCustomTitleBar } = useTauriContext();
-
-	// left sidebar
-	const views: View[] = [
-		{ component: MusicLibrary, path: '/library', name: 'Music Library' },
-		{ component: Queue, path: '/queue', name: 'Queue' },
-		{ component: ExampleView, path: '/example-view', name: t('ExampleView') },
-		{ component: () => <Text>Woo, routing works</Text>, path: '/example-view-2', name: 'Test Routing' },
-		{ component: LazyView, path: '/lazy-view', name: 'Lazy Load' }
-		// Other ways to add views to this array:
-		//     { component: () => <Home prop1={'stuff'} />, path: '/home', name: t('Home') },
-		//     { component: React.memo(About), path: '/about', name: t('About') },
-	];
-
 	const { toggleColorScheme } = useMantineColorScheme();
 	const colorScheme = useComputedColorScheme();
 	useHotkeys([['ctrl+J', toggleColorScheme]]);
@@ -72,6 +60,7 @@ export default function () {
 	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 	const [selectedTrack, setSelectedTrack] = useState<any>(null);
 	const [activeTab, setActiveTab] = useState<string | null>('library');
+	const [playerState, setPlayerState] = useState<PlayerState | null>(null);
 
 	const [scroller, setScroller] = useState<HTMLElement | null>(null);
 	// load preferences using localForage
@@ -159,6 +148,15 @@ export default function () {
 			});
 			return () => { promise.then(unlisten => unlisten()) };
 		}, []);
+
+		// Player state change listener
+		useEffect(() => {
+			const promise = tauriEvent.listen('playerStateChanged', ({ payload }: { payload: PlayerState }) => {
+				tauriLogger.info(`Player state changed`);
+				setPlayerState(payload);
+			});
+			return () => { promise.then(unlisten => unlisten()) };
+		}, []);
 	}
 
 	const FOOTER_KEY = 'footer[0]';
@@ -175,7 +173,7 @@ export default function () {
 		}
 	}, [usingCustomTitleBar, showFooter]);
 
-	return <>
+	return <PlayerStateContext.Provider value={playerState}>
 		<SettingsModal opened={settingsOpened} onClose={closeSettings} />
 
 		{usingCustomTitleBar && <TitleBar />}
@@ -190,15 +188,15 @@ export default function () {
 					<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
 						<Tabs value={activeTab} onChange={setActiveTab} >
 							<Tabs.List>
-								<Tabs.Tab value="library">Music Library</Tabs.Tab>
 								<Tabs.Tab value="queue">Queue</Tabs.Tab>
+								<Tabs.Tab value="library">Music Library</Tabs.Tab>
 								<Tabs.Tab value="dev">Developer</Tabs.Tab>
 							</Tabs.List>
-							<Tabs.Panel value="library" pt="md">
-								<MusicLibrary />
-							</Tabs.Panel>
 							<Tabs.Panel value="queue" pt="md">
 								<Queue />
+							</Tabs.Panel>
+							<Tabs.Panel value="library" pt="md">
+								<MusicLibrary />
 							</Tabs.Panel>
 							<Tabs.Panel value="dev" pt="md">
 								<Developer />
@@ -223,6 +221,5 @@ export default function () {
 					</Button>
 				</AppShell.Footer>}
 		</AppShell>
-
-	</>;
+	</PlayerStateContext.Provider>;
 }

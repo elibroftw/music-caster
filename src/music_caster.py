@@ -1107,6 +1107,12 @@ if __name__ == '__main__':
             return redirect('https://github.com/elibroftw/music-caster/releases/latest')
 
 
+    @app.route('/album-art/')
+    def api_get_album_art():
+        img_data = get_current_art()
+        return send_file(io.BytesIO(b64decode(img_data)), download_name='album_art.png',
+                        mimetype='image/png', as_attachment=False, max_age=0)
+
     @app.route('/status/')
     @app.route('/state/')
     def api_state():
@@ -1119,6 +1125,7 @@ if __name__ == '__main__':
         if USING_TAURI_FRONTEND:
             now_playing["queue"] = get_queue_for_frontend()
             now_playing["file_name"] = music_queue[0] if music_queue else None
+            now_playing["queue_position"] = len(done_queue)
         return jsonify(now_playing)
 
 

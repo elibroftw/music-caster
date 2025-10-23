@@ -1,62 +1,48 @@
-import { Box, Paper, ScrollArea, Table, Text } from '@mantine/core';
-import { useState } from 'react';
-
-interface QueueTrack {
-	artist: string;
-	album: string;
-	title: string;
-	track: string;
-	length: string;
-	bpm: string;
-	bitrate: string;
-}
+import { Box, Flex, Paper, ScrollArea, Stack, Text } from '@mantine/core';
+import { useContext, useEffect, useRef } from 'react';
+import { PlayerStateContext } from '../common/contexts';
 
 export default function Queue() {
-	const [queueTracks] = useState<QueueTrack[]>([]);
-	const [selectedTrack, setSelectedTrack] = useState<QueueTrack | null>(null);
+	const playerState = useContext(PlayerStateContext);
+	const scrolledRef = useRef(false);
+	const currentTrackRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!scrolledRef.current && currentTrackRef.current && playerState) {
+			currentTrackRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			scrolledRef.current = true;
+		}
+	}, [playerState]);
 
 	return (
 		<Box style={{ height: 'calc(100vh - 150px)' }}>
 			<Paper shadow="sm" p="md" style={{ height: '100%', overflow: 'hidden' }}>
 				<ScrollArea style={{ height: '100%' }}>
-					<Table highlightOnHover>
-						<Table.Thead>
-							<Table.Tr>
-								<Table.Th>ARTIST</Table.Th>
-								<Table.Th>ALBUM</Table.Th>
-								<Table.Th>TITLE</Table.Th>
-								<Table.Th>TRACK</Table.Th>
-								<Table.Th>LENGTH</Table.Th>
-								<Table.Th>BPM</Table.Th>
-								<Table.Th>BITRATE</Table.Th>
-							</Table.Tr>
-						</Table.Thead>
-						<Table.Tbody>
-							{queueTracks.length === 0 ? (
-								<Table.Tr>
-									<Table.Td colSpan={7}>
-										<Text ta="center" c="dimmed">Queue is empty</Text>
-									</Table.Td>
-								</Table.Tr>
-							) : (
-								queueTracks.map((track, index) => (
-									<Table.Tr
-										key={index}
-										onClick={() => setSelectedTrack(track)}
-										style={{ cursor: 'pointer' }}
-									>
-										<Table.Td>{track.artist}</Table.Td>
-										<Table.Td>{track.album}</Table.Td>
-										<Table.Td>{track.title}</Table.Td>
-										<Table.Td>{track.track}</Table.Td>
-										<Table.Td>{track.length}</Table.Td>
-										<Table.Td>{track.bpm}</Table.Td>
-										<Table.Td>{track.bitrate}</Table.Td>
-									</Table.Tr>
-								))
-							)}
-						</Table.Tbody>
-					</Table>
+					{!playerState || playerState.queue.length === 0 ? (
+						<Text ta="center" c="dimmed" mt="xl">Queue is empty</Text>
+					) : (
+						<Stack gap="xs">
+							{playerState.queue.map((track, index) => (
+								<Paper
+									key={index}
+									ref={index === playerState.queue_position ? currentTrackRef : null}
+									p="sm"
+									withBorder
+									style={{
+										cursor: 'pointer',
+										backgroundColor: index === playerState.queue_position ? 'var(--mantine-color-blue-light)' : undefined
+									}}
+								>
+									<Flex gap="md" align="center">
+										<Text size="sm" c="dimmed" style={{ minWidth: '2em', textAlign: 'right' }}>
+											{index - playerState.queue_position + 1}
+										</Text>
+										<Text size="sm" fw={500}>{track}</Text>
+									</Flex>
+								</Paper>
+							))}
+						</Stack>
+					)}
 				</ScrollArea>
 			</Paper>
 		</Box>
