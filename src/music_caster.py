@@ -40,15 +40,23 @@ from shared import is_already_running
 
 
 def create_pid_file(port=None):
-    with open(PID_FILENAME, 'w', encoding='utf-8') as f:
+    pid_filename = Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / PID_FILENAME
+    pid_filename.parent.mkdir(parents=True, exist_ok=True)
+    if not USING_TAURI_FRONTEND:
+        pid_filename = PID_FILENAME
+    with open(pid_filename, 'w', encoding='utf-8') as f:
         f.write(str(os.getpid()))
         if port is not None:
             f.write(f'\n{port}')
 
 
 def parse_pid_file():
+    pid_filename = Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / PID_FILENAME
+    pid_filename.parent.mkdir(parents=True, exist_ok=True)
+    if not USING_TAURI_FRONTEND:
+        pid_filename = PID_FILENAME
     with suppress(FileNotFoundError):
-        with open(PID_FILENAME, encoding='utf-8') as f:
+        with open(pid_filename, encoding='utf-8') as f:
             pid = int(f.readline().strip())
             try:
                 port = int(f.readline().strip())
@@ -361,7 +369,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = 'Ã¢Å“â€œ'
+    CHECK_MARK = 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -1065,7 +1073,22 @@ if __name__ == '__main__':
                        'album': str(_metadata['album']), 'gui_open': not gui_window.is_closed(),
                        'track_position': get_track_position(), 'track_length': track_end - track_start,
                        'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
+        if USING_TAURI_FRONTEND:
+            now_playing["queue"] = get_queue_for_frontend()
+            now_playing["file_name"] = music_queue[0] if music_queue else None
         return jsonify(now_playing)
+
+
+    def get_queue_for_frontend() -> list[str]:
+        try:
+            tracks = []
+            for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
+                for uri in items:
+                    formatted_track = format_uri(uri, _for='queue')
+                    tracks.append(formatted_track)
+            return tracks
+        except RuntimeError:
+            return get_queue_for_frontend()
 
 
     @app.route('/play/', methods=['GET', 'POST'])
