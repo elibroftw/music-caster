@@ -1,9 +1,11 @@
 import { ActionIcon, Anchor, Box, Button, Group, Modal, Paper, Radio, SimpleGrid, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { Progress } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbArrowsShuffle, TbVolume, TbSettings, TbPlus, TbList, TbDevices, TbFile, TbCopy, TbPlayerTrackNext, TbChevronUp, TbX, TbChevronDown, TbWorld, TbInfoCircle, TbBrandGithub, TbClock } from 'react-icons/tb';
+import { PlayerStateContext } from '../common/contexts';
+import MusicCasterAPI from '../common/commands';
 
 interface Track {
 	artist: string;
@@ -32,11 +34,76 @@ function formatTime(seconds: number): string {
 }
 
 export default function PlaybackAside({ onOpenSettings, selectedTrack }: PlaybackAsideProps) {
+	const playerState = useContext(PlayerStateContext);
 	const [qrCodeOpened, { open: openQrCode, close: closeQrCode }] = useDisclosure(false);
 	const [infoOpened, { open: openInfo, close: closeInfo }] = useDisclosure(false);
 	const [timerOpened, { open: openTimer, close: closeTimer }] = useDisclosure(false);
 	const [timerAction, setTimerAction] = useState('stop');
 	const [timerInput, setTimerInput] = useState('');
+	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
+
+	const api = new MusicCasterAPI();
+
+	useEffect(() => {
+		const fetchAlbumArt = async () => {
+			try {
+				const url = await api.getAlbumArtUrl();
+				setAlbumArtUrl(`${url}?t=${Date.now()}`);
+			} catch (error) {
+				setAlbumArtUrl(null);
+			}
+		};
+
+		if (playerState?.file_name) {
+			fetchAlbumArt();
+		} else {
+			setAlbumArtUrl(null);
+		}
+	}, [playerState?.file_name]);
+
+	const handlePlayPause = async () => {
+		try {
+			if (playerState?.status === 'PLAYING') {
+				await api.pause();
+			} else {
+				await api.play();
+			}
+		} catch (error) {
+			console.error('Failed to toggle play/pause:', error);
+		}
+	};
+
+	const handlePrev = async () => {
+		try {
+			await api.prev();
+		} catch (error) {
+			console.error('Failed to go to previous track:', error);
+		}
+	};
+
+	const handleNext = async () => {
+		try {
+			await api.next();
+		} catch (error) {
+			console.error('Failed to go to next track:', error);
+		}
+	};
+
+	const handleToggleShuffle = async () => {
+		try {
+			await api.toggleShuffle();
+		} catch (error) {
+			console.error('Failed to toggle shuffle:', error);
+		}
+	};
+
+	const handleToggleRepeat = async () => {
+		try {
+			await api.toggleRepeat();
+		} catch (error) {
+			console.error('Failed to toggle repeat:', error);
+		}
+	};
 
 	return (
 		<>
@@ -132,21 +199,31 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 									display: 'flex',
 									alignItems: 'center',
 									justifyContent: 'center',
-									borderRadius: '4px'
+									borderRadius: '4px',
+									overflow: 'hidden'
 								}}
 							>
-								<IoMusicalNotes size={64} color="#6c757d" />
+								{albumArtUrl ? (
+									<img
+										src={albumArtUrl}
+										alt="Album Art"
+										style={{
+											width: '100%',
+											height: '100%',
+											objectFit: 'cover'
+										}}
+									/>
+								) : (
+									<IoMusicalNotes size={64} color="#6c757d" />
+								)}
 							</Box>
 
-							<Stack gap="xs">
-								<Text size="sm" fw={500}>ARTIST</Text>
-								<Text size="sm" c="dimmed">{selectedTrack?.artist || ''}</Text>
-
-								<Text size="sm" fw={500}>ALBUM</Text>
-								<Text size="sm" c="dimmed">{selectedTrack?.album || ''}</Text>
-
-								<Text size="sm" fw={500}>TRACK</Text>
-								<Text size="sm" c="dimmed">{selectedTrack?.track || ''}</Text>
+							<Stack gap="xs" align='center'>
+								<Text size="sm" fw={500}>{playerState?.title || 'Nothing Playing'}</Text>
+								<Text size="sm" fw={500}>{playerState?.artist || ''}</Text>
+								<Text size="sm" fw={500}>
+									{playerState?.album === playerState?.title ? 'Single' : (playerState?.album || '')}
+								</Text>
 							</Stack>
 						</Stack>
 					</Paper>
@@ -169,17 +246,21 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 
 				<Stack gap='md'>
 					<Group justify='center' gap='xs'>
-						<ActionIcon size='sm' variant='default'><TbArrowsShuffle size={16} /></ActionIcon>
-						<ActionIcon size={36} variant='default' radius='xl'>
+						<ActionIcon size='sm' variant='default' onClick={handleToggleShuffle}><TbArrowsShuffle size={16} /></ActionIcon>
+						<ActionIcon size={36} variant='default' radius='xl' onClick={handlePrev}>
 							<TbPlayerSkipBackFilled size={20} />
 						</ActionIcon>
-						<ActionIcon size={48} variant='filled' radius='xl'>
-							<TbPlayerPlayFilled size={24} />
+						<ActionIcon size={48} variant='filled' radius='xl' onClick={handlePlayPause}>
+							{playerState?.status === 'PLAYING' ? (
+								<TbPlayerPauseFilled size={24} />
+							) : (
+								<TbPlayerPlayFilled size={24} />
+							)}
 						</ActionIcon>
-						<ActionIcon size={36} variant='default' radius='xl'>
+						<ActionIcon size={36} variant='default' radius='xl' onClick={handleNext}>
 							<TbPlayerSkipForwardFilled size={20} />
 						</ActionIcon>
-						<ActionIcon size='sm' variant='default'><TbRepeat size={16} /></ActionIcon>
+						<ActionIcon size='sm' variant='default' onClick={handleToggleRepeat}><TbRepeat size={16} /></ActionIcon>
 					</Group>
 
 					<Stack gap='xs'>
@@ -191,7 +272,14 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 						</Group>
 						<Group>
 							<ActionIcon size='sm' variant='default'><TbVolume size={16} /></ActionIcon>
-							<Box style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px' }} />
+							<Box style={{ flex: 1 }}>
+								<Slider
+									min={0}
+									max={100}
+									value={playerState?.volume}
+									step={1}
+								/>
+							</Box>
 						</Group>
 					</Stack>
 
@@ -199,10 +287,16 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 						<Text size='xs' fw={500} mb={4}>NOW PLAYING</Text>
 						<Stack gap={4}>
 							<Group justify='space-between'>
-								<Text size='xs'>3:30</Text>
-								<Text size='xs' title={selectedTrack?.length}>-1:45</Text>
+								<Text size='xs'>{formatTime(Math.floor(playerState?.track_position || 0))}</Text>
+								<Text size='xs'>-{formatTime(Math.floor((playerState?.track_length || 0) - (playerState?.track_position || 0)))}</Text>
 							</Group>
-							<Slider min={0} max={315} step={1} label={formatTime} />
+							<Slider
+								min={0}
+								max={Math.floor(playerState?.track_length || 0)}
+								value={Math.floor(playerState?.track_position || 0)}
+								step={1}
+								label={formatTime}
+							/>
 						</Stack>
 					</Box>
 				</Stack>

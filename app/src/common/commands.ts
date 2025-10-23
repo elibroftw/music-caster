@@ -122,6 +122,10 @@ class MusicCasterAPI {
 			apiKey: this.apiKey || null
 		}) as any;
 	}
+
+	async getAlbumArtUrl(): Promise<string> {
+		return invoke<string>('api_get_album_art_url');
+	}
 }
 
 export default MusicCasterAPI;

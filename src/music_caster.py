@@ -369,7 +369,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“'
+    CHECK_MARK = 'ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -1064,6 +1064,12 @@ if __name__ == '__main__':
             return redirect('https://github.com/elibroftw/music-caster/releases/latest')
 
 
+    @app.route('/album-art/')
+    def api_get_album_art():
+        img_data = get_current_art()
+        return send_file(io.BytesIO(b64decode(img_data)), download_name='album_art.png',
+                        mimetype='image/png', as_attachment=False, max_age=0)
+
     @app.route('/status/')
     @app.route('/state/')
     def api_state():
@@ -1076,6 +1082,7 @@ if __name__ == '__main__':
         if USING_TAURI_FRONTEND:
             now_playing["queue"] = get_queue_for_frontend()
             now_playing["file_name"] = music_queue[0] if music_queue else None
+            now_playing["queue_position"] = len(done_queue)
         return jsonify(now_playing)
 
 
