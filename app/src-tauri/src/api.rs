@@ -429,7 +429,7 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
 							}
 
 							if let Ok(mut player_state) = api_state.player_state.write() {
-								*player_state = new_state;
+								*player_state = new_state.clone();
 							}
 
               if state_changed {
