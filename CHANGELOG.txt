@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.25.1
+- [Fix] Settings save/load ?
+
 5.25.0
 - [Fix] Forwards compatibility for v6
 - [Fix] Maintenance (Python 3.14)

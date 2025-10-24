@@ -361,7 +361,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = 'Ã¢Å“â€œ'
+    CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -461,6 +461,9 @@ if __name__ == '__main__':
                 # this atomic operation ensures that a settings.file will exist if the system crashes before/after the system call
                 os.replace(tmp_file.name, SETTINGS_FILE)
                 settings_last_modified = os.path.getmtime(SETTINGS_FILE)
+            except Exception as e:
+                handle_exception(e)
+                tray_notify(t('ERROR') + f': {e}')
             except OSError as e:
                 if e.errno == errno.ENOSPC:
                     tray_notify(t('ERROR') + ': ' + t('No space left on device to save settings'))
@@ -862,8 +865,16 @@ if __name__ == '__main__':
         _save_settings = False
         with settings_file_lock:
             try:
-                with open(SETTINGS_FILE, encoding='utf-8') as json_file:
-                    loaded_settings = json.load(json_file)
+                attempt = 0
+                while True:
+                    try:
+                        with open(SETTINGS_FILE, encoding='utf-8') as json_file:
+                            loaded_settings = json.load(json_file)
+                            break
+                    except PermissionError:
+                        attempt += 1
+                        if attempt == 10:
+                            raise
             except (FileNotFoundError, ValueError):
                 # if file does not exist
                 _save_settings = True
