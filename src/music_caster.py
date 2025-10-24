@@ -403,7 +403,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = 'âœ“'
+    CHECK_MARK = '✓'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
