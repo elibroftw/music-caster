@@ -5,23 +5,24 @@
 )]
 
 use serde::Serialize;
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{self, Emitter, Manager};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
 use tauri_plugin_store;
 use tauri_plugin_window_state;
 
 mod api;
 mod db;
+mod sidecar_utils;
 mod tray_icon;
 mod utils;
 
 use api::{ApiState, *};
-use std::fs;
-use std::path::PathBuf;
-use tray_icon::{create_tray_icon, tray_update_lang, TrayState};
+use tray_icon::{TrayState, create_tray_icon, tray_update_lang};
 use utils::long_running_thread;
+
+use crate::sidecar_utils::{MusicCasterDaemon, SidecarProcess};
 
 fn read_port_from_pid_file(pid_file: PathBuf) -> u16 {
   if let Ok(content) = fs::read_to_string(&pid_file) {
@@ -66,36 +67,15 @@ fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String
   std::fs::create_dir_all(&app_data_dir)
     .map_err(|e| format!("Failed to create app data directory: {}", e))?;
 
-  let db_path = app_data_dir.join("music_caster.db").display().to_string();
-  let settings_path = app_data_dir.join("settings.json").display().to_string();
   let pid_file = app_data_dir.join("music_caster.pid");
 
   if pid_file.exists() {
     let _ = fs::remove_file(&pid_file);
   }
 
-  log::info!("settings path: {}", &settings_path);
-  log::info!("db_path: {}", &db_path);
+  let process = SidecarProcess::<MusicCasterDaemon>::new(&app_handle)?;
 
-  let app_args: Vec<String> = std::env::args().skip(1).collect();
-
-  let mut sidecar_args = vec![
-    "--db-path".to_string(),
-    db_path,
-    "--settings-path".to_string(),
-    settings_path,
-  ];
-  sidecar_args.extend(app_args);
-
-  let sidecar_command = app_handle
-    .shell()
-    .sidecar("music-caster-daemon")
-    .map_err(|e| format!("Failed to create sidecar command: {}", e))?
-    .args(sidecar_args);
-
-  let (mut sidecar_rx, child) = sidecar_command
-    .spawn()
-    .map_err(|e| format!("Failed to spawn Music Caster: {}", e))?;
+  app_handle.manage(process);
 
   let app_handle_clone = app_handle.clone();
   let pid_file_clone = pid_file.clone();
@@ -110,29 +90,6 @@ fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String
           log::info!("[Music Caster] Updated port to: {}", port);
         }
         break;
-      }
-    }
-  });
-
-  tauri::async_runtime::spawn(async move {
-    while let Some(event) = sidecar_rx.recv().await {
-      match event {
-        CommandEvent::Stdout(line_bytes) => {
-          let line = String::from_utf8_lossy(&line_bytes);
-          log::info!("[Music Caster] {}", line);
-        }
-        CommandEvent::Stderr(line_bytes) => {
-          let line = String::from_utf8_lossy(&line_bytes);
-          log::error!("[Music Caster Error] {}", line);
-        }
-        CommandEvent::Error(err) => {
-          log::error!("[Music Caster] Error: {}", err);
-        }
-        CommandEvent::Terminated(payload) => {
-          log::info!("[Music Caster] Terminated with code: {:?}", payload.code);
-          break;
-        }
-        _ => {}
       }
     }
   });
@@ -243,7 +200,7 @@ pub fn run() {
       )));
 
       // Start music caster daemon automatically after database is initialized
-      let app_handle = app.handle().clone();
+      let app_handle: tauri::AppHandle = app.handle().clone();
       if let Err(e) = start_music_caster_daemon(&app_handle) {
         log::error!("Failed to start Music Caster daemon: {}", e);
       }
@@ -273,12 +230,16 @@ pub fn run() {
 
       Ok(())
     })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application")
+    .run(|_app_handle, event| match event {
+      tauri::RunEvent::ExitRequested { api, .. } => {
+        let mc_child_state = _app_handle.state::<Mutex<SidecarProcess<MusicCasterDaemon>>>();
+        let _ = mc_child_state.inner().lock().unwrap().kill();
+      }
+      _ => {}
+    });
 }
 
 // useful crates
 // https://crates.io/crates/directories for getting common directories
-
-// TODO: optimize permissions
-// TODO: decorations false and use custom title bar
