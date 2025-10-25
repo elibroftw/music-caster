@@ -28,7 +28,7 @@ from pathlib import Path
 from queue import Empty, LifoQueue
 from random import getrandbits
 from subprocess import DEVNULL, PIPE, CalledProcessError, Popen, check_output
-from threading import Thread
+from threading import Lock, Thread
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import getnode
 from zipfile import ZipFile
@@ -1513,6 +1513,20 @@ def cmd_exists(cmd):
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
     return subprocess.call(f'type {cmd}', shell=True,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+
+
+_deno_install_lock = Lock()
+
+
+def install_deno():
+    if not _deno_install_lock.acquire(blocking=False):
+        return
+    if subprocess.call(['deno', '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+        print('Installing Deno...')
+        if platform.system() == 'Windows':
+            subprocess.call('irm https://deno.land/install.ps1 | iex', shell=True)
+        else:
+            subprocess.call('curl -fsSL https://deno.land/install.sh | sh -s -- -y', shell=True)
 
 
 def install_phantomjs(install_directory):
