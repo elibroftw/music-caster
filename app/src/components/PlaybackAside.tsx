@@ -47,8 +47,8 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 	useEffect(() => {
 		const fetchAlbumArt = async () => {
 			try {
-				const url = await api.getAlbumArtUrl();
-				setAlbumArtUrl(`${url}?t=${Date.now()}`);
+				const dataSrc = await api.getAlbumArtUrl();
+				setAlbumArtUrl(dataSrc);
 			} catch (error) {
 				setAlbumArtUrl(null);
 			}
