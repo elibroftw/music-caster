@@ -4,6 +4,8 @@ use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{self, Emitter, Manager, Runtime, command};
 
+use crate::api::{PlaybackStatus, PlayerState};
+
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
   message: String,
@@ -24,9 +26,7 @@ pub enum TrayState {
   Playing,
 }
 
-// TODO: tray internationalization https://docs.rs/rust-i18n/latest/rust_i18n/
 // ENTER rust_i18n::set_locale(lang) IF LOCAL=lang DOES NOT COMPILE
-// https://v2.tauri.app/start/migrate/from-tauri-1/#migrate-to-menu-module
 pub fn create_tray_menu<R: Runtime>(
   app: &tauri::AppHandle<R>,
   _lang: String,
@@ -34,7 +34,7 @@ pub fn create_tray_menu<R: Runtime>(
   let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
 
   let text = match tray_state {
-    TrayState::Playing => "Resume",
+    TrayState::Playing => "Pause",
     TrayState::Paused => "Resume",
     TrayState::NotPlaying => "Play",
   };
@@ -101,7 +101,7 @@ pub fn create_tray_menu<R: Runtime>(
     .build()
 }
 
-static TRAY_ID: &'static str = "main";
+pub static TRAY_ID: &'static str = "main";
 
 pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error> {
   TrayIconBuilder::with_id(TRAY_ID)
@@ -111,7 +111,7 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
         .expect("SystemTray1.icon not found"),
     )
     // TODO: update this
-    .tooltip("Not PLaying")
+    .tooltip("Loading Daemon")
     .menu(&create_tray_menu(app, "en".into())?)
     .show_menu_on_left_click(false)
     .on_menu_event(move |app, event| {
@@ -138,29 +138,6 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
       match event.id().as_ref() {
         "quit" => {
           std::process::exit(0);
-        }
-        "toggle-tray-icon" => {
-          let tray_state_mutex = app.state::<Mutex<TrayState>>();
-          let mut tray_state = tray_state_mutex.lock().unwrap();
-          match *tray_state {
-            TrayState::NotPlaying => {
-              tray_icon
-                .set_icon(
-                  tauri::image::Image::from_bytes(include_bytes!("../icons/SystemTray2.ico")).ok(),
-                )
-                .unwrap();
-              *tray_state = TrayState::Playing;
-            }
-            TrayState::Playing => {
-              tray_icon
-                .set_icon(
-                  tauri::image::Image::from_bytes(include_bytes!("../icons/SystemTray1.ico")).ok(),
-                )
-                .unwrap();
-              *tray_state = TrayState::NotPlaying;
-            }
-            TrayState::Paused => {}
-          };
         }
         "toggle-visibility" => {
           if let Some(main_window) = app.get_webview_window("main") {
@@ -212,5 +189,48 @@ pub fn tray_update_lang(app: tauri::AppHandle, lang: String) {
   let tray_handle = app.tray_by_id(TRAY_ID);
   if let Some(t) = tray_handle {
     t.set_menu(create_tray_menu(&app, lang).ok());
+  }
+}
+
+pub fn tray_update(app: tauri::AppHandle, player_state: &PlayerState) {
+  let tray_state_mutex = app.state::<Mutex<TrayState>>();
+  let mut tray_state = tray_state_mutex.lock().unwrap();
+  let tray_icon: TrayIcon = app.tray_by_id(TRAY_ID).unwrap();
+
+	let icon_empty = include_bytes!("../icons/SystemTray1.ico");
+	let icon_full = include_bytes!("../icons/SystemTray2.ico");
+
+  match &player_state.status {
+    PlaybackStatus::Playing => {
+      tray_icon
+        .set_icon(tauri::image::Image::from_bytes(icon_full).ok())
+        .unwrap();
+      let mut tooltip = String::from("Playing");
+      if player_state.artist != "" && player_state.title != "" {
+        tooltip = format!("{} - {}", player_state.artist, player_state.title);
+      }
+
+      let _ = tray_icon.set_tooltip(Some(tooltip));
+      *tray_state = TrayState::Playing;
+    }
+    PlaybackStatus::Paused => {
+      tray_icon
+        .set_icon(tauri::image::Image::from_bytes(icon_empty).ok())
+        .unwrap();
+      let mut tooltip = String::from("Paused");
+      if player_state.artist != "" && player_state.title != "" {
+        tooltip = format!("{} - {}", player_state.artist, player_state.title);
+      }
+      let _ = tray_icon.set_tooltip(Some(tooltip));
+      *tray_state = TrayState::Paused;
+    }
+    PlaybackStatus::NotPlaying => {
+      tray_icon
+        .set_icon(tauri::image::Image::from_bytes(icon_empty).ok())
+        .unwrap();
+			let _ = tray_icon.set_tooltip(Some(String::from("Not Playing")));
+      *tray_state = TrayState::NotPlaying;
+    }
+    PlaybackStatus::NotRunning => {}
   }
 }
