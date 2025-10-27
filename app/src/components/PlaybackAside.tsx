@@ -4,7 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { useContext, useEffect, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbArrowsShuffle, TbVolume, TbSettings, TbPlus, TbList, TbDevices, TbFile, TbCopy, TbPlayerTrackNext, TbChevronUp, TbX, TbChevronDown, TbWorld, TbInfoCircle, TbBrandGithub, TbClock } from 'react-icons/tb';
-import { PlayerStateContext } from '../common/contexts';
+import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import MusicCasterAPI from '../common/commands';
 
 interface Track {
@@ -35,6 +35,8 @@ function formatTime(seconds: number): string {
 
 export default function PlaybackAside({ onOpenSettings, selectedTrack }: PlaybackAsideProps) {
 	const playerState = useContext(PlayerStateContext);
+	const api = useContext(MusicCasterAPIContext)!;
+
 	const [qrCodeOpened, { open: openQrCode, close: closeQrCode }] = useDisclosure(false);
 	const [infoOpened, { open: openInfo, close: closeInfo }] = useDisclosure(false);
 	const [timerOpened, { open: openTimer, close: closeTimer }] = useDisclosure(false);
@@ -42,7 +44,6 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 	const [timerInput, setTimerInput] = useState('');
 	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
 
-	const api = new MusicCasterAPI();
 
 	useEffect(() => {
 		const fetchAlbumArt = async () => {

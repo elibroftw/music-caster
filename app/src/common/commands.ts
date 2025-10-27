@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 
-interface PlayerState {
-	status: string;
+export type PlaybackStatus = 'NOT_PLAYING' | 'PLAYING' | 'PAUSED' | 'NOT_RUNNING';
+export interface PlayerState {
+	status: PlaybackStatus;
 	volume: number;
 	lang: string;
 	title: string;
@@ -11,6 +12,9 @@ interface PlayerState {
 	track_position: number;
 	track_length: number;
 	queue_length: number;
+	queue: string[];
+	queue_position: number;
+	file_name: string;
 }
 
 interface ActionResponse {

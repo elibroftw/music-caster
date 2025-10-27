@@ -18,7 +18,7 @@ import SimpleBar from 'simplebar-react';
 import 'simplebar-react/dist/simplebar.min.css';
 import classes from './App.module.css';
 import { useCookie, useLocalForage } from './common/utils';
-import { PlayerState, PlayerStateContext } from './common/contexts';
+import { MusicCasterAPIContext, PlayerStateContext } from './common/contexts';
 import LanguageHeaders from './components/LanguageHeaders';
 import PlaybackAside from './components/PlaybackAside';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -31,6 +31,7 @@ import FallbackAppRender from './views/FallbackErrorBoundary';
 import FallbackSuspense from './views/FallbackSuspense';
 import MusicLibrary from './views/MusicLibrary';
 import Queue from './views/Queue';
+import MusicCasterAPI, { PlayerState } from './common/commands';
 // if some views are large, you can use lazy loading to reduce the initial app load time
 const LazyView = lazy(() => import('./views/LazyView'));
 
@@ -44,6 +45,7 @@ interface View {
 
 export default function () {
 	const { t } = useTranslation();
+	const api = new MusicCasterAPI();
 	// check if using custom titlebar to adjust other components
 	const { usingCustomTitleBar } = useTauriContext();
 	const { toggleColorScheme } = useMantineColorScheme();
@@ -149,8 +151,13 @@ export default function () {
 			return () => { promise.then(unlisten => unlisten()) };
 		}, []);
 
+
+
 		// Player state change listener
 		useEffect(() => {
+
+			api.getState().then(s => setPlayerState(s));
+
 			const promise = tauriEvent.listen('playerStateChanged', ({ payload }: { payload: PlayerState }) => {
 				tauriLogger.info(`Player state changed`);
 				setPlayerState(payload);
@@ -173,53 +180,57 @@ export default function () {
 		}
 	}, [usingCustomTitleBar, showFooter]);
 
-	return <PlayerStateContext.Provider value={playerState}>
-		<SettingsModal opened={settingsOpened} onClose={closeSettings} />
+	return (
+		<PlayerStateContext.Provider value={playerState}>
+			<MusicCasterAPIContext.Provider value={api}>
+				<SettingsModal opened={settingsOpened} onClose={closeSettings} />
 
-		{usingCustomTitleBar && <TitleBar />}
-		<AppShell padding='md'
-			header={{ height: 0 }}
-			footer={showFooter ? { height: 60 } : undefined}
-			aside={{ width: 350, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
-			className={classes.appShell}>
-			<AppShell.Main>
-				{usingCustomTitleBar && <Space h='xl' />}
-				<SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}>
-					<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
-						<Tabs value={activeTab} onChange={setActiveTab} >
-							<Tabs.List>
-								<Tabs.Tab value="queue">Queue</Tabs.Tab>
-								<Tabs.Tab value="library">Music Library</Tabs.Tab>
-								<Tabs.Tab value="dev">Developer</Tabs.Tab>
-							</Tabs.List>
-							<Tabs.Panel value="queue" pt="md">
-								<Queue />
-							</Tabs.Panel>
-							<Tabs.Panel value="library" pt="md">
-								<MusicLibrary />
-							</Tabs.Panel>
-							<Tabs.Panel value="dev" pt="md">
-								<Developer />
-							</Tabs.Panel>
-						</Tabs>
-					</ErrorBoundary>
-					{/* prevent the footer from covering bottom text of a route view */}
-					<Space h={showFooter ? 70 : 50} />
-					<ScrollToTop scroller={scroller} bottom={showFooter ? 70 : 20} />
-				</SimpleBar>
-			</AppShell.Main>
+				{usingCustomTitleBar && <TitleBar />}
+				<AppShell padding='md'
+					header={{ height: 0 }}
+					footer={showFooter ? { height: 60 } : undefined}
+					aside={{ width: 350, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
+					className={classes.appShell}>
+					<AppShell.Main>
+						{usingCustomTitleBar && <Space h='xl' />}
+						<SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}>
+							<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
+								<Tabs value={activeTab} onChange={setActiveTab} >
+									<Tabs.List>
+										<Tabs.Tab value="queue">Queue</Tabs.Tab>
+										<Tabs.Tab value="library">Music Library</Tabs.Tab>
+										<Tabs.Tab value="dev">Developer</Tabs.Tab>
+									</Tabs.List>
+									<Tabs.Panel value="queue" pt="md">
+										<Queue />
+									</Tabs.Panel>
+									<Tabs.Panel value="library" pt="md">
+										<MusicLibrary />
+									</Tabs.Panel>
+									<Tabs.Panel value="dev" pt="md">
+										<Developer />
+									</Tabs.Panel>
+								</Tabs>
+							</ErrorBoundary>
+							{/* prevent the footer from covering bottom text of a route view */}
+							<Space h={showFooter ? 70 : 50} />
+							<ScrollToTop scroller={scroller} bottom={showFooter ? 70 : 20} />
+						</SimpleBar>
+					</AppShell.Main>
 
-			<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-				<PlaybackAside onOpenSettings={openSettings} selectedTrack={selectedTrack} />
-			</AppShell.Aside>
+					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
+						<PlaybackAside onOpenSettings={openSettings} selectedTrack={selectedTrack} />
+					</AppShell.Aside>
 
-			{showFooter &&
-				<AppShell.Footer ref={footerRef} p='md' className={classes.footer}>
-					{footerText}
-					<Button variant='subtle' size='xs' onClick={() => setFootersSeen(prev => ({ ...prev, [FOOTER_KEY]: '' }))}>
-						<ImCross />
-					</Button>
-				</AppShell.Footer>}
-		</AppShell>
-	</PlayerStateContext.Provider>;
+					{showFooter &&
+						<AppShell.Footer ref={footerRef} p='md' className={classes.footer}>
+							{footerText}
+							<Button variant='subtle' size='xs' onClick={() => setFootersSeen(prev => ({ ...prev, [FOOTER_KEY]: '' }))}>
+								<ImCross />
+							</Button>
+						</AppShell.Footer>}
+				</AppShell>
+			</MusicCasterAPIContext.Provider>
+		</PlayerStateContext.Provider>
+	);
 }
