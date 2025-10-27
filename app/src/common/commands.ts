@@ -133,4 +133,4 @@ class MusicCasterAPI {
 }
 
 export default MusicCasterAPI;
-export type { PlayerState, ActionResponse, PlayUrisOptions };
+export type { ActionResponse, PlayUrisOptions };
