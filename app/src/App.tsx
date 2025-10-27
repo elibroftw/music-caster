@@ -1,4 +1,4 @@
-import { ActionIcon, AppShell, Burger, Button, Group, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
+import { AppShell, Button, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
@@ -7,31 +7,25 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
 import * as tauriUpdater from '@tauri-apps/plugin-updater';
-import { JSX, lazy, LazyExoticComponent, Suspense, useEffect, useRef, useState } from 'react';
+import { JSX, lazy, LazyExoticComponent, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
-import { BsMoonStarsFill } from 'react-icons/bs';
 import { ImCross } from 'react-icons/im';
-import { IoSunnySharp } from 'react-icons/io5';
-import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import SimpleBar from 'simplebar-react';
 import 'simplebar-react/dist/simplebar.min.css';
 import classes from './App.module.css';
-import { useCookie, useLocalForage } from './common/utils';
+import MusicCasterAPI, { PlayerState } from './common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from './common/contexts';
-import LanguageHeaders from './components/LanguageHeaders';
+import { useLocalForage } from './common/utils';
 import PlaybackAside from './components/PlaybackAside';
 import { ScrollToTop } from './components/ScrollToTop';
 import SettingsModal from './components/SettingsModal';
 import { useTauriContext } from './tauri/TauriProvider';
 import { TitleBar } from './tauri/TitleBar';
 import Developer from './views/Developer';
-import ExampleView from './views/ExampleView';
 import FallbackAppRender from './views/FallbackErrorBoundary';
-import FallbackSuspense from './views/FallbackSuspense';
 import MusicLibrary from './views/MusicLibrary';
 import Queue from './views/Queue';
-import MusicCasterAPI, { PlayerState } from './common/commands';
 // if some views are large, you can use lazy loading to reduce the initial app load time
 const LazyView = lazy(() => import('./views/LazyView'));
 
@@ -45,24 +39,16 @@ interface View {
 
 export default function () {
 	const { t } = useTranslation();
-	const api = new MusicCasterAPI();
 	// check if using custom titlebar to adjust other components
 	const { usingCustomTitleBar } = useTauriContext();
 	const { toggleColorScheme } = useMantineColorScheme();
 	const colorScheme = useComputedColorScheme();
 	useHotkeys([['ctrl+J', toggleColorScheme]]);
 
-	// opened is for mobile nav
-	const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
-
-	const [desktopNavOpenedCookie, setDesktopNavOpenedCookie] = useCookie('desktop-nav-opened', 'true');
-	const desktopNavOpened = desktopNavOpenedCookie === 'true';
-	const toggleDesktopNav = () => setDesktopNavOpenedCookie(o => o === 'true' ? 'false' : 'true');
-
 	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
-	const [selectedTrack, setSelectedTrack] = useState<any>(null);
-	const [activeTab, setActiveTab] = useState<string | null>('library');
+	const [activeTab, setActiveTab] = useState<string | null>('queue');
 	const [playerState, setPlayerState] = useState<PlayerState | null>(null);
+	const api = new MusicCasterAPI();
 
 	const [scroller, setScroller] = useState<HTMLElement | null>(null);
 	// load preferences using localForage
@@ -189,7 +175,7 @@ export default function () {
 				<AppShell padding='md'
 					header={{ height: 0 }}
 					footer={showFooter ? { height: 60 } : undefined}
-					aside={{ width: 350, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
+					aside={{ width: 320, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
@@ -197,17 +183,17 @@ export default function () {
 							<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
 								<Tabs value={activeTab} onChange={setActiveTab} >
 									<Tabs.List>
-										<Tabs.Tab value="queue">Queue</Tabs.Tab>
-										<Tabs.Tab value="library">Music Library</Tabs.Tab>
-										<Tabs.Tab value="dev">Developer</Tabs.Tab>
+										<Tabs.Tab value='queue'>Queue</Tabs.Tab>
+										<Tabs.Tab value='library'>Music Library</Tabs.Tab>
+										<Tabs.Tab value='dev'>Developer</Tabs.Tab>
 									</Tabs.List>
-									<Tabs.Panel value="queue" pt="md">
+									<Tabs.Panel value='queue' pt='md'>
 										<Queue />
 									</Tabs.Panel>
-									<Tabs.Panel value="library" pt="md">
+									<Tabs.Panel value='library' pt='md'>
 										<MusicLibrary />
 									</Tabs.Panel>
-									<Tabs.Panel value="dev" pt="md">
+									<Tabs.Panel value='dev' pt='md'>
 										<Developer />
 									</Tabs.Panel>
 								</Tabs>
@@ -219,7 +205,7 @@ export default function () {
 					</AppShell.Main>
 
 					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-						<PlaybackAside onOpenSettings={openSettings} selectedTrack={selectedTrack} />
+						<PlaybackAside onOpenSettings={openSettings} />
 					</AppShell.Aside>
 
 					{showFooter &&

@@ -1,11 +1,9 @@
-import { ActionIcon, Anchor, Box, Button, Group, Modal, Paper, Radio, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
-import { Progress } from '@mantine/core';
+import { ActionIcon, Anchor, Box, Button, Group, Image, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useContext, useEffect, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbArrowsShuffle, TbVolume, TbSettings, TbPlus, TbList, TbDevices, TbFile, TbCopy, TbPlayerTrackNext, TbChevronUp, TbX, TbChevronDown, TbWorld, TbInfoCircle, TbBrandGithub, TbClock } from 'react-icons/tb';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbInfoCircle, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import MusicCasterAPI from '../common/commands';
 
 interface Track {
 	artist: string;
@@ -19,7 +17,6 @@ interface Track {
 
 interface PlaybackAsideProps {
 	onOpenSettings: () => void;
-	selectedTrack?: Track | null;
 }
 
 function formatTime(seconds: number): string {
@@ -33,8 +30,9 @@ function formatTime(seconds: number): string {
 	return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-export default function PlaybackAside({ onOpenSettings, selectedTrack }: PlaybackAsideProps) {
+export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 	const playerState = useContext(PlayerStateContext);
+	const daemonLoading = playerState === null || playerState.status === 'NOT_RUNNING';
 	const api = useContext(MusicCasterAPIContext)!;
 
 	const [qrCodeOpened, { open: openQrCode, close: closeQrCode }] = useDisclosure(false);
@@ -106,46 +104,16 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 		}
 	};
 
-	if (playerState?.status === 'NOT_RUNNING') {
-		return (
-			<Stack h='100%' justify='space-between'>
-				<Group align='flex-start' gap='xs' wrap='nowrap'>
-					<Paper shadow="sm" p="md" style={{ flex: 1, minWidth: '250px' }}>
-						<Stack gap="md">
-							<Skeleton height={250} />
-							<Stack gap="xs" align='center'>
-								<Skeleton height={20} width="60%" />
-								<Skeleton height={20} width="40%" />
-								<Skeleton height={20} width="50%" />
-							</Stack>
-						</Stack>
-					</Paper>
-					<SimpleGrid cols={1} spacing='lg' verticalSpacing='5'>
-						{[...Array(8)].map((_, i) => <Skeleton key={i} height={40} />)}
-					</SimpleGrid>
-				</Group>
-				<Stack gap='md'>
-					<Skeleton height={48} />
-					<Stack gap='xs'>
-						<Skeleton height={30} />
-						<Skeleton height={30} />
-					</Stack>
-					<Skeleton height={50} />
-				</Stack>
-			</Stack>
-		);
-	}
-
 	return (
 		<>
 			<Modal
 				opened={qrCodeOpened}
 				onClose={closeQrCode}
-				title="Remote Access"
+				title='Remote Access'
 				centered
 			>
-				<Stack align="center" gap="md">
-					<Text size="sm">Scan this QR code to access Music Caster remotely</Text>
+				<Stack align='center' gap='md'>
+					<Text size='sm'>Scan this QR code to access Music Caster remotely</Text>
 					<Box
 						style={{
 							width: '200px',
@@ -157,33 +125,33 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 							justifyContent: 'center'
 						}}
 					>
-						<Text c="dimmed">QR Code</Text>
+						<Text c='dimmed'>QR Code</Text>
 					</Box>
-					<Text size="xs" c="dimmed">http://192.168.1.100:8080</Text>
+					<Text size='xs' c='dimmed'>http://192.168.1.100:8080</Text>
 				</Stack>
 			</Modal>
 
 			<Modal
 				opened={infoOpened}
 				onClose={closeInfo}
-				title="About"
+				title='About'
 				centered
 			>
-				<Stack align="center" gap="md">
-					<Text size="lg" fw={500}>Music Caster</Text>
-					<Text size="sm" c="dimmed">Version 1.0.0</Text>
-					<Text size="sm">
-						Developed by Elijah Lopez <Anchor href="mailto:elijahlopez@proton.me">{"elijahlopez@proton.me"}</Anchor>
+				<Stack align='center' gap='md'>
+					<Text size='lg' fw={500}>Music Caster</Text>
+					<Text size='sm' c='dimmed'>Version 1.0.0</Text>
+					<Text size='sm'>
+						Developed by Elijah Lopez <Anchor href='mailto:elijahlopez@proton.me'>{'elijahlopez@proton.me'}</Anchor>
 					</Text>
-					<Anchor href="https://github.com/elibroftw" target="_blank" rel="noopener noreferrer">
-						<Group gap="xs">
+					<Anchor href='https://github.com/elibroftw' target='_blank' rel='noopener noreferrer'>
+						<Group gap='xs'>
 							<TbBrandGithub size={20} />
-							<Text size="sm">Source Code</Text>
+							<Text size='sm'>Source Code</Text>
 						</Group>
 					</Anchor>
-					<Text size="sm" ta="center">
+					<Text size='sm' ta='center'>
 						You can support me by following me on{' '}
-						<Anchor href="https://x.com/elibroftw" target="_blank" rel="noopener noreferrer">
+						<Anchor href='https://x.com/elibroftw' target='_blank' rel='noopener noreferrer'>
 							Twitter
 						</Anchor>
 					</Text>
@@ -193,35 +161,35 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 			<Modal
 				opened={timerOpened}
 				onClose={closeTimer}
-				title="Sleep Timer"
+				title='Sleep Timer'
 				centered
 			>
-				<Stack gap="md">
+				<Stack gap='md'>
 					<Radio.Group value={timerAction} onChange={setTimerAction}>
-						<Stack gap="xs">
-							<Radio value="shutdown" label="Shut down when timer runs out" />
-							<Radio value="sleep" label="Sleep when timer runs out" />
-							<Radio value="hibernate" label="Hibernate when timer runs out" />
-							<Radio value="stop" label="Only stop playback" />
+						<Stack gap='xs'>
+							<Radio value='shutdown' label='Shut down when timer runs out' />
+							<Radio value='sleep' label='Sleep when timer runs out' />
+							<Radio value='hibernate' label='Hibernate when timer runs out' />
+							<Radio value='stop' label='Only stop playback' />
 						</Stack>
 					</Radio.Group>
 					<Group>
 						<TextInput
-							placeholder="Enter minutes or HH:MM"
+							placeholder='Enter minutes or HH:MM'
 							value={timerInput}
 							onChange={(e) => setTimerInput(e.currentTarget.value)}
 							style={{ flex: 1 }}
 						/>
-						<Button color="red">Submit</Button>
+						<Button color='red'>Submit</Button>
 					</Group>
-					<Text size="sm" c="dimmed">No Timer Set</Text>
+					<Text size='sm' c='dimmed'>No Timer Set</Text>
 				</Stack>
 			</Modal>
 
 			<Stack h='100%' justify='space-between'>
 				<Group align='flex-start' gap='xs' wrap='nowrap'>
-					<Paper shadow="sm" p="md" style={{ flex: 1, minWidth: '250px' }}>
-						<Stack gap="md">
+					<Paper p='md' style={{ flex: 1, minWidth: '250px' }}>
+						<Stack gap='md'>
 							<Box
 								style={{
 									width: '100%',
@@ -235,9 +203,9 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 								}}
 							>
 								{albumArtUrl ? (
-									<img
+									<Image
 										src={albumArtUrl}
-										alt="Album Art"
+										alt='Album Art'
 										style={{
 											width: '100%',
 											height: '100%',
@@ -245,28 +213,37 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 										}}
 									/>
 								) : (
-									<IoMusicalNotes size={64} color="#6c757d" />
+									<IoMusicalNotes size={64} color='#6c757d' />
 								)}
 							</Box>
 
-							<Stack gap="xs" align='center'>
-								<Text size="sm" fw={500}>{playerState?.title || 'Nothing Playing'}</Text>
-								<Text size="sm" fw={500}>{playerState?.artist || ''}</Text>
-								<Text size="sm" fw={500}>
-									{playerState?.album === playerState?.title ? 'Single' : (playerState?.album || '')}
-								</Text>
+							<Stack gap='xs' align='center'>
+								{
+									daemonLoading ?
+										<>
+											<Skeleton height={20} width='50%' />
+											<Skeleton height={20} width='45%' />
+											<Skeleton height={20} width='55%' />
+										</> : <>
+											<Text size='sm' fw={500}>{playerState.title || 'Nothing Playing'}</Text>
+											<Text size='sm' fw={500}>{playerState.artist || ''}</Text>
+											<Text size='sm' fw={500}>
+												{playerState.album === playerState.title ? 'Single' : (playerState.album || '')}
+											</Text>
+										</>
+								}
 							</Stack>
 						</Stack>
 					</Paper>
 
 					<SimpleGrid cols={1} spacing='lg' verticalSpacing='5'>
-						<ActionIcon size='lg' variant='filled' onClick={onOpenSettings}><TbSettings size={20} /></ActionIcon>
+						<ActionIcon disabled={daemonLoading} size='lg' variant='filled' onClick={onOpenSettings}><TbSettings size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' onClick={openInfo}><TbInfoCircle size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' onClick={openTimer}><TbClock size={20} /></ActionIcon>
-						<ActionIcon size='lg' variant='default'><TbPlus size={20} /></ActionIcon>
-						<ActionIcon size='lg' variant='default'><TbFile size={20} /></ActionIcon>
-						<ActionIcon size='lg' variant='default'><TbCopy size={20} /></ActionIcon>
-						<ActionIcon size='lg' variant='default'>Play Next</ActionIcon>
+						{/* <ActionIcon size='lg' variant='default'><TbPlus size={20} /></ActionIcon> */}
+						{/* <ActionIcon size='lg' variant='default'><TbFile size={20} /></ActionIcon> */}
+						{/* <ActionIcon size='lg' variant='default'>Play Next</ActionIcon> */}
+						{/* <ActionIcon size='lg' variant='default'><TbCopy size={20} /></ActionIcon> */}
 						{/* <ActionIcon size='lg' variant='default'><TbList size={20} /></ActionIcon> */}
 						{/* <ActionIcon size='lg' variant='default'><TbChevronUp size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default'><TbX size={20} /></ActionIcon>
@@ -295,12 +272,6 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 					</Group>
 
 					<Stack gap='xs'>
-						<Group justify='space-between'>
-							<Text size='sm' fw={500}>DEVICE</Text>
-							<select style={{ flex: 1, marginLeft: '8px', padding: '4px' }}>
-								<option>LIVING ROOM HUB</option>
-							</select>
-						</Group>
 						<Group>
 							<ActionIcon size='sm' variant='default'><TbVolume size={16} /></ActionIcon>
 							<Box style={{ flex: 1 }}>
@@ -315,11 +286,19 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 					</Stack>
 
 					<Box>
-						<Text size='xs' fw={500} mb={4}>NOW PLAYING</Text>
 						<Stack gap={4}>
 							<Group justify='space-between'>
-								<Text size='xs'>{formatTime(Math.floor(playerState?.track_position || 0))}</Text>
-								<Text size='xs'>-{formatTime(Math.floor((playerState?.track_length || 0) - (playerState?.track_position || 0)))}</Text>
+								{
+									daemonLoading || false ?
+										<>
+											<Skeleton height={17} width={35} />
+											<Skeleton height={17} width={35} />
+										</> :
+										<>
+											<Text size='xs'>{formatTime(Math.floor(playerState.track_position || 0))}</Text>
+											<Text size='xs'>-{formatTime(Math.floor((playerState.track_length || 0) - (playerState.track_position || 0)))}</Text>
+										</>
+								}
 							</Group>
 							<Slider
 								min={0}
@@ -330,6 +309,16 @@ export default function PlaybackAside({ onOpenSettings, selectedTrack }: Playbac
 							/>
 						</Stack>
 					</Box>
+
+					<Group justify='space-between'>
+						<Text size='sm' fw={500}>Device</Text>
+						{
+							daemonLoading ?
+								<Skeleton style={{ flex: 1 }} height={36} /> :
+								<Select value='LOCAL DEVICE' style={{ flex: 1 }} data={['LOCAL DEVICE']}></Select>
+						}
+
+					</Group>
 				</Stack>
 			</Stack>
 		</>

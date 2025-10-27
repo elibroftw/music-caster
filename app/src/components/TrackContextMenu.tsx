@@ -86,7 +86,7 @@ export default function TrackContextMenu({
 					<Menu.Item
 						leftSection={<TbX size={16} />}
 						onClick={() => onRemove(track)}
-						color="red"
+						color='red'
 					>
 						Remove
 					</Menu.Item>
