@@ -4,6 +4,8 @@ use std::sync::RwLock;
 use tauri::{Emitter, Manager, State};
 use tauri_plugin_http::reqwest;
 
+use crate::tray_icon::tray_update;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PlaybackStatus {
@@ -443,6 +445,8 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
             } else {
               false
             };
+
+            tray_update(app_handle.clone(), &new_state);
 
             if let Ok(mut is_running) = api_state.is_running.write() {
               *is_running = true;
