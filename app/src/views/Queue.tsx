@@ -5,28 +5,25 @@ import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 export default function Queue() {
 	const playerState = useContext(PlayerStateContext);
 	const api = useContext(MusicCasterAPIContext)!;
-	const scrolledRef = useRef(false);
 	const currentTrackRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!scrolledRef.current && currentTrackRef.current && playerState) {
-			currentTrackRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			scrolledRef.current = true;
-		}
+		// TODO: scroll down till the playing track is at the 'top' of the queue
+		// adapt from https://stackoverflow.com/a/45411081/7732434
 	}, [playerState]);
 
-	if (playerState?.status === 'NOT_RUNNING') {
+	if (playerState === null || playerState?.status === 'NOT_RUNNING') {
 		return (
-			<Box style={{ height: 'calc(100vh - 150px)' }}>
-				<Paper shadow="sm" p="md" style={{ height: '100%', overflow: 'hidden' }}>
-					<ScrollArea style={{ height: '100%' }}>
-						<Stack gap="xs">
+			<Box style={{ height: 'calc(100vh - 140px)' }}>
+				<ScrollArea style={{ height: '100%' }}>
+					<Paper shadow='sm' p='md' style={{ height: '100%', overflow: 'hidden' }}>
+						<Stack gap='xs'>
 							{[...Array(10)].map((_, index) => (
-								<Skeleton key={index} height={60} />
+								<Skeleton key={index} height={40} />
 							))}
 						</Stack>
-					</ScrollArea>
-				</Paper>
+					</Paper>
+				</ScrollArea>
 			</Box>
 		);
 	}
@@ -41,18 +38,18 @@ export default function Queue() {
 	}
 
 	return (
-		<Box style={{ height: 'calc(100vh - 150px)' }}>
-			<Paper shadow="sm" p="md" style={{ height: '100%', overflow: 'hidden' }}>
-				<ScrollArea style={{ height: '100%' }}>
+		<Box style={{ height: 'calc(100vh - 140px)' }}>
+			<ScrollArea style={{ height: '100%' }}>
+				<Paper shadow='sm' p='md' style={{ height: '100%', overflow: 'hidden' }}>
 					{!playerState || playerState.queue.length === 0 ? (
-						<Text ta="center" c="dimmed" mt="xl">Queue is empty</Text>
+						<Text ta='center' c='dimmed' mt='xl'>Queue is empty</Text>
 					) : (
-						<Stack gap="xs">
+						<Stack gap='xs'>
 							{playerState.queue.map((track, index) => (
 								<Paper
 									key={index}
 									ref={index === playerState.queue_position ? currentTrackRef : null}
-									p="sm"
+									p='sm'
 									withBorder
 									style={{
 										cursor: 'pointer',
@@ -60,18 +57,18 @@ export default function Queue() {
 									}}
 									onClick={() => onTrackClick(index - playerState.queue_position)}
 								>
-									<Flex gap="md" align="center">
-										<Text size="sm" c="dimmed" style={{ minWidth: '2em', textAlign: 'right' }}>
+									<Flex gap='md' align='center'>
+										<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right' }}>
 											{index - playerState.queue_position}
 										</Text>
-										<Text size="sm" fw={500}>{track}</Text>
+										<Text size='sm' fw={500}>{track}</Text>
 									</Flex>
 								</Paper>
 							))}
 						</Stack>
 					)}
-				</ScrollArea>
-			</Paper>
+				</Paper>
+			</ScrollArea>
 		</Box>
 	);
 }
