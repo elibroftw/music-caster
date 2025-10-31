@@ -4,6 +4,7 @@ import { useContext, useEffect, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { TbArrowsShuffle, TbBrandGithub, TbClock, TbInfoCircle, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
+import { formatTime } from '../common/utils';
 
 interface Track {
 	artist: string;
@@ -17,17 +18,6 @@ interface Track {
 
 interface PlaybackAsideProps {
 	onOpenSettings: () => void;
-}
-
-function formatTime(seconds: number): string {
-	const hours = Math.floor(seconds / 3600);
-	const minutes = Math.floor((seconds % 3600) / 60);
-	const secs = seconds % 60;
-
-	if (hours > 0) {
-		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-	}
-	return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {

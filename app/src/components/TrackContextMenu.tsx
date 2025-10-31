@@ -1,29 +1,18 @@
 import { Menu } from '@mantine/core';
-import { TbPlayerTrackNext, TbPlus, TbX, TbCopy, TbFile, TbEdit, TbClipboard } from 'react-icons/tb';
-
-interface Track {
-	artist: string;
-	album: string;
-	title: string;
-	track: string;
-	length: string;
-	bpm: string;
-	bitrate: string;
-}
+import { Track } from 'common/commands';
+import { TbClipboard, TbCopy, TbEdit, TbFile, TbPlayerPlay, TbPlayerTrackNext, TbPlus, TbX } from 'react-icons/tb';
 
 interface TrackContextMenuProps {
-	track: Track;
-	onEditMetadata: (track: Track) => void;
-	onPlayNext?: (track: Track) => void;
-	onAddToQueue?: (track: Track) => void;
-	onRemove?: (track: Track) => void;
-	onShowFile?: (track: Track) => void;
-	onDuplicate?: (track: Track) => void;
-	onCopyUris?: (track: Track) => void;
+	onEditMetadata: () => void;
+	onPlayNext?: () => void;
+	onAddToQueue?: () => void;
+	onRemove?: () => void;
+	onShowFile?: () => void;
+	onDuplicate?: () => void;
+	onCopyUris?: () => void;
 }
 
 export default function TrackContextMenu({
-	track,
 	onEditMetadata,
 	onPlayNext,
 	onAddToQueue,
@@ -34,10 +23,15 @@ export default function TrackContextMenu({
 }: TrackContextMenuProps) {
 	return (
 		<Menu.Dropdown>
+			<Menu.Item
+				leftSection={<TbPlayerPlay size={16} />}
+			>
+				Play
+			</Menu.Item>
 			{onPlayNext && (
 				<Menu.Item
 					leftSection={<TbPlayerTrackNext size={16} />}
-					onClick={() => onPlayNext(track)}
+					onClick={() => onPlayNext()}
 				>
 					Play Next
 				</Menu.Item>
@@ -45,21 +39,21 @@ export default function TrackContextMenu({
 			{onAddToQueue && (
 				<Menu.Item
 					leftSection={<TbPlus size={16} />}
-					onClick={() => onAddToQueue(track)}
+					onClick={() => onAddToQueue()}
 				>
 					Add to Queue
 				</Menu.Item>
 			)}
 			<Menu.Item
 				leftSection={<TbEdit size={16} />}
-				onClick={() => onEditMetadata(track)}
+				onClick={() => onEditMetadata()}
 			>
 				Edit Metadata
 			</Menu.Item>
 			{onShowFile && (
 				<Menu.Item
 					leftSection={<TbFile size={16} />}
-					onClick={() => onShowFile(track)}
+					onClick={() => onShowFile()}
 				>
 					Show File Location
 				</Menu.Item>
@@ -67,7 +61,7 @@ export default function TrackContextMenu({
 			{onCopyUris && (
 				<Menu.Item
 					leftSection={<TbClipboard size={16} />}
-					onClick={() => onCopyUris(track)}
+					onClick={() => onCopyUris()}
 				>
 					Copy URIs
 				</Menu.Item>
@@ -75,7 +69,7 @@ export default function TrackContextMenu({
 			{onDuplicate && (
 				<Menu.Item
 					leftSection={<TbCopy size={16} />}
-					onClick={() => onDuplicate(track)}
+					onClick={() => onDuplicate()}
 				>
 					Duplicate
 				</Menu.Item>
@@ -85,7 +79,7 @@ export default function TrackContextMenu({
 					<Menu.Divider />
 					<Menu.Item
 						leftSection={<TbX size={16} />}
-						onClick={() => onRemove(track)}
+						onClick={() => onRemove()}
 						color='red'
 					>
 						Remove
