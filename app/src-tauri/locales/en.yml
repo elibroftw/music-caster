@@ -1,0 +1,197 @@
+add folder: Add folder
+Add Music Caster to folder context menu: Add Music Caster to folder context menu
+Add files: Add files
+Add URL: Add URL
+An error occurred, restarting now: An error occurred, restarting now
+An Internal Server Error occurred: An Internal Server Error occurred
+Audio Selection: Audio Selection
+Auto update: Auto update
+By: By
+Cancel: Cancel
+Cancel Timer: Cancel Timer
+Clear the queue: Clear the queue
+Controls: Controls
+Could not connect to cast device: Could not connect to cast device
+Could not find an output device to record: Could not find an output device to record
+couldNotPlayURL: couldNotPlayURL
+Could not populate queue because library scan is disabled: Could not populate queue because library scan is disabled
+Could not set timer: Could not set timer
+Discord presence: Discord presence
+downloadingUpdate: downloadingUpdate
+Enter minutes or HH:MM: Enter minutes or HH:MM
+Enter Time: Enter Time
+Enter URL: Enter URL
+ERROR: ERROR
+Exit: Exit
+Folder context menu: Folder context menu
+Folder does not contain audio files: Folder does not contain audio files
+Folders: Folders
+General: General
+Hibernate when timer runs out: Hibernate when timer runs out
+Hibernate Computer: Hibernate Computer
+INFO: INFO
+invalidTimerInput: Invalid Input (enter minutes or HH:MM)
+invalidURL: Invalid URL. URL's need to start with http:// or https://
+Invalid audio file selected: Invalid audio file selected
+Invalid audio file %{FILE}: Invalid audio file %{FILE}
+Keep mini mode on top: Keep mini mode on top
+Launch mini mode: Launch mini mode
+Left-side music controls: Left-side music controls
+Library: Library
+Library indexing incomplete, only scanned files have been added: Library indexing incomplete, only scanned files have been added
+Listening: Listening
+System Audio: System Audio
+Local device: Local device
+locate selected: locate selected
+Lost connection to %{DEVICE}, switching to local device: Lost connection to %{DEVICE}, switching to local device
+Mini mode on top: Mini mode on top
+More: More
+move down: move down
+Move to next up: Move to next up
+Move track content to the left: Move track content to the left
+move up: move up
+Music Caster is running in the tray.: Music Caster is running in the tray.
+mute: mute
+New: New
+next track: next track
+No space left on device to auto-update: No space left on device to auto-update
+No space left on device to save settings: No space left on device to save settings
+No Timer Set: No Timer Set
+Not connected to a cast device: Not connected to a cast device
+Not logged into deezer.com: Not logged into deezer.com
+Nothing Playing: Nothing Playing
+Notifications: Notifications
+Only Stop Playback: Only Stop Playback
+Open: Open
+Pause: Pause
+Persistent queue: Persistent queue
+Play: Play
+Play All: Play All
+Play Files: Play Files
+Play Files Next: Play Files Next
+Play Immediately: Play Immediately
+Play Next: Play Next
+Play URL: Play URL
+Play URL Next: Play URL Next
+Playing: Playing
+Playlist name: Playlist name
+Playlists: Playlists
+Playlists Tab: Playlists Tab
+Populate queue on startup: Populate queue on startup
+Populates queue from folders on startup: Populates queue from folders on startup
+previous track: previous track
+Queue: Queue
+queue all: queue all
+Queue Files: Queue Files
+Queue URL: Queue URL
+Refresh Devices: Refresh Devices
+Remember last folder: Remember last folder
+remove selected folder: remove selected folder
+remove: remove
+Repeat: Repeat
+Repeat All: Repeat All
+Repeat Off: Repeat Off
+Repeat One: Repeat One
+Repeat Options: Repeat Options
+Rescan Library: Rescan Library
+Rescanning library: Rescanning library
+Resume: Resume
+Reverse play next behaviour: Reverse play next behaviour
+Reversed play next: Reversed play next
+Run on startup: Run on startup
+Save queue between sessions: Save queue between sessions
+Save to playlist: Save to playlist
+Save window positions: Save window positions
+Scan folders: Scan folders
+scroll mousewheel: scroll mousewheel
+Search for music...: Search for music...
+Select Device: Select Device
+Select Folder: Select Folder
+Select Folders: Select Folders
+Select Files: Select Files
+Select File: Select File
+Select Audio Files: Select Audio Files
+Send me an email: Send me an email
+set DEBUG = true in `settings.json` to enable this page: set DEBUG = true in `settings.json` to enable this page
+Set Timer: Set Timer
+Set: Set
+Settings: Settings
+Show album art: Show album art
+Show album art in GUI: Show album art in GUI
+Show index in queue: Show index in queue
+Show track number: Show track number
+Show track number in queue: Show track number in queue
+shuffle: shuffle
+Shut down when timer runs out: Shut down when timer runs out
+Shut Down Computer: Shut Down Computer
+Sleep when timer runs out: Sleep when timer runs out
+Sleep Computer: Sleep Computer
+Stop: Stop
+Submit: Submit
+Thanks for installing Music Caster.: Thanks for installing Music Caster.
+Timer: Timer
+Timer cancelled: Timer cancelled
+Timer set for %{TIME}: Timer set for %{TIME}
+Type in artist/tracks: Type in artist/tracks
+UI: UI
+unmute: unmute
+updateAvail: updateAvail
+URL: URL
+Use cover.* for album art: Use cover.* for album art
+Use cover.* for art instead of file's album art: Use cover.* for art instead of file's album art
+cover.* image overrides file cover: cover.* image overrides file cover
+Vertical GUI: Vertical GUI
+View Audio Files Source Links: View Audio Files Source Links
+Open Web GUI: Open Web GUI
+new playlist: new playlist
+export playlist: export playlist
+delete playlist: delete playlist
+play playlist: play playlist
+queue playlist: queue playlist
+Unknown Title: Unknown Title
+Unknown Artist: Unknown Artist
+Unknown Album: Unknown Album
+Always queue library: Always queue library
+Play with Music Caster: Play with Music Caster
+Queue in Music Caster: Queue in Music Caster
+Play next in Music Caster: Play next in Music Caster
+Queueing: Queueing
+Smart queue: Smart queue
+add to next up: add to next up
+Metadata: Metadata
+Saving metadata: Saving metadata
+Metadata saved: Metadata saved
+Save: Save
+Title: Title
+Artist: Artist
+Album: Album
+Track Number: Track Number
+Explicit: Explicit
+Select artwork: Select artwork
+Search artwork: Search artwork
+Remove artwork: Remove artwork
+Artwork found: Artwork found
+No artwork found: No artwork found
+Searching for artwork...: Searching for artwork...
+Loading URL(s): Loading URL(s)
+Added URL(s): Added URL(s)
+language: language
+play selected: play selected
+queue selected: queue selected
+add selected to next up: add selected to next up
+system_audio_delay: System Audio Delay
+seconds: seconds
+locate_track: locate track
+switching_to_local_device: Switching to local device
+track_format: Track Format
+urlAudioFetchFailed: urlAudioFetchFailed
+Exit app on GUI close: Exit app on GUI close
+On battery resolution: On battery resolution
+Plugged in resolution: Plugged in resolution
+Could not set resolution: Could not set resolution
+copy URIs: copy URIs
+edit metadata: edit metadata
+Experimental features: Experimental features
+Playlist saved: Playlist saved
+Install Update: Install Update
+Downloaded %{VER}. Relaunching...: Downloaded %{VER}. Relaunching...
