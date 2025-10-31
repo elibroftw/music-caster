@@ -181,7 +181,7 @@ export default function () {
 						{usingCustomTitleBar && <Space h='xl' />}
 						<SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}>
 							<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
-								<Tabs value={activeTab} onChange={setActiveTab} >
+								<Tabs value={activeTab} onChange={setActiveTab}>
 									<Tabs.List>
 										<Tabs.Tab value='queue'>Queue</Tabs.Tab>
 										<Tabs.Tab value='library'>Music Library</Tabs.Tab>

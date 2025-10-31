@@ -1,24 +1,25 @@
 import { Box, Button, Group, Menu, Modal, Paper, Radio, ScrollArea, Skeleton, Stack, Table, Text, TextInput } from '@mantine/core';
-import { useContext, useState } from 'react';
+import { useWindowEvent } from '@mantine/hooks';
+import Database from '@tauri-apps/plugin-sql';
+import { Track } from 'common/commands';
+import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlayerStateContext } from '../common/contexts';
+import { formatTime } from '../common/utils';
 import TrackContextMenu from '../components/TrackContextMenu';
 
-interface Track {
-	artist: string;
-	album: string;
-	title: string;
-	track: string;
-	length: string;
-	bpm: string;
-	bitrate: string;
-}
+interface MenuOpen {
+	track: Track;
+	x: number;
+	y: number;
+};
 
 export default function MusicLibrary() {
 	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
-	const [tracks] = useState<Track[]>([]);
-	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+	const [menuOpen, setMenuOpen] = useState<MenuOpen | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [tracks, setTracks] = useState<Track[]>([]);
 	const [sortColumn, setSortColumn] = useState<keyof Track>('artist');
 	const [streamUrl, setStreamUrl] = useState('');
 	const [streamAction, setStreamAction] = useState('play');
@@ -26,15 +27,34 @@ export default function MusicLibrary() {
 	const [editingTrack, setEditingTrack] = useState<Track | null>(null);
 	const [metadataForm, setMetadataForm] = useState({ artist: '', album: '', title: '' });
 
+	useEffect(() => {
+		const handler = () => setMenuOpen(null);
+		window.addEventListener('scroll', handler, true);
+		return () => {
+			window.removeEventListener('scroll', handler);
+		}
+	}, []);
+	useWindowEvent('click', () => setMenuOpen(null));
+
 	const columns: Array<{ key: keyof Track; label: string }> = [
 		{ key: 'artist', label: 'ARTIST' },
 		{ key: 'album', label: 'ALBUM' },
 		{ key: 'title', label: 'TITLE' },
-		{ key: 'track', label: 'TRACK' },
+		{ key: 'track_number', label: 'TRACK' },
 		{ key: 'length', label: 'LENGTH' },
-		{ key: 'bpm', label: 'BPM' },
-		{ key: 'bitrate', label: 'BITRATE' }
+		// { key: 'bpm', label: 'BPM' },
+		// { key: 'bitrate', label: 'BITRATE' }
 	];
+
+	useEffect(() => {
+		(async () => {
+			setLoading(true);
+			const db = await Database.load('sqlite:music_caster.db');
+			const result = await db.select('SELECT * FROM file_metadata');
+			setTracks(result as Track[]);
+			setLoading(false);
+		})();
+	}, []);
 
 	const handleSort = (column: keyof Track) => {
 		setSortColumn(column);
@@ -47,9 +67,9 @@ export default function MusicLibrary() {
 	const handleEditMetadata = (track: Track) => {
 		setEditingTrack(track);
 		setMetadataForm({
-			artist: track.artist,
-			album: track.album,
-			title: track.title
+			artist: track.artist ?? '',
+			album: track.album ?? '',
+			title: track.title ?? ','
 		});
 		setMetadataModalOpened(true);
 	};
@@ -59,31 +79,22 @@ export default function MusicLibrary() {
 		setMetadataModalOpened(false);
 	};
 
-	const handlePlayNext = (track: Track) => {
-		console.log('Play next:', track);
+	const handlePlayNext = () => {
 	};
 
-	const handleAddToQueue = (track: Track) => {
-		console.log('Add to queue:', track);
+	const handleAddToQueue = () => {
 	};
 
-	const handleRemove = (track: Track) => {
-		console.log('Remove track:', track);
+	const handleShowFile = () => {
 	};
 
-	const handleShowFile = (track: Track) => {
-		console.log('Show file:', track);
+	const handleDuplicate = () => {
 	};
 
-	const handleDuplicate = (track: Track) => {
-		console.log('Duplicate track:', track);
+	const handleCopyUris = () => {
 	};
 
-	const handleCopyUris = (track: Track) => {
-		console.log('Copy URIs:', track);
-	};
-
-	if (playerState?.status === 'NOT_RUNNING') {
+	if (loading && tracks.length === 0) {
 		return (
 			<Paper shadow='sm' p='md' style={{ height: 'calc(100vh - 140px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 				<ScrollArea style={{ flex: 1 }}>
@@ -133,7 +144,31 @@ export default function MusicLibrary() {
 				</Stack>
 			</Modal>
 
+			<Menu opened={menuOpen !== null} key={menuOpen?.track.file_path}>
+				<Menu.Target>
+					<Button unstyled
+						style={{
+							position: 'absolute',
+							width: 0,
+							height: 0,
+							padding: 0,
+							border: 0,
+							left: (menuOpen?.x ?? 0) + 70,
+							top: (menuOpen?.y ?? 0) - 25,
+						}} />
+				</Menu.Target>
+				<TrackContextMenu
+					onEditMetadata={() => handleEditMetadata(menuOpen!.track)}
+					onPlayNext={handlePlayNext}
+					onAddToQueue={handleAddToQueue}
+					onShowFile={handleShowFile}
+					onCopyUris={handleCopyUris}
+					onDuplicate={handleDuplicate}
+				/>
+			</Menu>
+
 			<Paper shadow='sm' p='md' style={{ height: 'calc(100vh - 140px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
 				<ScrollArea style={{ flex: 1 }}>
 					<Table highlightOnHover>
 						<Table.Thead>
@@ -151,28 +186,32 @@ export default function MusicLibrary() {
 						</Table.Thead>
 						<Table.Tbody>
 							{tracks.map((track, index) => (
-								<Menu key={index} trigger='hover' openDelay={100} closeDelay={400}>
-									<Menu.Target>
-										<Table.Tr
-											onClick={() => setSelectedTrack(track)}
-											style={{ cursor: 'pointer' }}
-										>
-											{columns.map((column) => (
-												<Table.Td key={column.key}>{track[column.key]}</Table.Td>
-											))}
-										</Table.Tr>
-									</Menu.Target>
-									<TrackContextMenu
-										track={track}
-										onEditMetadata={handleEditMetadata}
-										onPlayNext={handlePlayNext}
-										onAddToQueue={handleAddToQueue}
-										onRemove={handleRemove}
-										onShowFile={handleShowFile}
-										onCopyUris={handleCopyUris}
-										onDuplicate={handleDuplicate}
-									/>
-								</Menu>
+								<Table.Tr
+									key={index}
+									// onClick={() => setSelectedTrack(track)}
+									style={{ cursor: 'pointer' }}
+									onContextMenu={e => {
+										e.preventDefault();
+										setMenuOpen({
+											track,
+											x: e.clientX,
+											y: e.clientY,
+										});
+									}}
+									onClick={e => {
+										e.preventDefault();
+										setMenuOpen({
+											track,
+											x: e.clientX,
+											y: e.clientY,
+										});
+									}}
+								>
+									{columns.map((column) =>
+										<TableCell key={column.key} track={track} columnKey={column.key} />
+									)}
+								</Table.Tr>
+
 							))}
 						</Table.Tbody>
 					</Table>
@@ -196,7 +235,22 @@ export default function MusicLibrary() {
 						<Button onClick={handleSubmitStream}>SUBMIT</Button>
 					</Group>
 				</Box>
-			</Paper>
+			</Paper >
 		</>
+	);
+}
+
+function TableCell({ track, columnKey }: { track: Track, columnKey: keyof Track }) {
+	if (columnKey === 'length') {
+		return (
+			<Table.Td key={columnKey}>
+				{formatTime(track[columnKey])}
+			</Table.Td>
+		);
+	}
+	return (
+		<Table.Td key={columnKey}>
+			{track[columnKey]}
+		</Table.Td>
 	);
 }

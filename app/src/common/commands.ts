@@ -29,6 +29,20 @@ interface PlayUrisOptions {
 	device?: string;
 }
 
+export interface Track {
+	file_path: string;
+	title?: string;
+	artist?: string;
+	album?: string;
+	length: number;
+	explicit: boolean;
+	track_number: number;
+	sort_key: string;
+	time_modified: number;
+	bpm?: number;
+	bitrate?: number;
+}
+
 class MusicCasterAPI {
 	private apiKey?: string;
 
