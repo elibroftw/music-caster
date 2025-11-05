@@ -55,13 +55,13 @@ export default function () {
 
 	const [scroller, setScroller] = useState<HTMLElement | null>(null);
 	// load preferences using localForage
-	const [footersSeen, setFootersSeen, footersSeenLoading] = useLocalForage('footersSeen', {});
+	const [announcementsRead, setAnnouncementsRead, announcementsReadLoading] = useLocalForage('announcementsRead', 0);
 
 	const [navbarClearance, setNavbarClearance] = useState(0);
 	const footerRef = useRef<HTMLElement | null>(null);
 	useEffect(() => {
 		if (footerRef.current) setNavbarClearance(footerRef.current.clientHeight);
-	}, [footersSeen]);
+	}, [announcementsRead]);
 
 
 	// Tauri event listeners (run on mount)
@@ -155,10 +155,9 @@ export default function () {
 		}, []);
 	}
 
-	const FOOTER_KEY = 'footer[0]';
-	const showFooter = FOOTER_KEY && !footersSeenLoading && !(FOOTER_KEY in footersSeen);
-	// assume key is always available
-	const footerText = t(FOOTER_KEY);
+	const ANNOUNCEMENTS: number = 1;
+	const showFooter = !announcementsReadLoading && ANNOUNCEMENTS > announcementsRead;
+	const footerText = t('announcement', { context: `${ANNOUNCEMENTS}` });
 
 	// hack for global styling the vertical simplebar based on state
 	useEffect(() => {
@@ -173,38 +172,37 @@ export default function () {
 		<PlayerStateContext.Provider value={playerState}>
 			<MusicCasterAPIContext.Provider value={api}>
 				<SettingsModal opened={settingsOpened} onClose={closeSettings} />
-
 				{usingCustomTitleBar && <TitleBar />}
 				<AppShell padding='md'
 					header={{ height: 0 }}
-					footer={showFooter ? { height: 60 } : undefined}
+					footer={{ height: showFooter ? 60 : 0 }}
 					aside={{ width: 320, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
-						<SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}>
-							<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
-								<Tabs value={activeTab} onChange={setActiveTab}>
-									<Tabs.List>
-										<Tabs.Tab value='queue'>Queue</Tabs.Tab>
-										<Tabs.Tab value='library'>Music Library</Tabs.Tab>
-										<Tabs.Tab value='dev'>Developer</Tabs.Tab>
-									</Tabs.List>
-									<Tabs.Panel value='queue' pt='md'>
-										<Queue />
-									</Tabs.Panel>
-									<Tabs.Panel value='library' pt='md'>
-										<MusicLibrary />
-									</Tabs.Panel>
-									<Tabs.Panel value='dev' pt='md'>
-										<Developer />
-									</Tabs.Panel>
-								</Tabs>
-							</ErrorBoundary>
-							{/* prevent the footer from covering bottom text of a route view */}
-							<Space h={showFooter ? 70 : 50} />
-							<ScrollToTop scroller={scroller} bottom={showFooter ? 70 : 20} />
-						</SimpleBar>
+						{/* <SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}> */}
+						<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
+							<Tabs value={activeTab} onChange={setActiveTab}>
+								<Tabs.List>
+									<Tabs.Tab value='queue'>Queue</Tabs.Tab>
+									<Tabs.Tab value='library'>Music Library</Tabs.Tab>
+									<Tabs.Tab value='dev'>Developer</Tabs.Tab>
+								</Tabs.List>
+								<Tabs.Panel value='queue' pt='md'>
+									<Queue />
+								</Tabs.Panel>
+								<Tabs.Panel value='library' pt='md'>
+									<MusicLibrary />
+								</Tabs.Panel>
+								<Tabs.Panel value='dev' pt='md'>
+									<Developer />
+								</Tabs.Panel>
+							</Tabs>
+						</ErrorBoundary>
+						{/* prevent the footer from covering bottom text of a route view */}
+						<Space h={showFooter ? 70 : 50} />
+						{/* <ScrollToTop scroller={scroller} bottom={showFooter ? 70 : 20} /> */}
+						{/* </SimpleBar> */}
 					</AppShell.Main>
 
 					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
@@ -214,7 +212,7 @@ export default function () {
 					{showFooter &&
 						<AppShell.Footer ref={footerRef} p='md' className={classes.footer}>
 							{footerText}
-							<Button variant='subtle' size='xs' onClick={() => setFootersSeen(prev => ({ ...prev, [FOOTER_KEY]: '' }))}>
+							<Button variant='subtle' size='xs' onClick={() => setAnnouncementsRead(ANNOUNCEMENTS)}>
 								<ImCross />
 							</Button>
 						</AppShell.Footer>}
