@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
 import TrackContextMenu from '../components/TrackContextMenu';
+import classes from './MusicLibrary.module.css';
 
 interface MenuOpen {
 	track: Track;
@@ -35,6 +36,11 @@ export default function MusicLibrary() {
 		}
 	}, []);
 	useWindowEvent('click', () => setMenuOpen(null));
+	useWindowEvent('contextmenu', event => {
+		if (event.clientX !== menuOpen?.x || event.clientY !== menuOpen.y) {
+			setMenuOpen(null);
+		}
+	});
 
 	const columns: Array<{ key: keyof Track; label: string }> = [
 		{ key: 'artist', label: 'ARTIST' },
@@ -150,8 +156,8 @@ export default function MusicLibrary() {
 							height: 0,
 							padding: 0,
 							border: 0,
-							left: (menuOpen?.x ?? 0) + 70,
-							top: (menuOpen?.y ?? 0) - 25,
+							left: (menuOpen?.x ?? 0) + 90,
+							top: (menuOpen?.y ?? 0) - 10,
 						}} />
 				</Menu.Target>
 				<TrackContextMenu
@@ -163,9 +169,8 @@ export default function MusicLibrary() {
 				/>
 			</Menu>
 
-			<Paper shadow='sm' p='md' style={{ height: 'calc(100vh - 140px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-
-				<ScrollArea style={{ flex: 1 }}>
+			<Paper className={classes.tab} shadow='sm' p='md' display='flex'>
+				<ScrollArea>
 					<Table highlightOnHover>
 						<Table.Thead>
 							<Table.Tr>
