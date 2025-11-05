@@ -1,24 +1,18 @@
-import { Box, Button, Group, Menu, Modal, Paper, Radio, ScrollArea, Skeleton, Stack, Table, Text, TextInput } from '@mantine/core';
-import { useWindowEvent } from '@mantine/hooks';
+import { Box, Button, Group, Modal, Paper, Radio, ScrollArea, Skeleton, Stack, Table, Text, TextInput } from '@mantine/core';
 import Database from '@tauri-apps/plugin-sql';
 import { Track } from 'common/commands';
 import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlayerStateContext } from '../common/contexts';
+import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import { formatTime } from '../common/utils';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './MusicLibrary.module.css';
 
-interface MenuOpen {
-	track: Track;
-	x: number;
-	y: number;
-};
-
 export default function MusicLibrary() {
 	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
-	const [menuOpen, setMenuOpen] = useState<MenuOpen | null>(null);
+	const [contextMenu, setMenuItem] = useContextMenu<Track>();
 	const [loading, setLoading] = useState(true);
 	const [tracks, setTracks] = useState<Track[]>([]);
 	const [sortColumn, setSortColumn] = useState<keyof Track>('artist');
@@ -27,20 +21,6 @@ export default function MusicLibrary() {
 	const [metadataModalOpened, setMetadataModalOpened] = useState(false);
 	const [editingTrack, setEditingTrack] = useState<Track | null>(null);
 	const [metadataForm, setMetadataForm] = useState({ artist: '', album: '', title: '' });
-
-	useEffect(() => {
-		const handler = () => setMenuOpen(null);
-		window.addEventListener('scroll', handler, true);
-		return () => {
-			window.removeEventListener('scroll', handler);
-		}
-	}, []);
-	useWindowEvent('click', () => setMenuOpen(null));
-	useWindowEvent('contextmenu', event => {
-		if (event.clientX !== menuOpen?.x || event.clientY !== menuOpen.y) {
-			setMenuOpen(null);
-		}
-	});
 
 	const columns: Array<{ key: keyof Track; label: string }> = [
 		{ key: 'artist', label: 'ARTIST' },
@@ -147,27 +127,15 @@ export default function MusicLibrary() {
 				</Stack>
 			</Modal>
 
-			<Menu opened={menuOpen !== null} key={JSON.stringify(menuOpen)}>
-				<Menu.Target>
-					<Button unstyled
-						style={{
-							position: 'absolute',
-							width: 0,
-							height: 0,
-							padding: 0,
-							border: 0,
-							left: (menuOpen?.x ?? 0) + 90,
-							top: (menuOpen?.y ?? 0) - 10,
-						}} />
-				</Menu.Target>
+			<ContextMenu trigger={contextMenu} offsetLeft={88} offsetTop={-10}>
 				<TrackContextMenu
-					onEditMetadata={menuOpen ? () => handleEditMetadata(menuOpen.track) : undefined}
+					onEditMetadata={contextMenu ? () => handleEditMetadata(contextMenu.item) : undefined}
 					onPlayNext={handlePlayNext}
 					onAddToQueue={handleAddToQueue}
 					onShowFile={handleShowFile}
 					onCopyUris={handleCopyUris}
 				/>
-			</Menu>
+			</ContextMenu>
 
 			<Paper className={classes.tab} shadow='sm' p='md' display='flex'>
 				<ScrollArea>
@@ -193,16 +161,16 @@ export default function MusicLibrary() {
 									style={{ cursor: 'pointer' }}
 									onContextMenu={e => {
 										e.preventDefault();
-										setMenuOpen({
-											track,
+										setMenuItem({
+											item: track,
 											x: e.clientX,
 											y: e.clientY,
 										});
 									}}
 									onClick={e => {
 										e.preventDefault();
-										setMenuOpen({
-											track,
+										setMenuItem({
+											item: track,
 											x: e.clientX,
 											y: e.clientY,
 										});
