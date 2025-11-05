@@ -88,9 +88,6 @@ export default function MusicLibrary() {
 	const handleShowFile = () => {
 	};
 
-	const handleDuplicate = () => {
-	};
-
 	const handleCopyUris = () => {
 	};
 
@@ -144,7 +141,7 @@ export default function MusicLibrary() {
 				</Stack>
 			</Modal>
 
-			<Menu opened={menuOpen !== null} key={menuOpen?.track.file_path}>
+			<Menu opened={menuOpen !== null} key={JSON.stringify(menuOpen)}>
 				<Menu.Target>
 					<Button unstyled
 						style={{
@@ -158,12 +155,11 @@ export default function MusicLibrary() {
 						}} />
 				</Menu.Target>
 				<TrackContextMenu
-					onEditMetadata={() => handleEditMetadata(menuOpen!.track)}
+					onEditMetadata={menuOpen ? () => handleEditMetadata(menuOpen.track) : undefined}
 					onPlayNext={handlePlayNext}
 					onAddToQueue={handleAddToQueue}
 					onShowFile={handleShowFile}
 					onCopyUris={handleCopyUris}
-					onDuplicate={handleDuplicate}
 				/>
 			</Menu>
 

@@ -8,7 +8,6 @@ export interface PlayerState {
 	title: string;
 	artist: string;
 	album: string;
-	gui_open: boolean;
 	track_position: number;
 	track_length: number;
 	queue_length: number;
