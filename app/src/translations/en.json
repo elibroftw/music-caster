@@ -10,5 +10,5 @@
 	"updateAvailable": "Update v{{ v }} available",
 	"relaunchMsg": "Will relaunch afterwards",
 	"installAndRelaunch": "Install update and relaunch",
-	"footer[0]": "FOOTER message from translation files"
+	"announcement_1": "Introducing the new and improved Music Caster UI!"
 }
