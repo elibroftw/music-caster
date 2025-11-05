@@ -3,34 +3,15 @@ import { useWindowEvent } from '@mantine/hooks';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import TrackContextMenu from '../components/TrackContextMenu';
+import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import classes from './Queue.module.css';
-
-interface MenuOpen {
-	index: number;
-	x: number;
-	y: number;
-};
 
 export default function Queue() {
 	const playerState = useContext(PlayerStateContext);
-	const [menuOpen, setMenuOpen] = useState<MenuOpen | null>(null);
+	const [contextMenuTrigger, setContextMenuTrigger] = useContextMenu<number>();
 
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const targetRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		const handler = () => setMenuOpen(null);
-		window.addEventListener('scroll', handler, true);
-		return () => {
-			window.removeEventListener('scroll', handler);
-		}
-	}, []);
-	useWindowEvent('click', () => setMenuOpen(null));
-	useWindowEvent('contextmenu', event => {
-		if (event.clientX !== menuOpen?.x || event.clientY !== menuOpen.y) {
-			setMenuOpen(null);
-		}
-	});
 
 	const api = useContext(MusicCasterAPIContext)!;
 
@@ -54,8 +35,8 @@ export default function Queue() {
 					ref={index === queuePosition ? targetRef : null}
 					onContextMenu={e => {
 						e.preventDefault();
-						setMenuOpen({
-							index,
+						setContextMenuTrigger({
+							item: index,
 							x: e.clientX,
 							y: e.clientY,
 						});
@@ -111,19 +92,7 @@ export default function Queue() {
 		<ScrollArea className={classes.tab} viewportRef={viewportRef}>
 			<Paper shadow='sm' p='md' >
 				<Stack gap='xs'>
-					<Menu opened={menuOpen !== null} key={JSON.stringify(menuOpen)}>
-						<Menu.Target>
-							<Button unstyled
-								style={{
-									position: 'absolute',
-									width: 0,
-									height: 0,
-									padding: 0,
-									border: 0,
-									left: (menuOpen?.x ?? 0) + 70,
-									top: (menuOpen?.y ?? 0) - 75,
-								}} />
-						</Menu.Target>
+					<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
 						<TrackContextMenu
 							onEditMetadata={handleEditMetadata}
 							onPlayNext={handlePlayNext}
@@ -131,7 +100,7 @@ export default function Queue() {
 							onShowFile={handleShowFile}
 							onCopyUris={handleCopyUris}
 						/>
-					</Menu>
+					</ContextMenu>
 					{queueRendered}
 				</Stack>
 			</Paper>
