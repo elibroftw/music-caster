@@ -3,12 +3,11 @@ import { Track } from 'common/commands';
 import { TbClipboard, TbCopy, TbEdit, TbFile, TbPlayerPlay, TbPlayerTrackNext, TbPlus, TbX } from 'react-icons/tb';
 
 interface TrackContextMenuProps {
-	onEditMetadata: () => void;
+	onEditMetadata?: () => void;
 	onPlayNext?: () => void;
 	onAddToQueue?: () => void;
 	onRemove?: () => void;
 	onShowFile?: () => void;
-	onDuplicate?: () => void;
 	onCopyUris?: () => void;
 }
 
@@ -18,7 +17,6 @@ export default function TrackContextMenu({
 	onAddToQueue,
 	onRemove,
 	onShowFile,
-	onDuplicate,
 	onCopyUris
 }: TrackContextMenuProps) {
 	return (
@@ -44,12 +42,12 @@ export default function TrackContextMenu({
 					Add to Queue
 				</Menu.Item>
 			)}
-			<Menu.Item
+			{onEditMetadata && <Menu.Item
 				leftSection={<TbEdit size={16} />}
 				onClick={() => onEditMetadata()}
 			>
 				Edit Metadata
-			</Menu.Item>
+			</Menu.Item>}
 			{onShowFile && (
 				<Menu.Item
 					leftSection={<TbFile size={16} />}
@@ -64,14 +62,6 @@ export default function TrackContextMenu({
 					onClick={() => onCopyUris()}
 				>
 					Copy URIs
-				</Menu.Item>
-			)}
-			{onDuplicate && (
-				<Menu.Item
-					leftSection={<TbCopy size={16} />}
-					onClick={() => onDuplicate()}
-				>
-					Duplicate
 				</Menu.Item>
 			)}
 			{onRemove && (

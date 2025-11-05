@@ -47,6 +47,9 @@ export default function () {
 
 	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 	const [activeTab, setActiveTab] = useState<string | null>('queue');
+	// TODO: the player state should not be updated so often
+	// Rather, keep track of each state independently, and try best to reduce re-renders
+	// e.g. the queue is usually the same, therefore, we need a way to "diff" states.
 	const [playerState, setPlayerState] = useState<PlayerState | null>(null);
 	const api = new MusicCasterAPI();
 

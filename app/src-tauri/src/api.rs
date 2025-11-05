@@ -50,7 +50,6 @@ impl ApiState {
         title: String::from("Nothing Playing"),
         artist: String::from(""),
         album: String::from(""),
-        gui_open: false,
         track_position: 0.0,
         track_length: 0.0,
         queue_length: 0,
@@ -76,7 +75,6 @@ pub struct PlayerState {
   pub title: String,
   pub artist: String,
   pub album: String,
-  pub gui_open: bool,
   pub track_position: f64,
   pub track_length: f64,
   pub queue_length: i32,
@@ -428,7 +426,7 @@ pub async fn api_get_album_art_url(state: State<'_, ApiState>) -> Result<String,
 }
 
 pub async fn poll_player_state(app_handle: tauri::AppHandle) {
-  let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+  let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
 
   loop {
     interval.tick().await;
