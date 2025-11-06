@@ -371,7 +371,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = '✓'
+    CHECK_MARK = 'âœ“'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
@@ -1373,6 +1373,89 @@ if __name__ == '__main__':
                              mimetype='image/png', as_attachment=True, max_age=360000, conditional=True)
         return Response(sar.get_audio_data(settings['sys_audio_delay']))
 
+
+    @app.post('/modify-queue/')
+    def api_modify_queue():
+        if request.headers.get('x-api-key') != settings['api_key']:
+            return {'error': 'Unauthorized, api_key=not-provided'}, 401
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict):
+            return '', 400
+        indices = data.get('indices')
+        action = data.get('action')
+        if not isinstance(indices, list) or not all(isinstance(i, int) and i >= 0 for i in indices):
+            return '', 400
+        if action == 'next_up':
+            move_to_next_up(indices)
+        elif action == 'remove':
+            remove_from_queue(indices)
+        else:
+            return '', 400
+        return '', 204
+
+    def move_to_next_up(indices):
+        indices.sort()
+        for i, index_to_move in enumerate(indices, 1):
+            dq_len = len(done_queue)
+            nq_len = len(next_queue)
+            if index_to_move < dq_len:
+                track = done_queue[index_to_move]
+                del done_queue[index_to_move]
+                if settings['reversed_play_next']:
+                    next_queue.appendleft(track)
+                else:
+                    next_queue.append(track)
+                if i == len(indices):  # update gui after the last swap
+                    if not gui_window.is_closed():
+                        values = create_track_list()
+                        gui_window['queue'].update(values=values, set_to_index=len(done_queue) + len(next_queue),
+                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
+                    save_queues()
+            elif index_to_move > dq_len + nq_len:
+                track = music_queue[index_to_move - dq_len - nq_len]
+                del music_queue[index_to_move - dq_len - nq_len]
+                if settings['reversed_play_next']:
+                    next_queue.appendleft(track)
+                else:
+                    next_queue.append(track)
+                if i == len(indices):  # update gui after the last swap
+                    if not gui_window.is_closed():
+                        values = create_track_list()
+                        gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
+                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
+                    save_queues()
+
+    def remove_from_queue(indices):
+        indices.sort(reverse=True)
+        for i, index_to_remove in enumerate(indices, 1):
+            dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
+            if index_to_remove < dq_len:
+                del done_queue[index_to_remove]
+            elif index_to_remove == dq_len:
+                with suppress(IndexError):
+                    # remove the "0. XXX" track that could be playing right now
+                    music_queue.popleft()
+                    if next_queue:
+                        music_queue.appendleft(next_queue.popleft())
+                    # if queue is empty but repeat is all AND there are tracks in the done_queue
+                    if not music_queue and settings['repeat'] is False and done_queue:
+                        music_queue.extend(done_queue)
+                        done_queue.clear()
+                    # start playing new track if a track was being played
+                    if not sar.alive:
+                        if music_queue and playing_status.busy():
+                            play()
+                        else:
+                            stop('remove_track')
+            elif index_to_remove <= nq_len + dq_len:
+                del next_queue[index_to_remove - dq_len - 1]
+            elif index_to_remove < nq_len + mq_len + dq_len:
+                del music_queue[index_to_remove - dq_len - nq_len]
+            if i == len(indices):  # update gui after the last removal
+                values = create_track_list()
+                new_i = min(len(values), index_to_remove)
+                if not gui_window.is_closed():
+                    gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
     def cast_try_reconnect(switch_twice=False):
         global cast_browser, zconf
@@ -3592,33 +3675,7 @@ if __name__ == '__main__':
             if len(indices) == 1 and metadata_process_file(uri_at_idx(indices[0]), 'read_main_window:edit_metadata'):
                 gui_window['tab_metadata'].select()
         elif main_event == 'move_to_next_up':
-            for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
-                dq_len = len(done_queue)
-                nq_len = len(next_queue)
-                if index_to_move < dq_len:
-                    track = done_queue[index_to_move]
-                    del done_queue[index_to_move]
-                    if settings['reversed_play_next']:
-                        next_queue.appendleft(track)
-                    else:
-                        next_queue.append(track)
-                    if i == len(main_values['queue']):  # update gui after the last swap
-                        values = create_track_list()
-                        gui_window['queue'].update(values=values, set_to_index=len(done_queue) + len(next_queue),
-                                                   scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
-                        save_queues()
-                elif index_to_move > dq_len + nq_len:
-                    track = music_queue[index_to_move - dq_len - nq_len]
-                    del music_queue[index_to_move - dq_len - nq_len]
-                    if settings['reversed_play_next']:
-                        next_queue.appendleft(track)
-                    else:
-                        next_queue.append(track)
-                    if i == len(main_values['queue']):  # update gui after the last swap
-                        values = create_track_list()
-                        gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
-                                                   scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
-                        save_queues()
+            move_to_next_up(gui_window['queue'].get_indexes())
             gui_window.metadata['update_listboxes'] = False
         elif main_event == 'move_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
@@ -3690,34 +3747,7 @@ if __name__ == '__main__':
                         gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=scroll_to)
                         save_queues()
         elif main_event == 'remove_track' and main_values['queue']:
-            for i, index_to_remove in enumerate(reversed(gui_window['queue'].get_indexes()), 1):
-                dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
-                if index_to_remove < dq_len:
-                    del done_queue[index_to_remove]
-                elif index_to_remove == dq_len:
-                    with suppress(IndexError):
-                        # remove the "0. XXX" track that could be playing right now
-                        music_queue.popleft()
-                        if next_queue:
-                            music_queue.appendleft(next_queue.popleft())
-                        # if queue is empty but repeat is all AND there are tracks in the done_queue
-                        if not music_queue and settings['repeat'] is False and done_queue:
-                            music_queue.extend(done_queue)
-                            done_queue.clear()
-                        # start playing new track if a track was being played
-                        if not sar.alive:
-                            if music_queue and playing_status.busy():
-                                play()
-                            else:
-                                stop('remove_track')
-                elif index_to_remove <= nq_len + dq_len:
-                    del next_queue[index_to_remove - dq_len - 1]
-                elif index_to_remove < nq_len + mq_len + dq_len:
-                    del music_queue[index_to_remove - dq_len - nq_len]
-                if i == len(main_values['queue']):  # update gui after the last removal
-                    values = create_track_list()
-                    new_i = min(len(values), index_to_remove)
-                    gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            remove_from_queue(gui_window['queue'].get_indexes())
         elif main_event == 'select_files':
             Thread(target=file_action, name='FileAction', daemon=True,
                    args=[main_values['fs_action']]).start()
