@@ -35,14 +35,15 @@ impl PlaybackStatus {
 
 pub struct ApiState {
   pub port: RwLock<u16>,
-  pub player_state: RwLock<PlayerState>,
   pub is_running: RwLock<bool>,
+  pub player_state: RwLock<PlayerState>,
 }
 
 impl ApiState {
   pub fn new() -> Self {
     Self {
       port: RwLock::new(2001),
+      is_running: RwLock::new(false),
       player_state: RwLock::new(PlayerState {
         status: PlaybackStatus::NotRunning,
         volume: 20.0,
@@ -57,7 +58,6 @@ impl ApiState {
         queue_position: 0,
         file_name: String::from(""),
       }),
-      is_running: RwLock::new(false),
     }
   }
 
@@ -424,6 +424,21 @@ pub async fn api_get_album_art_url(state: State<'_, ApiState>) -> Result<String,
   let base64_image = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
   Ok(format!("data:image/png;base64,{}", base64_image))
 }
+
+// #[tauri::command]
+// pub async fn api_modify_queue(state: State<'_, Settings>) -> Result<(), String> {
+//   let guard = state.api_key.read().unwrap();
+//   let api_key = (*guard).clone().unwrap();
+//   let client = reqwest::Client::new();
+//   let url = format!("{}/modify-queue/", state.get_base_url());
+//   let _ = client
+//     .post(&url)
+//     .header("x-api-key", api_key)
+//     .send()
+//     .await
+//     .map_err(|e| e.to_string())?;
+//   Ok(())
+// }
 
 pub async fn poll_player_state(app_handle: tauri::AppHandle) {
   let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));

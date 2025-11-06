@@ -17,6 +17,7 @@ mod db;
 mod sidecar_utils;
 mod tray_icon;
 mod utils;
+// mod settings;
 
 use api::{ApiState, *};
 use tray_icon::{TrayState, create_tray_icon, tray_update_lang};
@@ -167,7 +168,8 @@ pub fn run() {
       api_cancel_timer,
       api_get_file_url,
       api_get_stream_url,
-      api_get_album_art_url
+      api_get_album_art_url,
+			api_modify_queue
     ])
     // allow only one instance and propagate args and cwd to existing instance
     .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
