@@ -35,7 +35,7 @@ export function useContextMenu<T>({ showOnClick }: useContextMenuOptions = { sho
 		}
 	}, []);
 	useWindowEvent('click', event => {
-		if (!showOnClick && event.clientX !== menuTrigger?.x || event.clientY !== menuTrigger.y) {
+		if (!showOnClick && event.clientX !== menuTrigger?.x || event.clientY !== menuTrigger?.y) {
 			setMenuTrigger(null);
 		}
 	});
