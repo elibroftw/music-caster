@@ -1,0 +1,17 @@
+{
+	"app": {
+		"windows": [
+			{
+				"title": "Music Caster",
+				"label": "main",
+				"minWidth": 1000,
+				"minHeight": 680,
+				"resizable": true,
+				"fullscreen": false,
+				"visible": false,
+				"decorations": false,
+				"alwaysOnTop": false
+			}
+		]
+	}
+}

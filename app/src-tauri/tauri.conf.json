@@ -1,0 +1,81 @@
+{
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "publisher": "Elijah Lopez",
+    "copyright": "Copyright",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "externalBin": [
+			"../../dist/music-caster-daemon"
+    ],
+    "category": "Music",
+    "shortDescription": "",
+    "longDescription": "",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "entitlements": null
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "build": {
+    "beforeDevCommand": "pnpm start",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../build",
+    "devUrl": "http://localhost:1420"
+  },
+  "productName": "Music Caster",
+  "mainBinaryName": "Music Caster",
+  "version": "../package.json",
+  "identifier": "ca.elijahlopez.music-caster",
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:music_caster.db"]
+    },
+    "updater": {
+      "endpoints": [
+        "https://youtu.be/ZXjlZBisYPQ"
+      ],
+      "pubkey": ""
+    }
+  },
+  "app": {
+    "security": {
+      "csp": "default-src blob: data: filesystem: ws: wss: http: https: tauri: 'unsafe-eval' 'unsafe-inline' 'self' img-src: 'self'; connect-src ipc: http://ipc.localhost"
+    },
+    "windows": [
+      {
+        "title": "Music Caster",
+        "label": "main",
+        "minWidth": 1000,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "useHttpsScheme": true
+      }
+    ],
+    "withGlobalTauri": false
+  }
+}

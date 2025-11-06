@@ -1,0 +1,197 @@
+add folder: добавить папку
+Add Music Caster to folder context menu: Добавить Music Caster в контексное меню папки
+Add files: Добавить файлы
+Add URL: Добавить ссылку
+An error occurred, restarting now: Произошла ошибка, приложение перезагружается
+An Internal Server Error occurred: Произошла внутренняя ошибка сервера
+Audio Selection: Выбор аудио
+Auto update: Автоматическое обновление
+By: Автор
+Cancel: Отменить
+Cancel Timer: Отменить таймер
+Clear the queue: Очистить очередь
+Controls: Управление
+Could not connect to cast device: Не удалось подключиться к потоковому устройству
+Could not find an output device to record: Не удалось найти устройство вывода для записи
+couldNotPlayURL: Не удалось воспроизвести %{URL}
+Could not populate queue because library scan is disabled: Не удалось заполнить очередь, поскольку сканирование медиатеки отключено
+Could not set timer: Не удалось установить таймер
+Discord presence: Обновить статус в Discord
+downloadingUpdate: Загрузка обновления %{VER}
+Enter minutes or HH:MM: Введите минуты или ГГ:ХХ
+Enter Time: Введите время
+Enter URL: Введите ссылку
+ERROR: ОШИБКА
+Exit: Выход
+Folder context menu: Контекстное меню папки
+Folder does not contain audio files: Папка не содержит аудиофайлов
+Folders: Папки
+General: Общие
+Hibernate when timer runs out: Перевести компьютер в режим гибернации, когда таймер закончится
+Hibernate Computer: Перевести компьютер в режим гибернации
+INFO: ИНФОРМАЦИЯ
+invalidTimerInput: Неверный ввод (введите минуты или ЧЧ:ММ)
+invalidURL: Ссылка недействительна. Ссылки должны начинаться с http:// или https://
+Invalid audio file selected: Выбран неверный аудиофайл
+Invalid audio file %{FILE}: Неверный аудиофайл %{FILE}
+Keep mini mode on top: Оставлять мини-режим вверху
+Launch mini mode: Запустить мини-режим
+Left-side music controls: Управление музыкой слева
+Library: Медиатека
+Library indexing incomplete, only scanned files have been added: Индексация медиатеки не завершена, добавлены только просканированные файлы
+Listening: Слушаю
+System Audio: Системное аудио
+Local device: Локальное устройство
+locate selected: показать выбранный файл
+Lost connection to %{DEVICE}, switching to local device: Утрачено соединение с %{DEVICE}, перехожу на локальное устройство
+Mini mode on top: Мини-режим вверху
+More: Больше
+move down: переместить вниз
+Move to next up: Перейти к следующему
+Move track content to the left: Переместить содержимое песни влево
+move up: переместить вверх
+Music Caster is running in the tray.: Music Caster продолжает работать в области уведомлений.
+mute: выключить звук
+New: Новый
+next track: следующая песня
+No space left on device to auto-update: На устройстве недостаточно места для автоматического обновления
+No space left on device to save settings: На устройстве недостаточно места для сохранения настроек
+No Timer Set: Не установлен ни один таймер
+Not connected to a cast device: Не подключен к потоковому устройству
+Not logged into deezer.com: Не вошли в систему на deezer.com
+Nothing Playing: Ничего не воспроизводится
+Notifications: Уведомления
+Only Stop Playback: Только отключить воспроизведение
+Open: Открыть
+Pause: Пауза
+Persistent queue: Сохраненная очередь
+Play: Воспроизвести
+Play All: Воспроизвести все
+Play Files: Воспроизвести файлы
+Play Files Next: Воспроизвести файлы следующими
+Play Immediately: Воспроизвести немедленно
+Play Next: Воспроизвести следующим
+Play URL: Воспроизвести ссылку
+Play URL Next: Воспроизвести ссылку следующим
+Playing: Воспроизведение
+Playlist name: Название плейлиста
+Playlists: Плейлисты
+Playlists Tab: Вкладка плейлистов
+Populate queue on startup: Заполнить очередь при запуске
+Populates queue from folders on startup: Заполнить очередь из папок при запуске
+previous track: предыдущая песня
+Queue: Очередь
+queue all: добавить все в очередь
+Queue Files: Очередь файлов
+Queue URL: Очередь ссылок
+Refresh Devices: Обновить устройства
+Remember last folder: Запомнить последнюю папку
+remove selected folder: удалить выбранную папку
+remove: Удалить
+Repeat: Повторение
+Repeat All: Повторить все
+Repeat Off: Выключить повторение
+Repeat One: Повторить один раз
+Repeat Options: Параметры повторения
+Rescan Library: Пересканировать медиатеку
+Rescanning library: Пересканирование медиатеке
+Resume: Продолжить
+Reverse play next behaviour: Изменить следующий режим воспроизведения
+Reversed play next: Играть следующие в обратном порядке
+Run on startup: Запускать при старте системы
+Save queue between sessions: Сохранить очередь между сессиями
+Save to playlist: Добавить в плейлист
+Save window positions: Сохранить положение окон
+Scan folders: Сканировать папки
+scroll mousewheel: Прокрутка мыши
+Search for music...: Поиск музыки...
+Select Device: Выбрать устройство
+Select Folder: Выбрать папку
+Select Folders: Выбрать папки
+Select Files: Выбрать файлы
+Select File: Выбрать файл
+Select Audio Files: Выбрать аудиофайлы
+Send me an email: Отправить мне электронное письмо
+set DEBUG = true in `settings.json` to enable this page: установите DEBUG = true в settings.json для включения этой страницы
+Set Timer: Установить таймер
+Set: Установить
+Settings: Настройки
+Show album art: Показывать обложку альбома
+Show album art in GUI: Показывать обложку альбома в пользовательском интерфейсе
+Show index in queue: Показывать индекс в очереди
+Show track number: Показывать номер песни
+Show track number in queue: Показывать номер песни в очереди
+shuffle: перемешать
+Shut down when timer runs out: Выключить компьютер, когда таймер закончится
+Shut Down Computer: Выключить компьютер
+Sleep when timer runs out: Перевести компьютер в спящий режим, когда таймер закончится
+Sleep Computer: Перевести компьютер в спящий режим
+Stop: Остановить
+Submit: Установить
+Thanks for installing Music Caster.: Спасибо за установку Music Caster.
+Timer: Таймер
+Timer cancelled: Таймер отменен
+Timer set for %{TIME}: Таймер установлен на %{TIME}
+Type in artist/tracks: Введите исполнителя/песни
+UI: Пользовательский интерфейс
+unmute: включить звук
+updateAvail: Доступное обновление до %{VER}
+URL: Ссылки
+Use cover.* for album art: Использовать cover.* в качестве обложки альбома
+Use cover.* for art instead of file's album art: Использовать cover.* в качестве обложки альбома вместо встроенной в файл
+cover.* image overrides file cover: cover.* изображение замещает встроенную в файл обложку
+Vertical GUI: Вертикальный пользовательский интерфейс
+View Audio Files Source Links: Просмотреть ссылку на источник аудиофайлов
+Open Web GUI: Открыть веб-пользовательский интерфейс
+new playlist: создать новый плейлист
+export playlist: экспортировать плейлист
+delete playlist: удалить плейлист
+play playlist: воспроизвести плейлист
+queue playlist: добавить плейлист в очередь
+Unknown Title: Неизвестное название
+Unknown Artist: Неизвестный исполнитель
+Unknown Album: Неизвестный альбом
+Always queue library: Всегда добавлять медиатеку в очередь
+Play with Music Caster: Воспроизвести с помощью Music Caster
+Queue in Music Caster: Добавить в очередь в Music Caster
+Play next in Music Caster: Воспроизвести следующим в Music Caster
+Queueing: Очередь
+Smart queue: Умная очередь
+add to next up: добавить в следующие
+Metadata: Метаданные
+Saving metadata: Сохранение метаданных
+Metadata saved: Метаданные сохранены
+Save: Сохранить
+Title: Название
+Artist: Исполнитель
+Album: Альбом
+Track Number: Номер песни
+Explicit: Точно
+Select artwork: Выбрать обложку
+Search artwork: Искать обложку
+Remove artwork: Удалить обложку
+Artwork found: Найден обложку
+No artwork found: Обложка не найдена
+Searching for artwork...: Поиск обложки...
+Loading URL(s): Загрузка ссылки(ок)
+Added URL(s): Добавлена ссылка
+language: язык
+play selected: воспроизвести избранное
+queue selected: добавить избранное в очередь
+add selected to next up: добавить избранное в следующие
+system_audio_delay: Задержка системного аудио
+seconds: секунды
+locate_track: найти песню
+switching_to_local_device: Переход на локальное устройство
+track_format: Формат названия песни
+urlAudioFetchFailed: Не удалось получить аудио с %{URL}
+Exit app on GUI close: Выход из программы при закрытии пользовательского интерфейса
+On battery resolution: Разрешение при работе от батареи
+Plugged in resolution: Разрешение при работе от питания
+Could not set resolution: Не удалось установить разрешение
+copy URIs: скопировать путь
+edit metadata: редактировать метаданные
+Experimental features: Экспериментальные функции
+Playlist saved: Плейлист сохранен
+Install Update: Обновлять
+Downloaded %{VER}. Relaunching...: Загружено %{VER}. Перезапуск...
