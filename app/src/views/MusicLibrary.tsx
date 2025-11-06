@@ -1,23 +1,21 @@
-import { Box, Button, Group, Modal, Paper, Radio, ScrollArea, Skeleton, Stack, Table, Text, TextInput } from '@mantine/core';
+import { Box, Button, Group, Modal, Paper, ScrollArea, Skeleton, Stack, Table, TextInput } from '@mantine/core';
 import Database from '@tauri-apps/plugin-sql';
 import { Track } from 'common/commands';
 import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlayerStateContext } from '../common/contexts';
-import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import { formatTime } from '../common/utils';
+import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './MusicLibrary.module.css';
 
 export default function MusicLibrary() {
 	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
-	const [contextMenu, setMenuItem] = useContextMenu<Track>();
+	const [contextMenu, setMenuItem] = useContextMenu<Track>({ showOnClick: true });
 	const [loading, setLoading] = useState(true);
 	const [tracks, setTracks] = useState<Track[]>([]);
 	const [sortColumn, setSortColumn] = useState<keyof Track>('artist');
-	const [streamUrl, setStreamUrl] = useState('');
-	const [streamAction, setStreamAction] = useState('play');
 	const [metadataModalOpened, setMetadataModalOpened] = useState(false);
 	const [editingTrack, setEditingTrack] = useState<Track | null>(null);
 	const [metadataForm, setMetadataForm] = useState({ artist: '', album: '', title: '' });
@@ -44,10 +42,6 @@ export default function MusicLibrary() {
 
 	const handleSort = (column: keyof Track) => {
 		setSortColumn(column);
-	};
-
-	const handleSubmitStream = () => {
-		console.log('Stream URL:', streamUrl, 'Action:', streamAction);
 	};
 
 	const handleEditMetadata = (track: Track) => {
@@ -186,24 +180,6 @@ export default function MusicLibrary() {
 					</Table>
 				</ScrollArea>
 
-				<Box px='md' py='xs' style={{ borderTop: '1px solid #e0e0e0' }}>
-					<Group align='center' gap='sm'>
-						<Text size='sm' fw={500} style={{ whiteSpace: 'nowrap' }}>STREAM FROM URL:</Text>
-						<TextInput
-							value={streamUrl}
-							onChange={(e) => setStreamUrl(e.currentTarget.value)}
-							placeholder='Enter stream URL'
-							style={{ flex: 1 }}
-						/>
-						<Radio.Group value={streamAction} onChange={setStreamAction}>
-							<Group gap='md'>
-								<Radio value='play' label='PLAY NOW' />
-								<Radio value='queue' label='ADD TO QUEUE' />
-							</Group>
-						</Radio.Group>
-						<Button onClick={handleSubmitStream}>SUBMIT</Button>
-					</Group>
-				</Box>
 			</Paper >
 		</>
 	);

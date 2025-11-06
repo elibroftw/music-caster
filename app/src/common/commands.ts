@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import Queue from './../views/Queue';
 
 export type PlaybackStatus = 'NOT_PLAYING' | 'PLAYING' | 'PAUSED' | 'NOT_RUNNING';
 export interface PlayerState {
@@ -26,6 +27,12 @@ interface PlayUrisOptions {
 	queue?: boolean;
 	playNext?: boolean;
 	device?: string;
+}
+
+export enum PlayAction {
+	PLAY = 'play',
+	PLAY_NEXT = 'playNext',
+	QUEUE = 'queue'
 }
 
 export interface Track {
@@ -93,8 +100,14 @@ class MusicCasterAPI {
 		return invoke<PlayerState>('api_get_state');
 	}
 
-	async playUris(options: PlayUrisOptions): Promise<PlayerState> {
+	async invokePlayUris(options: PlayUrisOptions): Promise<PlayerState> {
 		return invoke<PlayerState>('api_play_uris', { options });
+	}
+
+	async playUri(uri: string, action: PlayAction): Promise<PlayerState> {
+		return await this.invokePlayUris({
+			uri, playNext: action === PlayAction.PLAY_NEXT, queue: action === PlayAction.QUEUE,
+		})
 	}
 
 	async exit(): Promise<PlayerState> {

@@ -11,8 +11,6 @@ import { JSX, lazy, LazyExoticComponent, useEffect, useRef, useState } from 'rea
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import { ImCross } from 'react-icons/im';
-import SimpleBar from 'simplebar-react';
-import 'simplebar-react/dist/simplebar.min.css';
 import classes from './App.module.css';
 import MusicCasterAPI, { PlayerState } from './common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from './common/contexts';
@@ -180,7 +178,6 @@ export default function () {
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
-						{/* <SimpleBar scrollableNodeProps={{ ref: setScroller }} autoHide={false} className={classes.simpleBar}> */}
 						<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
 							<Tabs value={activeTab} onChange={setActiveTab}>
 								<Tabs.List>
@@ -201,8 +198,6 @@ export default function () {
 						</ErrorBoundary>
 						{/* prevent the footer from covering bottom text of a route view */}
 						<Space h={showFooter ? 70 : 50} />
-						{/* <ScrollToTop scroller={scroller} bottom={showFooter ? 70 : 20} /> */}
-						{/* </SimpleBar> */}
 					</AppShell.Main>
 
 					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
