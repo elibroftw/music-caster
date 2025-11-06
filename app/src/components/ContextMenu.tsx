@@ -8,6 +8,10 @@ interface ContextMenuTrigger<T> {
 	y: number
 }
 
+interface useContextMenuOptions {
+	showOnClick?: boolean;
+}
+
 /**
  * Use this hook in conjunction with the ContextMenu component
  * const [contextMenuTrigger, setContextMenuTrigger] = useContextMenu<number>();
@@ -21,7 +25,7 @@ interface ContextMenuTrigger<T> {
  * }}
  * <ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}><Dropdown></ContextMenu>
  */
-export function useContextMenu<T>(): [ContextMenuTrigger<T> | null, Dispatch<SetStateAction<ContextMenuTrigger<T> | null>>] {
+export function useContextMenu<T>({ showOnClick }: useContextMenuOptions = { showOnClick: false }): [ContextMenuTrigger<T> | null, Dispatch<SetStateAction<ContextMenuTrigger<T> | null>>] {
 	const [menuTrigger, setMenuTrigger] = useState<ContextMenuTrigger<T> | null>(null);
 	useEffect(() => {
 		const handler = () => setMenuTrigger(null);
@@ -30,7 +34,11 @@ export function useContextMenu<T>(): [ContextMenuTrigger<T> | null, Dispatch<Set
 			window.removeEventListener('scroll', handler);
 		}
 	}, []);
-	useWindowEvent('click', () => setMenuTrigger(null));
+	useWindowEvent('click', event => {
+		if (!showOnClick && event.clientX !== menuTrigger?.x || event.clientY !== menuTrigger.y) {
+			setMenuTrigger(null);
+		}
+	});
 	useWindowEvent('contextmenu', event => {
 		if (event.clientX !== menuTrigger?.x || event.clientY !== menuTrigger.y) {
 			setMenuTrigger(null);

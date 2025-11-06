@@ -1,5 +1,5 @@
 .tab {
-	height: calc(100dvh - var(--app-shell-footer-height) - 75px);
+	height: calc(100dvh - var(--app-shell-footer-height) - 80px);
 	display: flex;
 	flex-direction: column;
 }

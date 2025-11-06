@@ -1,10 +1,12 @@
 import { ActionIcon, Anchor, Box, Button, Group, Image, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { useContext, useEffect, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbArrowsShuffle, TbBrandGithub, TbClock, TbInfoCircle, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
+import { PlayAction } from '../common/commands';
 
 interface Track {
 	artist: string;
@@ -28,10 +30,38 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 	const [qrCodeOpened, { open: openQrCode, close: closeQrCode }] = useDisclosure(false);
 	const [infoOpened, { open: openInfo, close: closeInfo }] = useDisclosure(false);
 	const [timerOpened, { open: openTimer, close: closeTimer }] = useDisclosure(false);
+	const [streamURLOpened, { open: openStreamURL, close: closeStreamURL }] = useDisclosure(false);
+	// TODO: use a form
 	const [timerAction, setTimerAction] = useState('stop');
 	const [timerInput, setTimerInput] = useState('');
 	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
 
+	const streamURLForm = useForm({
+		mode: 'uncontrolled',
+		initialValues: {
+			url: '',
+			action: PlayAction.PLAY,
+		},
+
+		validate: {
+			// TODO: value.startsWith('ytsearch1')
+			url: (value) => value.startsWith('http') || value.startsWith('www') || value.startsWith('//') ? null : 'Not a URL',
+		},
+	});
+
+	const handleStreamURLSubmit = ({ url, action }: typeof streamURLForm.values) => {
+		// TODO: call API
+		api.playUri(url, action);
+
+	}
+
+	useEffect(() => {
+		if (streamURLOpened) {
+			if (streamURLForm.values.url.length === 0) {
+				// TODO: read from clipboard and prefill if matches URL
+			}
+		}
+	}, [streamURLOpened]);
 
 	useEffect(() => {
 		const fetchAlbumArt = async () => {
@@ -176,6 +206,32 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 				</Stack>
 			</Modal>
 
+			<Modal
+				opened={streamURLOpened}
+				onClose={closeStreamURL}
+				title='Stream URL'
+				centered
+			>
+				<form onSubmit={streamURLForm.onSubmit(handleStreamURLSubmit)}>
+					<Stack gap='md'>
+						<Text size='sm' fw={500} >THIS SHOULD BE A FORM</Text>
+						<TextInput
+							placeholder='Enter stream URL'
+							style={{ flex: 1 }}
+							{...streamURLForm.getInputProps('url')}
+						/>
+						<Radio.Group {...streamURLForm.getInputProps('action')}>
+							<Group gap='md'>
+								<Radio value={PlayAction.PLAY} label='PLAY NOW' />
+								<Radio value={PlayAction.QUEUE} label='ADD TO QUEUE' />
+								<Radio value={PlayAction.PLAY_NEXT} label='PLAY NEXT' />
+							</Group>
+						</Radio.Group>
+						<Button type='submit'>Submit</Button>
+					</Stack>
+				</form>
+			</Modal>
+
 			<Stack h='100%' justify='space-between'>
 				<Group align='flex-start' gap='xs' wrap='nowrap'>
 					<Paper p='md' style={{ flex: 1, minWidth: '250px' }}>
@@ -239,6 +295,7 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 						<ActionIcon size='lg' variant='default'><TbX size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default'><TbChevronDown size={20} /></ActionIcon> */}
 						<ActionIcon size='lg' variant='default' onClick={openQrCode}><TbWorld size={20} /></ActionIcon>
+						<ActionIcon size='lg' variant='default' onClick={openStreamURL}><TbLink size={20} /></ActionIcon>
 					</SimpleGrid>
 				</Group>
 
