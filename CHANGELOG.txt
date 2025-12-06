@@ -2,6 +2,7 @@ Music Caster Changelog
 
 5.25.1
 - [Fix] Settings save/load ?
+- [Fix] Typing
 
 5.25.0
 - [Fix] Forwards compatibility for v6

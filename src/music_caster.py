@@ -3751,9 +3751,6 @@ if __name__ == '__main__':
         # main window settings tab
         elif main_event == 'open_email':
             open_in_browser(create_support_email_url())
-        elif main_event in 'concerts_email':
-            # TODO
-            open_in_browser(create_support_email_url())
         elif main_event == 'open_github':
             open_in_browser('https://github.com/elibroftw/music-caster')
         elif main_event == 'web_gui':
