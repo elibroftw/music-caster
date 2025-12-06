@@ -11,6 +11,7 @@ from mutagen._util import MutagenError
 from PIL import Image
 import pytest
 
+from modules.db import DatabaseConnection
 from b64_images import DEFAULT_ART
 from meta import COVER_MINI, COVER_NORMAL, VERSION
 from shared import get_running_processes, is_already_running
@@ -607,3 +608,11 @@ def test_get_latest_release(uploading_after, test_auto_update):
         assert compare_ver < version
     else:
         assert compare_ver <= version
+
+@pytest.mark.ci_only
+def test_database():
+    DatabaseConnection.DEFAULT_DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with DatabaseConnection(DatabaseConnection.DEFAULT_DATABASE_FILE) as _:
+        pass
+    if DatabaseConnection.DEFAULT_DATABASE_FILE.exists():
+        os.remove(DatabaseConnection.DEFAULT_DATABASE_FILE)

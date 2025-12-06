@@ -52,7 +52,7 @@ jobs:
           .venv\Scripts\Activate.ps1
           python build.py --ci --no-deps --no-build --no-install
 
-      - name: Save
+      - name: Save Failed Build
         if: failure() && steps.test.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:

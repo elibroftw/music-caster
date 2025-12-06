@@ -18,3 +18,8 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if 'no_ci' in item.keywords:
                 item.add_marker(skip_non_ci)
+    else:
+        skip_ci = pytest.mark.skip(reason='test only for CI')
+        for item in items:
+            if 'ci_only' in item.keywords:
+                item.add_marker(skip_ci)

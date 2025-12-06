@@ -19,8 +19,9 @@ class DatabaseConnection:
         conn.row_factory = sqlite3.Row
         return conn
 
-    def __init__(self):
-        pass
+    def __init__(self, db_override=None):
+        if db_override is not None:
+            self.DATABASE_FILE = db_override
 
     def __enter__(self):
         self.conn = self.create_connection()
