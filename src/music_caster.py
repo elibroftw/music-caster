@@ -36,6 +36,7 @@ import threading
 from subprocess import Popen, PIPE, DEVNULL # noqa
 import re
 import sys
+from shutil import copy2
 from shared import is_already_running
 
 
@@ -151,7 +152,15 @@ if __name__ == '__main__':
         SETTINGS_FILE = Path(args.settings_path).absolute() if args.settings_path and USING_TAURI_FRONTEND else DEFAULT_SETTINGS_FILE
         if OLD_SETTINGS_FILE.exists():
             SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-            os.rename(OLD_SETTINGS_FILE, SETTINGS_FILE)
+            try:
+                os.rename(OLD_SETTINGS_FILE, SETTINGS_FILE)
+            except OSError as e:
+                if e.winerror == 17:
+                    copy2(OLD_SETTINGS_FILE, SETTINGS_FILE)
+                    os.remove(OLD_SETTINGS_FILE)
+                else:
+                    raise e
+
 
     PHANTOMJS_DIR = Path('phantomjs')
     # c:\Users\maste\AppData\Local\Programs\Music Caster\settings.json
@@ -301,7 +310,14 @@ if __name__ == '__main__':
             if DatabaseConnection.DATABASE_FILE.exists():
                 print('not moving database because file already exists')
             else:
-                os.rename(DatabaseConnection.OLD_DATABASE_FILE, DatabaseConnection.DATABASE_FILE)
+                try:
+                    os.rename(DatabaseConnection.OLD_DATABASE_FILE, DatabaseConnection.DATABASE_FILE)
+                except OSError as e:
+                    if e.winerror == 17:
+                        copy2(DatabaseConnection.OLD_DATABASE_FILE, DatabaseConnection.DATABASE_FILE)
+                        os.remove(DatabaseConnection.OLD_DATABASE_FILE)
+                    else:
+                        raise e
             try:
                 with DatabaseConnection() as conn:
                     pass
@@ -377,7 +393,7 @@ if __name__ == '__main__':
     all_tracks, all_tracks_sorted = {}, []
     url_metadata: dict(URLMetadata) = {}
     tray_playlists = [t('Playlists Tab')]
-    CHECK_MARK = '✓'
+    CHECK_MARK = 'âœ“'
     music_folders, device_names = [], [(f'{CHECK_MARK} ' + t('Local device'), 'device:0')]
     music_queue, done_queue, next_queue = deque(), deque(), deque()
     # usage: background_thread sleep(1) if seek_queue, seek_queue.pop(), seek_queue.clear(), call set_pos
