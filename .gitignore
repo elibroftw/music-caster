@@ -54,3 +54,4 @@ src/music_caster.db-journal
 src/thumb.jpg
 app/node_modules/
 app/src-tauri/target/
+stats.html
