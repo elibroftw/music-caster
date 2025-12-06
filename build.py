@@ -592,11 +592,19 @@ if __name__ == '__main__':
                 pytest_args.append('--test-auto-update')
             if args.ci:
                 pytest_args.append('--ci')
+            pytest_args.append('--capture=no')
             check_call(pytest_args, cwd=SRC_DIR)
         except CalledProcessError:
             print('pytest: failed')
             sys.exit(1)
         # Test if executable can be run
+        import appdirs
+        user_data_dir = Path(appdirs.user_data_dir(roaming=True))
+        test(
+            'User data dir exists',
+            lambda: user_data_dir.exists(),
+            True,
+        )
         p = Popen(
             f'"{DIST_DIR}/Music Caster OneDir/Music Caster" -m --debug',
             shell=True)

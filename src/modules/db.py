@@ -3,9 +3,14 @@ from pathlib import Path
 import appdirs
 from meta import BUNDLE_IDENTIFIER
 
+user_data_dir = Path(appdirs.user_data_dir(roaming=True))
+if not user_data_dir.exists():
+    print('warning: roaming app dir does not exist!')
+    user_data_dir = Path.home()
+
 class DatabaseConnection:
     OLD_DATABASE_FILE = Path('music_caster.db').absolute()
-    DEFAULT_DATABASE_FILE = (Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / 'music_caster.db').absolute()
+    DEFAULT_DATABASE_FILE = (Path(user_data_dir) / BUNDLE_IDENTIFIER / 'music_caster.db').absolute()
     DATABASE_FILE = OLD_DATABASE_FILE
 
     @staticmethod
