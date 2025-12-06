@@ -47,9 +47,18 @@ jobs:
           python build.py --ci --no-deps --no-tests --no-install
 
       - name: Test build
+        id: test
         run: |
           .venv\Scripts\Activate.ps1
           python build.py --ci --no-deps --no-build --no-install
+
+      - name: Save
+        if: failure() && steps.test.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-build
+          path: |
+            dist/Music Caster Setup.exe
 
       # upload the build continuously to avoid duplicate build on a tag
       # script will exit with zero if release for VERSION exists since --ci is used

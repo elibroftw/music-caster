@@ -609,6 +609,14 @@ if __name__ == '__main__':
             f'"{DIST_DIR}/Music Caster OneDir/Music Caster" -m --debug',
             shell=True)
         time.sleep(5)
+        p.poll()
+        if p.returncode is not None:
+            print('got return code', p.returncode)
+        test(
+            'No return code',
+            lambda: p.returncode is None,
+            True,
+        )
         test(
             'Music Caster Should Be Running',
             lambda: is_already_running(threshold=1),
