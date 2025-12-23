@@ -1,9 +1,10 @@
-import { Button, Flex, Menu, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
-import { useWindowEvent } from '@mantine/hooks';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { useContext, useEffect, useMemo, useRef } from 'react';
+import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import TrackContextMenu from '../components/TrackContextMenu';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
+import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './Queue.module.css';
 
 export default function Queue() {
@@ -53,7 +54,7 @@ export default function Queue() {
 						<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right' }}>
 							{index - queuePosition}
 						</Text>
-						<Text size='sm' fw={500}>{track}</Text>
+						<Text size='sm' fw={500}>{track[1]}</Text>
 					</Flex>
 				</Paper>));
 		}, [JSON.stringify(playerState?.queue), queuePosition]);
@@ -77,15 +78,26 @@ export default function Queue() {
 	};
 
 	const handlePlayNext = () => {
+		if (contextMenuTrigger?.item !== undefined) {
+			api.modifyQueue([contextMenuTrigger.item], 'next_up');
+		}
 	};
 
 	const handleAddToQueue = () => {
+		const uri = playerState!.queue[contextMenuTrigger!.item]![0];
+		api.playUri(uri, PlayAction.QUEUE);
 	};
 
-	const handleShowFile = () => {
+	const handleShowFile = async () => {
+		if (contextMenuTrigger?.item !== undefined) {
+			const uri = playerState!.queue[contextMenuTrigger.item]![0];
+			await revealItemInDir(uri);
+		}
 	};
 
 	const handleCopyUris = () => {
+		const uri = playerState!.queue[contextMenuTrigger!.item]![0];
+		navigator.clipboard.writeText(uri);
 	};
 
 	return (

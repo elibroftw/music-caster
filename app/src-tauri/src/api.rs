@@ -33,37 +33,34 @@ impl PlaybackStatus {
   }
 }
 
-pub struct ApiState {
-  pub port: RwLock<u16>,
-  pub is_running: RwLock<bool>,
-  pub player_state: RwLock<PlayerState>,
+pub struct DaemonState {
+  pub port: u16,
+  pub is_running: bool,
+  pub api_key: Option<String>,
 }
 
-impl ApiState {
+impl DaemonState {
+  pub fn get_base_url(&self) -> String {
+    format!("http://localhost:{}", self.port)
+  }
+}
+
+impl PlayerState {
   pub fn new() -> Self {
     Self {
-      port: RwLock::new(2001),
-      is_running: RwLock::new(false),
-      player_state: RwLock::new(PlayerState {
-        status: PlaybackStatus::NotRunning,
-        volume: 20.0,
-        lang: String::from("en"),
-        title: String::from("Nothing Playing"),
-        artist: String::from(""),
-        album: String::from(""),
-        track_position: 0.0,
-        track_length: 0.0,
-        queue_length: 0,
-        queue: Vec::new(),
-        queue_position: 0,
-        file_name: String::from(""),
-      }),
+      status: PlaybackStatus::NotRunning,
+      volume: 20.0,
+      lang: String::from("en"),
+      title: String::from("Nothing Playing"),
+      artist: String::from(""),
+      album: String::from(""),
+      track_position: 0.0,
+      track_length: 0.0,
+      queue_length: 0,
+      queue: Vec::new(),
+      queue_position: 0,
+      file_name: String::from(""),
     }
-  }
-
-  pub fn get_base_url(&self) -> String {
-    let port = self.port.read().unwrap();
-    format!("http://localhost:{}", *port)
   }
 }
 
@@ -78,7 +75,7 @@ pub struct PlayerState {
   pub track_position: f64,
   pub track_length: f64,
   pub queue_length: i32,
-  pub queue: Vec<String>,
+  pub queue: Vec<(String, String)>,
   pub queue_position: i32,
   pub file_name: String,
 }
@@ -89,7 +86,7 @@ pub struct ActionResponse {
 }
 
 #[tauri::command]
-pub async fn api_is_running(state: State<'_, ApiState>) -> Result<bool, String> {
+pub async fn api_is_running(state: State<'_, DaemonState>) -> Result<bool, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/running/", state.get_base_url());
 
@@ -103,7 +100,7 @@ pub async fn api_is_running(state: State<'_, ApiState>) -> Result<bool, String> 
 }
 
 #[tauri::command]
-pub async fn api_activate(state: State<'_, ApiState>) -> Result<ActionResponse, String> {
+pub async fn api_activate(state: State<'_, DaemonState>) -> Result<ActionResponse, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/action/activate", state.get_base_url());
 
@@ -117,7 +114,7 @@ pub async fn api_activate(state: State<'_, ApiState>) -> Result<ActionResponse, 
 
 #[tauri::command]
 pub async fn api_get_devices(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   friendly: bool,
 ) -> Result<serde_json::Value, String> {
   let client = reqwest::Client::new();
@@ -138,7 +135,7 @@ pub async fn api_get_devices(
 
 #[tauri::command]
 pub async fn api_change_device(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   device_id: String,
 ) -> Result<String, String> {
   let client = reqwest::Client::new();
@@ -150,7 +147,7 @@ pub async fn api_change_device(
 }
 
 #[tauri::command]
-pub async fn api_play(state: State<'_, ApiState>) -> Result<ActionResponse, String> {
+pub async fn api_play(state: State<'_, DaemonState>) -> Result<ActionResponse, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/action/play", state.get_base_url());
 
@@ -163,7 +160,7 @@ pub async fn api_play(state: State<'_, ApiState>) -> Result<ActionResponse, Stri
 }
 
 #[tauri::command]
-pub async fn api_pause(state: State<'_, ApiState>) -> Result<ActionResponse, String> {
+pub async fn api_pause(state: State<'_, DaemonState>) -> Result<ActionResponse, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/action/pause", state.get_base_url());
 
@@ -177,7 +174,7 @@ pub async fn api_pause(state: State<'_, ApiState>) -> Result<ActionResponse, Str
 
 #[tauri::command]
 pub async fn api_next(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   times: i32,
   ignore_timestamps: bool,
 ) -> Result<ActionResponse, String> {
@@ -198,7 +195,7 @@ pub async fn api_next(
 
 #[tauri::command]
 pub async fn api_prev(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   times: i32,
   ignore_timestamps: bool,
 ) -> Result<ActionResponse, String> {
@@ -218,7 +215,7 @@ pub async fn api_prev(
 }
 
 #[tauri::command]
-pub async fn api_toggle_repeat(state: State<'_, ApiState>) -> Result<ActionResponse, String> {
+pub async fn api_toggle_repeat(state: State<'_, DaemonState>) -> Result<ActionResponse, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/action/repeat", state.get_base_url());
 
@@ -231,7 +228,7 @@ pub async fn api_toggle_repeat(state: State<'_, ApiState>) -> Result<ActionRespo
 }
 
 #[tauri::command]
-pub async fn api_toggle_shuffle(state: State<'_, ApiState>) -> Result<ActionResponse, String> {
+pub async fn api_toggle_shuffle(state: State<'_, DaemonState>) -> Result<ActionResponse, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/action/shuffle", state.get_base_url());
 
@@ -244,7 +241,7 @@ pub async fn api_toggle_shuffle(state: State<'_, ApiState>) -> Result<ActionResp
 }
 
 #[tauri::command]
-pub async fn api_get_state(state: State<'_, ApiState>) -> Result<PlayerState, String> {
+pub async fn api_get_state(state: State<'_, DaemonState>) -> Result<PlayerState, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/state/", state.get_base_url());
 
@@ -272,7 +269,7 @@ pub struct PlayUrisOptions {
 
 #[tauri::command]
 pub async fn api_play_uris(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   options: PlayUrisOptions,
 ) -> Result<PlayerState, String> {
   let client = reqwest::Client::new();
@@ -292,7 +289,7 @@ pub async fn api_play_uris(
 }
 
 #[tauri::command]
-pub async fn api_exit(state: State<'_, ApiState>) -> Result<PlayerState, String> {
+pub async fn api_exit(state: State<'_, DaemonState>) -> Result<PlayerState, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/exit/", state.get_base_url());
 
@@ -306,7 +303,7 @@ pub async fn api_exit(state: State<'_, ApiState>) -> Result<PlayerState, String>
 
 #[tauri::command]
 pub async fn api_change_setting(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   setting_name: String,
   value: serde_json::Value,
 ) -> Result<String, String> {
@@ -328,7 +325,7 @@ pub async fn api_change_setting(
 }
 
 #[tauri::command]
-pub async fn api_refresh_devices(state: State<'_, ApiState>) -> Result<String, String> {
+pub async fn api_refresh_devices(state: State<'_, DaemonState>) -> Result<String, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/refresh-devices/", state.get_base_url());
 
@@ -338,7 +335,7 @@ pub async fn api_refresh_devices(state: State<'_, ApiState>) -> Result<String, S
 }
 
 #[tauri::command]
-pub async fn api_rescan_library(state: State<'_, ApiState>) -> Result<String, String> {
+pub async fn api_rescan_library(state: State<'_, DaemonState>) -> Result<String, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/rescan-library/", state.get_base_url());
 
@@ -348,7 +345,7 @@ pub async fn api_rescan_library(state: State<'_, ApiState>) -> Result<String, St
 }
 
 #[tauri::command]
-pub async fn api_set_timer(state: State<'_, ApiState>, value: String) -> Result<String, String> {
+pub async fn api_set_timer(state: State<'_, DaemonState>, value: String) -> Result<String, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/timer/", state.get_base_url());
 
@@ -364,7 +361,7 @@ pub async fn api_set_timer(state: State<'_, ApiState>, value: String) -> Result<
 }
 
 #[tauri::command]
-pub async fn api_get_timer(state: State<'_, ApiState>) -> Result<String, String> {
+pub async fn api_get_timer(state: State<'_, DaemonState>) -> Result<String, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/timer/", state.get_base_url());
 
@@ -374,13 +371,13 @@ pub async fn api_get_timer(state: State<'_, ApiState>) -> Result<String, String>
 }
 
 #[tauri::command]
-pub async fn api_cancel_timer(state: State<'_, ApiState>) -> Result<String, String> {
+pub async fn api_cancel_timer(state: State<'_, DaemonState>) -> Result<String, String> {
   api_set_timer(state, "cancel".to_string()).await
 }
 
 #[tauri::command]
 pub fn api_get_file_url(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   file_path: String,
   thumbnail_only: bool,
   api_key: Option<String>,
@@ -400,7 +397,7 @@ pub fn api_get_file_url(
 
 #[tauri::command]
 pub fn api_get_stream_url(
-  state: State<'_, ApiState>,
+  state: State<'_, DaemonState>,
   file_path: String,
   api_key: Option<String>,
 ) -> String {
@@ -414,7 +411,7 @@ pub fn api_get_stream_url(
 }
 
 #[tauri::command]
-pub async fn api_get_album_art_url(state: State<'_, ApiState>) -> Result<String, String> {
+pub async fn api_get_album_art_url(state: State<'_, DaemonState>) -> Result<String, String> {
   let client = reqwest::Client::new();
   let url = format!("{}/album-art/", state.get_base_url());
 
@@ -425,20 +422,45 @@ pub async fn api_get_album_art_url(state: State<'_, ApiState>) -> Result<String,
   Ok(format!("data:image/png;base64,{}", base64_image))
 }
 
-// #[tauri::command]
-// pub async fn api_modify_queue(state: State<'_, Settings>) -> Result<(), String> {
-//   let guard = state.api_key.read().unwrap();
-//   let api_key = (*guard).clone().unwrap();
-//   let client = reqwest::Client::new();
-//   let url = format!("{}/modify-queue/", state.get_base_url());
-//   let _ = client
-//     .post(&url)
-//     .header("x-api-key", api_key)
-//     .send()
-//     .await
-//     .map_err(|e| e.to_string())?;
-//   Ok(())
-// }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ModifyQueue {
+  pub action: ModifyQueueAction,
+  pub indices: Vec<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModifyQueueAction {
+  NextUp,
+  Remove,
+}
+
+#[tauri::command]
+pub async fn api_modify_queue(
+  state: State<'_, RwLock<DaemonState>>,
+  indices: Vec<u64>,
+  action: ModifyQueueAction,
+) -> Result<(), String> {
+  let (api_key, base_url) = {
+    let guard = state.read().unwrap();
+    (
+      guard.api_key.clone().ok_or("API Key not set".to_string())?,
+      guard.get_base_url(),
+    )
+  };
+  let client = reqwest::Client::new();
+  let url = format!("{}/modify-queue/", base_url);
+  let payload = ModifyQueue { action, indices };
+
+  let _ = client
+    .post(&url)
+    .header("x-api-key", api_key)
+    .json(&payload)
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+  Ok(())
+}
 
 pub async fn poll_player_state(app_handle: tauri::AppHandle) {
   let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
@@ -446,52 +468,62 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
   loop {
     interval.tick().await;
 
-    if let Some(api_state) = app_handle.try_state::<ApiState>() {
-      let client = reqwest::Client::new();
-      let url = format!("{}/state/", api_state.get_base_url());
+    if let Some(daemon_state) = app_handle.try_state::<RwLock<DaemonState>>() {
+      if let Some(player_state) = app_handle.try_state::<RwLock<PlayerState>>() {
+        let client = reqwest::Client::new();
+        let url = format!("{}/state/", daemon_state.read().unwrap().get_base_url());
 
-      match client.get(&url).send().await {
-        Ok(response) => match response.json::<PlayerState>().await {
-          Ok(new_state) => {
-            let state_changed = if let Ok(player_state) = api_state.player_state.read() {
-              *player_state != new_state
-            } else {
-              false
-            };
+        let mut request = client.get(&url);
 
-            tray_update(app_handle.clone(), &new_state);
+        match request.send().await {
+          Ok(response) => match response.json::<PlayerState>().await {
+            Ok(new_state) => {
+              let mut daemon_state_mut = daemon_state.write().unwrap();
+              if daemon_state_mut.api_key.is_none() {
+                let settings = crate::settings::Settings::load(&app_handle);
+                daemon_state_mut.api_key = Some(settings.api_key);
+              }
 
-            if let Ok(mut is_running) = api_state.is_running.write() {
-              *is_running = true;
-            }
+              let state_changed = if let Ok(player_state) = player_state.read() {
+                *player_state != new_state
+              } else {
+                false
+              };
 
-            if let Ok(mut player_state) = api_state.player_state.write() {
-              *player_state = new_state.clone();
-            }
+              tray_update(app_handle.clone(), &new_state);
 
-            if state_changed {
-              if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
-                log::error!("[Player State Poll] Failed to emit event: {}", e);
+              // if let Ok(mut is_running) = player_state.is_running.write() {
+              //   *is_running = true;
+              // }
+
+              if let Ok(mut player_state) = player_state.write() {
+                *player_state = new_state.clone();
+              }
+
+              if state_changed {
+                if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
+                  log::error!("[Player State Poll] Failed to emit event: {}", e);
+                }
               }
             }
-          }
-          Err(e) => {
-            log::error!("[Player State Poll] Failed to parse state: {}", e);
-            if let Ok(mut is_running) = api_state.is_running.write() {
-              *is_running = false;
+            Err(e) => {
+              log::error!("[Player State Poll] Failed to parse state: {}", e);
+              // if let Ok(mut is_running) = player_state.is_running.write() {
+              //   *is_running = false;
+              // }
             }
-          }
-        },
-        Err(e) => {
-          log::error!("[Player State Poll] Failed to fetch state: {}", e);
-          if let Ok(mut is_running) = api_state.is_running.write() {
-            *is_running = false;
+          },
+          Err(e) => {
+            log::error!("[Player State Poll] Failed to fetch state: {}", e);
+            // if let Ok(mut is_running) = player_state.is_running.write() {
+            //   *is_running = false;
+            // }
           }
         }
+      } else {
+        log::error!("[Player State Poll] ApiState not found");
+        break;
       }
-    } else {
-      log::error!("[Player State Poll] ApiState not found");
-      break;
     }
   }
 }

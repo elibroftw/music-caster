@@ -130,7 +130,7 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
         }
       }
 
-      let tray_icon = app.tray_by_id(TRAY_ID).unwrap();
+      let _tray_icon = app.tray_by_id(TRAY_ID).unwrap();
 
       // TODO: FIGURE OUT HOW TO GET THE ITEM HANDLER IN v2
       // let item_handle: MenuItem = tray_icon.get_item();

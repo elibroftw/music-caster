@@ -1,9 +1,10 @@
 import { Box, Button, Group, Modal, Paper, ScrollArea, Skeleton, Stack, Table, TextInput } from '@mantine/core';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import Database from '@tauri-apps/plugin-sql';
-import { Track } from 'common/commands';
 import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PlayerStateContext } from '../common/contexts';
+import { PlayAction, Track } from '../common/commands';
+import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import TrackContextMenu from '../components/TrackContextMenu';
@@ -12,6 +13,7 @@ import classes from './MusicLibrary.module.css';
 export default function MusicLibrary() {
 	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
+	const api = useContext(MusicCasterAPIContext)!;
 	const [contextMenu, setMenuItem] = useContextMenu<Track>({ showOnClick: true });
 	const [loading, setLoading] = useState(true);
 	const [tracks, setTracks] = useState<Track[]>([]);
@@ -59,16 +61,34 @@ export default function MusicLibrary() {
 		setMetadataModalOpened(false);
 	};
 
+	const handlePlay = () => {
+		if (contextMenu?.item) {
+			api.playUri(contextMenu.item.file_path, PlayAction.PLAY);
+		}
+	};
+
 	const handlePlayNext = () => {
+		if (contextMenu?.item) {
+			api.playUri(contextMenu.item.file_path, PlayAction.PLAY_NEXT);
+		}
 	};
 
 	const handleAddToQueue = () => {
+		if (contextMenu?.item) {
+			api.playUri(contextMenu.item.file_path, PlayAction.QUEUE);
+		}
 	};
 
-	const handleShowFile = () => {
+	const handleShowFile = async () => {
+		if (contextMenu?.item) {
+			await revealItemInDir(contextMenu.item.file_path);
+		}
 	};
 
 	const handleCopyUris = () => {
+		if (contextMenu?.item) {
+			navigator.clipboard.writeText(contextMenu.item.file_path);
+		}
 	};
 
 	if (loading && tracks.length === 0) {
@@ -124,6 +144,7 @@ export default function MusicLibrary() {
 			<ContextMenu trigger={contextMenu} offsetLeft={88} offsetTop={-10}>
 				<TrackContextMenu
 					onEditMetadata={contextMenu ? () => handleEditMetadata(contextMenu.item) : undefined}
+					onPlay={handlePlay}
 					onPlayNext={handlePlayNext}
 					onAddToQueue={handleAddToQueue}
 					onShowFile={handleShowFile}

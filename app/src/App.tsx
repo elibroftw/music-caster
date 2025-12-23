@@ -3,6 +3,7 @@ import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
 import * as tauriEvent from '@tauri-apps/api/event';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
@@ -138,7 +139,15 @@ export default function () {
 			return () => { promise.then(unlisten => unlisten()) };
 		}, []);
 
-
+		// Drag and drop listener
+		useEffect(() => {
+			const promise = getCurrentWebview().onDragDropEvent((event) => {
+				if (event.payload.type === 'drop') {
+					api.invokePlayUris({ uris: event.payload.paths, queue: true });
+				}
+			});
+			return () => { promise.then(unlisten => unlisten()) };
+		}, []);
 
 		// Player state change listener
 		useEffect(() => {
