@@ -1088,13 +1088,13 @@ if __name__ == '__main__':
         return jsonify(now_playing)
 
 
-    def get_queue_for_frontend() -> list[str]:
+    def get_queue_for_frontend() -> list:
         try:
             tracks = []
             for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
                 for uri in items:
                     formatted_track = format_uri(uri, _for='queue')
-                    tracks.append(formatted_track)
+                    tracks.append((uri, formatted_track))
             return tracks
         except RuntimeError:
             return get_queue_for_frontend()

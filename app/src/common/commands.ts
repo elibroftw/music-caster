@@ -12,7 +12,7 @@ export interface PlayerState {
 	track_position: number;
 	track_length: number;
 	queue_length: number;
-	queue: string[];
+	queue: [string, string][];
 	queue_position: number;
 	file_name: string;
 }
@@ -108,6 +108,10 @@ class MusicCasterAPI {
 		return await this.invokePlayUris({
 			uri, playNext: action === PlayAction.PLAY_NEXT, queue: action === PlayAction.QUEUE,
 		})
+	}
+
+	async modifyQueue(indices: number[], action: 'next_up' | 'remove'): Promise<void> {
+		return invoke<void>('api_modify_queue', { indices, action });
 	}
 
 	async exit(): Promise<PlayerState> {

@@ -5,7 +5,7 @@
 )]
 
 use serde::Serialize;
-use std::fs;
+use std::{fs, sync::RwLock};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{self, Emitter, Manager};
@@ -17,9 +17,9 @@ mod db;
 mod sidecar_utils;
 mod tray_icon;
 mod utils;
-// mod settings;
+mod settings;
 
-use api::{ApiState, *};
+use api::{PlayerState, DaemonState, *};
 use tray_icon::{TrayState, create_tray_icon, tray_update_lang};
 use utils::long_running_thread;
 
@@ -86,8 +86,8 @@ fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String
 
       if pid_file_clone.exists() {
         let port = read_port_from_pid_file(pid_file_clone);
-        if let Some(api_state) = app_handle_clone.try_state::<ApiState>() {
-          *api_state.port.write().unwrap() = port;
+        if let Some(daemon_state) = app_handle_clone.try_state::<RwLock<DaemonState>>() {
+          daemon_state.write().unwrap().port = port;
           log::info!("[Music Caster] Updated port to: {}", port);
         }
         break;
@@ -184,7 +184,12 @@ pub fn run() {
     .plugin(tauri_plugin_window_state::Builder::default().build())
     // custom setup code
     .setup(|app| {
-      app.manage(ApiState::new());
+			app.manage(RwLock::new(PlayerState::new()));
+			app.manage(RwLock::new(DaemonState {
+				port: 2001,
+				is_running: false,
+				api_key: None,
+			}));
       app.manage(Mutex::new(TrayState::NotPlaying));
       let _ = create_tray_icon(app.handle());
 

@@ -4,6 +4,7 @@ import { TbClipboard, TbCopy, TbEdit, TbFile, TbPlayerPlay, TbPlayerTrackNext, T
 
 interface TrackContextMenuProps {
 	onEditMetadata?: () => void;
+	onPlay?: () => void;
 	onPlayNext?: () => void;
 	onAddToQueue?: () => void;
 	onRemove?: () => void;
@@ -13,6 +14,7 @@ interface TrackContextMenuProps {
 
 export default function TrackContextMenu({
 	onEditMetadata,
+	onPlay,
 	onPlayNext,
 	onAddToQueue,
 	onRemove,
@@ -21,11 +23,14 @@ export default function TrackContextMenu({
 }: TrackContextMenuProps) {
 	return (
 		<Menu.Dropdown>
-			<Menu.Item
-				leftSection={<TbPlayerPlay size={16} />}
-			>
-				Play
-			</Menu.Item>
+			{onPlay && (
+				<Menu.Item
+					leftSection={<TbPlayerPlay size={16} />}
+					onClick={() => onPlay()}
+				>
+					Play
+				</Menu.Item>
+			)}
 			{onPlayNext && (
 				<Menu.Item
 					leftSection={<TbPlayerTrackNext size={16} />}
