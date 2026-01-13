@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.25.2
+- [Fix] URL processing
+
 5.25.1
 - [Fix] Settings save/load ?
 - [Fix] Typing
