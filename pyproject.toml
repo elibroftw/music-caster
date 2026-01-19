@@ -11,5 +11,6 @@ testpaths = [
     "tests",
 ]
 markers = [
-    "no_ci: marks tests as unable to run in CI environment"
+    "no_ci: marks tests as unable to run in CI environment",
+    "ci_only: marks tests as only able to run in CI environment",
 ]
