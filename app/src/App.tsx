@@ -5,6 +5,7 @@ import { isTauri } from '@tauri-apps/api/core';
 import * as tauriEvent from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
 import * as tauriUpdater from '@tauri-apps/plugin-updater';
@@ -65,6 +66,42 @@ export default function () {
 
 	// Tauri event listeners (run on mount)
 	if (isTauri()) {
+		const onOpenUrlRef = useRef({});
+
+		useEffect(() => {
+			const token = onOpenUrlRef.current;
+
+			onOpenUrl((urls: string[]) => {
+				if (token !== onOpenUrlRef.current) return;
+				if (!urls[0]) return;
+
+				try {
+					const url = new URL(urls[0]);
+					const params = url.searchParams;
+
+					const queue = params.get('queue');
+					const playnext = params.get('playnext');
+					const uris = params.getAll('uri');
+
+					tauriLogger.info(`onOpenUrl - queue: ${queue}, playnext: ${playnext}, uris: ${uris.join(', ')}`);
+
+					if (uris.length > 0) {
+						api.invokePlayUris({
+							uris,
+							queue: queue === 'true',
+							playNext: playnext === 'true'
+						});
+					}
+				} catch (error) {
+					tauriLogger.error(`Failed to parse URL: ${error}`);
+				}
+			});
+
+			return () => {
+				onOpenUrlRef.current = {};
+			};
+		}, []);
+
 		useEffect(() => {
 			const promise = tauriEvent.listen('longRunningThread', ({ payload }: { payload: any }) => {
 				tauriLogger.info(payload.message);

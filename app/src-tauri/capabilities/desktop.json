@@ -11,7 +11,7 @@
   "permissions": [
     "updater:default",
     "store:default",
-		"autostart:allow-enable",
+    "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
     "opener:default",
@@ -19,6 +19,7 @@
     "log:default",
     "core:window:allow-toggle-maximize",
     "fs:allow-download-write-recursive",
-    "sql:default"
+    "sql:default",
+    "deep-link:default"
   ]
 }

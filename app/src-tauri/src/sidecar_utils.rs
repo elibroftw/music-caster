@@ -150,7 +150,7 @@ impl SidecarConfig for MusicCasterDaemon {
     let db_path = app_data_dir.join("music_caster.db").display().to_string();
     let settings_path = app_data_dir.join("settings.json").display().to_string();
 
-		// TODO: try reading Settings file and setting Settings state
+    // TODO: try reading Settings file and setting Settings state
 
     log::info!("settings path: {}", &settings_path);
     log::info!("db_path: {}", &db_path);

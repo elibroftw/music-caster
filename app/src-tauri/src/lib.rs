@@ -5,21 +5,21 @@
 )]
 
 use serde::Serialize;
-use std::{fs, sync::RwLock};
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::{fs, sync::RwLock};
 use tauri::{self, Emitter, Manager};
 use tauri_plugin_store;
 use tauri_plugin_window_state;
 
 mod api;
 mod db;
+mod settings;
 mod sidecar_utils;
 mod tray_icon;
 mod utils;
-mod settings;
 
-use api::{PlayerState, DaemonState, *};
+use api::{DaemonState, PlayerState, *};
 use tray_icon::{TrayState, create_tray_icon, tray_update_lang};
 use utils::long_running_thread;
 
@@ -127,6 +127,7 @@ pub fn run() {
 
   // main window should be invisible to allow either the setup delay or the plugin to show the window
   tauri::Builder::default()
+    .plugin(tauri_plugin_deep_link::init())
     .plugin(tauri_plugin_autostart::Builder::new().build())
     .plugin(
       tauri_plugin_sql::Builder::default()
@@ -169,7 +170,7 @@ pub fn run() {
       api_get_file_url,
       api_get_stream_url,
       api_get_album_art_url,
-			api_modify_queue
+      api_modify_queue
     ])
     // allow only one instance and propagate args and cwd to existing instance
     .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
@@ -177,6 +178,7 @@ pub fn run() {
         .emit("newInstance", SingleInstancePayload { args, cwd })
         .unwrap();
     }))
+		.plugin(tauri_plugin_deep_link::init())
     // persistent storage with filesystem
     .plugin(tauri_plugin_store::Builder::default().build())
     // save window position and size between sessions
@@ -184,12 +186,12 @@ pub fn run() {
     .plugin(tauri_plugin_window_state::Builder::default().build())
     // custom setup code
     .setup(|app| {
-			app.manage(RwLock::new(PlayerState::new()));
-			app.manage(RwLock::new(DaemonState {
-				port: 2001,
-				is_running: false,
-				api_key: None,
-			}));
+      app.manage(RwLock::new(PlayerState::new()));
+      app.manage(RwLock::new(DaemonState {
+        port: 2001,
+        is_running: false,
+        api_key: None,
+      }));
       app.manage(Mutex::new(TrayState::NotPlaying));
       let _ = create_tray_icon(app.handle());
 

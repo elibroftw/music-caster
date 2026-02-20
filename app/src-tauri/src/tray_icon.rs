@@ -197,8 +197,8 @@ pub fn tray_update(app: tauri::AppHandle, player_state: &PlayerState) {
   let mut tray_state = tray_state_mutex.lock().unwrap();
   let tray_icon: TrayIcon = app.tray_by_id(TRAY_ID).unwrap();
 
-	let icon_empty = include_bytes!("../icons/SystemTray1.ico");
-	let icon_full = include_bytes!("../icons/SystemTray2.ico");
+  let icon_empty = include_bytes!("../icons/SystemTray1.ico");
+  let icon_full = include_bytes!("../icons/SystemTray2.ico");
 
   match &player_state.status {
     PlaybackStatus::Playing => {
@@ -228,7 +228,7 @@ pub fn tray_update(app: tauri::AppHandle, player_state: &PlayerState) {
       tray_icon
         .set_icon(tauri::image::Image::from_bytes(icon_empty).ok())
         .unwrap();
-			let _ = tray_icon.set_tooltip(Some(String::from("Not Playing")));
+      let _ = tray_icon.set_tooltip(Some(String::from("Not Playing")));
       *tray_state = TrayState::NotPlaying;
     }
     PlaybackStatus::NotRunning => {}

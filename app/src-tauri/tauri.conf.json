@@ -130,7 +130,14 @@
         "https://youtu.be/ZXjlZBisYPQ"
       ],
       "pubkey": ""
-    }
+    },
+		"deep-link": {
+			"desktop": {
+				"schemes": [
+					"music-caster"
+				]
+			}
+		}
   },
   "app": {
     "security": {
