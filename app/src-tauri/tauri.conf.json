@@ -35,7 +35,81 @@
         "depends": []
       }
     },
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "fileAssociations": [
+      {
+        "ext": ["mp3"],
+        "name": "MP3",
+        "description": "MP3 - Audio File",
+        "contentTypes": ["public.mp3"]
+      },
+      {
+        "ext": ["flac"],
+        "name": "FLAC",
+        "description": "FLAC - Audio File",
+        "contentTypes": ["org.xiph.flac"]
+      },
+      {
+        "ext": ["m4a"],
+        "name": "M4A",
+        "description": "M4A - Audio File",
+        "contentTypes": ["public.mpeg-4-audio"]
+      },
+      {
+        "ext": ["aac"],
+        "name": "AAC",
+        "description": "AAC - Audio File",
+        "contentTypes": ["public.mpeg-4-audio"]
+      },
+      {
+        "ext": ["ogg"],
+        "name": "OGG",
+        "description": "OGG - Audio File",
+        "contentTypes": ["org.xiph.ogg"]
+      },
+      {
+        "ext": ["opus"],
+        "name": "OPUS",
+        "description": "OPUS - Audio File",
+        "contentTypes": ["public.audio"]
+      },
+      {
+        "ext": ["aiff"],
+        "name": "AIFF",
+        "description": "AIFF - Audio File",
+        "contentTypes": ["public.aiff-audio"]
+      },
+      {
+        "ext": ["wma"],
+        "name": "WMA",
+        "description": "WMA - Audio File",
+        "contentTypes": ["public.audio"]
+      },
+      {
+        "ext": ["wav"],
+        "name": "WAV",
+        "description": "WAV - Audio File",
+        "contentTypes": ["com.microsoft.waveform-audio"]
+      },
+      {
+        "ext": ["mpeg"],
+        "name": "MPEG",
+        "description": "MPEG - Audio File",
+        "contentTypes": ["public.mpeg-4-audio"]
+      },
+      {
+        "ext": ["m3u"],
+        "name": "M3U",
+        "description": "M3U - Audio File",
+        "contentTypes": ["public.m3u-playlist"]
+      },
+      {
+        "ext": ["m3u8"],
+        "name": "M3U8",
+        "description": "M3U8 - Audio File",
+        "contentTypes": ["public.m3u-playlist"]
+      }
+    ]
   },
   "build": {
     "beforeDevCommand": "pnpm start",
