@@ -3035,8 +3035,8 @@ if __name__ == '__main__':
         ) and not args.nupdate
         update_checker.auto_update(install_update=install_update)
         State.installing_update = False
-
-        start_on_login_modifications()
+        if not USING_TAURI_FRONTEND:
+            start_on_login_modifications()
         p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
         p.name = 'pynputListener'
         p.start()
@@ -4438,7 +4438,7 @@ if __name__ == '__main__':
         update_settings('update_message', UPDATE_MESSAGE)
 
         # set file handlers only if installed from the setup (Not a portable installation)
-        if os.path.exists(UNINSTALLER):
+        if os.path.exists(UNINSTALLER) and not USING_TAURI_FRONTEND:
             with suppress(PermissionError):
                 add_reg_handlers(working_dir / 'Music Caster.exe', add_folder_context=settings['folder_context_menu'])
 
