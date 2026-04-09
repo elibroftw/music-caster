@@ -585,8 +585,9 @@ if __name__ == '__main__':
                 dist_files_exist = False
 
     if USING_TAURI_FRONTEND and platform.system() == 'Windows':
-        architecture = 'aarch64' if platform.architecture() == 'ARM64' else 'x86_64'
+        architecture = 'aarch64' if platform.machine() == 'ARM64' else 'x86_64'
         shutil.copy2(daemon_dist, DIST_DIR / f'music-caster-daemon-{architecture}-pc-windows-msvc.exe')
+        print('copied daemon to target triplet')
 
     if not args.skip_tests and dist_files_exist and not USING_TAURI_FRONTEND:
         try:
