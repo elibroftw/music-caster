@@ -481,8 +481,9 @@ if __name__ == '__main__':
 
 
     def close_tray():
-        tray_process_queue.put({'close': None})
-        tray_process.join()
+        if not USING_TAURI_FRONTEND:
+            tray_process_queue.put({'close': None})
+            tray_process.join()
 
 
     def save_settings():
@@ -1177,6 +1178,7 @@ if __name__ == '__main__':
                 if uris and uris[0].lower().replace(' ', '').replace('_', '') == 'systemaudio':
                     play_system_audio()
                 else:
+                    app_log.info(f'called play_uris with opt = {opt} uris len = {len(uris)}')
                     play_uris(uris, queue_uris=queue_only,
                             play_next=play_next, merge_tracks=merge_plays)
                     if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
@@ -1185,11 +1187,13 @@ if __name__ == '__main__':
                 if request_data['uri'].lower().replace(' ', '').replace('_', '') == 'systemaudio':
                     play_system_audio()
                 else:
+                    app_log.info(f'called play_uris with opt = {opt} uri = {request_data['uri']}, merge_tracks = {merge_plays}, queue all? {settings['queue_library']}')
                     play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
                     if settings['queue_library']:
                         queue_all()
         else:
             recent_api_plays['play'] += 1
+            app_log.info('increasing recent_api_plays play counter')
         return redirect('/') if request.method == 'GET' else api_state()
 
 
