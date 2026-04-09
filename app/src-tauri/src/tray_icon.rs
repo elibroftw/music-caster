@@ -4,7 +4,7 @@ use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{self, Emitter, Manager, Runtime, command};
 
-use crate::api::{PlaybackStatus, PlayerState};
+use crate::api::{PlaybackStatus, PlayerStatus};
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
@@ -192,7 +192,7 @@ pub fn tray_update_lang(app: tauri::AppHandle, lang: String) {
   }
 }
 
-pub fn tray_update(app: tauri::AppHandle, player_state: &PlayerState) {
+pub fn tray_update(app: tauri::AppHandle, player_state: &PlayerStatus) {
   let tray_state_mutex = app.state::<Mutex<TrayState>>();
   let mut tray_state = tray_state_mutex.lock().unwrap();
   let tray_icon: TrayIcon = app.tray_by_id(TRAY_ID).unwrap();

@@ -5,9 +5,9 @@
 )]
 
 use serde::Serialize;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::{fs, sync::RwLock};
 use tauri::{self, Emitter, Manager};
 use tauri_plugin_store;
 use tauri_plugin_window_state;
@@ -19,7 +19,7 @@ mod sidecar_utils;
 mod tray_icon;
 mod utils;
 
-use api::{DaemonState, PlayerState, *};
+use api::{DaemonStatus, PlayerStatus, *};
 use tray_icon::{TrayState, create_tray_icon, tray_update_lang};
 use utils::long_running_thread;
 
@@ -86,8 +86,8 @@ fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String
 
       if pid_file_clone.exists() {
         let port = read_port_from_pid_file(pid_file_clone);
-        if let Some(daemon_state) = app_handle_clone.try_state::<RwLock<DaemonState>>() {
-          daemon_state.write().unwrap().port = port;
+        if let Some(daemon_state) = app_handle_clone.try_state::<DaemonState>() {
+          daemon_state.write().await.port = port;
           log::info!("[Music Caster] Updated port to: {}", port);
         }
         break;
@@ -178,7 +178,7 @@ pub fn run() {
         .emit("newInstance", SingleInstancePayload { args, cwd })
         .unwrap();
     }))
-		.plugin(tauri_plugin_deep_link::init())
+    .plugin(tauri_plugin_deep_link::init())
     // persistent storage with filesystem
     .plugin(tauri_plugin_store::Builder::default().build())
     // save window position and size between sessions
@@ -186,8 +186,8 @@ pub fn run() {
     .plugin(tauri_plugin_window_state::Builder::default().build())
     // custom setup code
     .setup(|app| {
-      app.manage(RwLock::new(PlayerState::new()));
-      app.manage(RwLock::new(DaemonState {
+      app.manage(PlayerState::new(PlayerStatus::new()));
+      app.manage(DaemonState::new(DaemonStatus {
         port: 2001,
         is_running: false,
         api_key: None,
