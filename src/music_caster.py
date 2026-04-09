@@ -25,6 +25,7 @@ from meta import (
 )
 import time
 
+from modules.db import FileMetadata
 from utils import install_deno
 
 start_time = time.monotonic()
@@ -841,7 +842,9 @@ if __name__ == '__main__':
             # scan items in queue and library
             file_metadata_list = []
             urls_to_fetch = []
+            FileMetadata.cleanup_db_table()
             with DatabaseConnection() as conn:
+                cur = conn.cursor()
                 for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
                     if uri.startswith('http'):
                         if not URLMetadata.from_db(conn, uri):
@@ -850,8 +853,7 @@ if __name__ == '__main__':
                         m = get_metadata_wrapped(uri)
                         dict_to_use[uri] = m
                         file_metadata_list.append((uri, m))
-                cur = conn.cursor()
-                # save_metadata_batch(file_metadata_list, 'file_metadata', 'file_path')
+                FileMetadata.batch_save_to_db(file_metadata_list, cur)
                 gui_window.metadata['update_listboxes'] = True
 
                 for url in urls_to_fetch:

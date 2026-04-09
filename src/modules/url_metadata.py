@@ -1,3 +1,4 @@
+import sqlite3
 import time
 from pathlib import Path
 from typing import Self
@@ -145,7 +146,7 @@ class URLMetadata:
             return default
         return getattr(self, key, default)
 
-    def save_to_db(self, cur):
+    def save_to_db(self, cur: sqlite3.Cursor):
         """Return SQL statement and values for database insertion."""
         sql = '''INSERT OR REPLACE INTO url_metadata
                  (src, title, artist, album, length, url, audio_url, ext, album_cover_url, expiry, id, type, playlist_url, live, timestamps)

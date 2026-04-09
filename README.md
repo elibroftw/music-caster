@@ -161,3 +161,7 @@ Lastly, build the app and submit it to Microsoft for false positive. I'm not sur
 The Tauri version of the app is in `app`. The goal is very simple.
 
 First, we are going to make Music Caster a daemon. This means we can use Tauri for UI code, and then interact with the daemon.
+
+### Incremental Daemon Builds
+
+`.\build.cmd --skip-tests --no-install --skip-deps`
