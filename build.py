@@ -555,7 +555,7 @@ if __name__ == '__main__':
 
     if platform.system() == 'Windows':
         if USING_TAURI_FRONTEND:
-            dist_files.append(str(daemon_dist))
+            dist_files.append(daemon_dist.name)
         else:
             dist_files.extend(('Music Caster Setup.exe', 'Portable.zip'))
     elif platform.system() == 'Darwin':
@@ -575,7 +575,7 @@ if __name__ == '__main__':
             dist_files_exist = False
         print((dist_file + ':').ljust(30) + file_exists_str)
 
-    if dist_files_exist and platform.system() == 'Windows':
+    if dist_files_exist and platform.system() == 'Windows' and not USING_TAURI_FRONTEND:
         with zipfile.ZipFile(DIST_DIR / 'Portable.zip') as portable_zip:
             if 'Updater.exe' in portable_zip.namelist():
                 print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')

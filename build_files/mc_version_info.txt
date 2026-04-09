@@ -29,7 +29,7 @@ VSVersionInfo(
         StringStruct('FileDescription', 'Music Caster'),
         StringStruct('FileVersion', '5.25.1.0'),
         StringStruct('InternalName', 'Music Caster'),
-        StringStruct('LegalCopyright', 'Copyright (c) 2019 - 2025, Elijah Lopez'),
+        StringStruct('LegalCopyright', 'Copyright (c) 2019 - 2026, Elijah Lopez'),
         StringStruct('OriginalFilename', 'Music Caster.exe'),
         StringStruct('ProductName', 'Music Caster'),
         StringStruct('ProductVersion', '5.25.1.0')])
