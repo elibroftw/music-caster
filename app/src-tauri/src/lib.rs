@@ -237,6 +237,13 @@ pub fn run() {
         let _ = autostart_manager.disable();
       }
 
+      // Hide the main window if started with --minimized
+      if std::env::args().any(|arg| arg == "--minimized") {
+        if let Some(window) = app.get_webview_window("main") {
+          let _ = window.hide();
+        }
+      }
+
       Ok(())
     })
     .build(tauri::generate_context!())
