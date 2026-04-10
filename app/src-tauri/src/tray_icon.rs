@@ -5,6 +5,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, Tray
 use tauri::{self, Emitter, Manager, Runtime, command};
 
 use crate::api::{DaemonState, PlaybackStatus, PlayerStatus};
+use crate::sidecar_utils::{MusicCasterDaemon, SidecarProcess};
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
@@ -165,7 +166,13 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
             let app_clone = app.clone();
             tauri::async_runtime::spawn(async move {
               let state = app_clone.state::<DaemonState>();
-              let _ = crate::api::api_exit(state).await;
+              // soft kill daemon
+							let _ = crate::api::api_exit(state).await;
+							// hard kill daemon
+							let mc_child_state = app_clone.state::<Mutex<SidecarProcess<MusicCasterDaemon>>>();
+							let _ = mc_child_state.inner().lock().unwrap().kill();
+							// GUI kill
+              app_clone.exit(0);
             });
           }
           _ => {

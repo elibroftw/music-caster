@@ -221,7 +221,7 @@ pub fn run() {
 
         let _ = app.handle().plugin(tauri_plugin_autostart::init(
           MacosLauncher::LaunchAgent,
-          Some(vec!["--flag1", "--flag2"]),
+          Some(vec!["--minimized"]),
         ));
 
         // Get the autostart manager
@@ -243,8 +243,7 @@ pub fn run() {
     .expect("error while building tauri application")
     .run(|_app_handle, event| match event {
       tauri::RunEvent::ExitRequested { api, .. } => {
-        let mc_child_state = _app_handle.state::<Mutex<SidecarProcess<MusicCasterDaemon>>>();
-        let _ = mc_child_state.inner().lock().unwrap().kill();
+        api.prevent_exit();
       }
       _ => {}
     });
