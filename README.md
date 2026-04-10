@@ -165,3 +165,7 @@ First, we are going to make Music Caster a daemon. This means we can use Tauri f
 ### Incremental Daemon Builds
 
 `.\build.cmd --skip-tests --no-install --skip-deps`
+
+## Windows ARM64 Installer
+
+`pnpm tauri build --target aarch64-pc-windows-msvc`

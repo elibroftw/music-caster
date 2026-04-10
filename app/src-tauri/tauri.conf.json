@@ -5,7 +5,9 @@
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": ""
+      "timestampUrl": "",
+			"nsis": {},
+			"wix": null
     },
     "publisher": "Elijah Lopez",
     "copyright": "Copyright",
