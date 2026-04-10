@@ -114,8 +114,9 @@ export default function () {
 				tauriLogger.info(payload.message);
 				// for debugging purposes only
 				notifications.show({
-					title: '[DEBUG] System Tray Event',
-					message: payload.message
+					title: t('systemTrayUnhandled'),
+					message: payload.message,
+					color: 'red'
 				});
 			});
 			return () => { promise.then(unlisten => unlisten()) };

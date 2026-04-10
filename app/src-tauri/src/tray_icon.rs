@@ -4,7 +4,7 @@ use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{self, Emitter, Manager, Runtime, command};
 
-use crate::api::{PlaybackStatus, PlayerStatus};
+use crate::api::{DaemonState, PlaybackStatus, PlayerStatus};
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
@@ -115,17 +115,64 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
     .menu(&create_tray_menu(app, "en".into())?)
     .show_menu_on_left_click(false)
     .on_menu_event(move |app, event| {
-      // Forward tray events to the frontend with Music Caster prefix
-      if let Some(main_window) = app.get_webview_window("main") {
-        let _ = main_window.emit("systemTray", IconTrayPayload::new(&event.id().as_ref()));
-      }
-
-      // Handle Music Caster tray events by forwarding them to MC if running
+      // Handle Music Caster tray events by calling API directly
       if let Some(event_id) = event.id().as_ref().strip_prefix("mc-") {
         match event_id {
+          "rescan" => {
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let _ = crate::api::api_rescan_library(state).await;
+            });
+          }
+          "refresh" => {
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let _ = crate::api::api_refresh_devices(state).await;
+            });
+          }
+          "controls-prev" => {
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let _ = crate::api::api_prev(state, 1, false).await;
+            });
+          }
+          "controls-next" => {
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let _ = crate::api::api_next(state, 1, false).await;
+            });
+          }
+          "controls-pause" => {
+            let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let daemon_state = app_clone.state::<DaemonState>();
+              match tray_state {
+                TrayState::Playing => {
+                  let _ = crate::api::api_pause(daemon_state).await;
+                }
+                _ => {
+                  let _ = crate::api::api_play(daemon_state).await;
+                }
+              }
+            });
+          }
+          "exit" => {
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let _ = crate::api::api_exit(state).await;
+            });
+          }
           _ => {
-            // Forward other commands to Music Caster via invoke
-            println!("Forwarding tray command '{}' to Music Caster", event_id);
+            println!("Forwarding unhandled tray command '{}' to Music Caster", event_id);
+						let _ = app.get_webview_window("main").and_then(|main_window| {
+							main_window.emit("systemTray", IconTrayPayload::new(event_id)).ok()
+						});
           }
         }
       }
@@ -152,7 +199,67 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
             }
           }
         }
-        _ => {}
+        "timer-cancel" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_cancel_timer(state).await;
+          });
+        }
+        "repeat-all" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_change_setting(
+              state,
+              "repeat".to_string(),
+              serde_json::json!("ALL"),
+            )
+            .await;
+          });
+        }
+        "repeat-one" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_change_setting(
+              state,
+              "repeat".to_string(),
+              serde_json::json!("ONE"),
+            )
+            .await;
+          });
+        }
+        "repeat-off" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_change_setting(
+              state,
+              "repeat".to_string(),
+              serde_json::json!("OFF"),
+            )
+            .await;
+          });
+        }
+        "play-all" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_play(state).await;
+          });
+        }
+        _ => {
+          let event_id_owned = event.id().as_ref().to_string();
+          if let Some(device_id) = event_id_owned.strip_prefix("device-") {
+            let device_id = device_id.to_string();
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let _ = crate::api::api_change_device(state, device_id).await;
+            });
+          }
+        }
       }
     })
     .on_tray_icon_event(|tray, event| {
