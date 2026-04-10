@@ -164,22 +164,18 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
           }
           "exit" => {
             let app_clone = app.clone();
-            tauri::async_runtime::spawn(async move {
-              let state = app_clone.state::<DaemonState>();
-              // soft kill daemon
-							let _ = crate::api::api_exit(state).await;
-							// hard kill daemon
-							let mc_child_state = app_clone.state::<Mutex<SidecarProcess<MusicCasterDaemon>>>();
-							let _ = mc_child_state.inner().lock().unwrap().kill();
-							// GUI kill
-              app_clone.exit(0);
-            });
+            app_clone.exit(0);
           }
           _ => {
-            println!("Forwarding unhandled tray command '{}' to Music Caster", event_id);
-						let _ = app.get_webview_window("main").and_then(|main_window| {
-							main_window.emit("systemTray", IconTrayPayload::new(event_id)).ok()
-						});
+            println!(
+              "Forwarding unhandled tray command '{}' to Music Caster",
+              event_id
+            );
+            let _ = app.get_webview_window("main").and_then(|main_window| {
+              main_window
+                .emit("systemTray", IconTrayPayload::new(event_id))
+                .ok()
+            });
           }
         }
       }
@@ -217,36 +213,27 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
           let app_clone = app.clone();
           tauri::async_runtime::spawn(async move {
             let state = app_clone.state::<DaemonState>();
-            let _ = crate::api::api_change_setting(
-              state,
-              "repeat".to_string(),
-              serde_json::json!("ALL"),
-            )
-            .await;
+            let _ =
+              crate::api::api_change_setting(state, "repeat".to_string(), serde_json::json!("ALL"))
+                .await;
           });
         }
         "repeat-one" => {
           let app_clone = app.clone();
           tauri::async_runtime::spawn(async move {
             let state = app_clone.state::<DaemonState>();
-            let _ = crate::api::api_change_setting(
-              state,
-              "repeat".to_string(),
-              serde_json::json!("ONE"),
-            )
-            .await;
+            let _ =
+              crate::api::api_change_setting(state, "repeat".to_string(), serde_json::json!("ONE"))
+                .await;
           });
         }
         "repeat-off" => {
           let app_clone = app.clone();
           tauri::async_runtime::spawn(async move {
             let state = app_clone.state::<DaemonState>();
-            let _ = crate::api::api_change_setting(
-              state,
-              "repeat".to_string(),
-              serde_json::json!("OFF"),
-            )
-            .await;
+            let _ =
+              crate::api::api_change_setting(state, "repeat".to_string(), serde_json::json!("OFF"))
+                .await;
           });
         }
         "play-all" => {

@@ -241,9 +241,32 @@ pub fn run() {
     })
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
-    .run(|_app_handle, event| match event {
+    .run(|app_handle, event| match event {
       tauri::RunEvent::ExitRequested { api, .. } => {
-        api.prevent_exit();
+        if let Some(main_window) = app_handle.get_webview_window("main") {
+          let _ = main_window.hide();
+        }
+        let app_clone: tauri::AppHandle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+          let state = app_clone.state::<DaemonState>();
+          // soft kill daemon
+          let _ = crate::api::api_exit(state).await;
+        });
+        // hard kill daemon
+        let mc_child_state = app_handle.state::<Mutex<SidecarProcess<MusicCasterDaemon>>>();
+        let _ = mc_child_state.inner().lock().unwrap().kill();
+      }
+      tauri::RunEvent::WindowEvent {
+        label,
+        event: tauri::WindowEvent::CloseRequested { api, .. },
+        ..
+      } => {
+        if label == "main" {
+          api.prevent_close();
+          if let Some(window) = app_handle.get_webview_window(&label) {
+            let _ = window.hide();
+          }
+        }
       }
       _ => {}
     });
