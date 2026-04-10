@@ -249,7 +249,7 @@ pub fn run() {
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
     .run(|app_handle, event| match event {
-      tauri::RunEvent::ExitRequested { api, .. } => {
+      tauri::RunEvent::ExitRequested { .. } => {
         if let Some(main_window) = app_handle.get_webview_window("main") {
           let _ = main_window.hide();
         }

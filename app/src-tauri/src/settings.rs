@@ -6,6 +6,7 @@ use tauri::{self, Manager};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Settings {
   pub api_key: String,
+  pub gui_exits_app: bool,
 }
 
 impl Settings {
@@ -58,6 +59,7 @@ impl Settings {
   fn create_default(app_handle: &tauri::AppHandle) -> Self {
     let settings = Settings {
       api_key: Self::generate_api_key(),
+      gui_exits_app: false,
     };
 
     let path = Self::path(app_handle);

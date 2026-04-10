@@ -5,7 +5,6 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, Tray
 use tauri::{self, Emitter, Manager, Runtime, command};
 
 use crate::api::{DaemonState, PlaybackStatus, PlayerStatus};
-use crate::sidecar_utils::{MusicCasterDaemon, SidecarProcess};
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
