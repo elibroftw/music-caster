@@ -62,11 +62,13 @@ impl Settings {
       gui_exits_app: false,
     };
 
-    let path = Self::path(app_handle);
-    if let Ok(mut file) = std::fs::File::create(&path) {
-      let json = serde_json::to_string_pretty(&settings).unwrap();
-      let _ = file.write_all(json.as_bytes());
-    }
+    // DO NOT WRITE NEW FILE YET, AS DAEMON WILL OVERWRITE IT
+    // 	DUE TO MISSING SETTINGS FIELDS
+    // let path = Self::path(app_handle);
+    // if let Ok(mut file) = std::fs::File::create(&path) {
+    // 	let json = serde_json::to_string_pretty(&settings).unwrap();
+    // 	let _ = file.write_all(json.as_bytes());
+    // }
 
     settings
   }

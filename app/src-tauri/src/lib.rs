@@ -193,6 +193,7 @@ pub fn run() {
         api_key: None,
       }));
       app.manage(Mutex::new(TrayState::NotPlaying));
+      app.manage(Mutex::new(settings::Settings::load(app.handle())));
       let _ = create_tray_icon(app.handle());
 
       let app_handle = app.handle().clone();
@@ -269,9 +270,16 @@ pub fn run() {
         ..
       } => {
         if label == "main" {
-          api.prevent_close();
-          if let Some(window) = app_handle.get_webview_window(&label) {
-            let _ = window.hide();
+          let gui_exits_app = app_handle
+            .state::<Mutex<settings::Settings>>()
+            .lock()
+            .unwrap()
+            .gui_exits_app;
+          if !gui_exits_app {
+            api.prevent_close();
+            if let Some(window) = app_handle.get_webview_window(&label) {
+              let _ = window.hide();
+            }
           }
         }
       }

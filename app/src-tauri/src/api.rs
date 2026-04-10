@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Mutex};
 use tauri::{Emitter, Manager, State};
 use tauri_plugin_http::reqwest;
 use tokio::sync::RwLock;
 
-use crate::tray_icon::tray_update;
+use crate::{settings::Settings, tray_icon::tray_update};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -504,8 +504,15 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
             Ok(new_state) => {
               let mut daemon_state_mut = daemon_state.write().await;
               if daemon_state_mut.api_key.is_none() {
+                // load settings file on first ever active which guarantees that the file is properly initialized
                 let settings = crate::settings::Settings::load(&app_handle);
-                daemon_state_mut.api_key = Some(settings.api_key);
+                let mut guard = app_handle
+                  .state::<Mutex<Settings>>()
+                  .inner()
+                  .lock()
+                  .unwrap();
+                *guard = settings;
+                daemon_state_mut.api_key = Some(guard.api_key.clone());
               }
 
               let state_changed = {
