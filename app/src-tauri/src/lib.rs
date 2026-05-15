@@ -235,6 +235,7 @@ pub fn run() {
       // Hide the main window if started with --minimized
       if std::env::args().any(|arg| arg == "--minimized") {
         if let Some(window) = app.get_webview_window("main") {
+          log::info!("hiding window because app was started --minimized");
           let _ = window.hide();
         }
       }
