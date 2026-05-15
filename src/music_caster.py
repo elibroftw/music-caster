@@ -1720,6 +1720,7 @@ if __name__ == '__main__':
             music_queue = deque(sorted(done_queue, key=natural_key_file))
             done_queue.clear()
         gui_window.metadata['update_listboxes'] = True
+        save_queues()
 
 
     def shuffle_queue():
@@ -1740,6 +1741,7 @@ if __name__ == '__main__':
         better_shuffle(temp_list, first=first_index)
         music_queue = deque(temp_list)
         gui_window.metadata['update_listboxes'] = True
+        save_queues()
 
 
     def format_pl_lb(tracks):
@@ -2486,6 +2488,7 @@ if __name__ == '__main__':
             else:
                 next_queue.extend(temp_queue)
             gui_window.metadata['update_listboxes'] = True
+            save_queues()
             return True
         # extend only if merge_tracks == 0 or we are queueing the tracks
         if queue_uris or merge_tracks == 0:
@@ -2529,6 +2532,7 @@ if __name__ == '__main__':
             if music_queue:
                 play()
         gui_window.metadata['update_listboxes'] = True
+        save_queues()
 
 
     def queue_all():
