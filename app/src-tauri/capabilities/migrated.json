@@ -45,6 +45,7 @@
     "notification:default",
     "os:default",
     "dialog:default",
+    "dialog:allow-open",
     "process:default",
     "store:default",
     "opener:default",

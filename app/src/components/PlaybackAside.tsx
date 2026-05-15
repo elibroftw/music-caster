@@ -20,9 +20,11 @@ interface Track {
 
 interface PlaybackAsideProps {
 	onOpenSettings: () => void;
+	trayAction: string | null;
+	onTrayActionConsumed: () => void;
 }
 
-export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
+export default function PlaybackAside({ onOpenSettings, trayAction, onTrayActionConsumed }: PlaybackAsideProps) {
 	const playerState = useContext(PlayerStateContext);
 	const daemonLoading = playerState === null || playerState.status === 'NOT_RUNNING';
 	const api = useContext(MusicCasterAPIContext)!;
@@ -31,9 +33,9 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 	const [infoOpened, { open: openInfo, close: closeInfo }] = useDisclosure(false);
 	const [timerOpened, { open: openTimer, close: closeTimer }] = useDisclosure(false);
 	const [streamURLOpened, { open: openStreamURL, close: closeStreamURL }] = useDisclosure(false);
-	// TODO: use a form
 	const [timerAction, setTimerAction] = useState('stop');
 	const [timerInput, setTimerInput] = useState('');
+	const [timerStatus, setTimerStatus] = useState<string | null>(null);
 	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
 
 	const streamURLForm = useForm({
@@ -44,16 +46,29 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 		},
 
 		validate: {
-			// TODO: value.startsWith('ytsearch1')
 			url: (value) => value.startsWith('http') || value.startsWith('www') || value.startsWith('//') ? null : 'Not a URL',
 		},
 	});
 
 	const handleStreamURLSubmit = ({ url, action }: typeof streamURLForm.values) => {
-		// TODO: call API
 		api.playUri(url, action);
+		closeStreamURL();
+	};
 
-	}
+	const handleTimerSubmit = async () => {
+		if (!timerInput.trim()) return;
+		try {
+			const timerSettings = ['timer_shut_down', 'timer_sleep', 'timer_hibernate', 'timer_stop'];
+			for (const setting of timerSettings) {
+				await api.changeSetting(setting, setting === `timer_${timerAction}`);
+			}
+			const result = await api.setTimer(timerInput.trim());
+			setTimerStatus(result);
+			setTimerInput('');
+		} catch (error) {
+			console.error('Failed to set timer:', error);
+		}
+	};
 
 	useEffect(() => {
 		if (streamURLOpened) {
@@ -62,6 +77,29 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 			}
 		}
 	}, [streamURLOpened]);
+
+	useEffect(() => {
+		if (timerOpened) {
+			api.getTimer().then(val => setTimerStatus(val === '0' ? null : val)).catch(() => setTimerStatus(null));
+		}
+	}, [timerOpened]);
+
+	useEffect(() => {
+		if (!trayAction) return;
+		if (trayAction === 'timer-set') {
+			openTimer();
+		} else if (trayAction === 'url-play') {
+			streamURLForm.setFieldValue('action', PlayAction.PLAY);
+			openStreamURL();
+		} else if (trayAction === 'url-queue') {
+			streamURLForm.setFieldValue('action', PlayAction.QUEUE);
+			openStreamURL();
+		} else if (trayAction === 'url-next') {
+			streamURLForm.setFieldValue('action', PlayAction.PLAY_NEXT);
+			openStreamURL();
+		}
+		onTrayActionConsumed();
+	}, [trayAction]);
 
 	useEffect(() => {
 		const fetchAlbumArt = async () => {
@@ -200,9 +238,17 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 							onChange={(e) => setTimerInput(e.currentTarget.value)}
 							style={{ flex: 1 }}
 						/>
-						<Button color='red'>Submit</Button>
+						<Button color='red' onClick={handleTimerSubmit}>Submit</Button>
 					</Group>
-					<Text size='sm' c='dimmed'>No Timer Set</Text>
+					<Group justify='space-between'>
+						<Text size='sm' c='dimmed'>{timerStatus ? `Timer set` : 'No Timer Set'}</Text>
+						{timerStatus && (
+							<Button size='xs' variant='subtle' color='red' onClick={async () => {
+								await api.cancelTimer();
+								setTimerStatus(null);
+							}}>Cancel Timer</Button>
+						)}
+					</Group>
 				</Stack>
 			</Modal>
 
@@ -214,7 +260,6 @@ export default function PlaybackAside({ onOpenSettings }: PlaybackAsideProps) {
 			>
 				<form onSubmit={streamURLForm.onSubmit(handleStreamURLSubmit)}>
 					<Stack gap='md'>
-						<Text size='sm' fw={500} >THIS SHOULD BE A FORM</Text>
 						<TextInput
 							placeholder='Enter stream URL'
 							style={{ flex: 1 }}

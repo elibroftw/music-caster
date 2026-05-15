@@ -47,6 +47,7 @@ export default function () {
 
 	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 	const [activeTab, setActiveTab] = useState<string | null>('queue');
+	const [trayAction, setTrayAction] = useState<string | null>(null);
 	// TODO: the player state should not be updated so often
 	// Rather, keep track of each state independently, and try best to reduce re-renders
 	// e.g. the queue is usually the same, therefore, we need a way to "diff" states.
@@ -110,14 +111,22 @@ export default function () {
 		}, []);
 		// system tray events
 		useEffect(() => {
-			const promise = tauriEvent.listen('systemTray', ({ payload, ...eventObj }: { payload: { message: string } }) => {
-				tauriLogger.info(payload.message);
-				// for debugging purposes only
-				notifications.show({
-					title: t('systemTrayUnhandled'),
-					message: payload.message,
-					color: 'red'
-				});
+			const promise = tauriEvent.listen('systemTray', ({ payload }: { payload: { message: string } }) => {
+				const action = payload.message;
+				if (action === 'url-play' || action === 'url-queue' || action === 'url-next') {
+					setTrayAction(action);
+				} else if (action === 'timer-set') {
+					setTrayAction('timer-set');
+				} else if (action === 'playlists-tab') {
+					setActiveTab('library');
+				} else {
+					tauriLogger.info(action);
+					notifications.show({
+						title: t('systemTrayUnhandled'),
+						message: action,
+						color: 'red'
+					});
+				}
 			});
 			return () => { promise.then(unlisten => unlisten()) };
 		}, []);
@@ -248,7 +257,7 @@ export default function () {
 					</AppShell.Main>
 
 					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-						<PlaybackAside onOpenSettings={openSettings} />
+						<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} />
 					</AppShell.Aside>
 
 					{showFooter &&

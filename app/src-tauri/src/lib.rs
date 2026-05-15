@@ -44,12 +44,6 @@ struct SingleInstancePayload {
   cwd: String,
 }
 
-#[derive(Debug, Default, Serialize)]
-struct Example<'a> {
-  #[serde(rename = "Attribute 1")]
-  attribute_1: &'a str,
-}
-
 #[cfg(target_os = "linux")]
 pub struct DbusState(Mutex<Option<dbus::blocking::SyncConnection>>);
 

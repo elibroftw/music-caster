@@ -1,10 +1,13 @@
 use serde::Serialize;
+use std::path::Path;
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{self, Emitter, Manager, Runtime, command};
+use tauri_plugin_dialog::DialogExt;
 
-use crate::api::{DaemonState, PlaybackStatus, PlayerStatus};
+use crate::api::{DaemonState, PlayUrisOptions, PlaybackStatus, PlayerStatus};
+use crate::settings::Settings;
 
 #[derive(Clone, Serialize)]
 pub struct IconTrayPayload {
@@ -26,12 +29,18 @@ pub enum TrayState {
   Playing,
 }
 
-// ENTER rust_i18n::set_locale(lang) IF LOCAL=lang DOES NOT COMPILE
+const AUDIO_EXTENSIONS: &[&str] = &[
+  "mp3", "mp4", "mpeg", "m4a", "flac", "aac", "ogg", "opus", "wma", "wav", "aiff", "m3u", "m3u8",
+];
+
 pub fn create_tray_menu<R: Runtime>(
   app: &tauri::AppHandle<R>,
   _lang: String,
 ) -> Result<Menu<R>, tauri::Error> {
   let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
+  let settings_guard = app.state::<Mutex<Settings>>().lock().unwrap().clone();
+  let music_folders = &settings_guard.music_folders;
+  let playlist_names: Vec<&String> = settings_guard.playlists.keys().collect();
 
   let text = match tray_state {
     TrayState::Playing => "Pause",
@@ -39,7 +48,22 @@ pub fn create_tray_menu<R: Runtime>(
     TrayState::NotPlaying => "Play",
   };
 
-  // Menu for when Music Caster is running
+  let mut folders_submenu = SubmenuBuilder::new(app, "Folders")
+    .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?);
+  for (i, folder) in music_folders.iter().enumerate() {
+    let display = format_folder_name(folder);
+    folders_submenu =
+      folders_submenu.item(&MenuItemBuilder::with_id(format!("folder-{i}"), display).build(app)?);
+  }
+
+  let mut playlists_submenu = SubmenuBuilder::new(app, "Playlists")
+    .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?);
+  for name in &playlist_names {
+    let id = format!("playlist-{}", name);
+    playlists_submenu =
+      playlists_submenu.item(&MenuItemBuilder::with_id(id, name.as_str()).build(app)?);
+  }
+
   MenuBuilder::new(app)
     .items(&[
       &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
@@ -57,11 +81,10 @@ pub fn create_tray_menu<R: Runtime>(
         .item(
           &SubmenuBuilder::new(app, "Repeat Options")
             .item(&MenuItemBuilder::with_id("repeat-all", "Repeat All").build(app)?)
-            .item(&MenuItemBuilder::with_id("repeat-one", "Repeat One ✓").build(app)?)
+            .item(&MenuItemBuilder::with_id("repeat-one", "Repeat One").build(app)?)
             .item(&MenuItemBuilder::with_id("repeat-off", "Repeat Off").build(app)?)
             .build()?,
         )
-        .item(&MenuItemBuilder::with_id("mc-controls-stop", "Stop").build(app)?)
         .item(&MenuItemBuilder::with_id("mc-controls-prev", "Previous Track").build(app)?)
         .item(&MenuItemBuilder::with_id("mc-controls-next", "Next Track").build(app)?)
         .item(&MenuItemBuilder::with_id("mc-controls-pause", &text).build(app)?)
@@ -75,18 +98,8 @@ pub fn create_tray_menu<R: Runtime>(
             .item(&MenuItemBuilder::with_id("url-next", "Play URL Next").build(app)?)
             .build()?,
         )
-        .item(
-          &SubmenuBuilder::new(app, "Folders")
-            .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?)
-            .item(&MenuItemBuilder::with_id("folder-1", "../Music").build(app)?)
-            .build()?,
-        )
-        .item(
-          &SubmenuBuilder::new(app, "Playlists")
-            .item(&MenuItemBuilder::with_id("playlists-tab", "Playlists Tab").build(app)?)
-            .item(&MenuItemBuilder::with_id("playlist-1", "My Playlist").build(app)?)
-            .build()?,
-        )
+        .item(&folders_submenu.build()?)
+        .item(&playlists_submenu.build()?)
         .item(
           &SubmenuBuilder::new(app, "Select Files")
             .item(&MenuItemBuilder::with_id("play-files", "Play Files").build(app)?)
@@ -101,6 +114,32 @@ pub fn create_tray_menu<R: Runtime>(
     .build()
 }
 
+fn format_folder_name(folder: &str) -> String {
+  let path = Path::new(folder);
+  let components: Vec<&std::ffi::OsStr> = path.iter().collect();
+  if components.len() > 2 {
+    let len = components.len();
+    format!(
+      "../{}",
+      components[len - 2..]
+        .iter()
+        .filter_map(|c| c.to_str())
+        .collect::<Vec<_>>()
+        .join("/")
+    )
+  } else {
+    folder.replace('\\', "/")
+  }
+}
+
+fn show_window_and_emit(app: &tauri::AppHandle, event_id: &str) {
+  if let Some(main_window) = app.get_webview_window("main") {
+    let _ = main_window.show();
+    let _ = main_window.set_focus();
+    let _ = main_window.emit("systemTray", IconTrayPayload::new(event_id));
+  }
+}
+
 pub static TRAY_ID: &'static str = "main";
 
 pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error> {
@@ -110,96 +149,163 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
         .ok()
         .expect("SystemTray1.icon not found"),
     )
-    // TODO: update this
     .tooltip("Loading Daemon")
     .menu(&create_tray_menu(app, "en".into())?)
     .show_menu_on_left_click(false)
     .on_menu_event(move |app, event| {
-      // Handle Music Caster tray events by calling API directly
-      if let Some(event_id) = event.id().as_ref().strip_prefix("mc-") {
-        match event_id {
-          "rescan" => {
-            let app_clone = app.clone();
-            tauri::async_runtime::spawn(async move {
-              let state = app_clone.state::<DaemonState>();
-              let _ = crate::api::api_rescan_library(state).await;
-            });
-          }
-          "refresh" => {
-            let app_clone = app.clone();
-            tauri::async_runtime::spawn(async move {
-              let state = app_clone.state::<DaemonState>();
-              let _ = crate::api::api_refresh_devices(state).await;
-            });
-          }
-          "controls-prev" => {
-            let app_clone = app.clone();
-            tauri::async_runtime::spawn(async move {
-              let state = app_clone.state::<DaemonState>();
-              let _ = crate::api::api_prev(state, 1, false).await;
-            });
-          }
-          "controls-next" => {
-            let app_clone = app.clone();
-            tauri::async_runtime::spawn(async move {
-              let state = app_clone.state::<DaemonState>();
-              let _ = crate::api::api_next(state, 1, false).await;
-            });
-          }
-          "controls-pause" => {
-            let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
-            let app_clone = app.clone();
-            tauri::async_runtime::spawn(async move {
-              let daemon_state = app_clone.state::<DaemonState>();
-              match tray_state {
-                TrayState::Playing => {
-                  let _ = crate::api::api_pause(daemon_state).await;
-                }
-                _ => {
-                  let _ = crate::api::api_play(daemon_state).await;
-                }
+      let event_id = event.id().as_ref().to_string();
+
+      match event_id.as_str() {
+        "mc-rescan" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_rescan_library(state).await;
+          });
+        }
+        "mc-refresh" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_refresh_devices(state).await;
+          });
+        }
+        "mc-controls-prev" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_prev(state, 1, false).await;
+          });
+        }
+        "mc-controls-next" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_next(state, 1, false).await;
+          });
+        }
+        "mc-controls-pause" => {
+          let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let daemon_state = app_clone.state::<DaemonState>();
+            match tray_state {
+              TrayState::Playing => {
+                let _ = crate::api::api_pause(daemon_state).await;
               }
-            });
-          }
-          "exit" => {
-            let app_clone = app.clone();
-            app_clone.exit(0);
-          }
-          _ => {
-            println!(
-              "Forwarding unhandled tray command '{}' to Music Caster",
-              event_id
-            );
-            let _ = app.get_webview_window("main").and_then(|main_window| {
-              main_window
-                .emit("systemTray", IconTrayPayload::new(event_id))
-                .ok()
-            });
-          }
-        }
-      }
-
-      let _tray_icon = app.tray_by_id(TRAY_ID).unwrap();
-
-      // TODO: FIGURE OUT HOW TO GET THE ITEM HANDLER IN v2
-      // let item_handle: MenuItem = tray_icon.get_item();
-
-      match event.id().as_ref() {
-        "quit" => {
-          std::process::exit(0);
-        }
-        "toggle-visibility" => {
-          if let Some(main_window) = app.get_webview_window("main") {
-            // update menu item example (TODO: support tauri v2)
-            // proposed implementation: update entire menu
-            if main_window.is_visible().unwrap() {
-              main_window.hide().unwrap();
-              // item_handle.set_title("Show Window").unwrap();
-            } else {
-              main_window.show().unwrap();
-              // item_handle.set_title("Hide Window").unwrap();
+              _ => {
+                let _ = crate::api::api_play(daemon_state).await;
+              }
             }
-          }
+          });
+        }
+        "mc-exit" => {
+          app.exit(0);
+        }
+        "select-folder" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let folder = app_clone
+              .dialog()
+              .file()
+              .set_title("Select Folder")
+              .blocking_pick_folder();
+            if let Some(folder_path) = folder {
+              let path_str = folder_path.to_string();
+              let state = app_clone.state::<DaemonState>();
+              let options = PlayUrisOptions {
+                uris: Some(vec![path_str]),
+                ..Default::default()
+              };
+              let _ = crate::api::api_play_uris(state, options).await;
+            }
+          });
+        }
+        "play-files" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let files = app_clone
+              .dialog()
+              .file()
+              .set_title("Select Audio Files")
+              .add_filter("Audio Files", AUDIO_EXTENSIONS)
+              .blocking_pick_files();
+            if let Some(file_paths) = files {
+              if !file_paths.is_empty() {
+                let uris: Vec<String> = file_paths.iter().map(|p| p.to_string()).collect();
+                let state = app_clone.state::<DaemonState>();
+                let options = PlayUrisOptions {
+                  uris: Some(uris),
+                  ..Default::default()
+                };
+                let _ = crate::api::api_play_uris(state, options).await;
+              }
+            }
+          });
+        }
+        "queue-files" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let files = app_clone
+              .dialog()
+              .file()
+              .set_title("Select Audio Files")
+              .add_filter("Audio Files", AUDIO_EXTENSIONS)
+              .blocking_pick_files();
+            if let Some(file_paths) = files {
+              if !file_paths.is_empty() {
+                let uris: Vec<String> = file_paths.iter().map(|p| p.to_string()).collect();
+                let state = app_clone.state::<DaemonState>();
+                let options = PlayUrisOptions {
+                  uris: Some(uris),
+                  queue: Some(true),
+                  ..Default::default()
+                };
+                let _ = crate::api::api_play_uris(state, options).await;
+              }
+            }
+          });
+        }
+        "play-files-next" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let files = app_clone
+              .dialog()
+              .file()
+              .set_title("Select Audio Files")
+              .add_filter("Audio Files", AUDIO_EXTENSIONS)
+              .blocking_pick_files();
+            if let Some(file_paths) = files {
+              if !file_paths.is_empty() {
+                let uris: Vec<String> = file_paths.iter().map(|p| p.to_string()).collect();
+                let state = app_clone.state::<DaemonState>();
+                let options = PlayUrisOptions {
+                  uris: Some(uris),
+                  play_next: Some(true),
+                  ..Default::default()
+                };
+                let _ = crate::api::api_play_uris(state, options).await;
+              }
+            }
+          });
+        }
+        "play-system" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let options = PlayUrisOptions {
+              uri: Some("systemaudio".to_string()),
+              ..Default::default()
+            };
+            let _ = crate::api::api_play_uris(state, options).await;
+          });
+        }
+        "play-all" => {
+          let app_clone = app.clone();
+          tauri::async_runtime::spawn(async move {
+            let state = app_clone.state::<DaemonState>();
+            let _ = crate::api::api_play(state).await;
+          });
         }
         "timer-cancel" => {
           let app_clone = app.clone();
@@ -207,6 +313,9 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
             let state = app_clone.state::<DaemonState>();
             let _ = crate::api::api_cancel_timer(state).await;
           });
+        }
+        "timer-set" => {
+          show_window_and_emit(app, "timer-set");
         }
         "repeat-all" => {
           let app_clone = app.clone();
@@ -235,16 +344,69 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
                 .await;
           });
         }
-        "play-all" => {
-          let app_clone = app.clone();
-          tauri::async_runtime::spawn(async move {
-            let state = app_clone.state::<DaemonState>();
-            let _ = crate::api::api_play(state).await;
-          });
+        "url-play" | "url-queue" | "url-next" => {
+          show_window_and_emit(app, &event_id);
+        }
+        "playlists-tab" => {
+          show_window_and_emit(app, "playlists-tab");
+        }
+        "locate-track" => {
+          let player_state_guard = app
+            .state::<Mutex<crate::api::PlayerState>>()
+            .inner()
+            .lock()
+            .unwrap();
+          if let Ok(player_state) = player_state_guard.try_read() {
+            let file_name = player_state.file_name.clone();
+            if !file_name.is_empty() {
+              if file_name.starts_with("http") {
+                let _ = open::that(&file_name);
+              } else if Path::new(&file_name).exists() {
+                #[cfg(target_os = "windows")]
+                {
+                  let _ = std::process::Command::new("explorer")
+                    .args(["/select,", &file_name])
+                    .spawn();
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                  let _ = open::that(Path::new(&file_name).parent().unwrap_or(Path::new("/")));
+                }
+              }
+            }
+          }
         }
         _ => {
-          let event_id_owned = event.id().as_ref().to_string();
-          if let Some(device_id) = event_id_owned.strip_prefix("device-") {
+          if let Some(folder_idx) = event_id.strip_prefix("folder-") {
+            if let Ok(idx) = folder_idx.parse::<usize>() {
+              let folder_path = {
+                let settings_guard = app.state::<Mutex<Settings>>().lock().unwrap().clone();
+                settings_guard.music_folders.get(idx).cloned()
+              };
+              if let Some(path) = folder_path {
+                let app_clone = app.clone();
+                tauri::async_runtime::spawn(async move {
+                  let state = app_clone.state::<DaemonState>();
+                  let options = PlayUrisOptions {
+                    uris: Some(vec![path]),
+                    ..Default::default()
+                  };
+                  let _ = crate::api::api_play_uris(state, options).await;
+                });
+              }
+            }
+          } else if let Some(playlist_name) = event_id.strip_prefix("playlist-") {
+            let name = playlist_name.to_string();
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+              let state = app_clone.state::<DaemonState>();
+              let options = PlayUrisOptions {
+                uri: Some(name),
+                ..Default::default()
+              };
+              let _ = crate::api::api_play_uris(state, options).await;
+            });
+          } else if let Some(device_id) = event_id.strip_prefix("device-") {
             let device_id = device_id.to_string();
             let app_clone = app.clone();
             tauri::async_runtime::spawn(async move {
@@ -268,16 +430,6 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
           let _ = main_window.show();
           let _ = main_window.set_focus();
         }
-        println!("system tray received a left click");
-      } else if let TrayIconEvent::Click {
-        button: MouseButton::Right,
-        button_state: MouseButtonState::Up,
-        ..
-      } = event
-      {
-        println!("system tray received a right click");
-      } else if let TrayIconEvent::DoubleClick { .. } = event {
-        println!("system tray received a double click");
       }
     })
     .build(app)
@@ -332,5 +484,9 @@ pub fn tray_update(app: tauri::AppHandle, player_state: &PlayerStatus) {
       *tray_state = TrayState::NotPlaying;
     }
     PlaybackStatus::NotRunning => {}
+  }
+  drop(tray_state);
+  if let Some(tray_handle) = app.tray_by_id(TRAY_ID) {
+    let _ = tray_handle.set_menu(create_tray_menu(&app, player_state.lang.clone()).ok());
   }
 }

@@ -267,7 +267,7 @@ pub async fn api_get_state(state: State<'_, DaemonState>) -> Result<PlayerStatus
     .map_err(|e| e.to_string())
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct PlayUrisOptions {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub uris: Option<Vec<String>>,
@@ -502,51 +502,54 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
         match request.send().await {
           Ok(response) => match response.json::<PlayerStatus>().await {
             Ok(new_state) => {
-              let mut daemon_state_mut = daemon_state.write().await;
-              if daemon_state_mut.api_key.is_none() {
-                // load settings file on first ever active which guarantees that the file is properly initialized
-                let settings = crate::settings::Settings::load(&app_handle);
-                let mut guard = app_handle
-                  .state::<Mutex<Settings>>()
-                  .inner()
-                  .lock()
-                  .unwrap();
-                *guard = settings;
-                daemon_state_mut.api_key = Some(guard.api_key.clone());
-              }
-
-              let state_changed = {
-                let player_state = player_state.read().await;
-                *player_state != new_state
+              {
+                let mut daemon_state_mut = daemon_state.write().await;
+                daemon_state_mut.is_running = true;
+                if daemon_state_mut.api_key.is_none() {
+                  log::info!("[Player State Poll] first successful poll");
+                  let settings = crate::settings::Settings::load(&app_handle);
+                  let mut guard = app_handle
+                    .state::<Mutex<Settings>>()
+                    .inner()
+                    .lock()
+                    .unwrap();
+                  *guard = settings;
+                  daemon_state_mut.api_key = Some(guard.api_key.clone());
+                }
               };
 
-              tray_update(app_handle.clone(), &new_state);
+              let (state_changed, tray_needs_update) = {
+                let player_state = player_state.read().await;
+                let changed = *player_state != new_state;
+                let tray_update = player_state.status != new_state.status
+                  || player_state.lang != new_state.lang;
+                (changed, tray_update)
+              };
 
-              // if let Ok(mut is_running) = player_state.is_running.write() {
-              //   *is_running = true;
-              // }
-
-              let mut player_state = player_state.write().await;
-              *player_state = new_state.clone();
+              if tray_needs_update {
+                tray_update(app_handle.clone(), &new_state);
+              }
 
               if state_changed {
+								let mut player_state = player_state.write().await;
+								*player_state = new_state.clone();
                 if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
                   log::error!("[Player State Poll] Failed to emit event: {}", e);
+                } else {
+                  log::info!("[Player State Poll] emitted playerStateChanged event");
                 }
+              } else {
+                log::info!("[Player State Poll] player state has not changed");
               }
             }
             Err(e) => {
               log::error!("[Player State Poll] Failed to parse state: {}", e);
-              // if let Ok(mut is_running) = player_state.is_running.write() {
-              //   *is_running = false;
-              // }
+              daemon_state.write().await.is_running = false;
             }
           },
           Err(e) => {
             log::error!("[Player State Poll] Failed to fetch state: {}", e);
-            // if let Ok(mut is_running) = player_state.is_running.write() {
-            //   *is_running = false;
-            // }
+            daemon_state.write().await.is_running = false;
           }
         }
       } else {

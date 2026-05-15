@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::io::Write;
+use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{self, Manager};
 
@@ -7,6 +7,10 @@ use tauri::{self, Manager};
 pub struct Settings {
   pub api_key: String,
   pub gui_exits_app: bool,
+  #[serde(default)]
+  pub music_folders: Vec<String>,
+  #[serde(default)]
+  pub playlists: BTreeMap<String, serde_json::Value>,
 }
 
 impl Settings {
@@ -56,10 +60,12 @@ impl Settings {
     }
   }
 
-  fn create_default(app_handle: &tauri::AppHandle) -> Self {
+  fn create_default(_app_handle: &tauri::AppHandle) -> Self {
     let settings = Settings {
       api_key: Self::generate_api_key(),
       gui_exits_app: false,
+      music_folders: Vec::new(),
+      playlists: BTreeMap::new(),
     };
 
     // DO NOT WRITE NEW FILE YET, AS DAEMON WILL OVERWRITE IT
