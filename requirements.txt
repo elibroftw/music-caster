@@ -17,7 +17,6 @@ mutagen~=1.45
 Pillow~=12.2.0
 PyChromecast~=14.0
 zeroconf~=0.149
-pynput~=1.4.5
 pypng~=0.0.20
 # use zip for faster install than git
 https://github.com/elibroftw/pypresence/archive/master.zip

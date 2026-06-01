@@ -148,6 +148,7 @@ pub fn run() {
       api_change_device,
       api_play,
       api_pause,
+      api_stop,
       api_next,
       api_prev,
       api_toggle_repeat,
@@ -230,6 +231,76 @@ pub fn run() {
         );
         // Disable autostart
         let _ = autostart_manager.disable();
+      }
+
+      // Register global media-key shortcuts (migrated from the pynput listener in the daemon).
+      // Each shortcut forwards the corresponding action to the daemon via the HTTP API.
+      #[cfg(desktop)]
+      {
+        use tauri_plugin_global_shortcut::{
+          Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
+        };
+
+        let play_pause = Shortcut::new(None, Code::MediaPlayPause);
+        let next = Shortcut::new(None, Code::MediaTrackNext);
+        let prev = Shortcut::new(None, Code::MediaTrackPrevious);
+        let stop = Shortcut::new(None, Code::MediaStop);
+        // Ctrl + Alt + Shift + M opens the main window
+        let activate = Shortcut::new(
+          Some(Modifiers::CONTROL | Modifiers::ALT | Modifiers::SHIFT),
+          Code::KeyM,
+        );
+
+        if let Err(e) = app.handle().plugin(
+          tauri_plugin_global_shortcut::Builder::new()
+            .with_handler(move |app, shortcut, event| {
+              if event.state() != ShortcutState::Pressed {
+                return;
+              }
+              let app = app.clone();
+              if shortcut == &play_pause {
+                // Toggle: pause if playing, otherwise resume/play
+                let tray_state = app.state::<Mutex<TrayState>>().lock().unwrap().clone();
+                tauri::async_runtime::spawn(async move {
+                  let state = app.state::<DaemonState>();
+                  match tray_state {
+                    TrayState::Playing => {
+                      let _ = crate::api::api_pause(state).await;
+                    }
+                    _ => {
+                      let _ = crate::api::api_play(state).await;
+                    }
+                  }
+                });
+              } else if shortcut == &next {
+                tauri::async_runtime::spawn(async move {
+                  let _ = crate::api::api_next(app.state::<DaemonState>(), 1, false).await;
+                });
+              } else if shortcut == &prev {
+                tauri::async_runtime::spawn(async move {
+                  let _ = crate::api::api_prev(app.state::<DaemonState>(), 1, false).await;
+                });
+              } else if shortcut == &stop {
+                tauri::async_runtime::spawn(async move {
+                  let _ = crate::api::api_stop(app.state::<DaemonState>()).await;
+                });
+              } else if shortcut == &activate {
+                tauri::async_runtime::spawn(async move {
+                  let _ = crate::api::api_activate(app.state::<DaemonState>()).await;
+                });
+              }
+            })
+            .build(),
+        ) {
+          log::error!("Failed to register global shortcut plugin: {}", e);
+        } else {
+          let gs = app.global_shortcut();
+          for shortcut in [play_pause, next, prev, stop, activate] {
+            if let Err(e) = gs.register(shortcut) {
+              log::error!("Failed to register global shortcut {:?}: {}", shortcut, e);
+            }
+          }
+        }
       }
 
       // Hide the main window if started with --minimized

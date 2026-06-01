@@ -1049,6 +1049,9 @@ if __name__ == '__main__':
             case 'shuffle':
                 shuffle_enabled = update_settings('shuffle', not settings['shuffle'])
                 api_msg = f'shuffle set to {shuffle_enabled}'
+            case 'stop':
+                stop('web')
+                api_msg = 'stopped playback'
             case 'activate':
                 daemon_commands.put('__ACTIVATED__')  # tell main thread to show GUI
                 api_msg = 'activated main window'
@@ -1061,7 +1064,7 @@ if __name__ == '__main__':
     def web_index():  # web GUI
         request_data = get_request_data()
         if request_data is not None:
-            for command in ('play', 'pause', 'next', 'prev', 'repeat', 'shuffle', 'activate'):
+            for command in ('play', 'pause', 'next', 'prev', 'repeat', 'shuffle', 'stop', 'activate'):
                 if command in request_data:
                     return web_action(command)
         api_key = settings['api_key']
@@ -3033,7 +3036,6 @@ if __name__ == '__main__':
         """
         global SYNC_WITH_CHROMECAST
 
-        import pynput.keyboard
         global track_position, track_start, track_end
         app_log.info('start')
 
@@ -3047,9 +3049,8 @@ if __name__ == '__main__':
         State.installing_update = False
         if not USING_TAURI_FRONTEND:
             start_on_login_modifications()
-        p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
-        p.name = 'pynputListener'
-        p.start()
+        # Media key / global shortcut handling is now done by the Tauri frontend,
+        # which forwards actions to the daemon via the HTTP API (see /action/<command>).
         while True:
             scanned = 0
             while not uris_to_scan.empty():
@@ -3086,28 +3087,6 @@ if __name__ == '__main__':
             case SystemMediaTransportControlsButton.PREVIOUS:
                 print('previous')
 
-
-    def on_press(key):
-        key = str(key)
-        PRESSED_KEYS.add(key)
-        valid_shortcut = len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS
-        ctrl_clicked = 'Key.ctrl_l' in PRESSED_KEYS or 'Key.ctrl_r' in PRESSED_KEYS
-        shift_clicked = 'Key.shift' in PRESSED_KEYS or 'Key.shift_r' in PRESSED_KEYS
-        alt_clicked = 'Key.alt_l' in PRESSED_KEYS or 'Key.alt_r' in PRESSED_KEYS
-        # Ctrl + Alt + Shift + M open up main window
-        if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked:
-            daemon_commands.put('__ACTIVATED__')
-        if key not in {'<179>', '<176>', '<177>', '<178>'}:
-            return
-        app_log.info(f'valid key press: {key}')
-        if key == '<179>' and not pause():
-            resume('keyboard')
-        elif key == '<176>' and playing_status.busy():
-            next_track()
-        elif key == '<177>' and playing_status.busy():
-            prev_track()
-        elif key == '<178>':
-            stop('keyboard shortcut')
 
     def get_window_location():
         if not settings['save_window_positions']:
