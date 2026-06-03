@@ -690,6 +690,9 @@ if __name__ == '__main__':
     print('Time taken:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
     if args.upload:
+        if USING_TAURI_FRONTEND:
+            print('USING_TAURI_FRONTEND is true; exiting.')
+            sys.exit(0)
         print('Will try to upload to GitHub')
         # upload to GitHub
         github = read_env()['github']
