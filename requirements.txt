@@ -14,9 +14,9 @@ pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
 ujson~=5.5
 mutagen~=1.45
-Pillow~=11.3.0
+Pillow~=12.2.0
 PyChromecast~=14.0
-zeroconf~=0.146
+zeroconf~=0.149
 pynput~=1.4.5
 pypng~=0.0.20
 # use zip for faster install than git
@@ -30,7 +30,6 @@ pyqrcode~=1.2.1
 pystray~=0.19.1
 requests~=2.28
 urllib3~=2.5
-FreeSimpleGUI
 waitress~=3.0
 wavinfo~=4.0
 scrapetube
