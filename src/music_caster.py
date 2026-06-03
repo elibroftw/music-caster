@@ -426,11 +426,12 @@ if __name__ == '__main__':
         return Path.home() / 'Downloads'
 
 
-    def get_installer_path():
+    def get_installer_path(extension='exe'):
+        filename = f'music_caster_installer.{extension}'
         downloads_dir = get_downloads_folder()
         if downloads_dir.exists():
-            return str(downloads_dir / 'music_caster_installer.exe')
-        return 'music_caster_installer.exe'
+            return str(downloads_dir / filename)
+        return filename
 
 
     def get_default_music_folder():
@@ -2940,6 +2941,9 @@ if __name__ == '__main__':
                 self.function(*self.args, **self.kwargs)
 
         def check_for_updates(self):
+            if USING_TAURI_FRONTEND:
+                # disable updatie checking when using Tauri
+                return
             # avoid showing a notification for the same latest version
             release = get_latest_release(self.latest_version, VERSION)
             if release:
@@ -2970,56 +2974,88 @@ if __name__ == '__main__':
                     return release
                 latest_ver = release['version']
                 setup_dl_link = release['setup']
+                # v6+ ships a Tauri MSI (arch-matched) instead of the Inno setup.exe
+                installer_dl_link = release.get('installer')
+                has_portable = release.get('portable', False)
+                download_link = installer_dl_link or setup_dl_link
                 app_log.info(f'Update found: v{latest_ver}')
-                print('Installer Link:', setup_dl_link)
-                if is_debug() or not setup_dl_link:
-                    app_log.info(f'not updating because: DEBUG={DEBUG} or not setup_dl_link={setup_dl_link}')
+                print('Installer Link:', download_link)
+                if is_debug() or not download_link:
+                    app_log.info(f'not updating because: DEBUG={DEBUG} or not download_link={download_link}')
                     State.update_available = False
                     raise UpdateFailed
                 if IS_FROZEN:
                     if platform.system() in {'Linux', 'Darwin'}:
                         tray_notify('update_available', context=latest_ver)
                     elif os.path.exists(UNINSTALLER):
-                        installer_path = get_installer_path()
-                        # only show message on startup to not confuse the user
-                        cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
-                                '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
-                        if not from_gui:
-                            cmd.extend(
-                                filter(
-                                    lambda arg: arg not in {'-m', '--minimized'},
-                                    sys.argv[1:],
-                                )
-                            )
-                        if gui_window.is_closed(quick_check=True):
-                            cmd.append('-m')
                         download_update = t('Downloading update $VER').replace('$VER', latest_ver)
-                        tray_notify(download_update)
-                        tray_tooltip = download_update
-                        tray_process_queue.put({'tooltip': tray_tooltip})
-                        try:
-                            # download setup, close tray, run setup, and exit
-                            download(setup_dl_link, installer_path)
-                            tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
-                            time.sleep(0.3)
-                            Popen(cmd, shell=True)
-                            daemon_commands.put('__EXIT__')  # tell main thread to exit
-                        except OSError as e:
-                            if e.errno == errno.ENOSPC:
-                                tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
-                        except Exception:
-                            tray_notify('update_available', context=latest_ver)
+                        if installer_dl_link:
+                            # v6+ migration: the new build is a Tauri MSI, not an Inno setup.
+                            # Download the arch-matched MSI, silently uninstall the old build,
+                            # then hand off to msiexec and exit.
+                            # NOTE: Inno's unins000.exe relaunches itself and returns early, so
+                            # the `&&` chain is best-effort; MigrationBootstrapper.exe is the
+                            # robust standalone alternative (see /migration-bootstrapper).
+                            msi_path = get_installer_path(extension='msi')
+                            tray_notify(download_update)
+                            tray_process_queue.put({'tooltip': download_update})
+                            try:
+                                download(installer_dl_link, msi_path)
+                                tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
+                                time.sleep(0.3)
+                                Popen(f'"{UNINSTALLER}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART '
+                                      f'&& msiexec /i "{msi_path}" /passive /norestart', shell=True)
+                                daemon_commands.put('__EXIT__')  # tell main thread to exit
+                            except OSError as e:
+                                if e.errno == errno.ENOSPC:
+                                    tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
+                            except Exception:
+                                tray_notify('update_available', context=latest_ver)
+                        else:
+                            # legacy (pre-v6) Inno Setup installer flow
+                            installer_path = get_installer_path()
+                            # only show message on startup to not confuse the user
+                            cmd = [installer_path, '/VERYSILENT', '/FORCECLOSEAPPLICATIONS',
+                                    '/MERGETASKS="!desktopicon"', '&&', 'Music Caster.exe']
+                            if not from_gui:
+                                cmd.extend(
+                                    filter(
+                                        lambda arg: arg not in {'-m', '--minimized'},
+                                        sys.argv[1:],
+                                    )
+                                )
+                            if gui_window.is_closed(quick_check=True):
+                                cmd.append('-m')
+                            tray_notify(download_update)
+                            tray_process_queue.put({'tooltip': download_update})
+                            try:
+                                # download setup, close tray, run setup, and exit
+                                download(setup_dl_link, installer_path)
+                                tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
+                                time.sleep(0.3)
+                                Popen(cmd, shell=True)
+                                daemon_commands.put('__EXIT__')  # tell main thread to exit
+                            except OSError as e:
+                                if e.errno == errno.ENOSPC:
+                                    tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
+                            except Exception:
+                                tray_notify('update_available', context=latest_ver)
                     elif os.path.exists('Updater.exe'):
                         # portable installation
-                        try:
-                            startfile('Updater')
-                            daemon_commands.put('__EXIT__')  # tell main thread to exit
-                        except OSError as e:
-                            if e == errno.ECANCELED:
-                                # user cancelled update, don't try auto-updating again
-                                # inform user what we were trying to do though
-                                update_settings('auto_update', False)
-                                tray_notify('update_available', context=latest_ver)
+                        if not has_portable:
+                            # v6+ has no Portable build; do not run the old Updater.exe
+                            # (it would download a Portable.zip that no longer exists)
+                            tray_notify(t('The new Music Caster has arrived, however a Portable version is not available'))
+                        else:
+                            try:
+                                startfile('Updater')
+                                daemon_commands.put('__EXIT__')  # tell main thread to exit
+                            except OSError as e:
+                                if e == errno.ECANCELED:
+                                    # user cancelled update, don't try auto-updating again
+                                    # inform user what we were trying to do though
+                                    update_settings('auto_update', False)
+                                    tray_notify('update_available', context=latest_ver)
                     else:
                         # unins000.exe or updater.exe was deleted; better to inform user there is an update available
                         tray_notify('update_available', context=latest_ver)
@@ -4458,9 +4494,10 @@ if __name__ == '__main__':
             with suppress(PermissionError):
                 add_reg_handlers(working_dir / 'Music Caster.exe', add_folder_context=settings['folder_context_menu'])
 
-        # remove any existing installer file we might've already run
-        with suppress(FileNotFoundError, OSError):
-            os.remove(get_installer_path())
+        # remove any existing installer file we might've already run (exe and msi variants)
+        for _installer in (get_installer_path(), get_installer_path(extension='msi')):
+            with suppress(FileNotFoundError, OSError):
+                os.remove(_installer)
 
         rmtree('Update', ignore_errors=True)
         Thread(target=background_thread, daemon=True, name='BackgroundTasks').start()
