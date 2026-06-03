@@ -1,12 +1,12 @@
 {
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["rpm", "appimage", "msi", "dmg", "app"],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
-			"nsis": {},
+			"nsis": null,
 			"wix": null
     },
     "publisher": "Elijah Lopez",
