@@ -85,6 +85,7 @@ jobs:
         run: |
           sudo apt update
           xargs sudo apt install -y < environment/apt_packages.txt
+          sudo apt-get install -y xdg-utils --fix-missing
 
       - name: Install frontend dependencies
         run: |
