@@ -91,6 +91,24 @@ def read_env(env_file='.env'):
     return os.environ
 
 
+def get_latest_changelog():
+    """Return the changelog entries for the latest (top-most) version in CHANGELOG.txt"""
+    changes = []
+    with open(CHANGELOG_FILE, encoding='utf-8') as _file:
+        found_version = False
+        for line in _file:
+            line = line.rstrip()
+            if not found_version:
+                # the first non-empty line after the title that isn't the title is the latest version
+                if line and line != 'Music Caster Changelog':
+                    found_version = True
+            elif line == '':
+                break
+            else:
+                changes.append(line)
+    return '\n'.join(changes)
+
+
 def add_new_changes(prev_changes: str):
     changes = set(prev_changes.split('\n'))
     with open(CHANGELOG_FILE, encoding='utf-8') as _file:
@@ -348,7 +366,23 @@ if __name__ == '__main__':
         action='store_true',
         help='if running in a CI do not prompt just fail',
     )
+    parser.add_argument(
+        '--changelog',
+        default=False,
+        action='store_true',
+        help="print the latest version's changelog and exit",
+    )
+    parser.add_argument(
+        '--target',
+        default=None,
+        help='Rust target triplet for the daemon artifact name '
+             '(default: {architecture}-pc-windows-msvc)',
+    )
     args = parser.parse_args()
+
+    if args.changelog:
+        print(get_latest_changelog())
+        sys.exit()
 
     if args.clean:
         shutil.rmtree(DIST_DIR, True)
@@ -550,12 +584,18 @@ if __name__ == '__main__':
               'seconds')
         print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
 
+    daemon_dist = DIST_DIR / 'Music Caster Daemon.exe'
+    dist_files = []
+
     if platform.system() == 'Windows':
-        dist_files = ('Music Caster Setup.exe', 'Portable.zip')
+        if USING_TAURI_FRONTEND:
+            dist_files.append(daemon_dist.name)
+        else:
+            dist_files.extend(('Music Caster Setup.exe', 'Portable.zip'))
     elif platform.system() == 'Darwin':
-        dist_files = ('Music Caster (OSX).zip', )
+        dist_files.append('Music Caster (OSX).zip')
     else:
-        dist_files = ('Music Caster (Linux).zip', )
+        dist_files.append('Music Caster (Linux).zip')
 
     # check if all files were built
     dist_files_exist = True
@@ -569,7 +609,7 @@ if __name__ == '__main__':
             dist_files_exist = False
         print((dist_file + ':').ljust(30) + file_exists_str)
 
-    if dist_files_exist and platform.system() == 'Windows':
+    if dist_files_exist and platform.system() == 'Windows' and not USING_TAURI_FRONTEND:
         with zipfile.ZipFile(DIST_DIR / 'Portable.zip') as portable_zip:
             if 'Updater.exe' in portable_zip.namelist():
                 print('Portable.zip/Updater.exe:'.ljust(30) + 'EXISTS')
@@ -578,9 +618,21 @@ if __name__ == '__main__':
                       'DOES NOT EXIST!')
                 dist_files_exist = False
 
-    daemon_dist = DIST_DIR / 'Music Caster Daemon.exe'
-    if daemon_dist.exists() and USING_TAURI_FRONTEND:
-        shutil.copy2(daemon_dist, DIST_DIR / 'music-caster-daemon-x86_64-pc-windows-msvc.exe')
+    if USING_TAURI_FRONTEND:
+        architecture = 'aarch64' if platform.machine() == 'ARM64' else 'x86_64'
+        if platform.system() == 'Windows':
+            target = args.target or f'{architecture}-pc-windows-msvc'
+            ext = 'exe'
+        else:
+            ext = daemon_dist.stem
+            if platform.system() == 'Linux':
+                target = args.target or f'{architecture}-unknown-linux-gnu'
+            else:
+                target = args.target
+                if target is None:
+                    raise Exception(f'target was not supplied for "{platform.system()}" platform')
+        shutil.copy2(daemon_dist, DIST_DIR / f'music-caster-daemon-{target}.{ext}')
+        print(f'copied daemon to target triplet {target}')
 
     if not args.skip_tests and dist_files_exist and not USING_TAURI_FRONTEND:
         try:
@@ -638,6 +690,9 @@ if __name__ == '__main__':
     print('Time taken:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
     if args.upload:
+        if USING_TAURI_FRONTEND:
+            print('USING_TAURI_FRONTEND is true; exiting.')
+            sys.exit(0)
         print('Will try to upload to GitHub')
         # upload to GitHub
         github = read_env()['github']

@@ -1,0 +1,197 @@
+add folder: tilføj mappe
+Add Music Caster to folder context menu: Tilføj Music Caster til mappe kontekst menu
+Add files: Tilføj filer
+Add URL: Tilføj URL
+An error occurred, restarting now: Der er sket en fejl, genstarter nu
+An Internal Server Error occurred: Der opstod en intern Server Fejl
+Audio Selection: Audio Selection
+Auto update: Automatiske opdateringer
+By: Af
+Cancel: Annuller
+Cancel Timer: Annuller Timer
+Clear the queue: Tøm køen
+Controls: Knapper
+Could not connect to cast device: Kunne ikke forbinde til cast device
+Could not find an output device to record: Kunne ikke finde optagelseskilde
+couldNotPlayURL: Kunne ikke afspille %{URL}
+Could not populate queue because library scan is disabled: Kunne ikke oprette køen fordi mappe-scanning er slået fra
+Could not set timer: Kunne ikke indstille timer
+Discord presence: Discord installeret?
+downloadingUpdate: "Downloader opdatering ver: %{VER}"
+"Enter minutes or HH:MM": "Skriv minutter eller HH:MM (Timer:Minutter)"
+Enter Time: Skriv tid
+Enter URL: Skriv URL
+ERROR: FEJL
+Exit: Afslut
+Folder context menu: Mappe kontekst menu
+Folder does not contain audio files: Mappen indeholder ikke lydfiler
+Folders: Mapper
+General: Generelt
+Hibernate when timer runs out: Gå i dvale når nedtælling løber ud
+Hibernate Computer: Sæt computer i dvale
+INFO: INFO
+"Invalid Input (enter minutes or HH:MM)": "Fejl i det indtastede (Skriv minutter eller timer ( 24 timers format (HH:mm) ))"
+"Invalid URL. URL's need to start with http:// or https://": "Ugyldig URL. URL'er SKAL starte med http:// eller https://"
+Invalid audio file selected: Ugyldig lydfil valgt
+Invalid audio file %{FILE}: Ugyldig lydfil %{FILE}
+Keep mini mode on top: behold mini-tilstand i forgrunden
+Launch mini mode: Start mini-tilstand
+Left-side music controls: Musik-Knapper (venstre)
+Library: Bibliotek
+Library indexing incomplete, only scanned files have been added: Bibliotek indeksering blev afbrudt, kun scannede filer blev tilføjet
+Listening: Lytter
+System Audio: System Lyd
+Local device: Denne Computer
+locate selected: find valgte
+Lost connection to %{DEVICE}, switching to local device: Forbindelsen til %{DEVICE} blev afbrudt, skifter til denne computer
+Mini mode on top: Mini-Mode i forgrunden
+More: Mere
+move down: flyt ned
+Move to next up: sæt til at afspille som næste
+Move track content to the left: Flyt indhold til venstre
+move up: Flyt op
+Music Caster is running in the tray.: Music Caster kører i minimeret tilstand.
+mute: mute
+New: Ny
+next track: næste nummer
+No space left on device to auto-update: Der er ikke nok plads på den valgte disk til at auto-opdatere
+No space left on device to save settings: Der er ikke nok plads på den valgte disk til at gemme indstillingerne
+No Timer Set: Ingen timer sat
+Not connected to a cast device: Ikke forbundet til et 'cast device'
+Not logged into deezer.com: Ikke logget ind på deezer.com
+Nothing Playing: Intet afspilles
+Notifications: Notifikationer
+Only Stop Playback: Stop kun afspilning
+Open: Åben
+Pause: Pause
+Persistent queue: Gemt kø
+Play: Afspil
+Play All: Afspil Alle
+Play Files: Afspil Filer
+Play Files Next: Afspil Filer bagefter
+Play Immediately: Afspil Øjeblikkeligt
+Play Next: Afspil Næste
+Play URL: Afspil URL
+Play URL Next: Afspil URL bagefter
+Playing: Afspiller
+Playlist name: Playlist navn
+Playlists: Playlists
+Playlists Tab: Playlists Tab
+Populate queue on startup: Indlæs kø under opstart
+Populates queue from folders on startup: Indlæser kø fra mapper under opstart
+previous track: forrige nummer
+Queue: Kø
+queue all: Sæt alle i kø
+Queue Files: Sæt filer i kø
+Queue URL: Sæt URL i kø
+Refresh Devices: Opdater Devices
+Remember last folder: Husk sidste mappe
+remove selected folder: fjern den valgte mappe
+remove: fjern
+Repeat: Gentag
+Repeat All: Gentag Alle
+Repeat Off: Gentag 'fra'
+Repeat One: Gentag nummer
+Repeat Options: Gentag Muligheder
+Rescan Library: Scan Bibliotek igen
+Rescanning library: Scanner Bibliotek igen
+Resume: Genoptag
+Reverse play next behaviour: Reverse play next behaviour Afspil næste baglæns-opførsel
+Reversed play next: Næste spilles baglæns
+Run on startup: Kør ved opstart
+Save queue between sessions: Gem kø på tværs a sessioner
+Save to playlist: Gem i playlist
+Save window positions: Gem Vindues positioner
+Scan folders: Scan mapper
+scroll mousewheel: scroll musehjul
+Search for music...: Søg efter musik...
+Select Device: Vælg Device
+Select Folder: Vælg Mappe
+Select Folders: Vælg Mapper
+Select Files: Vælg Filer
+Select File: Vælg Fil
+Select Audio Files: Vælg Lydfiler
+Send me an email: Send mig en mail
+"set DEBUG = true in `settings.json` to enable this page": "sæt --> DEBUG = true i `settings.json` for at aktivere denne side"
+Set Timer: Sæt Timer
+Set: Set
+Settings: Indstillinger
+Show album art: Vis Album Art
+Show album art in GUI: Vis album art in GUI
+Show index in queue: Vis plads-indeks i køen
+Show track number: Vis indeks for nummer
+Show track number in queue: Vis indeks for nummer i køen
+shuffle: bland
+Shut down when timer runs out: Luk computeren ned når timeren løber ud
+Shut Down Computer: Luk computeren
+Sleep when timer runs out: Gå i dvale når timeren løber ud
+Sleep Computer: Gå i dvale
+Stop: Stop
+Submit: Send
+Thanks for installing Music Caster.: Tak fordi du installerer Music Caster.
+Timer: Timer
+Timer cancelled: Timer annulleret
+"Timer set for %{TIME}": "Timer indstillet til: %{TIME}"
+Type in artist/tracks: Udfyld kunstner/titel
+UI: Brugerflade
+unmute: unmute
+updateAvail: "Opdatering ver: %{VER} er tilgængelig"
+URL: URL
+Use cover.* for album art: Brug cover.* til album art
+Use cover.* for art instead of file's album art: Brug cover.* til art i stedet for filens album art
+cover.* image overrides file cover: cover.* billede trumfer coverfil
+Vertical GUI: Lodret Brugerflade
+View Audio Files Source Links: Vis Lydfilers kilde Links
+Open Web GUI: Åbn Brugerflade i browser
+new playlist: ny playlist
+export playlist: eksporter playlist
+delete playlist: slet playlist
+play playlist: afspil playliste
+queue playlist: sæt playliste i kø
+Unknown Title: Ukendt Titel
+Unknown Artist: Ukendt Kunstner
+Unknown Album: Ukendt Album
+Always queue library: Sæt altid bibliotek i kø
+Play with Music Caster: Afspil med Music Caster
+Queue in Music Caster: Tilføj til kø i Music Caster
+Play next in Music Caster: Afspil næste i Music Caster
+Queueing: Sætter i kø
+Smart queue: Intelligent kø
+add to next up: tilføj som næste
+Metadata: Metadata
+Saving metadata: Gemmer metadata
+Metadata saved: Metadata gemt
+Save: Gem
+Title: Titel
+Artist: Kunstner
+Album: Album
+Track Number: Nummer indeks
+Explicit: Eksplicit
+Select artwork: Vælg artwork
+Search artwork: Søg artwork
+Remove artwork: fjern artwork
+Artwork found: Artwork fundet
+No artwork found: intet artwork found
+Searching for artwork...: Søger efter artwork...
+Loading URL(s): Indlæser URL(s)
+Added URL(s): Tilføjede URL(s)
+language: sprog
+play selected: afspil valgte
+queue selected: sæt valgte i kø
+add selected to next up: tilføj valgte som næste
+system_audio_delay: "System Lyd Forsinkelse:"
+seconds: sekunder
+locate_track: find nummer
+switching_to_local_device: Skifter til lokal afspilning
+track_format: "Nummer Format:"
+urlAudioFetchFailed: "Kunne ikke hente lyd fra: %{URL}"
+Exit app on GUI close: Afslut når den grafiske brugeflade lukkes
+On battery resolution: "'På batteri' opløsning"
+Plugged in resolution: "'tilsluttet' opløsning"
+Could not set resolution: Kunne ikke indstille opløsning
+copy URIs: Kopier URIs
+edit metadata: rediger metadata
+Experimental features: Eksperimentelle funktioner
+Playlist saved: Playlist gemt
+Install Update: Opdatering
+"Downloaded %{VER}. Relaunching...": "Downloadet %{VER}. Relancering..."

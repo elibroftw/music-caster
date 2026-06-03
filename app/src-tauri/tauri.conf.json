@@ -1,0 +1,165 @@
+{
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+			"nsis": {},
+			"wix": null
+    },
+    "publisher": "Elijah Lopez",
+    "copyright": "Copyright",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "externalBin": [
+			"../../dist/music-caster-daemon"
+    ],
+    "category": "Music",
+    "shortDescription": "",
+    "longDescription": "",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "entitlements": null
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    },
+    "createUpdaterArtifacts": true,
+    "fileAssociations": [
+      {
+        "ext": ["mp3"],
+        "name": "MP3",
+        "description": "MP3 - Audio File",
+        "contentTypes": ["public.mp3"]
+      },
+      {
+        "ext": ["flac"],
+        "name": "FLAC",
+        "description": "FLAC - Audio File",
+        "contentTypes": ["org.xiph.flac"]
+      },
+      {
+        "ext": ["m4a"],
+        "name": "M4A",
+        "description": "M4A - Audio File",
+        "contentTypes": ["public.mpeg-4-audio"]
+      },
+      {
+        "ext": ["aac"],
+        "name": "AAC",
+        "description": "AAC - Audio File",
+        "contentTypes": ["public.mpeg-4-audio"]
+      },
+      {
+        "ext": ["ogg"],
+        "name": "OGG",
+        "description": "OGG - Audio File",
+        "contentTypes": ["org.xiph.ogg"]
+      },
+      {
+        "ext": ["opus"],
+        "name": "OPUS",
+        "description": "OPUS - Audio File",
+        "contentTypes": ["public.audio"]
+      },
+      {
+        "ext": ["aiff"],
+        "name": "AIFF",
+        "description": "AIFF - Audio File",
+        "contentTypes": ["public.aiff-audio"]
+      },
+      {
+        "ext": ["wma"],
+        "name": "WMA",
+        "description": "WMA - Audio File",
+        "contentTypes": ["public.audio"]
+      },
+      {
+        "ext": ["wav"],
+        "name": "WAV",
+        "description": "WAV - Audio File",
+        "contentTypes": ["com.microsoft.waveform-audio"]
+      },
+      {
+        "ext": ["mpeg"],
+        "name": "MPEG",
+        "description": "MPEG - Audio File",
+        "contentTypes": ["public.mpeg-4-audio"]
+      },
+      {
+        "ext": ["m3u"],
+        "name": "M3U",
+        "description": "M3U - Audio File",
+        "contentTypes": ["public.m3u-playlist"]
+      },
+      {
+        "ext": ["m3u8"],
+        "name": "M3U8",
+        "description": "M3U8 - Audio File",
+        "contentTypes": ["public.m3u-playlist"]
+      }
+    ]
+  },
+  "build": {
+    "beforeDevCommand": "pnpm start",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../build",
+    "devUrl": "http://localhost:1420"
+  },
+  "productName": "Music Caster",
+  "mainBinaryName": "Music Caster",
+  "version": "../package.json",
+  "identifier": "ca.elijahlopez.music-caster",
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:music_caster.db"]
+    },
+    "updater": {
+      "endpoints": [
+				"https://lenerva.com/tauri-releases/music-caster/{{target}}/{{current_version}}",
+        "https://elijahlopez.ca/tauri-releases/music-caster/{{target}}/{{current_version}}"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1Q0ZDNDNBNTk5Q0FEMDcKUldRSHJaeFpPc1RQTmVTOGtPMUJ0cjBKZFJsNjJTUHZBbE1YY0tnM3QyNXp6azVjdUY0bkRWcnYK"
+    },
+		"deep-link": {
+			"desktop": {
+				"schemes": [
+					"music-caster"
+				]
+			}
+		}
+  },
+  "app": {
+    "security": {
+      "csp": "default-src blob: data: filesystem: ws: wss: http: https: tauri: 'unsafe-eval' 'unsafe-inline' 'self' img-src: 'self'; connect-src ipc: http://ipc.localhost"
+    },
+    "windows": [
+      {
+        "title": "Music Caster",
+        "label": "main",
+        "minWidth": 1000,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "useHttpsScheme": true
+      }
+    ],
+    "withGlobalTauri": false
+  }
+}

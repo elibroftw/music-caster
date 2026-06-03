@@ -1,4 +1,4 @@
-VERSION = latest_version = '5.25.3'
+VERSION = latest_version = '6.0.0'
 UPDATE_MESSAGE = """
 [NEW] Support "System Audio" in CLI
 [MSG] Language translators wanted
@@ -73,7 +73,7 @@ SUN_VALLEY_TCL = 'theme/sun-valley.tcl'
 
 TKDND_ENABLED = False
 
-USING_TAURI_FRONTEND = False
+USING_TAURI_FRONTEND = True
 BUNDLE_IDENTIFIER = 'ca.elijahlopez.music-caster'
 
 class State:

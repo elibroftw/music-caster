@@ -155,3 +155,17 @@ Update the version found in the following files
 From here, you can test the app in the newer version of Python (need to initialize a new virtualenv)
 
 Lastly, build the app and submit it to Microsoft for false positive. I'm not sure when I'll buy a cert to ensure we don't encounter this again.
+
+## Tauri Guide
+
+The Tauri version of the app is in `app`. The goal is very simple.
+
+First, we are going to make Music Caster a daemon. This means we can use Tauri for UI code, and then interact with the daemon.
+
+### Incremental Daemon Builds
+
+`.\build.cmd --skip-tests --no-install --skip-deps`
+
+## Windows ARM64 Installer
+
+`pnpm tauri build --target aarch64-pc-windows-msvc`

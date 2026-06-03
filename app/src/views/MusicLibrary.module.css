@@ -1,0 +1,5 @@
+.tab {
+	height: calc(100dvh - var(--app-shell-footer-height) - 80px);
+	flex-direction: column;
+	overflow: hidden;
+}

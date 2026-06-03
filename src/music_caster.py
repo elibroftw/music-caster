@@ -1,3 +1,5 @@
+from lzma import PRESET_DEFAULT
+
 from gui.views import GuiContext
 from meta import (
     State,
@@ -25,6 +27,9 @@ from meta import (
 )
 import time
 
+from modules.db import FileMetadata
+from utils import install_deno
+
 start_time = time.monotonic()
 from contextlib import suppress
 from itertools import islice, chain
@@ -41,15 +46,23 @@ from shared import is_already_running
 
 
 def create_pid_file(port=None):
-    with open(PID_FILENAME, 'w', encoding='utf-8') as f:
+    pid_filename = Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / PID_FILENAME
+    pid_filename.parent.mkdir(parents=True, exist_ok=True)
+    if not USING_TAURI_FRONTEND:
+        pid_filename = PID_FILENAME
+    with open(pid_filename, 'w', encoding='utf-8') as f:
         f.write(str(os.getpid()))
         if port is not None:
             f.write(f'\n{port}')
 
 
 def parse_pid_file():
+    pid_filename = Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / PID_FILENAME
+    pid_filename.parent.mkdir(parents=True, exist_ok=True)
+    if not USING_TAURI_FRONTEND:
+        pid_filename = PID_FILENAME
     with suppress(FileNotFoundError):
-        with open(PID_FILENAME, encoding='utf-8') as f:
+        with open(pid_filename, encoding='utf-8') as f:
             pid = int(f.readline().strip())
             try:
                 port = int(f.readline().strip())
@@ -471,8 +484,9 @@ if __name__ == '__main__':
 
 
     def close_tray():
-        tray_process_queue.put({'close': None})
-        tray_process.join()
+        if not USING_TAURI_FRONTEND:
+            tray_process_queue.put({'close': None})
+            tray_process.join()
 
 
     def save_settings():
@@ -830,7 +844,9 @@ if __name__ == '__main__':
             # scan items in queue and library
             file_metadata_list = []
             urls_to_fetch = []
+            FileMetadata.cleanup_db_table()
             with DatabaseConnection() as conn:
+                cur = conn.cursor()
                 for uri in get_audio_uris((settings['queues'].values(), music_folders), scan_uris=False, ignore_m3u=True):
                     if uri.startswith('http'):
                         if not URLMetadata.from_db(conn, uri):
@@ -839,8 +855,7 @@ if __name__ == '__main__':
                         m = get_metadata_wrapped(uri)
                         dict_to_use[uri] = m
                         file_metadata_list.append((uri, m))
-                cur = conn.cursor()
-                # save_metadata_batch(file_metadata_list, 'file_metadata', 'file_path')
+                FileMetadata.batch_save_to_db(file_metadata_list, cur)
                 gui_window.metadata['update_listboxes'] = True
 
                 for url in urls_to_fetch:
@@ -1036,6 +1051,9 @@ if __name__ == '__main__':
             case 'shuffle':
                 shuffle_enabled = update_settings('shuffle', not settings['shuffle'])
                 api_msg = f'shuffle set to {shuffle_enabled}'
+            case 'stop':
+                stop('web')
+                api_msg = 'stopped playback'
             case 'activate':
                 daemon_commands.put('__ACTIVATED__')  # tell main thread to show GUI
                 api_msg = 'activated main window'
@@ -1048,7 +1066,7 @@ if __name__ == '__main__':
     def web_index():  # web GUI
         request_data = get_request_data()
         if request_data is not None:
-            for command in ('play', 'pause', 'next', 'prev', 'repeat', 'shuffle', 'activate'):
+            for command in ('play', 'pause', 'next', 'prev', 'repeat', 'shuffle', 'stop', 'activate'):
                 if command in request_data:
                     return web_action(command)
         api_key = settings['api_key']
@@ -1099,6 +1117,12 @@ if __name__ == '__main__':
             return redirect('https://github.com/elibroftw/music-caster/releases/latest')
 
 
+    @app.route('/album-art/')
+    def api_get_album_art():
+        img_data = get_current_art()
+        return send_file(io.BytesIO(b64decode(img_data)), download_name='album_art.png',
+                        mimetype='image/png', as_attachment=False, max_age=0)
+
     @app.route('/status/')
     @app.route('/state/')
     def api_state():
@@ -1108,7 +1132,23 @@ if __name__ == '__main__':
                        'album': str(_metadata['album']), 'gui_open': not gui_window.is_closed(),
                        'track_position': get_track_position(), 'track_length': track_end - track_start,
                        'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
+        if USING_TAURI_FRONTEND:
+            now_playing["queue"] = get_queue_for_frontend()
+            now_playing["file_name"] = music_queue[0] if music_queue else None
+            now_playing["queue_position"] = len(done_queue)
         return jsonify(now_playing)
+
+
+    def get_queue_for_frontend() -> list:
+        try:
+            tracks = []
+            for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
+                for uri in items:
+                    formatted_track = format_uri(uri, _for='queue')
+                    tracks.append((uri, formatted_track))
+            return tracks
+        except RuntimeError:
+            return get_queue_for_frontend()
 
 
     @app.route('/play/', methods=['GET', 'POST'])
@@ -1145,6 +1185,7 @@ if __name__ == '__main__':
                 if uris and uris[0].lower().replace(' ', '').replace('_', '') == 'systemaudio':
                     play_system_audio()
                 else:
+                    app_log.info(f'called play_uris with opt = {opt} uris len = {len(uris)}')
                     play_uris(uris, queue_uris=queue_only,
                             play_next=play_next, merge_tracks=merge_plays)
                     if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
@@ -1153,11 +1194,13 @@ if __name__ == '__main__':
                 if request_data['uri'].lower().replace(' ', '').replace('_', '') == 'systemaudio':
                     play_system_audio()
                 else:
+                    app_log.info(f'called play_uris with opt = {opt} uri = {request_data['uri']}, merge_tracks = {merge_plays}, queue all? {settings['queue_library']}')
                     play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
                     if settings['queue_library']:
                         queue_all()
         else:
             recent_api_plays['play'] += 1
+            app_log.info('increasing recent_api_plays play counter')
         return redirect('/') if request.method == 'GET' else api_state()
 
 
@@ -1385,6 +1428,89 @@ if __name__ == '__main__':
         return Response(sar.get_audio_data(settings['sys_audio_delay']))
 
 
+    @app.post('/modify-queue/')
+    def api_modify_queue():
+        if request.headers.get('x-api-key') != settings['api_key']:
+            return {'error': 'Unauthorized, api_key=not-provided'}, 401
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict):
+            return '', 400
+        indices = data.get('indices')
+        action = data.get('action')
+        if not isinstance(indices, list) or not all(isinstance(i, int) and i >= 0 for i in indices):
+            return '', 400
+        if action == 'next_up':
+            move_to_next_up(indices)
+        elif action == 'remove':
+            remove_from_queue(indices)
+        else:
+            return '', 400
+        return '', 204
+
+    def move_to_next_up(indices):
+        indices.sort()
+        for i, index_to_move in enumerate(indices, 1):
+            dq_len = len(done_queue)
+            nq_len = len(next_queue)
+            if index_to_move < dq_len:
+                track = done_queue[index_to_move]
+                del done_queue[index_to_move]
+                if settings['reversed_play_next']:
+                    next_queue.appendleft(track)
+                else:
+                    next_queue.append(track)
+                if i == len(indices):  # update gui after the last swap
+                    if not gui_window.is_closed():
+                        values = create_track_list()
+                        gui_window['queue'].update(values=values, set_to_index=len(done_queue) + len(next_queue),
+                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
+                    save_queues()
+            elif index_to_move > dq_len + nq_len:
+                track = music_queue[index_to_move - dq_len - nq_len]
+                del music_queue[index_to_move - dq_len - nq_len]
+                if settings['reversed_play_next']:
+                    next_queue.appendleft(track)
+                else:
+                    next_queue.append(track)
+                if i == len(indices):  # update gui after the last swap
+                    if not gui_window.is_closed():
+                        values = create_track_list()
+                        gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
+                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
+                    save_queues()
+
+    def remove_from_queue(indices):
+        indices.sort(reverse=True)
+        for i, index_to_remove in enumerate(indices, 1):
+            dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
+            if index_to_remove < dq_len:
+                del done_queue[index_to_remove]
+            elif index_to_remove == dq_len:
+                with suppress(IndexError):
+                    # remove the "0. XXX" track that could be playing right now
+                    music_queue.popleft()
+                    if next_queue:
+                        music_queue.appendleft(next_queue.popleft())
+                    # if queue is empty but repeat is all AND there are tracks in the done_queue
+                    if not music_queue and settings['repeat'] is False and done_queue:
+                        music_queue.extend(done_queue)
+                        done_queue.clear()
+                    # start playing new track if a track was being played
+                    if not sar.alive:
+                        if music_queue and playing_status.busy():
+                            play()
+                        else:
+                            stop('remove_track')
+            elif index_to_remove <= nq_len + dq_len:
+                del next_queue[index_to_remove - dq_len - 1]
+            elif index_to_remove < nq_len + mq_len + dq_len:
+                del music_queue[index_to_remove - dq_len - nq_len]
+            if i == len(indices):  # update gui after the last removal
+                values = create_track_list()
+                new_i = min(len(values), index_to_remove)
+                if not gui_window.is_closed():
+                    gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+
     def cast_try_reconnect(switch_twice=False):
         global cast_browser, zconf
         if switch_twice and cast is not None:
@@ -1599,6 +1725,7 @@ if __name__ == '__main__':
             music_queue = deque(sorted(done_queue, key=natural_key_file))
             done_queue.clear()
         gui_window.metadata['update_listboxes'] = True
+        save_queues()
 
 
     def shuffle_queue():
@@ -1619,6 +1746,7 @@ if __name__ == '__main__':
         better_shuffle(temp_list, first=first_index)
         music_queue = deque(temp_list)
         gui_window.metadata['update_listboxes'] = True
+        save_queues()
 
 
     def format_pl_lb(tracks):
@@ -1923,6 +2051,7 @@ if __name__ == '__main__':
                     metadata_list.append(metadata)
         # youtube
         elif (ytid := get_yt_id(url)) is not None or url.startswith(f'{ytsearch}:'):
+            install_deno()
             # lazily get videos in the playlist
             if ytid is not None and ytid.startswith('PL'):
                 videos = scrapetube.get_playlist(ytid)
@@ -2364,6 +2493,7 @@ if __name__ == '__main__':
             else:
                 next_queue.extend(temp_queue)
             gui_window.metadata['update_listboxes'] = True
+            save_queues()
             return True
         # extend only if merge_tracks == 0 or we are queueing the tracks
         if queue_uris or merge_tracks == 0:
@@ -2407,6 +2537,7 @@ if __name__ == '__main__':
             if music_queue:
                 play()
         gui_window.metadata['update_listboxes'] = True
+        save_queues()
 
 
     def queue_all():
@@ -2919,11 +3050,13 @@ if __name__ == '__main__':
         ) and not args.nupdate
         update_checker.auto_update(install_update=install_update)
         State.installing_update = False
-
-        start_on_login_modifications()
-        p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
-        p.name = 'pynputListener'
-        p.start()
+        if not USING_TAURI_FRONTEND:
+            start_on_login_modifications()
+            p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
+            p.name = 'pynputListener'
+            p.start()
+        # Media key / global shortcut handling is now done by the Tauri frontend,
+        # which forwards actions to the daemon via the HTTP API (see /action/<command>).
         while True:
             scanned = 0
             while not uris_to_scan.empty():
@@ -2959,7 +3092,6 @@ if __name__ == '__main__':
                 print('next')
             case SystemMediaTransportControlsButton.PREVIOUS:
                 print('previous')
-
 
     def on_press(key):
         key = str(key)
@@ -3602,33 +3734,7 @@ if __name__ == '__main__':
             if len(indices) == 1 and metadata_process_file(uri_at_idx(indices[0]), 'read_main_window:edit_metadata'):
                 gui_window['tab_metadata'].select()
         elif main_event == 'move_to_next_up':
-            for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
-                dq_len = len(done_queue)
-                nq_len = len(next_queue)
-                if index_to_move < dq_len:
-                    track = done_queue[index_to_move]
-                    del done_queue[index_to_move]
-                    if settings['reversed_play_next']:
-                        next_queue.appendleft(track)
-                    else:
-                        next_queue.append(track)
-                    if i == len(main_values['queue']):  # update gui after the last swap
-                        values = create_track_list()
-                        gui_window['queue'].update(values=values, set_to_index=len(done_queue) + len(next_queue),
-                                                   scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
-                        save_queues()
-                elif index_to_move > dq_len + nq_len:
-                    track = music_queue[index_to_move - dq_len - nq_len]
-                    del music_queue[index_to_move - dq_len - nq_len]
-                    if settings['reversed_play_next']:
-                        next_queue.appendleft(track)
-                    else:
-                        next_queue.append(track)
-                    if i == len(main_values['queue']):  # update gui after the last swap
-                        values = create_track_list()
-                        gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
-                                                   scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
-                        save_queues()
+            move_to_next_up(gui_window['queue'].get_indexes())
             gui_window.metadata['update_listboxes'] = False
         elif main_event == 'move_up':
             for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
@@ -3700,34 +3806,7 @@ if __name__ == '__main__':
                         gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=scroll_to)
                         save_queues()
         elif main_event == 'remove_track' and main_values['queue']:
-            for i, index_to_remove in enumerate(reversed(gui_window['queue'].get_indexes()), 1):
-                dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
-                if index_to_remove < dq_len:
-                    del done_queue[index_to_remove]
-                elif index_to_remove == dq_len:
-                    with suppress(IndexError):
-                        # remove the "0. XXX" track that could be playing right now
-                        music_queue.popleft()
-                        if next_queue:
-                            music_queue.appendleft(next_queue.popleft())
-                        # if queue is empty but repeat is all AND there are tracks in the done_queue
-                        if not music_queue and settings['repeat'] is False and done_queue:
-                            music_queue.extend(done_queue)
-                            done_queue.clear()
-                        # start playing new track if a track was being played
-                        if not sar.alive:
-                            if music_queue and playing_status.busy():
-                                play()
-                            else:
-                                stop('remove_track')
-                elif index_to_remove <= nq_len + dq_len:
-                    del next_queue[index_to_remove - dq_len - 1]
-                elif index_to_remove < nq_len + mq_len + dq_len:
-                    del music_queue[index_to_remove - dq_len - nq_len]
-                if i == len(main_values['queue']):  # update gui after the last removal
-                    values = create_track_list()
-                    new_i = min(len(values), index_to_remove)
-                    gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+            remove_from_queue(gui_window['queue'].get_indexes())
         elif main_event == 'select_files':
             Thread(target=file_action, name='FileAction', daemon=True,
                    args=[main_values['fs_action']]).start()
@@ -4375,7 +4454,7 @@ if __name__ == '__main__':
         update_settings('update_message', UPDATE_MESSAGE)
 
         # set file handlers only if installed from the setup (Not a portable installation)
-        if os.path.exists(UNINSTALLER):
+        if os.path.exists(UNINSTALLER) and not USING_TAURI_FRONTEND:
             with suppress(PermissionError):
                 add_reg_handlers(working_dir / 'Music Caster.exe', add_folder_context=settings['folder_context_menu'])
 

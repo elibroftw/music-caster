@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.0.0
+- [Feat] New UI
+
 5.25.3
 - [Fix] Security
 - [Fix] URL processing

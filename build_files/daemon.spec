@@ -37,7 +37,6 @@ a.datas.extend(Tree('src/vlc_lib', 'vlc_lib', excludes=VLC_EXCLUDES))
 a.datas.extend(Tree('src/languages', 'languages'))
 a.datas.extend(Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2'))
 a.datas.extend(Tree('src/theme', 'theme'))
-# a.datas.extend(Tree('src-frontend/dist', 'frontend'))
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)

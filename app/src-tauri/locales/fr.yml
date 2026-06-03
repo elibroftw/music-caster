@@ -1,0 +1,197 @@
+add folder: ajouter à partir d’un dossier
+Add Music Caster to folder context menu: ajouter Music Caster au dossier du menu contextuel
+Add files: ajouter à partir des fichiers
+Add URL: ajouter à partir d’une URL
+An error occurred, restarting now: Une erreur s’est produite, redémarrage immédiat
+An Internal Server Error occurred: Une erreur interne du serveur s’est produite
+Audio Selection: Sélection audio
+Auto update: Mise à jour automatique
+By: Par
+Cancel: Annuler
+Cancel Timer: Annuler le chronomètre
+Clear the queue: Nettoyer la file d’attente
+Controls: Contrôles
+Could not connect to cast device: Impossible de se connecter au périphérique cast
+Could not find an output device to record: Impossible de trouver un appareil de sortie pour enregistrer
+couldNotPlayURL: Impossible de jouer %{URL}
+Could not populate queue because library scan is disabled: Impossible de remplir la file d’attente car l’analyse de bibliothèque est désactivée
+Could not set timer: Impossible de régler le chronomètre
+Discord presence: présence Discord
+downloadingUpdate: Mise à jour vers %{VER}
+Enter minutes or HH:MM: Saisir les minutes ou HH:MM
+Enter Time: Saisir un temps
+Enter URL: Saisir l'URL
+ERROR: ERREUR
+Exit: Sortir
+Folder context menu: Dossier du menu contextuel
+Folder does not contain audio files: Le dossier ne contient pas de fichiers audio
+Folders: Dossiers
+General: Générale
+Hibernate when timer runs out: Mettre en veille lorsque le chronomètre finit
+Hibernate Computer: Mettre en veille l'ordinateur
+INFO: INFO
+invalidTimerInput: Entrée invalide (saisir minutes ou HH:MM)
+invalidURL: URL. invalide l'URL doit commencer par http:// ou https://
+Invalid audio file selected: Fichier audio sélectionné invalide
+Invalid audio file %{FILE}: Fichier audio invalide %{FILE}
+Keep mini mode on top: Garder le mode mini au premier plan
+Launch mini mode: Launcer le mode mini
+Left-side music controls: Commandes de musique du côté gauche
+Library: Bibliothèque
+Library indexing incomplete, only scanned files have been added: Indexation de la bibliothèque incomplète, seulement les fichiers scannés ont été ajoutés
+Listening: Écoute
+System Audio: Audio système
+Local device: Périphérique local
+locate selected: langue sélectionnée
+Lost connection to %{DEVICE}, switching to local device: Connexion perdue avec %{DEVICE}, changement vers l’appareil local
+Mini mode on top: Mode mini au premier plan
+More: Plus
+move down: descendre
+Move to next up: Déplacer vers le suivant
+Move track content to the left: Déplacer le contenu de la piste vers la gauche
+move up: monter
+Music Caster is running in the tray.: Music Caster est en cours d'exécution.
+mute: silencieux
+New: Nouveau
+next track: morceau suivant
+No space left on device to auto-update: Il n'y a plus d'espace libre sur l'appareil de mise à jour automatisé
+No space left on device to save settings: Il n'y a plus d'espace libre dans l'appareil pour sauvegarder les paramètres
+No Timer Set: Aucun chronomètre
+Not connected to a cast device: Non connecté à un appareil de Cast
+Not logged into deezer.com: Non connecté à deezer.com
+Nothing Playing: Joue rien
+Notifications: Notifications
+Only Stop Playback: Arrêter uniquement la lecture
+Open: Ouvrir
+Pause: Pause
+Persistent queue: File d’attente permanente
+Play: Jouer
+Play All: Tout jouer
+Play Files: Jouer les fichiers
+Play Files Next: Jouer les fichiers suivants
+Play Immediately: Jouer immédiatement
+Play Next: Jouer le prochain
+Play URL: Jouer à partir d'une URL
+Play URL Next: Jouer le prochain morceau de l'URL
+Playing: En cours d'écoute
+Playlist name: Nom de la playlist
+Playlists: Listes de lectures
+Playlists Tab: Onglet listes de lectures
+Populate queue on startup: Remplir la file d’attente au démarrage
+Populates queue from folders on startup: Remplir la file d’attente depuis les dossiers au démarrage
+previous track: morceau précédent
+Queue: File d'attente
+queue all: Tout mettre dans la file d'attente
+Queue Files: Fichiers de la file d'attente
+Queue URL: URL de la file d'attente
+Refresh Devices: Rafraichir les appareils
+Remember last folder: Restaurer le dernier dossier
+remove selected folder: supprimer le dossier sélectionné
+remove: supprimer
+Repeat: Répéter
+Repeat All: Tout répéter
+Repeat Off: Désactiver le mode repeat
+Repeat One: Répéter une fois
+Repeat Options: Options du mode répéter
+Rescan Library: Réanalyse de la bibliothèque
+Rescanning library: Réanalyse de la bibliothèque en cours
+Resume: Résumer
+Reverse play next behaviour: Jouer à l'envers le prochain comportement
+Reversed play next: Jouer à l'envers le prochain morceau
+Run on startup: Démarrer au lancement
+Save queue between sessions: Sauvegarder la file d'attente entre les sessions
+Save to playlist: Sauvegarder à la playlist
+Save window positions: Sauvegarder les position de la fenêtre
+Scan folders: Scanner les dossier
+scroll mousewheel: scroll molette
+Search for music...: Rechercher de la musique...
+Select Device: Sélectionner l'appareil
+Select Folder: Sélectionner un dossier
+Select Folders: Sélectionner des dossiers
+Select Files: Sélectionner des fichiers
+Select File: Sélectionner un fichier
+Select Audio Files: Sélectionner des fichiers audio
+Send me an email: Envoyez-moi un email
+set DEBUG = true in `settings.json` to enable this page: régler DEBUG = true dans settings.json pour activer cette page
+Set Timer: Régler le chronomètre
+Set: Régler
+Settings: Paramètres
+Show album art: Afficher la pochette d'album
+Show album art in GUI: Afficher la pochette d'album dans l'interface
+Show index in queue: Afficher l'index dans la file d'attente
+Show track number: Afficher le numéro du morceau
+Show track number in queue: Afficher le numéro du morceau dans la file d'attente
+shuffle: aléatoire
+Shut down when timer runs out: Éteindre à la fin du chronomètre
+Shut Down Computer: Éteindre l'ordinateur
+Sleep when timer runs out: Mettre en veille à la fin du chronomètre
+Sleep Computer: Mettre en veille l'ordinateur
+Stop: Arrêter
+Submit: Envoyer
+Thanks for installing Music Caster.: Merci d'avoir installé Music Caster.
+Timer: Chronomètre
+Timer cancelled: Chronomètre annulé
+Timer set for %{TIME}: Chronomètre réglé pour %{TIME}
+Type in artist/tracks: Rechercher dans artistes/morceaux
+UI: Interface utilisateur
+unmute: réactiver le son
+updateAvail: Nouvelle mise à jour %{VER} disponible
+URL: URL
+Use cover.* for album art: Utiliser cover.* pour la pochette d'album
+Use cover.* for art instead of file's album art: Utiliser cover.* pour la pochette d'album au lieu de celui du fichier
+cover.* image overrides file cover: remplacer la bannière par cover.*
+Vertical GUI: Interface verticale
+View Audio Files Source Links: Afficher les liens source des fichiers audio
+Open Web GUI: Ouvrir l'interface Web
+new playlist: nouvelle playlist
+export playlist: exporter la playlist
+delete playlist: supprimer la playlist
+play playlist: jouer la playlist
+queue playlist: playlist de la file d'attente
+Unknown Title: Titre inconnu
+Unknown Artist: Artiste inconnu
+Unknown Album: Album inconnu
+Always queue library: Toujours mettre en attente la bibliothèque
+Play with Music Caster: Jouer avec Music Caster
+Queue in Music Caster: Mise en attente dans Music Caster
+Play next in Music Caster: Jouer le prochain titre dans Music Caster
+Queueing: Mise en file d'attente
+Smart queue: File d'attente intelligente
+add to next up: Ajouter au prochain
+Metadata: métadonnées
+Saving metadata: Sauvegarde des métadonnées
+Metadata saved: Métadonnées sauvegardées
+Save: Sauvegarder
+Title: Titre
+Artist: Artiste
+Album: Album
+Track Number: Morceau numéro
+Explicit: Explicite
+Select artwork: Sélectionner un morceau
+Search artwork: Rechercher un morceau
+Remove artwork: Supprimer le morceau
+Artwork found: Morceau trouvé
+No artwork found: Aucun morceau trouvé
+Searching for artwork...: Recherche de morceau...
+Loading URL(s): Chargements des URL
+Added URL(s): URL ajoutées
+language: langue
+play selected: Jouer les morceaux sélectionnés
+queue selected: file d’attente sélectionnée
+add selected to next up: Ajouter la sélection au prochain
+system_audio_delay: Délai du système audio
+seconds: secondes
+locate_track: Localiser le morceau
+switching_to_local_device: Passage à l'appareil local
+track_format: Format du morceau
+urlAudioFetchFailed: Impossible de trouver le fichier audio à partir de %{URL}
+Exit app on GUI close: Sortir de l'app quand le GUI se ferme
+On battery resolution: Résolution sur batterie
+Plugged in resolution: Résolution branchée
+Could not set resolution: Impossible de définir la résolution
+copy URIs: copier les URI
+edit metadata: modifier les métadonnées
+Experimental features: Fonctionnalités expérimentales
+Playlist saved: Liste de lecture enregistrée
+Install Update: Mise à jour
+Downloaded %{VER}. Relaunching...: Téléchargé %{VER}. Relance...
