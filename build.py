@@ -693,6 +693,9 @@ if __name__ == '__main__':
         if USING_TAURI_FRONTEND:
             print('USING_TAURI_FRONTEND is true; exiting.')
             sys.exit(0)
+        if VERSION[0] == '6':
+            print('Major version is not 5; exiting.')
+            sys.exit(1)
         print('Will try to upload to GitHub')
         # upload to GitHub
         github = read_env()['github']
