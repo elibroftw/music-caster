@@ -1,0 +1,158 @@
+name: Publish Release
+on:
+  push:
+    tags:
+      - 'v*'
+    branches: '*'
+  workflow_dispatch:
+
+env:
+  APP_NAME: "Music Caster"
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: '3.x'
+
+      - name: Build changelog
+        id: build_changelog
+        run: |
+          {
+            echo 'changelog<<EOF'
+            python build.py --changelog
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+    outputs:
+      changelog: ${{ steps.build_changelog.outputs.changelog }}
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - platform: 'macos-latest' # for Arm based macs (M1 and above).
+          #   args: '--target aarch64-apple-darwin'
+          # - platform: 'macos-latest' # for Intel based macs.
+          #   args: '--target x86_64-apple-darwin'
+          # build on oldest distro to increase AppImage robustness/compatibility
+          # https://v2.tauri.app/distribute/appimage/#limitations
+          # - platform: 'ubuntu-22.04'
+          #   args: ''
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+          - platform: 'windows-latest'
+            args: '--target aarch64-pc-windows-msvc'
+    runs-on: ${{ matrix.platform }}
+    needs: [changelog]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      # build the changelog based on the commit messages between the versioned tags
+      - name: Install pnpm
+        uses: pnpm/action-setup@master
+        with:
+          package_json_file: "app/package.json"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@main
+        # NOTE: enterprise developers may hard code a version
+        with:
+          node-version: 'lts/*'
+          cache: pnpm
+          # node-version-file: '.nvmrc'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
+        with:
+          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Ubuntu dependencies
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt update
+          xargs sudo apt install -y < environment/apt_packages.txt
+
+      - name: Install frontend dependencies
+        run: |
+          pnpm install
+
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: '3.x'
+
+      # Build the daemon sidecar before tauri-action so externalBin
+      # (dist/music-caster-daemon-<target>.exe) exists at bundle time.
+      # matrix.args is already in `--target <triple>` form; forward it to build.py
+      # so the artifact is named to match the Tauri target. Empty args lets build.py
+      # default to the host triple.
+      - name: Build Music Caster daemon
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python build.py --ci --no-install ${{ matrix.args }}
+
+      - name: CI Build
+        if: ${{ github.ref_type == 'branch' }}
+        run: |
+          pnpm rls
+
+      - name: CI upload Windows
+        if: ${{ github.ref_type == 'branch' && matrix.platform == 'windows-latest' }}
+        uses: actions/upload-artifact@main
+        with:
+          name: 'Windows Installers'
+          path: |
+            src-tauri/release/bundle/msi/*.msi
+            src-tauri/release/bundle/nsis/*.exe
+
+      - name: CI upload macOS
+        if: ${{ github.ref_type == 'branch' && matrix.platform == 'macos-latest' }}
+        uses: actions/upload-artifact@main
+        with:
+          name: 'macOS Installer'
+          path: |
+            src-tauri/release/bundle/dmg/*.dmg
+
+      - name: CI upload Linux
+        if: ${{ github.ref_type == 'branch' && startsWith(matrix.platform, 'ubuntu') }}
+        uses: actions/upload-artifact@main
+        with:
+          name: 'Linux Distributions'
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/AppImage/*.AppImage
+
+      # TODO: https://tauri.app/v1/guides/building/linux#cross-compiling-tauri-applications-for-arm-based-devices
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        if: ${{ github.ref_type == 'tag' }}
+        # if u get Error: Resource not accessible by integration
+        # go to repository Settings => Action => General => Workflow permissions => Switch to Read and Write permisions
+        env:
+          CI: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          # tauri-action replaces \_\_VERSION\_\_ with the app version
+          tagName: ${{ github.ref_name }}
+          releaseName: "${{ env.APP_NAME }} v__VERSION__"
+          releaseBody: |
+            ${{needs.changelog.outputs.changelog}}
+            See the assets to download this version and install.
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

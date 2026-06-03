@@ -129,9 +129,10 @@
     },
     "updater": {
       "endpoints": [
-        "https://youtu.be/ZXjlZBisYPQ"
+				"https://lenerva.com/tauri-releases/music-caster/{{target}}/{{current_version}}",
+        "https://elijahlopez.ca/tauri-releases/music-caster/{{target}}/{{current_version}}"
       ],
-      "pubkey": ""
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1Q0ZDNDNBNTk5Q0FEMDcKUldRSHJaeFpPc1RQTmVTOGtPMUJ0cjBKZFJsNjJTUHZBbE1YY0tnM3QyNXp6azVjdUY0bkRWcnYK"
     },
 		"deep-link": {
 			"desktop": {
