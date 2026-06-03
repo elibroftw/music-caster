@@ -1,0 +1,3 @@
+# windows-reactor (windows-rs) currently requires rustc >= 1.95.
+[toolchain]
+channel = "1.96.0"

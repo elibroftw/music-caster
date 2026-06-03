@@ -1,0 +1,40 @@
+[package]
+name = "migration-bootstrapper"
+version = "0.1.0"
+description = "Standalone failsafe that migrates an existing Music Caster install to the Tauri (v6+) MSI build"
+authors = ["Elijah Lopez"]
+license = ""
+edition = "2024"
+rust-version = "1.95"
+
+# The distributable is named MigrationBootstrapper.exe regardless of the crate name.
+[[bin]]
+name = "MigrationBootstrapper"
+path = "src/main.rs"
+
+[dependencies]
+# Brand-new React-like WinUI 3 GUI (windows-rs). Unreleased: pulled straight from git.
+# The API is preliminary; only main.rs depends on it so the migration core stays stable.
+windows-reactor = { git = "https://github.com/microsoft/windows-rs" }
+# Small synchronous HTTP client for the GitHub API call + MSI download.
+ureq = { version = "3", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+windows-reactor-setup = { git = "https://github.com/microsoft/windows-rs", branch = "master" }
+
+# Registry fallback for locating the uninstaller when it is not found in the CWD.
+[dependencies.windows]
+version = "0.62"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Registry",
+]
+
+[profile.release]
+panic = "abort"   # Strip expensive panic clean-up logic
+codegen-units = 1 # Compile crates one after another so the compiler can optimize better
+lto = true        # Enable link-time optimizations
+opt-level = "s"   # Optimize for binary size (this is a tiny failsafe, not a hot path)
+strip = true      # Strip symbols from the binary
