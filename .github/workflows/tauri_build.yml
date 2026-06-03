@@ -64,9 +64,10 @@ jobs:
         uses: actions/setup-node@main
         # NOTE: enterprise developers may hard code a version
         with:
-          node-version: 'lts/*'
+          node-version: lts/*
           cache: pnpm
-          # node-version-file: '.nvmrc'
+          cache-dependency-path: app/pnpm-lock.yaml
+          node-version-file: app/.nvmrc
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
