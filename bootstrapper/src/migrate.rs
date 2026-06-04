@@ -10,6 +10,13 @@ const RELEASES_URL: &str =
 const USER_AGENT: &str = "MusicCasterMusic Caster Bootstrapper";
 const INNO_UNINSTALLER: &str = "unins000.exe";
 
+/// The latest release's version and the download URL for its MSI installer.
+#[derive(Clone, Debug)]
+pub struct LatestMsi {
+    pub version: String,
+    pub download_url: String,
+}
+
 /// Installer
 #[derive(Clone, Debug)]
 pub enum Progress {
@@ -69,8 +76,7 @@ pub fn host_arch_token() -> &'static str {
     }
 }
 
-// TODO: return a Struct { VERSION, MSI_DOWNLOAD_URL }
-pub fn latest_msi() -> Result<(String, String), String> {
+pub fn latest_msi() -> Result<LatestMsi, String> {
     let release: Release = ureq::get(RELEASES_URL)
         .header("User-Agent", USER_AGENT)
         .call()
@@ -91,7 +97,7 @@ pub fn latest_msi() -> Result<(String, String), String> {
         .map(|a| a.browser_download_url.clone())
         .ok_or_else(|| format!("No {arch} MSI installer was found in the latest release."))?;
 
-    Ok((version, msi_url))
+    Ok(LatestMsi { version, download_url: msi_url })
 }
 
 fn download(url: &str, dest: &Path, on_progress: &dyn Fn(Event)) -> Result<(), String> {
@@ -201,7 +207,7 @@ pub fn migrate(on_event: &(dyn Fn(Event) + Sync)) -> Result<(), String> {
         UninstallStatus::NotFound
     }));
 
-    let (version, msi_url) = latest_msi()?;
+    let LatestMsi { version, download_url: msi_url } = latest_msi()?;
     let dest = std::env::temp_dir().join(format!("MusicCaster_{version}.msi"));
 
     let download_started = std::sync::Barrier::new(2);
@@ -246,6 +252,9 @@ use windows::core::{PCWSTR, PWSTR};
 
 const UNINSTALL_ROOT: &str =
     r"Software\Microsoft\Windows\CurrentVersion\Uninstall";
+/// Inno Setup AppId GUID for Music Caster. The uninstall subkey is named
+/// `{GUID}_is1`, so we match on the subkey name containing this GUID.
+const APP_GUID: &str = "{FBE8A652-58D6-482D-B6A9-B3D7931CC9C5}";
 
 fn registry_uninstaller() -> Option<UninstallCommand> {
     let hives = [HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER];
@@ -284,9 +293,12 @@ fn search_uninstall_hive(hive: HKEY, view: REG_SAM_FLAGS) -> Option<UninstallCom
         let Some(subkey) = open_key(root, &subkey_name, KEY_READ | view) else {
             continue;
         };
-        // TODO: use GUID {FBE8A652-58D6-482D-B6A9-B3D7931CC9C5}
         let display_name = read_string(subkey, "DisplayName").unwrap_or_default();
-        if display_name.to_ascii_lowercase().contains("music caster") {
+        let matches = subkey_name
+            .to_ascii_uppercase()
+            .contains(&APP_GUID.to_ascii_uppercase())
+            || display_name.to_ascii_lowercase().contains("music caster");
+        if matches {
             let cmd = read_string(subkey, "QuietUninstallString")
                 .or_else(|| read_string(subkey, "UninstallString"))
                 .map(parse_uninstall_string);

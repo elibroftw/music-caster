@@ -1,12 +1,14 @@
 {
   "bundle": {
     "active": true,
-    "targets": ["rpm", "appimage", "msi", "dmg", "app"],
+    "targets": ["rpm", "appimage", "nsis", "dmg", "app"],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
-			"nsis": null,
+			"nsis": {
+				"installerHooks": "./installer-hooks.nsh"
+			},
 			"wix": {
 				"upgradeCode": "{0489D4C7-FB04-52EA-A999-A0C9F83D54C6}"
 			}
