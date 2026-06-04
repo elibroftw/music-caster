@@ -54,7 +54,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@main
 
-      # build the changelog based on the commit messages between the versioned tags
       - name: Install pnpm
         uses: pnpm/action-setup@master
         with:
@@ -62,7 +61,6 @@ jobs:
 
       - name: Setup Node.js
         uses: actions/setup-node@main
-        # NOTE: enterprise developers may hard code a version
         with:
           node-version: lts/*
           cache: pnpm
@@ -70,10 +68,9 @@ jobs:
           node-version-file: app/.nvmrc
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'windows-latest' && 'aarch64-pc-windows-msvc,x86_64-pc-windows-msvc' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
