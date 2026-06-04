@@ -854,7 +854,8 @@ if __name__ == '__main__':
                     else:
                         m = get_metadata_wrapped(uri)
                         dict_to_use[uri] = m
-                        file_metadata_list.append((uri, m))
+                        m.update({'file_path': uri})
+                        file_metadata_list.append(m)
                 FileMetadata.batch_save_to_db(file_metadata_list, cur)
                 gui_window.metadata['update_listboxes'] = True
 
