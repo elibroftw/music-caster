@@ -7,7 +7,9 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
 			"nsis": null,
-			"wix": null
+			"wix": {
+				"upgradeCode": "{0489D4C7-FB04-52EA-A999-A0C9F83D54C6}"
+			}
     },
     "publisher": "Elijah Lopez",
     "copyright": "Copyright",
