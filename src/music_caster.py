@@ -2974,8 +2974,7 @@ if __name__ == '__main__':
                     return release
                 latest_ver = release['version']
                 setup_dl_link = release['setup']
-                # v6+ ships a Tauri MSI (arch-matched) instead of the Inno setup.exe
-                installer_dl_link = release.get('installer')
+                installer_dl_link = release.get('msi')
                 has_portable = release.get('portable', False)
                 download_link = installer_dl_link or setup_dl_link
                 app_log.info(f'Update found: v{latest_ver}')
@@ -2989,29 +2988,7 @@ if __name__ == '__main__':
                         tray_notify('update_available', context=latest_ver)
                     elif os.path.exists(UNINSTALLER):
                         download_update = t('Downloading update $VER').replace('$VER', latest_ver)
-                        if installer_dl_link:
-                            # v6+ migration: the new build is a Tauri MSI, not an Inno setup.
-                            # Download the arch-matched MSI, silently uninstall the old build,
-                            # then hand off to msiexec and exit.
-                            # NOTE: Inno's unins000.exe relaunches itself and returns early, so
-                            # the `&&` chain is best-effort; Music Caster Bootstrapper.exe is the
-                            # robust standalone alternative (see /migration-bootstrapper).
-                            msi_path = get_installer_path(extension='msi')
-                            tray_notify(download_update)
-                            tray_process_queue.put({'tooltip': download_update})
-                            try:
-                                download(installer_dl_link, msi_path)
-                                tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
-                                time.sleep(0.3)
-                                Popen(f'"{UNINSTALLER}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART '
-                                      f'&& msiexec /i "{msi_path}" /passive /norestart', shell=True)
-                                daemon_commands.put('__EXIT__')  # tell main thread to exit
-                            except OSError as e:
-                                if e.errno == errno.ENOSPC:
-                                    tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
-                            except Exception:
-                                tray_notify('update_available', context=latest_ver)
-                        else:
+                        if latest_ver.startswith('5'):
                             # legacy (pre-v6) Inno Setup installer flow
                             installer_path = get_installer_path()
                             # only show message on startup to not confuse the user
@@ -3034,6 +3011,23 @@ if __name__ == '__main__':
                                 tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
                                 time.sleep(0.3)
                                 Popen(cmd, shell=True)
+                                daemon_commands.put('__EXIT__')  # tell main thread to exit
+                            except OSError as e:
+                                if e.errno == errno.ENOSPC:
+                                    tray_notify(t('ERROR') + ': ' + t('No space left on device to auto-update'))
+                            except Exception:
+                                tray_notify('update_available', context=latest_ver)
+                        else:
+                            installer_path = get_installer_path(extension='msi' if 'msi' in release else 'exe')
+                            tray_notify(download_update)
+                            tray_process_queue.put({'tooltip': download_update})
+                            try:
+                                download(installer_dl_link, installer_path)
+                                tray_notify(t('Downloaded $VER. Relaunching...').replace('$VER', latest_ver))
+                                time.sleep(0.3)
+                                p_installer = Path(installer_path)
+                                install_cmd =  f'msiexec /i "{installer_path}"' if p_installer.stem == 'msi' else  f'"{installer_path}'
+                                Popen(f'"{UNINSTALLER}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART && {install_cmd}', shell=True)
                                 daemon_commands.put('__EXIT__')  # tell main thread to exit
                             except OSError as e:
                                 if e.errno == errno.ENOSPC:

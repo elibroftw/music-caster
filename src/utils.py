@@ -1051,8 +1051,8 @@ def get_latest_release(ver, this_version, force=False):
 
     The dict has:
         version:   latest version string (no leading 'v')
-        setup:     legacy Inno Setup .exe download url, or None (pre-v6 installs)
-        installer: architecture-matched Tauri .msi download url, or None (v6+ installs)
+        setup:     InnoSetup, NSIS, or Bootstrapper
+        msi:       architecture-matched Tauri .msi download url, or None (v6+ installs)
         portable:  True iff the release ships a Portable.zip asset
     """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
@@ -1066,21 +1066,23 @@ def get_latest_release(ver, this_version, force=False):
         compare_ver = [int(x) for x in latest_ver.split('.')]
         if compare_ver > _version or force:
             arch = get_arch_token()
-            result = {'version': latest_ver, 'setup': None, 'installer': None, 'portable': False}
+            result = {'version': latest_ver, 'setup': None, 'msi': None, 'portable': False}
             for asset in release.get('assets', []):
                 name = asset['name']
                 lower = name.lower()
                 url = asset['browser_download_url']
                 if lower.endswith('.msi') and arch in lower:
                     # v6+ Tauri build: architecture-matched MSI
-                    result['installer'] = url
+                    result['msi'] = url
                 elif 'portable' in lower and lower.endswith('.zip'):
                     result['portable'] = True
-                elif lower.endswith('.exe') and not lower.endswith('-setup.exe'):
-                    # legacy Inno Setup installer, e.g. "Music.Caster.Setup.exe" (pre-v6).
-                    # The Tauri NSIS asset is "*_<arch>-setup.exe" (hyphen) and is skipped
-                    # on purpose since we migrate via the MSI only.
-                    result['setup'] = url
+                elif lower.endswith('.exe') and not lower.endswith('.exe'):
+                    if compare_ver[0] >= 6:
+                        # v6 NSIS setup OR Bootstrapper
+                        if lower.contains('bootstrapper') or lower.contains(arch):
+                            result['setup'] = url
+                    else:
+                        result['setup'] = url
             return result
     return False
 
