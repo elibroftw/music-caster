@@ -2994,7 +2994,7 @@ if __name__ == '__main__':
                             # Download the arch-matched MSI, silently uninstall the old build,
                             # then hand off to msiexec and exit.
                             # NOTE: Inno's unins000.exe relaunches itself and returns early, so
-                            # the `&&` chain is best-effort; MigrationBootstrapper.exe is the
+                            # the `&&` chain is best-effort; Music Caster Bootstrapper.exe is the
                             # robust standalone alternative (see /migration-bootstrapper).
                             msi_path = get_installer_path(extension='msi')
                             tray_notify(download_update)
