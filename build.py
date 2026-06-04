@@ -695,7 +695,7 @@ if __name__ == '__main__':
             sys.exit(0)
         if VERSION[0] == '6':
             print('Major version is not 5; exiting.')
-            sys.exit(1)
+            sys.exit(0)
         print('Will try to upload to GitHub')
         # upload to GitHub
         github = read_env()['github']

@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+5.26.0
+- [New] Preparing for v6 update
+
 6.0.0
 - [Feat] New UI
 
