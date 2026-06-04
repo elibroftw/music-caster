@@ -115,7 +115,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           cd app
-          pnpm rls
+          pnpm rls ${{ matrix.args }}
 
       - name: CI upload Windows
         if: ${{ github.ref_type == 'branch' && matrix.platform == 'windows-latest' }}
