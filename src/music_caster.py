@@ -2975,13 +2975,13 @@ if __name__ == '__main__':
                     return release
                 latest_ver = release['version']
                 setup_dl_link = release['setup']
-                installer_dl_link = release.get('msi')
-                has_portable = release.get('portable', False)
+                installer_dl_link = release['msi']
+                has_portable = release['portable']
                 download_link = installer_dl_link or setup_dl_link
                 app_log.info(f'Update found: v{latest_ver}')
                 print('Installer Link:', download_link)
                 if is_debug() or not download_link:
-                    app_log.info(f'not updating because: DEBUG={DEBUG} or not download_link={download_link}')
+                    app_log.info('not updating because; DEBUG={DEBUG}, setup={setup_dl_link}, installer_dl_link={installer_dl_link} download_link={download_link}')
                     State.update_available = False
                     raise UpdateFailed
                 if IS_FROZEN:

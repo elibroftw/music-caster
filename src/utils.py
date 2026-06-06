@@ -1076,7 +1076,7 @@ def get_latest_release(ver, this_version, force=False):
                     result['msi'] = url
                 elif 'portable' in lower and lower.endswith('.zip'):
                     result['portable'] = True
-                elif lower.endswith('.exe') and not lower.endswith('.exe'):
+                elif lower.endswith('.exe'):
                     if compare_ver[0] >= 6:
                         # v6 NSIS setup OR Bootstrapper
                         if lower.contains('bootstrapper') or lower.contains(arch):
