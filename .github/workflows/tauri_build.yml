@@ -122,8 +122,8 @@ jobs:
         with:
           name: 'Windows Installers'
           path: |
-            src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi
-            src-tauri/target/${{ matrix.arch }}/release/bundle/nsis/*.exe
+            app/src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi
+            app/src-tauri/target/${{ matrix.arch }}/release/bundle/nsis/*.exe
 
       - name: macOS Artifacts
         if: ${{ github.ref_type == 'branch' && matrix.platform == 'macos-latest' }}
@@ -131,8 +131,8 @@ jobs:
         with:
           name: 'macOS Installer'
           path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/app/*.app
+            app/src-tauri/target/release/bundle/dmg/*.dmg
+            app/src-tauri/target/release/bundle/app/*.app
 
       - name: Linux Artifacts
         if: ${{ github.ref_type == 'branch' && startsWith(matrix.platform, 'ubuntu') }}
@@ -140,8 +140,8 @@ jobs:
         with:
           name: 'Linux Distributions'
           path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/AppImage/*.AppImage
+            app/src-tauri/target/release/bundle/deb/*.deb
+            app/src-tauri/target/release/bundle/AppImage/*.AppImage
 
       # TODO: https://tauri.app/v1/guides/building/linux#cross-compiling-tauri-applications-for-arm-based-devices
       - name: Build Tauri app
