@@ -420,9 +420,12 @@ if __name__ == '__main__':
     def get_downloads_folder():
         if platform.system() == 'Windows':
             from knownpaths import sh_get_known_folder_path, FOLDERID
-            possible_path = sh_get_known_folder_path(FOLDERID.Downloads)
-            if possible_path is not None:
-                return Path(possible_path)
+            try:
+                possible_path = sh_get_known_folder_path(FOLDERID.Downloads)
+                if possible_path is not None:
+                    return Path(possible_path)
+            except Exception as e:
+                handle_exception(e)
         return Path.home() / 'Downloads'
 
 
@@ -436,7 +439,10 @@ if __name__ == '__main__':
     def get_default_music_folder():
         if platform.system() == 'Windows':
             from knownpaths import sh_get_known_folder_path, FOLDERID
-            return sh_get_known_folder_path(FOLDERID.Music)
+            try:
+                return sh_get_known_folder_path(FOLDERID.Music)
+            except Exception as e:
+                handle_exception(e)
         return str(Path.home() / 'Music')
 
     print('Installer path:', get_installer_path())

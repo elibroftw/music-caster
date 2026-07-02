@@ -1,5 +1,9 @@
 Music Caster Changelog
 
+5.26.0
+- [New] Preparing for v6 update
+- [Fix] Get default music folder
+
 6.0.0
 - [Feat] New UI
 
