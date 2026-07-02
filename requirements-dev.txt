@@ -11,6 +11,5 @@ pypiwin32; sys_platform == 'win32'
 macholib; sys_platform == 'darwin'
 build_files/pyinstaller-6.16.0-py3-none-any.whl
 pipdeptree
-pyoxidizer
 pytest
 ruff
