@@ -1039,11 +1039,22 @@ def parse_m3u(playlist_file):
                     yield line
 
 
+def get_arch_token():
+    """The architecture token Tauri embeds in bundle file names (e.g. ..._x64_en-US.msi)."""
+    return {'ARM64': 'arm64'}.get(platform.machine(), 'x64')
+
+
 def get_latest_release(ver, this_version, force=False):
     """
-    returns {'version': latest_ver, 'setup': 'setup_link'} if the latest release version is newer (>) than VERSION
-    if latest release version <= VERSION, returns false
-    if force: return latest release even if latest version <= VERSION """
+    Returns a dict describing the latest release if it is newer (>) than VERSION, else False
+    (unless force, in which case the latest release is returned regardless).
+
+    The dict has:
+        version:   latest version string (no leading 'v')
+        setup:     InnoSetup, NSIS, or Bootstrapper
+        msi:       architecture-matched Tauri .msi download url, or None (v6+ installs)
+        portable:  True iff the release ships a Portable.zip asset
+    """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     with suppress(requests.RequestException):
         release = requests.get(releases_url)
@@ -1054,10 +1065,25 @@ def get_latest_release(ver, this_version, force=False):
         _version = [int(x) for x in ver.split('.')]
         compare_ver = [int(x) for x in latest_ver.split('.')]
         if compare_ver > _version or force:
+            arch = get_arch_token()
+            result = {'version': latest_ver, 'setup': None, 'msi': None, 'portable': False}
             for asset in release.get('assets', []):
-                # check if setup exists
-                if 'exe' in asset['name']:
-                    return {'version': latest_ver, 'setup': asset['browser_download_url']}
+                name = asset['name']
+                lower = name.lower()
+                url = asset['browser_download_url']
+                if lower.endswith('.msi') and arch in lower:
+                    # v6+ Tauri build: architecture-matched MSI
+                    result['msi'] = url
+                elif 'portable' in lower and lower.endswith('.zip'):
+                    result['portable'] = True
+                elif lower.endswith('.exe'):
+                    if compare_ver[0] >= 6:
+                        # v6 NSIS setup OR Bootstrapper
+                        if lower.contains('bootstrapper') or lower.contains(arch):
+                            result['setup'] = url
+                    else:
+                        result['setup'] = url
+            return result
     return False
 
 
