@@ -235,6 +235,10 @@ def test(title, fn, assert_statement=False):
 
 
 def upgrade_yt_dlp():
+    """Bump Music Caster's version if yt-dlp has a newer commit than our latest release."""
+    import json
+    import requests
+
     latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
     latest_mc = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     yt_dlp_master = requests.get(latest_ytdl).json()
@@ -242,35 +246,24 @@ def upgrade_yt_dlp():
     yt_dlp_release_time = datetime.strptime(ytdl_publish, '%Y-%m-%dT%H:%M:%SZ')
     mc_publish = requests.get(latest_mc).json()['published_at']
     mc_release_time = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
-    if mc_release_time < yt_dlp_release_time:  # latest yt-dlp not used in latest MC
-        print('New YouTube-dl found, updating Music Caster version')
-        # if youtube-dl was released after the latest music-caster, update version and publish
-        maj, _min, fix = VERSION.split('.')
-        fix = int(fix) + 1
-        new_version = f'{maj}.{_min}.{fix}'
-        with open('meta.py', 'r+', encoding='utf-8', newline='\n') as f:
-            # VERSION = latest_version = '5.0.0'
-            new_txt = f.read().replace(
-                f"VERSION = latest_version = '{VERSION}'",
-                f"VERSION = latest_version = '{new_version}'",
-            )
-            f.seek(0)
-            f.write(new_txt)
-        with open(CHANGELOG_FILE, 'r+', encoding='utf-8', newline='\n') as f:
-            content = ''.join(
-                (f.readline(), f'\n{VERSION}\n- Upgrade dependencies\n',
-                 f.read()))
-            f.seek(0)
-            f.write(content)
-        update_versions(new_version)
-        # commit and push change
-        from git import Repo
-
-        repo = Repo('.git')
-        repo.git.add(update=True)
-        repo.index.commit('Upgraded yt-dlp')
-        origin = repo.remote(name='origin')
-        origin.push()
+    if mc_release_time >= yt_dlp_release_time:  # latest yt-dlp already used in latest MC
+        return
+    print('New yt-dlp commit found, bumping Music Caster version')
+    # meta.VERSION is being deprecated; app/package.json is the source of truth
+    package_json = script_dir / 'app' / 'package.json'
+    with open(package_json, 'r+', encoding='utf-8', newline='\n') as f:
+        content = f.read()
+        current_version = json.loads(content)['version']
+        maj, _min, fix = current_version.split('.')
+        new_version = f'{maj}.{_min}.{int(fix) + 1}'
+        f.seek(0)
+        f.write(content.replace(f'"version": "{current_version}"', f'"version": "{new_version}"'))
+    with open(CHANGELOG_FILE, 'r+', encoding='utf-8', newline='\n') as f:
+        content = ''.join(
+            (f.readline(), f'\n{new_version}\n- Upgrade yt-dlp\n',
+             f.read()))
+        f.seek(0)
+        f.write(content)
 
 
 if __name__ == '__main__':
@@ -401,6 +394,7 @@ if __name__ == '__main__':
 
     if args.ytdl:
         upgrade_yt_dlp()
+        sys.exit(0)
     else:
         update_versions(VERSION)
     print('Updated versions of build files')
