@@ -486,7 +486,8 @@ if __name__ == '__main__':
         """ A wrapper for tray_process_queue.put({ notify: {message: msg, title: title} }) """
         if message == 'update_available':
             message = t('Update $VER is available').replace('$VER', f'v{context}')
-        tray_process_queue.put({'notify': {'message': message, 'title': title}})
+        if not USING_TAURI_FRONTEND:
+            tray_process_queue.put({'notify': {'message': message, 'title': title}})
 
 
     def close_tray():
@@ -594,6 +595,8 @@ if __name__ == '__main__':
 
 
     def refresh_tray_icon():
+        if USING_TAURI_FRONTEND:
+            return
         icon = {'filled': None} if playing_status.playing() else {'unfilled': None}
         tray_process_queue.put(icon)
 
@@ -2947,6 +2950,9 @@ if __name__ == '__main__':
                 self.function(*self.args, **self.kwargs)
 
         def check_for_updates(self):
+            if USING_TAURI_FRONTEND:
+                # disable updatie checking when using Tauri
+                return
             # avoid showing a notification for the same latest version
             release = get_latest_release(self.latest_version, VERSION)
             if release:
@@ -3295,6 +3301,9 @@ if __name__ == '__main__':
 
 
     def activate_gui(selected_tab=None, url_option='url_play'):
+        if USING_TAURI_FRONTEND:
+            handle_exception(RuntimeError('activate_gui should not be called when USING_TAURI_FRONTEND is True'))
+            return
         global gui_window
         # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
         app_log.info(f'selected_tab={selected_tab}')
