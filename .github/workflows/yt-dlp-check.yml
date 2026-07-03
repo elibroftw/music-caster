@@ -1,0 +1,38 @@
+name: yt-dlp Update Check
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Check yt-dlp version and bump if needed
+        id: bump
+        run: python build.py --ytdl --no-push --ver_update
+
+      - name: Create Pull Request
+        if: steps.bump.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: Upgrade yt-dlp
+          title: Upgrade yt-dlp
+          body: >
+            Automated: yt-dlp has a newer commit upstream than what's bundled in the
+            latest Music Caster release. This bumps the patch version in
+            `src/meta.py`, `app/package.json`, and the build files, and adds a
+            changelog entry.
+          branch: auto/yt-dlp-upgrade
+          delete-branch: true
