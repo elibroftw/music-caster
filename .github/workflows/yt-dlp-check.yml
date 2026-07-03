@@ -31,6 +31,5 @@ jobs:
         with:
           commit-message: "Bump version; new yt-dlp"
           title: "Shipping new yt-dlp requires version bump"
-          body: "Shipping new yt-dlp requires version bump"
           branch: auto/yt-dlp-upgrade
           delete-branch: true

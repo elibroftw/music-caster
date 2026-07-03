@@ -264,7 +264,6 @@ def upgrade_yt_dlp():
              f.read()))
         f.seek(0)
         f.write(content)
-    update_versions(new_version)
 
 
 if __name__ == '__main__':
