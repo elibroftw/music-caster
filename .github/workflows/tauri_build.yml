@@ -27,6 +27,30 @@ jobs:
           } >> "$GITHUB_OUTPUT"
     outputs:
       changelog: ${{ steps.build_changelog.outputs.changelog }}
+  bootstrapper:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './bootstrapper -> target'
+
+      - name: Build bootstrapper
+        run: |
+          cd bootstrapper
+          cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Bootstrapper Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: 'Bootstrapper (x86_64-pc-windows-msvc)'
+          path: bootstrapper/target/x86_64-pc-windows-msvc/release/MusicCasterBootstrapper.exe
   release:
     strategy:
       fail-fast: false
