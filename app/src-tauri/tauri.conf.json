@@ -1,13 +1,17 @@
 {
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["rpm", "appimage", "msi", "dmg", "app"],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
-			"nsis": {},
-			"wix": null
+			"nsis": {
+				"installerHooks": "./windows/hooks.nsh"
+			},
+			"wix": {
+				"upgradeCode": "{0489D4C7-FB04-52EA-A999-A0C9F83D54C6}"
+			}
     },
     "publisher": "Elijah Lopez",
     "copyright": "Copyright",
@@ -41,73 +45,73 @@
     "fileAssociations": [
       {
         "ext": ["mp3"],
-        "name": "MP3",
+        "name": "MusicCaster.MP3",
         "description": "MP3 - Audio File",
         "contentTypes": ["public.mp3"]
       },
       {
         "ext": ["flac"],
-        "name": "FLAC",
+        "name": "MusicCaster.FLAC",
         "description": "FLAC - Audio File",
         "contentTypes": ["org.xiph.flac"]
       },
       {
         "ext": ["m4a"],
-        "name": "M4A",
+        "name": "MusicCaster.M4A",
         "description": "M4A - Audio File",
         "contentTypes": ["public.mpeg-4-audio"]
       },
       {
         "ext": ["aac"],
-        "name": "AAC",
+        "name": "MusicCaster.AAC",
         "description": "AAC - Audio File",
         "contentTypes": ["public.mpeg-4-audio"]
       },
       {
         "ext": ["ogg"],
-        "name": "OGG",
+        "name": "MusicCaster.OGG",
         "description": "OGG - Audio File",
         "contentTypes": ["org.xiph.ogg"]
       },
       {
         "ext": ["opus"],
-        "name": "OPUS",
+        "name": "MusicCaster.OPUS",
         "description": "OPUS - Audio File",
         "contentTypes": ["public.audio"]
       },
       {
         "ext": ["aiff"],
-        "name": "AIFF",
+        "name": "MusicCaster.AIFF",
         "description": "AIFF - Audio File",
         "contentTypes": ["public.aiff-audio"]
       },
       {
         "ext": ["wma"],
-        "name": "WMA",
+        "name": "MusicCaster.WMA",
         "description": "WMA - Audio File",
         "contentTypes": ["public.audio"]
       },
       {
         "ext": ["wav"],
-        "name": "WAV",
+        "name": "MusicCaster.WAV",
         "description": "WAV - Audio File",
         "contentTypes": ["com.microsoft.waveform-audio"]
       },
       {
         "ext": ["mpeg"],
-        "name": "MPEG",
+        "name": "MusicCaster.MPEG",
         "description": "MPEG - Audio File",
         "contentTypes": ["public.mpeg-4-audio"]
       },
       {
         "ext": ["m3u"],
-        "name": "M3U",
+        "name": "MusicCaster.M3U",
         "description": "M3U - Audio File",
         "contentTypes": ["public.m3u-playlist"]
       },
       {
         "ext": ["m3u8"],
-        "name": "M3U8",
+        "name": "MusicCaster.M3U8",
         "description": "M3U8 - Audio File",
         "contentTypes": ["public.m3u-playlist"]
       }

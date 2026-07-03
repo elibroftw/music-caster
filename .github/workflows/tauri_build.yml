@@ -1,8 +1,6 @@
 name: Publish Release
 on:
   push:
-    tags:
-      - 'v*'
     branches: '*'
   workflow_dispatch:
 
@@ -18,8 +16,6 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@main
-        with:
-          python-version: '3.x'
 
       - name: Build changelog
         id: build_changelog
@@ -46,15 +42,16 @@ jobs:
           #   args: ''
           - platform: 'windows-latest'
             args: '--target x86_64-pc-windows-msvc'
-          - platform: 'windows-latest'
+            arch: x86_64-pc-windows-msvc
+          - platform: 'windows-11-arm'
             args: '--target aarch64-pc-windows-msvc'
+            arch: aarch64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
     needs: [changelog]
     steps:
       - name: Checkout repository
         uses: actions/checkout@main
 
-      # build the changelog based on the commit messages between the versioned tags
       - name: Install pnpm
         uses: pnpm/action-setup@master
         with:
@@ -62,18 +59,15 @@ jobs:
 
       - name: Setup Node.js
         uses: actions/setup-node@main
-        # NOTE: enterprise developers may hard code a version
         with:
-          node-version: lts/*
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
           node-version-file: app/.nvmrc
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'windows-latest' && 'aarch64-pc-windows-msvc,x86_64-pc-windows-msvc' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -96,61 +90,77 @@ jobs:
         uses: actions/setup-python@main
         with:
           python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Set up venv and install Python dependencies
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --upgrade pip
+          .venv\Scripts\python -m pip install --upgrade-strategy eager -r requirements.txt -r requirements-dev.txt
 
       # Build the daemon sidecar before tauri-action so externalBin
       # (dist/music-caster-daemon-<target>.exe) exists at bundle time.
       # matrix.args is already in `--target <triple>` form; forward it to build.py
       # so the artifact is named to match the Tauri target. Empty args lets build.py
       # default to the host triple.
+      # The venv is set up above; build.py skips dep installation in CI for the
+      # Tauri frontend.
       - name: Build Music Caster daemon
         run: |
-          python -m venv .venv
           .venv\Scripts\python build.py --ci --no-install ${{ matrix.args }}
 
       - name: CI Build
         if: ${{ github.ref_type == 'branch' }}
+        env:
+          CI: true
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           cd app
-          pnpm rls
+          pnpm rls ${{ matrix.args }}
 
-      - name: CI upload Windows
-        if: ${{ github.ref_type == 'branch' && matrix.platform == 'windows-latest' }}
+      - name: Windows Artifacts
+        if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'windows-11-arm' }}
         uses: actions/upload-artifact@main
         with:
-          name: 'Windows Installers'
+          name: 'Windows Installers (${{ matrix.arch }})'
           path: |
-            src-tauri/release/bundle/msi/*.msi
-            src-tauri/release/bundle/nsis/*.exe
+            app/src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi
+            app/src-tauri/target/${{ matrix.arch }}/release/bundle/nsis/*.exe
 
-      - name: CI upload macOS
-        if: ${{ github.ref_type == 'branch' && matrix.platform == 'macos-latest' }}
+      - name: macOS Artifacts
+        if: ${{ matrix.platform == 'macos-latest' }}
         uses: actions/upload-artifact@main
         with:
           name: 'macOS Installer'
           path: |
-            src-tauri/release/bundle/dmg/*.dmg
+            app/src-tauri/target/release/bundle/dmg/*.dmg
+            app/src-tauri/target/release/bundle/app/*.app
 
-      - name: CI upload Linux
-        if: ${{ github.ref_type == 'branch' && startsWith(matrix.platform, 'ubuntu') }}
+      - name: Linux Artifacts
+        if: ${{ startsWith(matrix.platform, 'ubuntu') }}
         uses: actions/upload-artifact@main
         with:
           name: 'Linux Distributions'
           path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/AppImage/*.AppImage
+            app/src-tauri/target/release/bundle/deb/*.deb
+            app/src-tauri/target/release/bundle/AppImage/*.AppImage
 
-      # TODO: https://tauri.app/v1/guides/building/linux#cross-compiling-tauri-applications-for-arm-based-devices
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         if: ${{ github.ref_type == 'tag' }}
         # if u get Error: Resource not accessible by integration
-        # go to repository Settings => Action => General => Workflow permissions => Switch to Read and Write permisions
+        # go to repository Settings => Action => General => Workflow permissions => Switch to Read and Write permissions
         env:
           CI: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          projectPath: app
           # tauri-action replaces \_\_VERSION\_\_ with the app version
           tagName: ${{ github.ref_name }}
           releaseName: "${{ env.APP_NAME }} v__VERSION__"

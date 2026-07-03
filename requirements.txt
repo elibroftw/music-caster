@@ -1,8 +1,11 @@
 audioop-lts; python_version>='3.13'
 comtypes; sys_platform == 'win32'
 wheel
-build_files/pyaudio-0.2.14-cp314-cp314-win_amd64.whl; sys_platform == 'win32'
-pyaudio; sys_platform == 'darwin'
+
+pyaudio @ https://github.com/elibroftw/pyaudio_portaudio/releases/download/v0.2.15/pyaudio-0.2.15-cp314-cp314-win_amd64.whl ; platform_machine == 'AMD64' and sys_platform == 'win32'
+pyaudio @ https://github.com/elibroftw/pyaudio_portaudio/releases/download/v0.2.15/pyaudio-0.2.15-cp314-cp314-win_arm64.whl ; platform_machine == 'ARM64' and sys_platform == 'win32'
+pyaudio; sys_platform != 'win32'
+
 pywin32; sys_platform == 'win32'
 winrt-Windows.Media; sys_platform == 'win32'
 winrt-Windows.Media.Playback; sys_platform == 'win32'

@@ -19,12 +19,11 @@ jobs:
         platform: [windows-latest]
     runs-on: ${{matrix.platform}}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.14
           cache: pip
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
 
       - name: Install Inno Setup
         run: choco install innosetup --yes

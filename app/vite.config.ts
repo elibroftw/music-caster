@@ -1,8 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-// import topLevelAwait from 'vite-plugin-top-level-await';
 import { visualizer } from 'rollup-plugin-visualizer';
-import removeConsole from 'vite-plugin-remove-console';
 // https://vitejs.dev/config/
 // https://tauri.app/v1/guides/getting-started/setup/vite#create-the-frontend
 export default defineConfig({
@@ -12,10 +10,6 @@ export default defineConfig({
 				plugins: ['babel-plugin-react-compiler']
 			}
 		}),
-		// topLevelAwait({
-		//   promiseExportName: '__TLA',
-		//   promiseImportName: i => `__TLA_${i}`
-		// }),
 		visualizer(),
 		// removeConsole({includes: ['log', 'assert', 'info', 'error']})
 	],
@@ -37,7 +31,7 @@ export default defineConfig({
 		// Tauri supports es2021
 		target: ['es2021', 'chrome100', 'safari13'],
 		// don't minify for debug builds
-		minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
+		minify: !process.env.TAURI_ENV_DEBUG ? 'oxc' : false,
 		// produce sourcemaps for debug builds
 		sourcemap: !!process.env.TAURI_ENV_DEBUG,
 		outDir: 'build',

@@ -44,6 +44,9 @@ SRC_FRONTEND = script_dir / 'src-frontend'
 
 IS_VENV = sys.prefix != sys.base_prefix
 
+error_inno_missing = False
+updater_build_failed = False
+updater_build_error = None
 
 class ProgressUpload:
     # 1MB chunk size
@@ -403,6 +406,10 @@ if __name__ == '__main__':
     print('Updated versions of build files')
     if args.ver_update:
         sys.exit()
+    # In CI the workflow sets up the venv and installs dependencies (with
+    # caching), so skip dependency installation here for the Tauri frontend.
+    if args.ci and USING_TAURI_FRONTEND:
+        args.skip_deps = True
     install_to_user = '' if IS_VENV else '--user'
     pip_cmd = f'"{sys.executable}" -m pip install --upgrade {install_to_user} --upgrade-strategy eager -r "{REQUIREMENTS_FILE}" -r "{REQUIREMENTS_DEV_FILE}"'
     if args.deps or (not args.skip_build and not args.skip_deps):
@@ -438,6 +445,9 @@ if __name__ == '__main__':
                 pip_cmd,
             )
             sys.exit(1)
+        if args.ci:
+            print('Dumping pip freeze...')
+            Popen(f'"{sys.executable}" -m pip freeze', stdin=DEVNULL, text=True).wait()
         if args.deps:
             print(f'Dependencies installed ({time.time() - install_time_start:.0} seconds)')
             sys.exit()
@@ -524,6 +534,8 @@ if __name__ == '__main__':
                     f'go build -ldflags "-s -w -H windowsgui" -o "{UPDATER_DIST}"',
                     cwd=SRC_DIR)
             except Exception as e:
+                updater_build_failed = True
+                updater_build_error = e
                 if args.upload:
                     raise Exception('failed to build updater') from e
                 print(f'WARNING: {e}')
@@ -532,15 +544,13 @@ if __name__ == '__main__':
                 shell=True,
             )
             try:
-                if platform.system() == 'Windows':
+                if platform.system() == 'Windows' and not USING_TAURI_FRONTEND:
                     s4 = Popen(f'iscc "{INSTALLER_SCRIPT}"')
                 else:
                     s4 = None
             except FileNotFoundError:
                 s4 = None
-                print(
-                    'WARNING: could not create an installer because iscc is not installed or is not on PATH'
-                )
+                error_inno_missing = True
 
             try:
                 portable_failed = s1.wait()
@@ -608,6 +618,12 @@ if __name__ == '__main__':
             file_exists_str = 'DOES NOT EXIST!'
             dist_files_exist = False
         print((dist_file + ':').ljust(30) + file_exists_str)
+    if error_inno_missing:
+        print('WARNING: installer not created because Inno Setup iscc is not installed or is not on PATH')
+    if updater_build_failed:
+        print(updater_build_error)
+        if isinstance(updater_build_error, FileNotFoundError):
+            print('WARNING: Updater build failed because Go (or rsrc) is not installed or is not on PATH')
 
     if dist_files_exist and platform.system() == 'Windows' and not USING_TAURI_FRONTEND:
         with zipfile.ZipFile(DIST_DIR / 'Portable.zip') as portable_zip:
@@ -692,6 +708,9 @@ if __name__ == '__main__':
     if args.upload:
         if USING_TAURI_FRONTEND:
             print('USING_TAURI_FRONTEND is true; exiting.')
+            sys.exit(0)
+        if VERSION[0] == '6':
+            print('Major version is not 5; exiting.')
             sys.exit(0)
         print('Will try to upload to GitHub')
         # upload to GitHub

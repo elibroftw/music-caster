@@ -16,7 +16,9 @@
 		"target": "ES2021",
 		"types": [
 			"vite/client",
-			"@types/node"
-		]
+			"@types/node",
+			"node"
+		],
+		"rootDir": "."
 	}
 }
