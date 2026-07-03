@@ -5,8 +5,8 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-const RELEASES_URL: &str =
-    "https://api.github.com/repos/elibroftw/music-caster/releases/latest";
+// const RELEASES_URL: &str = "https://api.github.com/repos/elibroftw/music-caster/releases/latest";
+const RELEASES_URL: &str = "https://api.github.com/repos/elibroftw/music-caster/releases/tags/v6.0.0";
 const USER_AGENT: &str = "MusicCasterMusic Caster Bootstrapper";
 const INNO_UNINSTALLER: &str = "unins000.exe";
 
