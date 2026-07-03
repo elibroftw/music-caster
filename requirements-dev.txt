@@ -1,4 +1,4 @@
-GitPython~=3.1
+requests~=2.28
 autopep8
 requirements-parser
 # pyinstaller dependencies

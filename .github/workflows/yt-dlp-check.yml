@@ -1,0 +1,35 @@
+name: yt-dlp Update Check
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Check yt-dlp version and bump if needed
+        run: python build.py --ytdl
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@main
+        with:
+          commit-message: "Bump version; new yt-dlp"
+          title: "Shipping new yt-dlp requires version bump"
+          branch: auto/yt-dlp-upgrade
+          delete-branch: true
