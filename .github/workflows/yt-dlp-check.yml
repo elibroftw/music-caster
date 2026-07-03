@@ -18,25 +18,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          cache: pip
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install -r requirements-dev.txt
 
       - name: Check yt-dlp version and bump if needed
-        id: bump
-        run: python build.py --ytdl --no-push --ver_update
+        run: python build.py --ytdl
 
       - name: Create Pull Request
-        if: steps.bump.outputs.updated == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@main
         with:
-          commit-message: Upgrade yt-dlp
-          title: Upgrade yt-dlp
-          body: >
-            Automated: yt-dlp has a newer commit upstream than what's bundled in the
-            latest Music Caster release. This bumps the patch version in
-            `src/meta.py`, `app/package.json`, and the build files, and adds a
-            changelog entry.
+          commit-message: "Bump version; new yt-dlp"
+          title: "Shipping new yt-dlp requires version bump"
+          body: "Shipping new yt-dlp requires version bump"
           branch: auto/yt-dlp-upgrade
           delete-branch: true

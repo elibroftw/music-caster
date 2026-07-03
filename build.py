@@ -234,11 +234,9 @@ def test(title, fn, assert_statement=False):
         raise _e
 
 
-def upgrade_yt_dlp(push=True):
-    """Bump Music Caster's version if yt-dlp has a newer commit than our latest release.
-
-    Returns the new version string if a bump happened, else None.
-    """
+def upgrade_yt_dlp():
+    """Bump Music Caster's version if yt-dlp has a newer commit than our latest release."""
+    import json
     import requests
 
     latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
@@ -249,28 +247,17 @@ def upgrade_yt_dlp(push=True):
     mc_publish = requests.get(latest_mc).json()['published_at']
     mc_release_time = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
     if mc_release_time >= yt_dlp_release_time:  # latest yt-dlp already used in latest MC
-        return None
+        return
     print('New yt-dlp commit found, bumping Music Caster version')
-    # if yt-dlp was released after the latest music-caster, update version and publish
-    maj, _min, fix = VERSION.split('.')
-    new_version = f'{maj}.{_min}.{int(fix) + 1}'
-    with open(SRC_DIR / 'meta.py', 'r+', encoding='utf-8', newline='\n') as f:
-        # VERSION = latest_version = '5.0.0'
-        new_txt = f.read().replace(
-            f"VERSION = latest_version = '{VERSION}'",
-            f"VERSION = latest_version = '{new_version}'",
-        )
+    # meta.VERSION is being deprecated; app/package.json is the source of truth
+    package_json = script_dir / 'app' / 'package.json'
+    with open(package_json, 'r+', encoding='utf-8', newline='\n') as f:
+        content = f.read()
+        current_version = json.loads(content)['version']
+        maj, _min, fix = current_version.split('.')
+        new_version = f'{maj}.{_min}.{int(fix) + 1}'
         f.seek(0)
-        f.write(new_txt)
-    # app/package.json is what tauri.conf.json's "version" points to and is what the
-    # Tauri release pipeline actually ships, so keep it in sync with meta.py's VERSION
-    with open(script_dir / 'app' / 'package.json', 'r+', encoding='utf-8', newline='\n') as f:
-        new_txt = f.read().replace(
-            f'"version": "{VERSION}"',
-            f'"version": "{new_version}"',
-        )
-        f.seek(0)
-        f.write(new_txt)
+        f.write(content.replace(f'"version": "{current_version}"', f'"version": "{new_version}"'))
     with open(CHANGELOG_FILE, 'r+', encoding='utf-8', newline='\n') as f:
         content = ''.join(
             (f.readline(), f'\n{new_version}\n- Upgrade yt-dlp\n',
@@ -278,16 +265,6 @@ def upgrade_yt_dlp(push=True):
         f.seek(0)
         f.write(content)
     update_versions(new_version)
-    if push:
-        # commit and push change
-        from git import Repo
-
-        repo = Repo('.git')
-        repo.git.add(update=True)
-        repo.index.commit('Upgraded yt-dlp')
-        origin = repo.remote(name='origin')
-        origin.push()
-    return new_version
 
 
 if __name__ == '__main__':
@@ -381,13 +358,6 @@ if __name__ == '__main__':
         help='version++ if new youtube-dl available',
     )
     parser.add_argument(
-        '--no-push',
-        default=False,
-        action='store_true',
-        help='with --ytdl, bump version/changelog files without git commit+push '
-             '(for CI to turn into a PR)',
-    )
-    parser.add_argument(
         '--ci',
         default=False,
         action='store_true',
@@ -424,11 +394,8 @@ if __name__ == '__main__':
         print('Building Music Caster')
 
     if args.ytdl:
-        new_version = upgrade_yt_dlp(push=not args.no_push)
-        github_output = os.environ.get('GITHUB_OUTPUT')
-        if github_output:
-            with open(github_output, 'a', encoding='utf-8') as f:
-                f.write(f"updated={'true' if new_version else 'false'}\n")
+        upgrade_yt_dlp()
+        sys.exit(0)
     else:
         update_versions(VERSION)
     print('Updated versions of build files')
