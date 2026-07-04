@@ -235,7 +235,8 @@ def test(title, fn, assert_statement=False):
 
 
 def upgrade_yt_dlp():
-    """Bump Music Caster's version if yt-dlp has a commit newer than the last one we bumped for."""
+    """Bump Music Caster's version if yt-dlp has a commit newer than our latest release,
+    unless a bump PR is already open or a previous bump is still awaiting release."""
     import json
     import requests
 
@@ -248,33 +249,36 @@ def upgrade_yt_dlp():
         print('A yt-dlp bump PR is already open, skipping')
         return
 
-    latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
-    yt_dlp_master = requests.get(latest_ytdl).json()
-    latest_sha = yt_dlp_master['sha']
-    # tracks the last yt-dlp commit we've already proposed a bump for, independent of
-    # release cadence - comparing against the latest GitHub release instead caused
-    # a new bump (and PR) to be proposed every run until an actual release was cut
-    sha_file = build_files / 'yt_dlp_commit.txt'
-    last_sha = sha_file.read_text(encoding='utf-8').strip() if sha_file.exists() else ''
-    if last_sha == latest_sha:
-        return
-    print('New yt-dlp commit found, bumping Music Caster version')
+    latest_mc = requests.get('https://api.github.com/repos/elibroftw/music-caster/releases/latest').json()
+    latest_release_version = latest_mc['tag_name'].lstrip('v')
+    mc_release_time = datetime.strptime(latest_mc['published_at'], '%Y-%m-%dT%H:%M:%SZ')
+
     # meta.VERSION is being deprecated; app/package.json is the source of truth
     package_json = script_dir / 'app' / 'package.json'
-    with open(package_json, 'r+', encoding='utf-8', newline='\n') as f:
-        content = f.read()
-        current_version = json.loads(content)['version']
-        maj, _min, fix = current_version.split('.')
-        new_version = f'{maj}.{_min}.{int(fix) + 1}'
-        f.seek(0)
-        f.write(content.replace(f'"version": "{current_version}"', f'"version": "{new_version}"'))
+    with open(package_json, encoding='utf-8') as f:
+        package_json_content = f.read()
+    current_version = json.loads(package_json_content)['version']
+    # if package.json is already ahead of the latest release, a bump has already been
+    # merged and is just waiting to be released - don't propose another one
+    if tuple(map(int, current_version.split('.'))) > tuple(map(int, latest_release_version.split('.'))):
+        return
+
+    latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
+    yt_dlp_master = requests.get(latest_ytdl).json()
+    yt_dlp_release_time = datetime.strptime(yt_dlp_master['commit']['author']['date'], '%Y-%m-%dT%H:%M:%SZ')
+    if mc_release_time >= yt_dlp_release_time:  # latest yt-dlp already used in latest MC
+        return
+    print('New yt-dlp commit found, bumping Music Caster version')
+    maj, _min, fix = current_version.split('.')
+    new_version = f'{maj}.{_min}.{int(fix) + 1}'
+    with open(package_json, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(package_json_content.replace(f'"version": "{current_version}"', f'"version": "{new_version}"'))
     with open(CHANGELOG_FILE, 'r+', encoding='utf-8', newline='\n') as f:
         content = ''.join(
             (f.readline(), f'\n{new_version}\n- Upgrade yt-dlp\n',
              f.read()))
         f.seek(0)
         f.write(content)
-    sha_file.write_text(latest_sha + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':
