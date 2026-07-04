@@ -1,6 +1,6 @@
 {
   "name": "music-caster",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "type": "module",
   "private": true,
   "dependencies": {

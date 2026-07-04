@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.0.1
+- Upgrade yt-dlp
+
 5.26.0
 - [New] Preparing for v6 update
 - [Fix] Get default music folder
