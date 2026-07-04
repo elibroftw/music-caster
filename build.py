@@ -235,18 +235,19 @@ def test(title, fn, assert_statement=False):
 
 
 def upgrade_yt_dlp():
-    """Bump Music Caster's version if yt-dlp has a newer commit than our latest release."""
+    """Bump Music Caster's version if yt-dlp has a commit newer than the last one we bumped for."""
     import json
     import requests
 
     latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
-    latest_mc = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
     yt_dlp_master = requests.get(latest_ytdl).json()
-    ytdl_publish = yt_dlp_master['commit']['author']['date']
-    yt_dlp_release_time = datetime.strptime(ytdl_publish, '%Y-%m-%dT%H:%M:%SZ')
-    mc_publish = requests.get(latest_mc).json()['published_at']
-    mc_release_time = datetime.strptime(mc_publish, '%Y-%m-%dT%H:%M:%SZ')
-    if mc_release_time >= yt_dlp_release_time:  # latest yt-dlp already used in latest MC
+    latest_sha = yt_dlp_master['sha']
+    # tracks the last yt-dlp commit we've already proposed a bump for, independent of
+    # release cadence - comparing against the latest GitHub release instead caused
+    # a new bump (and PR) to be proposed every run until an actual release was cut
+    sha_file = build_files / 'yt_dlp_commit.txt'
+    last_sha = sha_file.read_text(encoding='utf-8').strip() if sha_file.exists() else ''
+    if last_sha == latest_sha:
         return
     print('New yt-dlp commit found, bumping Music Caster version')
     # meta.VERSION is being deprecated; app/package.json is the source of truth
@@ -264,6 +265,7 @@ def upgrade_yt_dlp():
              f.read()))
         f.seek(0)
         f.write(content)
+    sha_file.write_text(latest_sha + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':
