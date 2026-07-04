@@ -239,6 +239,15 @@ def upgrade_yt_dlp():
     import json
     import requests
 
+    # don't propose another bump if one is already open and unmerged - the workflow
+    # only deletes this branch on merge/close, so its existence means a bump PR is
+    # already awaiting a decision
+    branch_check = requests.get(
+        'https://api.github.com/repos/elibroftw/music-caster/branches/auto/yt-dlp-upgrade')
+    if branch_check.status_code == 200:
+        print('A yt-dlp bump PR is already open, skipping')
+        return
+
     latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
     yt_dlp_master = requests.get(latest_ytdl).json()
     latest_sha = yt_dlp_master['sha']
