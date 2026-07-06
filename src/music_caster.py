@@ -2975,9 +2975,9 @@ if __name__ == '__main__':
         def auto_update(self, install_update=True, from_gui=False):
             """ auto_start should be True when checking for updates at startup up,
                 false when checking for updates before exiting """
+            app_log.info('IS_FROZEN=%s, install_update=%s, from_gui=%s', IS_FROZEN, install_update, from_gui)
             try:
                 State.installing_update = True
-                app_log.info(f'IS_FROZEN={IS_FROZEN}')
                 release = self.latest_release
                 if release is None:
                     # since the Linux version is script, we want to force only in debug
