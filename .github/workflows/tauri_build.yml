@@ -49,7 +49,7 @@ jobs:
       - name: Bootstrapper Artifact
         uses: actions/upload-artifact@main
         with:
-          name: 'Bootstrapper (x86_64-pc-windows-msvc)'
+          name: windows-bootstrapper-x64
           path: bootstrapper/target/x86_64-pc-windows-msvc/release/MusicCasterBootstrapper.exe
   release:
     strategy:
@@ -150,7 +150,7 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'windows-11-arm' }}
         uses: actions/upload-artifact@main
         with:
-          name: 'Windows Installers (${{ matrix.arch }})'
+          name: windows-msi-${{ matrix.arch }}
           path: |
             app/src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi
             app/src-tauri/target/${{ matrix.arch }}/release/bundle/nsis/*.exe
@@ -159,7 +159,7 @@ jobs:
         if: ${{ matrix.platform == 'macos-latest' }}
         uses: actions/upload-artifact@main
         with:
-          name: 'macOS Installer'
+          name: macOS Installer
           path: |
             app/src-tauri/target/release/bundle/dmg/*.dmg
             app/src-tauri/target/release/bundle/app/*.app
@@ -168,7 +168,7 @@ jobs:
         if: ${{ startsWith(matrix.platform, 'ubuntu') }}
         uses: actions/upload-artifact@main
         with:
-          name: 'Linux Distributions'
+          name: Linux Distributions
           path: |
             app/src-tauri/target/release/bundle/deb/*.deb
             app/src-tauri/target/release/bundle/AppImage/*.AppImage
@@ -194,3 +194,14 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+  merge-windows-artifacts:
+    runs-on: ubuntu-latest
+    needs:
+      - bootstrapper
+      - release
+    steps:
+      - uses: actions/upload-artifact/merge@main
+        with:
+          name: Windows Installers
+          pattern: windows-*
+          delete-merged: true
