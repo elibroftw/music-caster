@@ -99,11 +99,11 @@ def ensure_single_instance(debugging=False):
                 try:
                     activate_instance(port=port, default_timeout=5)
                 except Exception as activation_e:
-                    app_log.error('Failed to activate existing instance', exc_info=True)
+                    app_log.exception('Failed to activate existing instance')
                     handle_exception(activation_e, restart_program=False)
                 sys.exit()
         else:
-            app_log.error('Instance was not found. Is the lock broken?', exc_info=True)
+            app_log.exception('Instance was not found. Is the lock broken?')
             handle_exception(e, restart_program=False)
     return file
 
@@ -1569,7 +1569,7 @@ if __name__ == '__main__':
         return lo_devices
 
 
-    class UpdateFailed(Exception):
+    class NoUpdateFound(Exception):
         pass
 
 
@@ -1612,7 +1612,7 @@ if __name__ == '__main__':
                         if cast.is_idle:
                             cast.wait(30)
                     except Exception as e:
-                        app_log.error('could not wait on cast', exc_info=True)
+                        app_log.exception('could not wait on cast')
                         handle_exception(e)
                     # cast.register_status_listener(StatusCastListener(cast))
                     # cast.media_controller.register_status_listener(MediaCastListener(cast))
@@ -1672,7 +1672,7 @@ if __name__ == '__main__':
             # local device selected (any non uuid string)
             new_device = None
         except UnboundLocalError:
-            app_log.error('Could not connect to cast device', exc_info=True)
+            app_log.exception('Could not connect to cast device')
             tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device'))
             return False
         if cast == new_device:
@@ -1979,7 +1979,7 @@ if __name__ == '__main__':
         except OSError:
             tray_notify(t('ERROR') + ': ' + t('Could not find an output device to record'))
         except PyChromecastError as e:
-            app_log.error(f'play_sys_audio failed to cast {repr(e)}')
+            app_log.exception('play_sys_audio failed to cast')
             if show_error:
                 tray_notify(t('ERROR') + ': ' + t('Could not connect to cast device') + ' (psa)')
                 change_device(unresponsive_cast=True)
@@ -2292,7 +2292,7 @@ if __name__ == '__main__':
             change_device(unresponsive_cast=True)
             return False
         except (PyChromecastError, OSError) as e:
-            app_log.error(f'play_url failed to cast {repr(e)}')
+            app_log.exception('play_url failed to cast')
             if show_error:
                 tray_notify(
                     t('ERROR')
@@ -2373,7 +2373,7 @@ if __name__ == '__main__':
                 playing_status.play_uri(position, track_length, False)
                 app_log.info(f'mc.status.player_state={mc.status.player_state}')
             except (NotConnected, AttributeError) as e:
-                app_log.error('cast device is not connected', exc_info=True)
+                app_log.exception('cast device is not connected')
                 app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
                 r"""
                 2022-03-09 10:52:40,920 ERROR (396): [Computer room(192.168.1.9):8009]
@@ -2402,7 +2402,7 @@ if __name__ == '__main__':
                 File "pychromecast\__init__.py", line 505, in wait
                 pychromecast.error.RequestTimeout: Execution of wait timed out after 5 s.
                 """
-                app_log.error('play failed to cast', exc_info=True)
+                app_log.exception('play failed to cast')
                 app_log.info(f'cast.media_controller player state: {cast.media_controller.status.player_state}')
                 app_log.info('falling back to playing on local device')
                 if not show_error:
@@ -2414,7 +2414,7 @@ if __name__ == '__main__':
                             cast.wait(15)
                             try_reconnecting = False
                         except PyChromecastError as e:
-                            app_log.error('failed to stop, quit, or wait on cast device', exc_info=True)
+                            app_log.exception('failed to stop, quit, or wait on cast device')
                             handle_exception(e)
                     if try_reconnecting and not cast_try_reconnect():
                         show_error = True
@@ -2497,7 +2497,7 @@ if __name__ == '__main__':
             try:
                 temp_queue.sort(key=lambda filename: metadata_key(filename, album_sort=len(albums_found) > 1))
             except Exception as e:
-                app_log.error('could not sort temp_queue', exc_info=True)
+                app_log.exception('could not sort temp_queue')
                 handle_exception(e)
         # add to next queue condition
         if play_next:
@@ -2684,7 +2684,7 @@ if __name__ == '__main__':
                             cast.wait(30)
                             cast.media_controller.pause()
                         except (RequestTimeout, RequestFailed):
-                            app_log.error('failed to pause cast device', exc_info=True)
+                            app_log.exception('failed to pause cast device')
                             return False
                     block_until = time.monotonic() + 5
                     while not mc.status.player_is_paused and time.monotonic() < block_until:
@@ -2779,7 +2779,7 @@ if __name__ == '__main__':
                     try:
                         cast.quit_app(30)
                     except PyChromecastError as e:
-                        app_log.error('cast.quit_app failed', exc_info=True)
+                        app_log.exception('cast.quit_app failed')
                         handle_exception(e)
         track_start = track_position = track_end = track_length = 0
         if not gui_window.is_closed():
@@ -2970,7 +2970,7 @@ if __name__ == '__main__':
         def auto_update(self, install_update=True, from_gui=False):
             """ auto_start should be True when checking for updates at startup up,
                 false when checking for updates before exiting """
-            with suppress(requests.RequestException, UpdateFailed):
+            try:
                 State.installing_update = True
                 app_log.info(f'IS_FROZEN={IS_FROZEN}')
                 release = self.latest_release
@@ -2978,8 +2978,7 @@ if __name__ == '__main__':
                     # since the Linux version is script, we want to force only in debug
                     release = get_latest_release(VERSION, VERSION, force=is_debug())
                 if not release:
-                    app_log.info('no update found, or no internet, or API rate limited')
-                    raise UpdateFailed
+                    raise NoUpdateFound
                 State.update_available = True
                 if not install_update:
                     State.installing_update = False
@@ -2992,9 +2991,9 @@ if __name__ == '__main__':
                 app_log.info(f'Update found: v{latest_ver}')
                 print('Installer Link:', download_link)
                 if is_debug() or not download_link:
-                    app_log.info(f'not updating because; DEBUG={DEBUG}, setup={setup_dl_link}, installer_dl_link={installer_dl_link} download_link={download_link}')
+                    app_log.info('not updating because; DEBUG=%s, setup=%s, installer_dl_link=%s, download_link=%s', DEBUG, setup_dl_link, installer_dl_link, download_link)
                     State.update_available = False
-                    raise UpdateFailed
+                    raise NoUpdateFound
                 if IS_FROZEN:
                     if platform.system() in {'Linux', 'Darwin'}:
                         tray_notify('update_available', context=latest_ver)
@@ -3065,6 +3064,10 @@ if __name__ == '__main__':
                     else:
                         # unins000.exe or updater.exe was deleted; better to inform user there is an update available
                         tray_notify('update_available', context=latest_ver)
+            except (requests.RequestException, NoUpdateFound):
+                pass
+            except Exception:
+                app_log.exception('update check failed')
             State.installing_update = False
 
     def background_thread():
@@ -3484,7 +3487,7 @@ if __name__ == '__main__':
                 try:
                     cast.quit_app(30)
                 except PyChromecastError as e:
-                    app_log.error('could not cast.quit_app', exc_info=True)
+                    app_log.exception('could not cast.quit_app')
                     handle_exception(e)
         DiscordPresence.close()
         if settings['persistent_queue'] and not quick_exit:

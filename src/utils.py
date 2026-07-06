@@ -392,7 +392,7 @@ def get_display_lang():
 @lru_cache
 def log_translation_error(string, lang):
     log = logging.getLogger('music_caster')
-    log.error(f'failed to translate `{string}` to {lang}', exc_info=True)
+    log.exception(f'failed to translate `{string}` to {lang}')
 
 
 def get_translation(string, lang='', as_title=False):
@@ -1056,9 +1056,10 @@ def get_latest_release(ver, this_version, force=False):
         portable:  True iff the release ships a Portable.zip asset
     """
     releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
-    with suppress(requests.RequestException):
+    try:
         release = requests.get(releases_url)
         if release.status_code >= 400:
+            logging.getLogger('music_caster').info('using proxy for releases API')
             release = requests.get(releases_url, proxies=get_proxy(False))
         release = release.json()
         latest_ver = release.get('tag_name', f'v{this_version}')[1:]
@@ -1078,12 +1079,17 @@ def get_latest_release(ver, this_version, force=False):
                     result['portable'] = True
                 elif lower.endswith('.exe'):
                     if compare_ver[0] >= 6:
-                        # v6 NSIS setup OR Bootstrapper
-                        if lower.contains('bootstrapper') or lower.contains(arch):
+                        # Bootstrapper
+                        if 'bootstrapper' in lower or arch in lower:
                             result['setup'] = url
                     else:
                         result['setup'] = url
+            logging.getLogger('music_caster').info('release found: %s', result)
             return result
+        logging.getLogger('music_caster').info('latest release is not newer than current version')
+    except requests.RequestException as e:
+        # common: no internet
+        logging.getLogger('music_caster').error('Error occurred while fetching releases: %s', e)
     return False
 
 
