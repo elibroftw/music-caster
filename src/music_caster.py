@@ -379,7 +379,12 @@ if __name__ == '__main__':
     # LOGS
     log_format = logging.Formatter('%(asctime)s %(levelname)s (%(lineno)d) %(funcName)s(): %(message)s')
     # max 1 MB log file
-    log_handler = RotatingFileHandler('music_caster.log', maxBytes=1000000, backupCount=1, encoding='UTF-8')
+    installed_log_file_path = Path(appdirs.user_data_dir()) / BUNDLE_IDENTIFIER / 'logs' /'daemon.log'
+    installed_log_file_path.parent.mkdir(parents=True, exist_ok=True)
+    LOG_FILE = installed_log_file_path if IS_FROZEN else 'music_caster.log'
+    if IS_FROZEN and os.path.exists('music_caster.log'):
+        os.rename('music_caster.log', LOG_FILE)
+    log_handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=1, encoding='UTF-8')
     log_handler.setFormatter(log_format)
     app_log = logging.getLogger('music_caster')
     app_log.propagate = False  # disable console output
@@ -661,7 +666,7 @@ if __name__ == '__main__':
 
     def create_support_email_url():
         try:
-            with open('music_caster.log', encoding='utf-8') as f:
+            with open(LOG_FILE, encoding='utf-8') as f:
                 log_lines = f.read().splitlines()[-10:]  # get last 10 lines of the log
         except FileNotFoundError:
             log_lines = []
@@ -684,7 +689,7 @@ if __name__ == '__main__':
             elif playing_status.busy():
                 playing_uri = music_queue[0]
         try:
-            with open('music_caster.log', encoding='utf-8') as f:
+            with open(LOG_FILE, encoding='utf-8') as f:
                 log_lines = f.read().splitlines(keepends=False)[-10:]  # get last 10 lines of the log
         except FileNotFoundError:
             log_lines = []
