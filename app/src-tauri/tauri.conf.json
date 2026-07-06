@@ -1,7 +1,7 @@
 {
   "bundle": {
     "active": true,
-    "targets": ["rpm", "appimage", "msi", "dmg", "app"],
+    "targets": ["rpm", "appimage", "msi", "nsis", "dmg", "app"],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
@@ -10,7 +10,8 @@
 				"installerHooks": "./windows/hooks.nsh"
 			},
 			"wix": {
-				"upgradeCode": "{0489D4C7-FB04-52EA-A999-A0C9F83D54C6}"
+				"upgradeCode": "{0489D4C7-FB04-52EA-A999-A0C9F83D54C6}",
+				"template": "./windows/main.wxs"
 			}
     },
     "publisher": "Elijah Lopez",
