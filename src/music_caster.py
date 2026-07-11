@@ -312,37 +312,7 @@ if __name__ == '__main__':
     import FreeSimpleGUI as Sg
     from modules.db import DatabaseConnection, init_db
     if IS_FROZEN:
-        try:
-            with DatabaseConnection() as conn:
-                pass
-        except Exception:
-            sys.exit(66)
-        DatabaseConnection.DATABASE_FILE = Path(args.db_path).absolute() if args.db_path and USING_TAURI_FRONTEND else DatabaseConnection.DEFAULT_DATABASE_FILE
-        if DatabaseConnection.OLD_DATABASE_FILE.exists():
-            DatabaseConnection.DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
-            if DatabaseConnection.DATABASE_FILE.exists():
-                print('not moving database because file already exists')
-            else:
-                try:
-                    os.rename(DatabaseConnection.OLD_DATABASE_FILE, DatabaseConnection.DATABASE_FILE)
-                except OSError as e:
-                    if e.winerror == 17:
-                        copy2(DatabaseConnection.OLD_DATABASE_FILE, DatabaseConnection.DATABASE_FILE)
-                        os.remove(DatabaseConnection.OLD_DATABASE_FILE)
-                    else:
-                        raise e
-            try:
-                with DatabaseConnection() as conn:
-                    pass
-            except Exception:
-                sys.exit(67)
-        else:
-            try:
-                with DatabaseConnection() as conn:
-                    pass
-            except Exception:
-                sys.exit(68)
-
+        DatabaseConnection.move_to_new_location(args.db_path)
     # 0.5 seconds gone to 3rd party imports
     from flask import Flask, jsonify, render_template, request, redirect, send_file, Response, make_response
     import waitress

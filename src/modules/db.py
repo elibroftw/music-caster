@@ -1,7 +1,9 @@
+from shutil import copy2
 import sqlite3
 from pathlib import Path
 import appdirs
-from meta import BUNDLE_IDENTIFIER
+from meta import BUNDLE_IDENTIFIER, USING_TAURI_FRONTEND
+import os
 
 user_data_dir = Path(appdirs.user_data_dir(roaming=True))
 if not user_data_dir.exists():
@@ -9,9 +11,9 @@ if not user_data_dir.exists():
     user_data_dir = Path.home()
 
 class DatabaseConnection:
-    OLD_DATABASE_FILE = Path('music_caster.db').absolute()
+    OLD_OR_PY_DB_FILE = Path('music_caster.db').absolute()
     DEFAULT_DATABASE_FILE = (Path(user_data_dir) / BUNDLE_IDENTIFIER / 'music_caster.db').absolute()
-    DATABASE_FILE = OLD_DATABASE_FILE
+    DATABASE_FILE = OLD_OR_PY_DB_FILE
 
     @staticmethod
     def create_connection():
@@ -30,6 +32,24 @@ class DatabaseConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
 
+    def move_to_new_location(self, db_path: str | None=None):
+        if db_path is not None and USING_TAURI_FRONTEND:
+            DatabaseConnection.DATABASE_FILE = Path(db_path).absolute()
+        else:
+            DatabaseConnection.DATABASE_FILE = DatabaseConnection.DEFAULT_DATABASE_FILE
+        if DatabaseConnection.OLD_OR_PY_DB_FILE.exists():
+            DatabaseConnection.DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            if DatabaseConnection.DATABASE_FILE.exists():
+                print('not moving database because file already exists')
+            else:
+                try:
+                    os.rename(DatabaseConnection.OLD_OR_PY_DB_FILE, DatabaseConnection.DATABASE_FILE)
+                except OSError as e:
+                    if e.winerror == 17:
+                        copy2(DatabaseConnection.OLD_OR_PY_DB_FILE, DatabaseConnection.DATABASE_FILE)
+                        os.remove(DatabaseConnection.OLD_OR_PY_DB_FILE)
+                    else:
+                        raise e
 
 SCHEMA_2 = """
 DROP TABLE IF EXISTS concert_events;
