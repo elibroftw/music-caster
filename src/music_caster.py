@@ -364,11 +364,11 @@ if __name__ == '__main__':
     except ImportError:
         pass
     import scrapetube
-    try:
-        from TkinterDnD2 import DND_FILES, DND_ALL
-    except ImportError:
-        # what about tkinterdnd2
-        import tkinterDnD
+    if not USING_TAURI_FRONTEND:
+        try:
+            from TkinterDnD2 import DND_FILES, DND_ALL
+        except ImportError:
+            from tkinterdnd2 import DND_FILES, DND_ALL
     import zeroconf
     TIME_TO_IMPORT = time.monotonic() - start_time
     try:
@@ -3309,7 +3309,7 @@ if __name__ == '__main__':
                     drop_target_register(tk_lb, DND_FILES)
                     dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
                 except NameError:
-                    # https://github.com/rdbende/tkinterDnD
+                    # https://github.com/Eliav2/tkinterdnd2
                     print('TODO: DND Not Implemented')
         elif TKDND_ENABLED:
             try:
