@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+import sysconfig
 from PyInstaller.building.api import PYZ, EXE
 from PyInstaller.building.build_main import Analysis, Tree # type: ignore
 from PyInstaller.config import CONF
@@ -33,7 +34,8 @@ elif platform.system() == 'Darwin':
 elif platform.system() == 'Linux':
     VLC_EXCLUDES.remove('*.so*')
     VLC_EXCLUDES.remove('*.so')
-a.datas.extend(Tree('src/vlc_lib', 'vlc_lib', excludes=VLC_EXCLUDES))
+sys_platform = sysconfig.get_platform()
+a.datas.extend(Tree(f'src/vlc_lib/{sys_platform}', f'vlc_lib/{sys_platform}', excludes=VLC_EXCLUDES))
 a.datas.extend(Tree('src/languages', 'languages'))
 a.datas.extend(Tree('build_files/tkdnd2.9.2', 'tkdnd2.9.2'))
 a.datas.extend(Tree('src/theme', 'theme'))

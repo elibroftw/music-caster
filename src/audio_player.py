@@ -7,6 +7,7 @@ import math
 import os
 import platform
 import sys
+import sysconfig
 import time
 from enum import IntEnum
 from pathlib import Path
@@ -16,10 +17,11 @@ try:
     app_path = sys._MEIPASS
 except AttributeError:
     app_path = os.path.dirname(sys.executable if IS_FROZEN else __file__)
+sys_platform = sysconfig.get_platform()
 vlc_ext = 'dll' if platform.system() == 'Windows' else 'so'
 if platform.system() != 'Windows':
-    os.environ['PYTHON_VLC_MODULE_PATH'] = f'{app_path}/vlc_lib/plugins'
-vlc_lib_path = Path(f'{app_path}/vlc_lib/libvlc.{vlc_ext}')
+    os.environ['PYTHON_VLC_MODULE_PATH'] = f'{app_path}/vlc_lib/{sys_platform}/plugins'
+vlc_lib_path = Path(f'{app_path}/vlc_lib/{sys_platform}/libvlc.{vlc_ext}')
 os.environ['PYTHON_VLC_LIB_PATH'] = str(vlc_lib_path)
 cwd = os.getcwd()
 if platform.system() == 'Linux':
