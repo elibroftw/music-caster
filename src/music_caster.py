@@ -2219,6 +2219,7 @@ if __name__ == '__main__':
             return False
         metadata_list = get_url_metadata(url)
         if not metadata_list:
+            app_log.error('Could not play URL')
             if settings['notifications']:
                 tray_notify(
                     t('ERROR') + ': ' + t('Could not play $URL').replace('$URL', url)

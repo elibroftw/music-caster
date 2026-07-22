@@ -15,13 +15,14 @@ winrt-Windows.Foundation; sys_platform == 'win32'
 winrt-runtime; sys_platform == 'win32'
 pgi; sys_platform == 'linux'
 testresources; sys_platform == 'linux'
-ujson~=5.5
-mutagen~=1.45
-Pillow~=12.2.0
+ujson==5.13.0
+mutagen==1.48.1
+Pillow==12.3.0
 PyChromecast~=14.0
-zeroconf~=0.149
-pynput~=1.4.5
-pypng~=0.0.20
+zeroconf~=0.150.0
+# INTENTIONALLY HARD CODED
+pynput==1.4.5
+pypng==0.20220715.0
 # use zip for faster install than git
 https://github.com/elibroftw/pypresence/archive/master.zip
 # https://github.com/qwertyquerty/pypresence/archive/master.zip
@@ -29,21 +30,21 @@ yt-dlp[default]
 https://github.com/elibroftw/youtube-comment-downloader/archive/master.zip
 # PySimpleGUI 4.60.5 no longer available on pypi, therefore use FreeSimpleGUI commit hash
 https://github.com/spyoungtech/FreeSimpleGUI/archive/a0634800bca051c824d879d31e14ae3b201e5667.zip
-pyqrcode~=1.2.1
-pystray~=0.19.1
-requests~=2.28
-urllib3~=2.5
-waitress~=3.0
+pyqrcode==1.2.1
+pystray==0.19.5
+requests~=2.34.2
+urllib3~=2.7.0
+waitress~=3.0.2
 wavinfo~=4.0
-scrapetube
-pyperclip~=1.8
-werkzeug~=3.0
+scrapetube==2.6.0
+pyperclip~=1.11.0
+werkzeug~=3.1.8
 python-vlc==3.0.21203
 # why was this fixed to 3.13?
 lz4~=4.4.4; sys_platform == 'win32'
 lz4; sys_platform != 'win32'
 browser_cookie3
-beautifulsoup4~=4.10
+beautifulsoup4~=4.15.0
 flask~=2.0
 pycparser~=2.14  # used by deemix
 deezer-py~=1.2
