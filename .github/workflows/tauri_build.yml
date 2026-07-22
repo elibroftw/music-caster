@@ -29,6 +29,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
     outputs:
       changelog: ${{ steps.build_changelog.outputs.changelog }}
+
   bootstrapper:
     runs-on: windows-latest
     steps:
@@ -48,11 +49,86 @@ jobs:
           cd bootstrapper
           cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: Bootstrapper Artifact
+      - name: Upload unsigned bootstrapper
         uses: actions/upload-artifact@main
         with:
-          name: windows-bootstrapper-x64
+          name: bootstrapper-unsigned-x64
           path: bootstrapper/target/x86_64-pc-windows-msvc/release/MusicCasterBootstrapper.exe
+
+  # SSL.com's actions-codesigner is a Docker action, so all signing runs on
+  # Linux runners (CodeSignTool is Java-based and signs Windows PE/MSI fine).
+  # Signing is delegated to the reusable codesign.yml workflow, called with
+  # `secrets: inherit` so the SSL.com credentials are declared in exactly one place.
+  # Only sign on master pushes and release tags; other branches / PRs still
+  # build (unsigned) so CI keeps validating them without burning signing quota.
+  sign-bootstrapper:
+    needs: [bootstrapper]
+    if: ${{ github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
+    uses: ./.github/workflows/codesign.yml
+    secrets: inherit
+    with:
+      download_artifact: bootstrapper-unsigned-x64
+      upload_artifact: windows-bootstrapper-x64
+
+  # Build the daemon sidecar on its own so it can be code-signed on a Linux
+  # runner before Tauri embeds it into the installer (externalBin). Built on
+  # windows-11-arm for aarch64 because PyInstaller produces host-arch binaries.
+  # matrix.args is `--target <triple>`; build.py names the artifact
+  # dist/music-caster-daemon-<triple>.exe to match Tauri's externalBin lookup.
+  build-daemon:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+            arch: x86_64-pc-windows-msvc
+          - platform: 'windows-11-arm'
+            args: '--target aarch64-pc-windows-msvc'
+            arch: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Set up venv and install Python dependencies
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --upgrade pip
+          .venv\Scripts\python -m pip install --upgrade-strategy eager -r requirements.txt -r requirements-dev.txt
+
+      - name: Build Music Caster daemon
+        run: |
+          .venv\Scripts\python build.py --ci --no-install ${{ matrix.args }}
+
+      - name: Upload unsigned daemon
+        uses: actions/upload-artifact@main
+        with:
+          name: daemon-unsigned-${{ matrix.arch }}
+          path: dist/music-caster-daemon-${{ matrix.arch }}.exe
+
+  sign-daemon:
+    needs: [build-daemon]
+    if: ${{ github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc]
+    uses: ./.github/workflows/codesign.yml
+    secrets: inherit
+    with:
+      download_artifact: daemon-unsigned-${{ matrix.arch }}
+      upload_artifact: daemon-signed-${{ matrix.arch }}
+
   release:
     strategy:
       fail-fast: false
@@ -73,7 +149,10 @@ jobs:
             args: '--target aarch64-pc-windows-msvc'
             arch: aarch64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
-    needs: [changelog]
+    needs: [changelog, build-daemon, sign-daemon]
+    # sign-daemon is skipped off master/tags; still build (with the unsigned
+    # daemon) as long as the changelog and daemon build succeeded.
+    if: ${{ always() && needs.changelog.result == 'success' && needs.build-daemon.result == 'success' && needs.sign-daemon.result != 'failure' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@main
@@ -112,31 +191,23 @@ jobs:
           cd app
           pnpm install
 
-      - name: Set up Python
-        uses: actions/setup-python@main
+      # On master/tags, pull in the code-SIGNED daemon so Tauri bundles the
+      # signed sidecar into the installers. On other branches the signing jobs
+      # are skipped, so fall back to the unsigned daemon just to keep CI building.
+      # Both land at dist/music-caster-daemon-<triple>.exe for externalBin.
+      - name: Download signed daemon
+        if: ${{ github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
+        uses: actions/download-artifact@main
         with:
-          python-version: '3.x'
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          name: daemon-signed-${{ matrix.arch }}
+          path: dist
 
-      - name: Set up venv and install Python dependencies
-        run: |
-          python -m venv .venv
-          .venv\Scripts\python -m pip install --upgrade pip
-          .venv\Scripts\python -m pip install --upgrade-strategy eager -r requirements.txt -r requirements-dev.txt
-
-      # Build the daemon sidecar before tauri-action so externalBin
-      # (dist/music-caster-daemon-<target>.exe) exists at bundle time.
-      # matrix.args is already in `--target <triple>` form; forward it to build.py
-      # so the artifact is named to match the Tauri target. Empty args lets build.py
-      # default to the host triple.
-      # The venv is set up above; build.py skips dep installation in CI for the
-      # Tauri frontend.
-      - name: Build Music Caster daemon
-        run: |
-          .venv\Scripts\python build.py --ci --no-install ${{ matrix.args }}
+      - name: Download unsigned daemon
+        if: ${{ !(github.ref == 'refs/heads/master' || github.ref_type == 'tag') }}
+        uses: actions/download-artifact@main
+        with:
+          name: daemon-unsigned-${{ matrix.arch }}
+          path: dist
 
       - name: CI Build
         if: ${{ github.ref_type == 'branch' }}
@@ -147,33 +218,6 @@ jobs:
         run: |
           cd app
           pnpm rls ${{ matrix.args }}
-
-      - name: Windows Artifacts
-        if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'windows-11-arm' }}
-        uses: actions/upload-artifact@main
-        with:
-          name: windows-msi-${{ matrix.arch }}
-          path: |
-            app/src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi
-            app/src-tauri/target/${{ matrix.arch }}/release/bundle/nsis/*.exe
-
-      - name: macOS Artifacts
-        if: ${{ matrix.platform == 'macos-latest' }}
-        uses: actions/upload-artifact@main
-        with:
-          name: macOS Installer
-          path: |
-            app/src-tauri/target/release/bundle/dmg/*.dmg
-            app/src-tauri/target/release/bundle/app/*.app
-
-      - name: Linux Artifacts
-        if: ${{ startsWith(matrix.platform, 'ubuntu') }}
-        uses: actions/upload-artifact@main
-        with:
-          name: Linux Distributions
-          path: |
-            app/src-tauri/target/release/bundle/deb/*.deb
-            app/src-tauri/target/release/bundle/AppImage/*.AppImage
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -196,11 +240,62 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Upload unsigned installers (after whichever build step ran) so the Linux
+      # signing job can pick them up. On tags this runs after tauri-action, which
+      # has already pushed the unsigned bundles to the DRAFT release; sign-installers
+      # clobbers them with signed copies before the draft is published.
+      - name: Windows Artifacts
+        if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'windows-11-arm' }}
+        uses: actions/upload-artifact@main
+        with:
+          name: installers-unsigned-${{ matrix.arch }}
+          path: |
+            app/src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi
+            app/src-tauri/target/${{ matrix.arch }}/release/bundle/nsis/*.exe
+
+      - name: macOS Artifacts
+        if: ${{ matrix.platform == 'macos-latest' }}
+        uses: actions/upload-artifact@main
+        with:
+          name: macOS Installer
+          path: |
+            app/src-tauri/target/release/bundle/dmg/*.dmg
+            app/src-tauri/target/release/bundle/app/*.app
+
+      - name: Linux Artifacts
+        if: ${{ startsWith(matrix.platform, 'ubuntu') }}
+        uses: actions/upload-artifact@main
+        with:
+          name: Linux Distributions
+          path: |
+            app/src-tauri/target/release/bundle/deb/*.deb
+            app/src-tauri/target/release/bundle/AppImage/*.AppImage
+
+  # Sign the Tauri-built MSI (and the NSIS installer, which ships alongside it)
+  # on a Linux runner. NOTE: the Tauri updater artifacts (*.msi.zip + *.sig) are
+  # generated by Tauri BEFORE this Authenticode signing, so they still wrap the
+  # unsigned MSI. If the auto-updater path must deliver a signed MSI, the updater
+  # zip/sig need regenerating after this step (out of scope here).
+  sign-installers:
+    needs: [release]
+    if: ${{ github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc]
+    uses: ./.github/workflows/codesign.yml
+    secrets: inherit
+    with:
+      download_artifact: installers-unsigned-${{ matrix.arch }}
+      upload_artifact: windows-msi-${{ matrix.arch }}
+      clobber_release: true
+
   merge-windows-artifacts:
     runs-on: ubuntu-latest
     needs:
-      - bootstrapper
-      - release
+      - sign-bootstrapper
+      - sign-installers
     steps:
       - uses: actions/upload-artifact/merge@main
         with:

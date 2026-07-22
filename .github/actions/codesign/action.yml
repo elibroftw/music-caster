@@ -1,0 +1,32 @@
+name: 'CodeSign (SSL.com)'
+description: >
+  Authenticode-sign a Windows .exe/.msi with SSL.com CodeSignTool.
+  The underlying sslcom/actions-codesigner is a Docker action, so this must run
+  on a Linux runner. Credentials are read from the ES_USERNAME / ES_PASSWORD /
+  CREDENTIAL_ID / ES_TOTP_SECRET environment variables, which the calling job is
+  expected to set (typically from secrets) so call sites don't repeat them.
+
+inputs:
+  file:
+    description: 'File to sign, relative to the workspace root.'
+    required: true
+  output_dir:
+    description: 'Directory (relative to the workspace) to write the signed file into.'
+    required: false
+    default: signed
+
+runs:
+  using: composite
+  steps:
+    - name: Sign ${{ inputs.file }}
+      uses: sslcom/actions-codesigner@develop
+      with:
+        command: sign
+        username: ${{ env.ES_USERNAME }}
+        password: ${{ env.ES_PASSWORD }}
+        credential_id: ${{ env.CREDENTIAL_ID }}
+        totp_secret: ${{ env.ES_TOTP_SECRET }}
+        file_path: ${{ github.workspace }}/${{ inputs.file }}
+        output_path: ${{ github.workspace }}/${{ inputs.output_dir }}
+        environment_name: PROD
+        malware_block: false
