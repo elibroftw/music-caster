@@ -18,6 +18,11 @@ inputs:
 runs:
   using: composite
   steps:
+    # The SSL.com Docker action requires output_path to already exist.
+    - name: Ensure output directory exists
+      shell: bash
+      run: mkdir -p "${{ github.workspace }}/${{ inputs.output_dir }}"
+
     - name: Sign ${{ inputs.file }}
       uses: sslcom/actions-codesigner@develop
       with:
