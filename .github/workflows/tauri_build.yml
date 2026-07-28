@@ -299,6 +299,6 @@ jobs:
     steps:
       - uses: actions/upload-artifact/merge@main
         with:
-          name: Windows Installers
+          name: Music Caster Windows Installers
           pattern: windows-*
           delete-merged: true
