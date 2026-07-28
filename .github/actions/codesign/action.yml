@@ -1,0 +1,66 @@
+name: 'CodeSign (SSL.com)'
+description: >
+  Authenticode-sign a Windows .exe/.msi with SSL.com CodeSignTool.
+  The underlying sslcom/esigner-codesign is a Docker action, so this must run
+  on a Linux runner. Credentials are read from the ES_USERNAME / ES_PASSWORD /
+  CREDENTIAL_ID / ES_TOTP_SECRET environment variables, which the calling job is
+  expected to set (typically from secrets) so call sites don't repeat them.
+
+inputs:
+  file:
+    description: 'File to sign, relative to the workspace root.'
+    required: true
+  output_dir:
+    description: 'Directory (relative to the workspace) to write the signed file into.'
+    required: false
+    default: signed
+
+runs:
+  using: composite
+  steps:
+    # CodeSignTool's entrypoint builds its command line UNQUOTED, so a space in
+    # the file name (e.g. "Music Caster_6.0.0_x64_en-US.msi") splits into two
+    # args and fails. Stage the file under a space-free name before signing, and
+    # the output_dir the tool needs must already exist.
+    - name: Stage file for signing
+      id: stage
+      shell: bash
+      env:
+        FILE: ${{ inputs.file }}
+        WORK: ${{ github.workspace }}/.codesign-work
+      run: |
+        set -euo pipefail
+        src="${{ github.workspace }}/${FILE}"
+        base="$(basename "$src")"
+        safe="${base// /_}"
+        mkdir -p "$WORK/stage" "$WORK/signed"
+        cp "$src" "$WORK/stage/$safe"
+        echo "safe=$safe" >> "$GITHUB_OUTPUT"
+        echo "orig=$base" >> "$GITHUB_OUTPUT"
+
+    - name: Sign ${{ inputs.file }}
+      uses: sslcom/esigner-codesign@develop
+      with:
+        command: sign
+        username: ${{ env.ES_USERNAME }}
+        password: ${{ env.ES_PASSWORD }}
+        credential_id: ${{ env.CREDENTIAL_ID }}
+        totp_secret: ${{ env.ES_TOTP_SECRET }}
+        file_path: ${{ github.workspace }}/.codesign-work/stage/${{ steps.stage.outputs.safe }}
+        output_path: ${{ github.workspace }}/.codesign-work/signed
+        environment_name: PROD
+        malware_block: false
+
+    # Restore the original (spaced) file name so release-asset clobbering matches.
+    - name: Collect signed file
+      shell: bash
+      env:
+        SAFE: ${{ steps.stage.outputs.safe }}
+        ORIG: ${{ steps.stage.outputs.orig }}
+        OUT: ${{ inputs.output_dir }}
+        WORK: ${{ github.workspace }}/.codesign-work
+      run: |
+        set -euo pipefail
+        dest="${{ github.workspace }}/${OUT}"
+        mkdir -p "$dest"
+        mv "$WORK/signed/$SAFE" "$dest/$ORIG"

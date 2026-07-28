@@ -1,0 +1,86 @@
+# Reusable signing workflow. Downloads an artifact, Authenticode-signs the
+# Windows installer(s) it contains (at most one .exe and one .msi per artifact,
+# which covers the bootstrapper, the daemon, and the MSI+NSIS installer pair),
+# and re-uploads the signed files. Callers pass `secrets: inherit` so the SSL.com
+# credentials are mapped to env in exactly one place (here).
+name: Code sign
+
+on:
+  workflow_call:
+    inputs:
+      download_artifact:
+        description: 'Name of the artifact to download and sign.'
+        required: true
+        type: string
+      upload_artifact:
+        description: 'Name to upload the signed file(s) under.'
+        required: true
+        type: string
+      clobber_release:
+        description: 'On tag builds, replace the draft release assets with the signed files.'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    # Environment secrets are ONLY readable by a job that names its environment,
+    # and for a reusable workflow that key must live here (not at the call site).
+    # This name MUST match the GitHub Environment your ES_* secrets are stored in.
+    environment: signing
+    permissions:
+      contents: write
+    env:
+      ES_USERNAME: ${{ secrets.ES_USERNAME }}
+      ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
+      CREDENTIAL_ID: ${{ secrets.CREDENTIAL_ID }}
+      ES_TOTP_SECRET: ${{ secrets.ES_TOTP_SECRET }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Download unsigned artifact
+        uses: actions/download-artifact@main
+        with:
+          name: ${{ inputs.download_artifact }}
+          path: unsigned
+
+      - name: Locate files to sign
+        id: find
+        shell: bash
+        run: |
+          shopt -s nullglob globstar
+          exe=(unsigned/**/*.exe)
+          msi=(unsigned/**/*.msi)
+          echo "exe=${exe[0]}" >> "$GITHUB_OUTPUT"
+          echo "msi=${msi[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Sign executable
+        if: ${{ steps.find.outputs.exe != '' }}
+        uses: ./.github/actions/codesign
+        with:
+          file: ${{ steps.find.outputs.exe }}
+
+      - name: Sign MSI
+        if: ${{ steps.find.outputs.msi != '' }}
+        uses: ./.github/actions/codesign
+        with:
+          file: ${{ steps.find.outputs.msi }}
+
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ inputs.upload_artifact }}
+          path: signed/*
+
+      # On tagged releases, replace the unsigned bundles tauri-action pushed to
+      # the draft release with the signed ones (glob expansion keeps spaces intact).
+      - name: Replace draft release assets with signed files
+        if: ${{ inputs.clobber_release && github.ref_type == 'tag' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          gh release upload "${{ github.ref_name }}" signed/*.msi signed/*.exe --clobber --repo "${{ github.repository }}"
