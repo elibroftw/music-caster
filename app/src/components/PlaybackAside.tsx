@@ -37,6 +37,12 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 	const [timerInput, setTimerInput] = useState('');
 	const [timerStatus, setTimerStatus] = useState<string | null>(null);
 	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
+	// local value while dragging so the player state poll doesn't fight the slider
+	const [pendingVolume, setPendingVolume] = useState<number | null>(null);
+
+	useEffect(() => {
+		setPendingVolume(null);
+	}, [playerState?.volume]);
 
 	const streamURLForm = useForm({
 		mode: 'uncontrolled',
@@ -151,6 +157,15 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			await api.toggleShuffle();
 		} catch (error) {
 			console.error('Failed to toggle shuffle:', error);
+		}
+	};
+
+	const handleVolumeChangeEnd = async (volume: number) => {
+		try {
+			await api.setVolume(volume);
+		} catch (error) {
+			console.error('Failed to set volume:', error);
+			setPendingVolume(null);
 		}
 	};
 
@@ -370,8 +385,11 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 								<Slider
 									min={0}
 									max={100}
-									value={playerState?.volume}
+									value={pendingVolume ?? playerState?.volume ?? 0}
 									step={1}
+									disabled={daemonLoading}
+									onChange={setPendingVolume}
+									onChangeEnd={handleVolumeChangeEnd}
 								/>
 							</Box>
 						</Group>

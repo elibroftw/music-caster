@@ -158,6 +158,7 @@ pub fn run() {
       api_play_uris,
       api_exit,
       api_change_setting,
+      api_set_volume,
       api_refresh_devices,
       api_rescan_library,
       api_set_timer,

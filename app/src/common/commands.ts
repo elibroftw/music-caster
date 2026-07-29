@@ -122,6 +122,10 @@ class MusicCasterAPI {
 		return invoke<string>('api_change_setting', { settingName, value });
 	}
 
+	async setVolume(volume: number): Promise<string> {
+		return invoke<string>('api_set_volume', { volume });
+	}
+
 	async refreshDevices(): Promise<string> {
 		return invoke<string>('api_refresh_devices');
 	}

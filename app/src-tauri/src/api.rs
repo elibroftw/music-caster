@@ -356,6 +356,14 @@ pub async fn api_change_setting(
 }
 
 #[tauri::command]
+pub async fn api_set_volume(
+  state: State<'_, DaemonState>,
+  volume: f64,
+) -> Result<String, String> {
+  api_change_setting(state, "volume".to_string(), serde_json::json!(volume)).await
+}
+
+#[tauri::command]
 pub async fn api_refresh_devices(state: State<'_, DaemonState>) -> Result<String, String> {
   let state = state.read().await;
   let client = reqwest::Client::new();
