@@ -152,11 +152,59 @@
                 </RegistryKey>
                 {{/each~}}
             </Component>
+            <!-- Explorer context-menu verbs for current user -->
+            <Component Id="ContextMenuVerbs" Guid="*">
+                <RegistryValue Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="Context Menu Verbs" Type="integer" Value="1" KeyPath="yes" />
+                {{#each file_associations as |association| ~}}
+                <RegistryKey Root="HKCU" Key="Software\Classes\\{{association.name}}\shell">
+                    <RegistryKey Key="open">
+                        <RegistryValue Type="string" Name="MultiSelectModel" Value="Player" />
+                    </RegistryKey>
+                    <RegistryKey Key="queue" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+                        <RegistryValue Type="string" Value="Queue in {{../product_name}}" />
+                        <RegistryValue Type="string" Name="MultiSelectModel" Value="Player" />
+                        <RegistryKey Key="command">
+                            <RegistryValue Type="string" Value="&quot;[!Path]&quot; -q --shell &quot;%1&quot;" />
+                        </RegistryKey>
+                    </RegistryKey>
+                    <RegistryKey Key="play_next" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+                        <RegistryValue Type="string" Value="Play next in {{../product_name}}" />
+                        <RegistryValue Type="string" Name="MultiSelectModel" Value="Player" />
+                        <RegistryKey Key="command">
+                            <RegistryValue Type="string" Value="&quot;[!Path]&quot; -n --shell &quot;%1&quot;" />
+                        </RegistryKey>
+                    </RegistryKey>
+                </RegistryKey>
+                {{/each~}}
+                <!-- Folder (Directory) context-menu verbs -->
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\MusicCasterPlayFolder" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+                    <RegistryValue Type="string" Value="Play with {{product_name}}" />
+                    <RegistryValue Type="string" Name="Icon" Value="&quot;[!Path]&quot;,0" />
+                    <RegistryKey Key="command">
+                        <RegistryValue Type="string" Value="&quot;[!Path]&quot; --shell &quot;%1&quot;" />
+                    </RegistryKey>
+                </RegistryKey>
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\MusicCasterQueueFolder" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+                    <RegistryValue Type="string" Value="Queue in {{product_name}}" />
+                    <RegistryValue Type="string" Name="Icon" Value="&quot;[!Path]&quot;,0" />
+                    <RegistryKey Key="command">
+                        <RegistryValue Type="string" Value="&quot;[!Path]&quot; -q --shell &quot;%1&quot;" />
+                    </RegistryKey>
+                </RegistryKey>
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\MusicCasterPlayNextFolder" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+                    <RegistryValue Type="string" Value="Play next in {{product_name}}" />
+                    <RegistryValue Type="string" Name="Icon" Value="&quot;[!Path]&quot;,0" />
+                    <RegistryKey Key="command">
+                        <RegistryValue Type="string" Value="&quot;[!Path]&quot; -n --shell &quot;%1&quot;" />
+                    </RegistryKey>
+                </RegistryKey>
+            </Component>
             <Component Id="Path" Guid="{{path_component_guid}}" Win64="$(var.Win64)">
                 <File Id="Path" Source="{{main_binary_path}}" KeyPath="yes" Checksum="yes"/>
                 {{#each file_associations as |association| ~}}
                 {{#each association.ext as |ext| ~}}
-                <ProgId Id="{{../../product_name}}.{{ext}}" Advertise="yes" Description="{{association.description}}">
+                <!-- ProgId matches the association name so class names are identical to the NSIS installer's -->
+                <ProgId Id="{{association.name}}" Advertise="yes" Description="{{association.description}}">
                     <Extension Id="{{ext}}" Advertise="yes">
                         <Verb Id="open" Command="Open with {{../../product_name}}" Argument="&quot;%1&quot;" />
                     </Extension>
@@ -237,6 +285,7 @@
                 Absent="disallow">
 
             <ComponentRef Id="RegistryEntries"/>
+            <ComponentRef Id="ContextMenuVerbs"/>
 
             {{#each resource_file_ids as |resource_file_id| ~}}
                 <ComponentRef Id="{{ resource_file_id }}"/>
