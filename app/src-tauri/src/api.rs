@@ -226,6 +226,23 @@ pub async fn api_prev(
 }
 
 #[tauri::command]
+pub async fn api_seek(
+  state: State<'_, DaemonState>,
+  position: f64,
+) -> Result<ActionResponse, String> {
+  let state = state.read().await;
+  let client = reqwest::Client::new();
+  let url = format!("{}/action/seek?position={}", state.get_base_url(), position);
+
+  let response = client.post(&url).send().await.map_err(|e| e.to_string())?;
+
+  response
+    .json::<ActionResponse>()
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn api_stop(state: State<'_, DaemonState>) -> Result<ActionResponse, String> {
   let state = state.read().await;
   let client = reqwest::Client::new();

@@ -88,6 +88,10 @@ class MusicCasterAPI {
 		return invoke<ActionResponse>('api_prev', { times, ignoreTimestamps });
 	}
 
+	async seek(position: number): Promise<ActionResponse> {
+		return invoke<ActionResponse>('api_seek', { position });
+	}
+
 	async toggleRepeat(): Promise<ActionResponse> {
 		return invoke<ActionResponse>('api_toggle_repeat');
 	}

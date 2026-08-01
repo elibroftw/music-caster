@@ -1,7 +1,7 @@
 import { ActionIcon, Anchor, Box, Button, Group, Image, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { TbArrowsShuffle, TbBrandGithub, TbClock, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
@@ -43,6 +43,19 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 	useEffect(() => {
 		setPendingVolume(null);
 	}, [playerState?.volume]);
+
+	// scrub target held until the daemon reports a nearby position, since
+	// track_position changes every poll and would snap the thumb back mid-seek
+	const [pendingPosition, setPendingPosition] = useState<number | null>(null);
+	const isScrubbing = useRef(false);
+	const lastSeekAt = useRef(0);
+
+	useEffect(() => {
+		if (pendingPosition === null || !playerState || isScrubbing.current) return;
+		if (Math.abs(playerState.track_position - pendingPosition) < 2 || Date.now() - lastSeekAt.current > 4000) {
+			setPendingPosition(null);
+		}
+	}, [playerState?.track_position]);
 
 	const streamURLForm = useForm({
 		mode: 'uncontrolled',
@@ -157,6 +170,24 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			await api.toggleShuffle();
 		} catch (error) {
 			console.error('Failed to toggle shuffle:', error);
+		}
+	};
+
+	const displayedPosition = Math.floor(pendingPosition ?? playerState?.track_position ?? 0);
+
+	const handleScrub = (position: number) => {
+		isScrubbing.current = true;
+		setPendingPosition(position);
+	};
+
+	const handleScrubEnd = async (position: number) => {
+		isScrubbing.current = false;
+		lastSeekAt.current = Date.now();
+		try {
+			await api.seek(position);
+		} catch (error) {
+			console.error('Failed to seek:', error);
+			setPendingPosition(null);
 		}
 	};
 
@@ -405,17 +436,20 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 											<Skeleton height={17} width={35} />
 										</> :
 										<>
-											<Text size='xs'>{formatTime(Math.floor(playerState.track_position || 0))}</Text>
-											<Text size='xs'>-{formatTime(Math.floor((playerState.track_length || 0) - (playerState.track_position || 0)))}</Text>
+											<Text size='xs'>{formatTime(displayedPosition)}</Text>
+											<Text size='xs'>-{formatTime(Math.floor(playerState.track_length || 0) - displayedPosition)}</Text>
 										</>
 								}
 							</Group>
 							<Slider
 								min={0}
 								max={Math.floor(playerState?.track_length || 0)}
-								value={Math.floor(playerState?.track_position || 0)}
+								value={displayedPosition}
 								step={1}
 								label={formatTime}
+								disabled={daemonLoading}
+								onChange={handleScrub}
+								onChangeEnd={handleScrubEnd}
 							/>
 						</Stack>
 					</Box>

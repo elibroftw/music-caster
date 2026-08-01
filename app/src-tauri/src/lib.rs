@@ -150,6 +150,7 @@ pub fn run() {
       api_play,
       api_pause,
       api_stop,
+      api_seek,
       api_next,
       api_prev,
       api_toggle_repeat,

@@ -1002,6 +1002,7 @@ if __name__ == '__main__':
 
     @app.route('/action/<command>', methods=['GET', 'POST'])
     def web_action(command):
+        global track_position, SYNC_WITH_CHROMECAST
         request_data = get_request_data()
         # if request_data.get('api_key') != settings['api_key']:
         #     return {'error': 'Unauthorized, api_key=not-provided'}, 401
@@ -1039,6 +1040,22 @@ if __name__ == '__main__':
             case 'shuffle':
                 shuffle_enabled = update_settings('shuffle', not settings['shuffle'])
                 api_msg = f'shuffle set to {shuffle_enabled}'
+            case 'seek':
+                if playing_status.stopped() or not track_length:
+                    api_msg = 'seek ignored: nothing playing'
+                elif request_data is None or 'position' not in request_data:
+                    api_msg = 'seek failed: position required'
+                else:
+                    track_position = min(max(float(request_data['position']), 0), track_length)
+                    # do not debounce when playing locally
+                    if cast is None:
+                        set_pos(track_position)
+                    else:
+                        # debounce setting the track position
+                        # background_thread will call set_pos
+                        seek_queue.append(track_position)
+                        SYNC_WITH_CHROMECAST = time.time() + 1
+                    api_msg = f'set position to {track_position:.1f}'
             case 'stop':
                 stop('web')
                 api_msg = 'stopped playback'
