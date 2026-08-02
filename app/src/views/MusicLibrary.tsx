@@ -91,6 +91,12 @@ export default function MusicLibrary() {
 		}
 	};
 
+	// file_name is the currently playing track's URI; normalize separators since
+	// queue URIs may use backslashes while the library stores posix paths
+	const normalizePath = (path: string) => path.replaceAll('\\', '/');
+	const isPlayingTrack = !!contextMenu?.item && !!playerState?.file_name
+		&& normalizePath(contextMenu.item.file_path) === normalizePath(playerState.file_name);
+
 	if (loading && tracks.length === 0) {
 		return (
 			<Paper shadow='sm' p='md' style={{ height: 'calc(100vh - 140px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -145,7 +151,7 @@ export default function MusicLibrary() {
 				{/* onEditMetadata omitted: editing metadata is not supported yet */}
 				<TrackContextMenu
 					onPlay={handlePlay}
-					onPlayNext={handlePlayNext}
+					onPlayNext={isPlayingTrack ? undefined : handlePlayNext}
 					onAddToQueue={handleAddToQueue}
 					onShowFile={handleShowFile}
 					onCopyUris={handleCopyUris}
