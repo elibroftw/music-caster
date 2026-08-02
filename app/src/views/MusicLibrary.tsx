@@ -142,8 +142,8 @@ export default function MusicLibrary() {
 			</Modal>
 
 			<ContextMenu trigger={contextMenu} offsetLeft={88} offsetTop={-10}>
+				{/* onEditMetadata omitted: editing metadata is not supported yet */}
 				<TrackContextMenu
-					onEditMetadata={contextMenu ? () => handleEditMetadata(contextMenu.item) : undefined}
 					onPlay={handlePlay}
 					onPlayNext={handlePlayNext}
 					onAddToQueue={handleAddToQueue}

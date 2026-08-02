@@ -74,9 +74,6 @@ export default function Queue() {
 		}
 	}
 
-	const handleEditMetadata = () => {
-	};
-
 	const handlePlayNext = () => {
 		if (contextMenuTrigger?.item !== undefined) {
 			api.modifyQueue([contextMenuTrigger.item], 'next_up');
@@ -106,8 +103,7 @@ export default function Queue() {
 				<Stack gap='xs'>
 					<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
 						<TrackContextMenu
-							onEditMetadata={handleEditMetadata}
-							onPlayNext={handlePlayNext}
+							onPlayNext={contextMenuTrigger?.item === queuePosition ? undefined : handlePlayNext}
 							onAddToQueue={handleAddToQueue}
 							onShowFile={handleShowFile}
 							onCopyUris={handleCopyUris}
