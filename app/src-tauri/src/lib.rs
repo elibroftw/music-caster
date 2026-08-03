@@ -53,6 +53,11 @@ fn process_file(filepath: String) -> String {
   "Hello from Rust!".into()
 }
 
+#[tauri::command]
+fn is_minimized_start() -> bool {
+  std::env::args().any(|arg| arg == "--minimized" || arg == "-m")
+}
+
 fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String> {
   let app_data_dir = app_handle
     .path()
@@ -143,6 +148,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       tray_update_lang,
       process_file,
+      is_minimized_start,
       api_is_running,
       api_activate,
       api_get_devices,
@@ -307,7 +313,7 @@ pub fn run() {
       }
 
       // Hide the main window if started with --minimized
-      if std::env::args().any(|arg| arg == "--minimized") {
+      if std::env::args().any(|arg| arg == "--minimized" || arg == "-m") {
         if let Some(window) = app.get_webview_window("main") {
           log::info!("hiding window because app was started --minimized");
           let _ = window.hide();

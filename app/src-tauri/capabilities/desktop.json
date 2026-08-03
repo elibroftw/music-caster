@@ -18,6 +18,7 @@
     "autostart:default",
     "log:default",
     "core:window:allow-toggle-maximize",
+    "core:webview:allow-webview-show",
     "fs:allow-download-write-recursive",
     "sql:default",
     "deep-link:default"

@@ -1,8 +1,9 @@
 import { useInterval } from '@mantine/hooks';
-import { isTauri } from '@tauri-apps/api/core';
+import { isTauri, invoke } from '@tauri-apps/api/core';
 import * as tauriPath from '@tauri-apps/api/path';
 import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { currentMonitor } from '@tauri-apps/api/window';
+import { Webview } from '@tauri-apps/api/webview';
 import * as fs from '@tauri-apps/plugin-fs';
 import * as os from '@tauri-apps/plugin-os';
 import React, { PropsWithChildren, useContext, useEffect, useState } from 'react';
@@ -109,14 +110,15 @@ export function TauriProvider({ children }: PropsWithChildren) {
 				await fs.mkdir(APP_NAME, { baseDir: fs.BaseDirectory.Document, recursive: true });
 				setAppDocuments(`${_documents}${APP_NAME}`);
 				setLoading(false);
-				// if you aren't using the window-state plugin, you need to import the following
-				// import { Webview } from '@tauri-apps/api/webview';
-				// and uncomment the following
-				// const mainWebview = await Webview.getByLabel('main')!;
-				// mainWebview?.show();
-				// Why do we need to do this? The default background color of webviews is white
-				//  so we should show the window after the react has mounted
+				// Show the window after React has mounted to avoid white flash
+				// The window-state plugin will restore saved position/visibility on subsequent runs,
+				// but on first run we need to explicitly show it since tauri.conf.json has visible: false
 				// See: https://github.com/tauri-apps/tauri/issues/1564
+				const isMinimized = await invoke<boolean>('is_minimized_start');
+				if (!isMinimized) {
+					const mainWebview = await Webview.getByLabel('main');
+					mainWebview?.show();
+				}
 			}
 			callTauriAPIs().catch(console.error);
 		}, []);
