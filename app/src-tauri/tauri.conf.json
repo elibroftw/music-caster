@@ -1,7 +1,7 @@
 {
   "bundle": {
     "active": true,
-    "targets": ["rpm", "appimage", "msi", "nsis", "dmg", "app"],
+    "targets": ["rpm", "appimage", "msi",  "dmg", "app"],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
