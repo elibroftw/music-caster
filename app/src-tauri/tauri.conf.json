@@ -10,7 +10,7 @@
 				"installerHooks": "./windows/hooks.nsh"
 			},
 			"wix": {
-				"upgradeCode": "{0489D4C7-FB04-52EA-A999-A0C9F83D54C6}",
+				"upgradeCode": "0489d4c7-fb04-52ea-a999-a0c9f83d54c6",
 				"template": "./windows/main.wxs"
 			}
     },
