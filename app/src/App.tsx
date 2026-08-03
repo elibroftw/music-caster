@@ -162,6 +162,8 @@ export default function () {
 						</>,
 						autoClose: false
 					});
+				} else {
+					tauriLogger.info('No update available');
 				}
 			})()
 		}, []);
