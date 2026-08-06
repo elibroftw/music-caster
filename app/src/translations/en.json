@@ -3,6 +3,7 @@
 	"Close": "Close",
 	"ExampleView": "Example View",
 	"installAndRelaunch": "Install update and relaunch",
+	"installingAndRelaunching": "Installing and Relaunching",
 	"installingUpdate": "Installing update v{{ v }}",
 	"Maximize": "Maximize",
 	"Minimize": "Minimize",

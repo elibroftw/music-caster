@@ -3,10 +3,10 @@ import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbArrowsShuffle, TbBrandGithub, TbClock, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
+import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
-import { PlayAction } from '../common/commands';
 
 interface Track {
 	artist: string;
@@ -22,9 +22,11 @@ interface PlaybackAsideProps {
 	onOpenSettings: () => void;
 	trayAction: string | null;
 	onTrayActionConsumed: () => void;
+	// present only when an update is available; installs it and relaunches
+	onInstallUpdate?: () => void;
 }
 
-export default function PlaybackAside({ onOpenSettings, trayAction, onTrayActionConsumed }: PlaybackAsideProps) {
+export default function PlaybackAside({ onOpenSettings, trayAction, onTrayActionConsumed, onInstallUpdate }: PlaybackAsideProps) {
 	const playerState = useContext(PlayerStateContext);
 	const daemonLoading = playerState === null || playerState.status === 'NOT_RUNNING';
 	const api = useContext(MusicCasterAPIContext)!;
@@ -387,6 +389,7 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						<ActionIcon size='lg' variant='default'><TbChevronDown size={20} /></ActionIcon> */}
 						<ActionIcon size='lg' variant='default' onClick={openQrCode}><TbWorld size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' onClick={openStreamURL}><TbLink size={20} /></ActionIcon>
+						{onInstallUpdate && <ActionIcon size='lg' variant='filled' color='teal' title='Install update and relaunch' onClick={onInstallUpdate}><TbDownload size={20} /></ActionIcon>}
 					</SimpleGrid>
 				</Group>
 

@@ -1,4 +1,4 @@
-import { AppShell, Button, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
+import { AppShell, Button, Progress, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
@@ -52,7 +52,55 @@ export default function () {
 	// Rather, keep track of each state independently, and try best to reduce re-renders
 	// e.g. the queue is usually the same, therefore, we need a way to "diff" states.
 	const [playerState, setPlayerState] = useState<PlayerState | null>(null);
+	const [update, setUpdate] = useState<tauriUpdater.Update | null>(null);
 	const api = new MusicCasterAPI();
+
+	const installUpdate = (update: tauriUpdater.Update) => {
+		let contentLength = 0;
+		let downloaded = 0;
+		return update.downloadAndInstall(event => {
+			switch (event.event) {
+				case 'Started':
+					contentLength = event.data.contentLength ?? 0;
+					notifications.show({
+						id: 'UPDATE_NOTIF',
+						title: t('installingUpdate', { v: update.version }),
+						message: <>
+							<Text size='sm' mb={4}>{t('relaunchMsg')}</Text>
+							<Progress value={0} animated />
+						</>,
+						autoClose: false
+					});
+					break;
+				case 'Progress': {
+					downloaded += event.data.chunkLength;
+					// if contentLength is unknown, show an animated full bar as an indeterminate indicator
+					const percent = contentLength > 0 ? (downloaded / contentLength) * 100 : 100;
+					notifications.update({
+						id: 'UPDATE_NOTIF',
+						title: t('installingUpdate', { v: update.version }),
+						message: <>
+							<Text size='sm' mb={4}>{t('relaunchMsg')}</Text>
+							<Progress value={percent} animated />
+						</>,
+						autoClose: false
+					});
+					break;
+				}
+				case 'Finished':
+					notifications.update({
+						id: 'UPDATE_NOTIF',
+						title: t('installingUpdate', { v: update.version }),
+						message: <>
+							<Progress value={100} />
+							<Text size='sm' mt={4}>{t('installingAndRelaunching')}</Text>
+						</>,
+						autoClose: false
+					});
+					break;
+			}
+		}).then(relaunch);
+	};
 
 	const [scroller, setScroller] = useState<HTMLElement | null>(null);
 	// load preferences using localForage
@@ -136,6 +184,7 @@ export default function () {
 			(async () => {
 				const update = await tauriUpdater.check();
 				if (update) {
+					setUpdate(update);
 					const color = colorScheme === 'dark' ? 'teal' : 'teal.8';
 					notifications.show({
 						id: 'UPDATE_NOTIF',
@@ -143,22 +192,7 @@ export default function () {
 						color,
 						message: <>
 							<Text>{update.body}</Text>
-							<Button color={color} style={{ width: '100%' }} onClick={() => update.downloadAndInstall(event => {
-								switch (event.event) {
-									case 'Started':
-										notifications.show({ title: t('installingUpdate', { v: update.version }), message: t('relaunchMsg'), autoClose: false });
-										// contentLength = event.data.contentLength;
-										// tauriLogger.info(`started downloading ${event.data.contentLength} bytes`);
-										break;
-									case 'Progress':
-										// downloaded += event.data.chunkLength;
-										// tauriLogger.info(`downloaded ${downloaded} from ${contentLength}`);
-										break;
-									case 'Finished':
-										// tauriLogger.info('download finished');
-										break;
-								}
-							}).then(relaunch)}>{t('installAndRelaunch')}</Button>
+							<Button color={color} style={{ width: '100%' }} onClick={() => installUpdate(update)}>{t('installAndRelaunch')}</Button>
 						</>,
 						autoClose: false
 					});
@@ -259,7 +293,7 @@ export default function () {
 					</AppShell.Main>
 
 					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-						<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} />
+						<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
 					</AppShell.Aside>
 
 					{showFooter &&
