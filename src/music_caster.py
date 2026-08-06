@@ -163,16 +163,11 @@ if __name__ == '__main__':
     SETTINGS_FILE = OLD_SETTINGS_FILE
     if IS_FROZEN:
         SETTINGS_FILE = Path(args.settings_path).absolute() if args.settings_path and USING_TAURI_FRONTEND else DEFAULT_SETTINGS_FILE
-        if OLD_SETTINGS_FILE.exists():
+        if OLD_SETTINGS_FILE.exists() and not SETTINGS_FILE.exists():
             SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                os.rename(OLD_SETTINGS_FILE, SETTINGS_FILE)
-            except OSError as e:
-                if e.winerror == 17:
-                    copy2(OLD_SETTINGS_FILE, SETTINGS_FILE)
-                    os.remove(OLD_SETTINGS_FILE)
-                else:
-                    raise e
+            # renaming doesn't work across disks
+            copy2(OLD_SETTINGS_FILE, SETTINGS_FILE)
+            os.remove(OLD_SETTINGS_FILE)
 
 
     PHANTOMJS_DIR = Path('phantomjs')
@@ -352,8 +347,10 @@ if __name__ == '__main__':
     installed_log_file_path = Path(appdirs.user_data_dir()) / BUNDLE_IDENTIFIER / 'logs' /'daemon.log'
     installed_log_file_path.parent.mkdir(parents=True, exist_ok=True)
     LOG_FILE = installed_log_file_path if IS_FROZEN else 'music_caster.log'
-    if IS_FROZEN and os.path.exists('music_caster.log'):
-        os.rename('music_caster.log', LOG_FILE)
+    if IS_FROZEN and os.path.exists('music_caster.log') and not os.path.exists(LOG_FILE):
+        # renaming doesn't work across disks
+        copy2('music_caster.log', LOG_FILE)
+        os.remove('music_caster.log')
     log_handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=1, encoding='UTF-8')
     log_handler.setFormatter(log_format)
     app_log = logging.getLogger('music_caster')
@@ -838,7 +835,7 @@ if __name__ == '__main__':
                     if uri.startswith('http'):
                         if not URLMetadata.from_db(conn, uri):
                             urls_to_fetch.append(uri)
-                    else:
+                    elif os.path.isfile(uri):
                         m = get_metadata_wrapped(uri)
                         dict_to_use[uri] = m
                         m.update({'file_path': uri})
@@ -1199,7 +1196,7 @@ if __name__ == '__main__':
                 if request_data['uri'].lower().replace(' ', '').replace('_', '') == 'systemaudio':
                     play_system_audio()
                 else:
-                    app_log.info(f'called play_uris with opt = {opt} uri = {request_data['uri']}, merge_tracks = {merge_plays}, queue all? {settings['queue_library']}')
+                    app_log.info(f"called play_uris with opt = {opt} uri = {request_data['uri']}, merge_tracks = {merge_plays}, queue all? {settings['queue_library']}")
                     play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
                     if settings['queue_library']:
                         queue_all()
@@ -2939,7 +2936,8 @@ if __name__ == '__main__':
             # check for an update every 30 minutes
             super().__init__(1800, self.check_for_updates)
             self.daemon = True
-            self.start()
+            if not USING_TAURI_FRONTEND:
+                self.start()
 
         def run(self):
             while not self.finished.wait(self.interval):
@@ -2947,7 +2945,6 @@ if __name__ == '__main__':
 
         def check_for_updates(self):
             if USING_TAURI_FRONTEND:
-                # disable updatie checking when using Tauri
                 return
             # avoid showing a notification for the same latest version
             release = get_latest_release(self.latest_version, VERSION)
@@ -2963,6 +2960,8 @@ if __name__ == '__main__':
         def auto_update(self, install_update=True, from_gui=False):
             """ auto_start should be True when checking for updates at startup up,
                 false when checking for updates before exiting """
+            if USING_TAURI_FRONTEND:
+                return
             app_log.info('IS_FROZEN=%s, install_update=%s, from_gui=%s', IS_FROZEN, install_update, from_gui)
             try:
                 State.installing_update = True
@@ -3098,12 +3097,13 @@ if __name__ == '__main__':
         while True:
             scanned = 0
             while not uris_to_scan.empty():
-                uri = uris_to_scan.get()
-                if uri.startswith('http'):
-                    get_url_metadata(uri)
+                file_path = uris_to_scan.get()
+                if file_path.startswith('http'):
+                    get_url_metadata(file_path)
                 else:
-                    uri = Path(uri).as_posix()
-                    all_tracks[uri] = get_metadata_wrapped(uri)
+                    file_path = Path(file_path).as_posix()
+                    with suppress(FileNotFoundError):
+                        all_tracks[file_path] = get_metadata_wrapped(file_path)
                 uris_to_scan.task_done()
                 scanned += 1
                 if scanned >= 50:
@@ -4439,7 +4439,6 @@ if __name__ == '__main__':
                 CAST_LOCK.release()
 
 
-
     def handle_action(action):
         actions = {
             '__ACTIVATED__': activate_gui,
@@ -4515,25 +4514,43 @@ if __name__ == '__main__':
             tray_notify(t('WARNING: Failed to start audio player. Do not play on local device.'))
             handle_exception(exception)
         # system_media_controls = SystemMediaControls(on_smtc_btn_press)
-        # find a port to bind to
-        socket_timeout = 0.5 if args.shell else 0.1
-        while True:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s1, \
-                    socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s2:
-                s1.settimeout(socket_timeout)
-                s2.settimeout(socket_timeout)
-                # check if ports are not occupied
-                if s1.connect_ex(('127.0.0.1', State.PORT)) != 0 and s2.connect_ex(('::1', State.PORT)) != 0:
-                    with suppress(OSError, PermissionError):
-                        # try to start server and bind it to PORT
-                        # Linux auto-maps ipv4 to ipv6 however Windows keep them seperate
-                        if platform.system() == 'Windows':
-                            server_kwargs = {'host': '0.0.0.0', 'port': State.PORT}
-                            Thread(target=waitress.serve, name='WaitressServe', daemon=True, args=(app,), kwargs=server_kwargs).start()
-                        server_kwargs = {'host': '::', 'port': State.PORT}
-                        Thread(target=waitress.serve, name='WaitressServe', daemon=True, args=(app,), kwargs=server_kwargs).start()
-                        break
-                State.PORT += 1  # port in use or failed to bind to port
+        # find a port that we can actually bind to
+        # Linux auto-maps ipv4 to ipv6 however Windows keeps them separate
+        bind_tests = [(socket.AF_INET6, '::')]
+        if platform.system() == 'Windows':
+            bind_tests.append((socket.AF_INET, '0.0.0.0'))
+        while State.PORT <= 65535:
+            # a connection check is not enough: the bind itself can fail (e.g.
+            # WinError 10013 when the port is in a reserved port range), and waitress
+            # binds inside its own thread where we cannot catch the error, so verify
+            # that binding works here before starting the server
+            test_sockets = []
+            try:
+                for family, host in bind_tests:
+                    s = socket.socket(family, socket.SOCK_STREAM)
+                    test_sockets.append(s)
+                    # mimic the socket options waitress uses
+                    if family == socket.AF_INET6:
+                        with suppress(AttributeError, OSError):
+                            s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+                    with suppress(OSError):
+                        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s.bind((host, State.PORT))
+            except OSError:
+                State.PORT += 1  # port in use or binding not permitted, try the next one
+            else:
+                break
+            finally:
+                for s in test_sockets:
+                    s.close()
+        else:
+            raise OSError('Could not find a port to bind the server to')
+        # start the server on the verified port
+        if platform.system() == 'Windows':
+            server_kwargs = {'host': '0.0.0.0', 'port': State.PORT}
+            Thread(target=waitress.serve, name='WaitressServe', daemon=True, args=(app,), kwargs=server_kwargs).start()
+        server_kwargs = {'host': '::', 'port': State.PORT}
+        Thread(target=waitress.serve, name='WaitressServe', daemon=True, args=(app,), kwargs=server_kwargs).start()
         with suppress(PermissionError):
             if is_debug:
                 # only want to store PID of original instance

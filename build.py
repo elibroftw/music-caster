@@ -710,7 +710,7 @@ if __name__ == '__main__':
         print(
             'Exiting early to avoid upload or installation of possibly broken build'
         )
-        sys.exit(0 if args.dist_files_exist else 2)
+        sys.exit(0 if dist_files_exist else 2)
     print(f'Build v{VERSION} complete')
     print('Time taken:', round(time.time() - start_time, 2), 'seconds')
     print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
