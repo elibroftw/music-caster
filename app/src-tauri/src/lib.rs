@@ -113,7 +113,7 @@ pub fn run() {
 	// SAFETY: running on single thread
 	unsafe { main_prelude(); }
 
-  let mut log_builder = tauri_plugin_log::Builder::new().target(tauri_plugin_log::Target::new(
+  let log_builder = tauri_plugin_log::Builder::new().target(tauri_plugin_log::Target::new(
     tauri_plugin_log::TargetKind::LogDir {
       file_name: Some("logs".to_string()),
     },

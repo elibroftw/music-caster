@@ -177,7 +177,8 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: './app/src-tauri -> target'
+          key: ${{ matrix.arch }}
 
       - name: Install Ubuntu dependencies
         if: startsWith(matrix.platform, 'ubuntu')
