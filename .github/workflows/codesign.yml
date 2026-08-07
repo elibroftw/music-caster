@@ -21,6 +21,15 @@ on:
         required: false
         default: false
         type: boolean
+      sign_updater:
+        description: >-
+          Regenerate the Tauri updater signature (.msi.sig) over the
+          Authenticode-signed MSI. Tauri generates the .sig at build time over
+          the UNSIGNED msi; Authenticode signing changes the bytes, so without
+          this the updater fails signature verification after downloading.
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   sign:
@@ -68,6 +77,22 @@ jobs:
         with:
           file: ${{ steps.find.outputs.msi }}
 
+      # The tauri CLI reads the key/password from the TAURI_SIGNING_* env vars,
+      # so no secrets appear on the command line. Writes <msi>.sig next to the
+      # signed MSI in signed/, so it rides along in the artifact upload and the
+      # release clobber below.
+      - name: Regenerate Tauri updater signature over signed MSI
+        if: ${{ inputs.sign_updater && steps.find.outputs.msi != '' }}
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          msi=(signed/*.msi)
+          npx --yes '@tauri-apps/cli@^2.11.4' signer sign "${msi[0]}"
+
       - name: Upload signed artifact
         uses: actions/upload-artifact@main
         with:
@@ -83,4 +108,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
-          gh release upload "${{ github.ref_name }}" signed/*.msi signed/*.exe --clobber --repo "${{ github.repository }}"
+          gh release upload "${{ github.ref_name }}" signed/*.msi signed/*.msi.sig signed/*.exe --clobber --repo "${{ github.repository }}"
