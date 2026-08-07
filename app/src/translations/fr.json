@@ -13,5 +13,6 @@
 	"systemTrayUnhandled": "Événement non géré dans la barre d'état du système",
 	"transExample": "Ce modèle se trouve sur <0>{{variable}}</0>",
 	"Update v{{ v }} available": "Mise à jour v{{ v }} disponible",
+	"updateFailed": "Échec de l'installation de la mise à jour v{{ v }}",
 	"Will relaunch afterwards": "Relancera ensuite"
 }

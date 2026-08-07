@@ -55,51 +55,72 @@ export default function () {
 	const [update, setUpdate] = useState<tauriUpdater.Update | null>(null);
 	const api = new MusicCasterAPI();
 
-	const installUpdate = (update: tauriUpdater.Update) => {
+	const installUpdate = async (update: tauriUpdater.Update) => {
 		let contentLength = 0;
 		let downloaded = 0;
-		return update.downloadAndInstall(event => {
-			switch (event.event) {
-				case 'Started':
-					contentLength = event.data.contentLength ?? 0;
-					notifications.show({
-						id: 'UPDATE_NOTIF',
-						title: t('installingUpdate', { v: update.version }),
-						message: <>
-							<Text size='sm' mb={4}>{t('relaunchMsg')}</Text>
-							<Progress value={0} animated />
-						</>,
-						autoClose: false
-					});
-					break;
-				case 'Progress': {
-					downloaded += event.data.chunkLength;
-					// if contentLength is unknown, show an animated full bar as an indeterminate indicator
-					const percent = contentLength > 0 ? (downloaded / contentLength) * 100 : 100;
-					notifications.update({
-						id: 'UPDATE_NOTIF',
-						title: t('installingUpdate', { v: update.version }),
-						message: <>
-							<Text size='sm' mb={4}>{t('relaunchMsg')}</Text>
-							<Progress value={percent} animated />
-						</>,
-						autoClose: false
-					});
-					break;
+		let lastLoggedPercent = 0;
+		tauriLogger.info(`Updater: downloading v${update.version} (current: ${update.currentVersion})`);
+		try {
+			await update.downloadAndInstall(event => {
+				switch (event.event) {
+					case 'Started':
+						contentLength = event.data.contentLength ?? 0;
+						tauriLogger.info(`Updater: download started, contentLength=${contentLength}`);
+						notifications.show({
+							id: 'UPDATE_NOTIF',
+							title: t('installingUpdate', { v: update.version }),
+							message: <>
+								<Text size='sm' mb={4}>{t('relaunchMsg')}</Text>
+								<Progress value={0} animated />
+							</>,
+							autoClose: false
+						});
+						break;
+					case 'Progress': {
+						downloaded += event.data.chunkLength;
+						// if contentLength is unknown, show an animated full bar as an indeterminate indicator
+						const percent = contentLength > 0 ? (downloaded / contentLength) * 100 : 100;
+						if (percent - lastLoggedPercent >= 25) {
+							lastLoggedPercent = percent;
+							tauriLogger.info(`Updater: downloaded ${downloaded}/${contentLength} bytes (${percent.toFixed(0)}%)`);
+						}
+						notifications.update({
+							id: 'UPDATE_NOTIF',
+							title: t('installingUpdate', { v: update.version }),
+							message: <>
+								<Text size='sm' mb={4}>{t('relaunchMsg')}</Text>
+								<Progress value={percent} animated />
+							</>,
+							autoClose: false
+						});
+						break;
+					}
+					case 'Finished':
+						tauriLogger.info(`Updater: download finished (${downloaded} bytes), verifying signature and launching installer`);
+						notifications.update({
+							id: 'UPDATE_NOTIF',
+							title: t('installingUpdate', { v: update.version }),
+							message: <>
+								<Progress value={100} />
+								<Text size='sm' mt={4}>{t('installingAndRelaunching')}</Text>
+							</>,
+							autoClose: false
+						});
+						break;
 				}
-				case 'Finished':
-					notifications.update({
-						id: 'UPDATE_NOTIF',
-						title: t('installingUpdate', { v: update.version }),
-						message: <>
-							<Progress value={100} />
-							<Text size='sm' mt={4}>{t('installingAndRelaunching')}</Text>
-						</>,
-						autoClose: false
-					});
-					break;
-			}
-		}).then(relaunch);
+			});
+			tauriLogger.info('Updater: install complete, relaunching');
+			await relaunch();
+		} catch (error) {
+			tauriLogger.error(`Updater: failed to install v${update.version}: ${error}`);
+			notifications.update({
+				id: 'UPDATE_NOTIF',
+				title: t('updateFailed', { v: update.version }),
+				color: 'red',
+				message: <Text size='sm'>{String(error)}</Text>,
+				autoClose: false
+			});
+		}
 	};
 
 	const [scroller, setScroller] = useState<HTMLElement | null>(null);

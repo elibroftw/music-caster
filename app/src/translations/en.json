@@ -12,5 +12,6 @@
 	"Restore Down": "Restore Down",
 	"systemTrayUnhandled": "Unhandled System Tray Event",
 	"transExample": "This template is from <0>{{variable}}</0>",
-	"updateAvailable": "Update v{{ v }} available"
+	"updateAvailable": "Update v{{ v }} available",
+	"updateFailed": "Failed to install update v{{ v }}"
 }
