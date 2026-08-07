@@ -221,7 +221,6 @@ jobs:
           projectPath: app
           prerelease: false
           args: ${{ matrix.args }}
-          includeUpdaterJson: true
 
       # Upload unsigned installers (after whichever build step ran) so the Linux
       # signing job can pick them up. On tags this runs after tauri-action, which
@@ -254,24 +253,12 @@ jobs:
             app/src-tauri/target/release/bundle/deb/*.deb
             app/src-tauri/target/release/bundle/AppImage/*.AppImage
 
-      - name: Tauri Updater Artifacts
-        if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'windows-11-arm' }}
-        uses: actions/upload-artifact@main
-        with:
-          name: updater-artifacts-${{ matrix.arch }}
-          path: |
-            app/src-tauri/target/${{ matrix.arch }}/release/bundle/msi/*.msi.sig
-            app/src-tauri/target/release/bundle/app/*.app.tar.gz
-            app/src-tauri/target/release/bundle/app/*.app.tar.gz.sig
-            app/src-tauri/target/release/bundle/AppImage/*.AppImage.sig
-
   # Sign the Tauri-built MSI (and the NSIS installer, which ships alongside it)
   # on a Linux runner. sign_updater regenerates the Tauri updater *.msi.sig over
   # the Authenticode-signed MSI (the .sig tauri-action produced covers the
   # unsigned bytes and would fail updater verification) and clobbers it onto the
-  # release next to the signed MSI. The updater-artifacts-<arch> artifact still
-  # holds the STALE pre-signing .sig — anything feeding the update manifest must
-  # use the release assets / windows-msi-<arch> artifact instead.
+  # release next to the signed MSI, so the authoritative .sig lives in the
+  # windows-msi-<arch> artifact and on the release assets.
   sign-installers:
     needs: [release]
     if: ${{ github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
