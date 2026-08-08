@@ -315,9 +315,9 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						/>
 						<Radio.Group {...streamURLForm.getInputProps('action')}>
 							<Group gap='md'>
-								<Radio value={PlayAction.PLAY} label='PLAY NOW' />
-								<Radio value={PlayAction.QUEUE} label='ADD TO QUEUE' />
-								<Radio value={PlayAction.PLAY_NEXT} label='PLAY NEXT' />
+								<Radio value={PlayAction.PLAY} label='Play now' />
+								<Radio value={PlayAction.QUEUE} label='Add to queue' />
+								<Radio value={PlayAction.PLAY_NEXT} label='Play next' />
 							</Group>
 						</Radio.Group>
 						<Button type='submit'>Submit</Button>
