@@ -373,10 +373,7 @@ pub async fn api_change_setting(
 }
 
 #[tauri::command]
-pub async fn api_set_volume(
-  state: State<'_, DaemonState>,
-  volume: f64,
-) -> Result<String, String> {
+pub async fn api_set_volume(state: State<'_, DaemonState>, volume: f64) -> Result<String, String> {
   api_change_setting(state, "volume".to_string(), serde_json::json!(volume)).await
 }
 
@@ -591,8 +588,8 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
               let (state_changed, tray_needs_update) = {
                 let player_state = player_state.read().await;
                 let changed = *player_state != new_state;
-                let tray_update = player_state.status != new_state.status
-                  || player_state.lang != new_state.lang;
+                let tray_update =
+                  player_state.status != new_state.status || player_state.lang != new_state.lang;
                 (changed, tray_update)
               };
 
@@ -601,8 +598,8 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
               }
 
               if state_changed {
-								let mut player_state = player_state.write().await;
-								*player_state = new_state.clone();
+                let mut player_state = player_state.write().await;
+                *player_state = new_state.clone();
                 if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
                   log::error!("[Player State Poll] Failed to emit event: {}", e);
                 } else {

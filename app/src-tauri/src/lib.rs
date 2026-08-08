@@ -99,19 +99,21 @@ fn start_music_caster_daemon(app_handle: &tauri::AppHandle) -> Result<(), String
 
 #[cfg(target_os = "linux")]
 unsafe fn webkit_hidpi_workaround() {
-	// See: https://github.com/spacedriveapp/spacedrive/issues/1512#issuecomment-1758550164
-	std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+  // See: https://github.com/spacedriveapp/spacedrive/issues/1512#issuecomment-1758550164
+  std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
 }
 
 unsafe fn main_prelude() {
-	#[cfg(target_os = "linux")]
-	webkit_hidpi_workaround();
+  #[cfg(target_os = "linux")]
+  webkit_hidpi_workaround();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-	// SAFETY: running on single thread
-	unsafe { main_prelude(); }
+  // SAFETY: running on single thread
+  unsafe {
+    main_prelude();
+  }
 
   // only reassigned in debug builds, where the webview target is added
   #[allow(unused_mut)]

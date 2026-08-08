@@ -9,7 +9,7 @@ import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
 import * as tauriUpdater from '@tauri-apps/plugin-updater';
-import { JSX, lazy, LazyExoticComponent, useEffect, useRef, useState } from 'react';
+import { JSX, LazyExoticComponent, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import { ImCross } from 'react-icons/im';
@@ -18,7 +18,6 @@ import MusicCasterAPI, { PlayerState } from './common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from './common/contexts';
 import { useLocalForage } from './common/utils';
 import PlaybackAside from './components/PlaybackAside';
-import { ScrollToTop } from './components/ScrollToTop';
 import SettingsModal from './components/SettingsModal';
 import { useTauriContext } from './tauri/TauriProvider';
 import { TitleBar } from './tauri/TitleBar';
@@ -26,16 +25,6 @@ import Developer from './views/Developer';
 import FallbackAppRender from './views/FallbackErrorBoundary';
 import MusicLibrary from './views/MusicLibrary';
 import Queue from './views/Queue';
-// if some views are large, you can use lazy loading to reduce the initial app load time
-const LazyView = lazy(() => import('./views/LazyView'));
-
-// imported views need to be added to the `views` list variable
-interface View {
-	component: (() => JSX.Element) | LazyExoticComponent<() => JSX.Element>,
-	path: string,
-	exact?: boolean,
-	name: string
-}
 
 export default function () {
 	const { t } = useTranslation();

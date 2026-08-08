@@ -4,8 +4,8 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
-const tauriConf = JSON.parse(readFileSync(resolve(__dirname, 'src-tauri/tauri.conf.json'), 'utf-8'));
+const packageJson = JSON.parse(readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf-8'));
+const tauriConf = JSON.parse(readFileSync(resolve(import.meta.dirname, 'src-tauri/tauri.conf.json'), 'utf-8'));
 
 // https://vitejs.dev/config/
 // https://tauri.app/v1/guides/getting-started/setup/vite#create-the-frontend

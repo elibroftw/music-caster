@@ -3,7 +3,11 @@
 //! A standalone failsafe that upgrades an existing (v5, Inno-based) Music Caster install
 //! to the Tauri v6+ MSI build. It deliberately **ignores all command-line flags**, shows
 //! a small progress window, runs the old uninstaller, downloads the latest MSI from the
-//! GitHub releases, launches it, and exits.
+//! GitHub releases, installs it, launches the new Music Caster, and exits.
+//!
+//! Relaunching is done here on purpose: the v5 client appends `&& Music Caster.exe` to the
+//! command that starts us, but that executable is gone by then (its uninstaller removed it),
+//! so the app would never come back without this step.
 //!
 //! The actual migration lives in [`migrate`] and has no GUI dependency. The window here is
 //! built with `iced` using its software (tiny-skia) renderer, so the executable is fully
@@ -84,14 +88,13 @@ impl Status {
             },
             Progress::Installing { version } => Self::new(
                 &format!("Installing Music Caster {version}"),
-                "The installer will finish on its own.",
-                0.95,
+                "Running the installer…",
+                0.90,
             ),
-            Progress::Done => Self::new(
-                "Update started",
-                "Music Caster is installing and will launch shortly.",
-                1.0,
-            ),
+            Progress::Launching => {
+                Self::new("Starting Music Caster", "Launching the new version…", 0.97)
+            }
+            Progress::Done => Self::new("Update complete", "Music Caster is starting.", 1.0),
         }
     }
 
@@ -140,7 +143,7 @@ impl App {
             }
             Message::Done => {
                 self.finished = true;
-                // The MSI is already running; close the bootstrapper window.
+                // The install finished and the app has been launched; close our window.
                 iced::exit()
             }
             Message::Failed(error) => {
@@ -198,9 +201,8 @@ fn migration_worker() -> impl Stream<Item = Message> {
             };
             match migrate::migrate(&on_event) {
                 Ok(()) => {
-                    // Let the user read "Installing…" before the window closes; the MSI
-                    // (already launched) continues independently.
-                    std::thread::sleep(std::time::Duration::from_millis(2500));
+                    // Brief pause so the final status is readable while the app comes up.
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
                     let _ = tx.unbounded_send(Message::Done);
                 }
                 Err(error) => {

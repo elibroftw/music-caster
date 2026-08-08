@@ -1,5 +1,5 @@
 {
-	"announcement_1": "Introducing the new and improved Music Caster UI!",
+	"announcement_1": "Introducing the new and improved Music Caster UI! I'm very proud of this release. It took 10 months to make it viable to use (for me), brings back drag n drop, and comes with Authenticode for less warnings. Future updates will bring the new UI up to feature parity with the old UI.",
 	"Close": "Close",
 	"ExampleView": "Example View",
 	"installAndRelaunch": "Install update and relaunch",

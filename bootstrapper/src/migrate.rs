@@ -5,9 +5,12 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-const RELEASES_URL: &str = "https://api.github.com/repos/elibroftw/music-caster/releases/tags/v6.0.0";
-const USER_AGENT: &str = "MusicCasterMusic Caster Bootstrapper";
+const RELEASES_URL: &str = "https://api.github.com/repos/elibroftw/music-caster/releases/latest";
+const USER_AGENT: &str = "Music Caster Bootstrapper";
 const INNO_UNINSTALLER: &str = "unins000.exe";
+const APP_EXE: &str = "Music Caster.exe";
+/// Written by the MSI (`RegistryEntries` component in `main.wxs`): HKCU\Software\<manufacturer>\<product_name>.
+const APP_INSTALL_KEY: &str = r"Software\Elijah Lopez\Music Caster";
 
 /// The latest release's version and the download URL for its MSI installer.
 #[derive(Clone, Debug)]
@@ -23,6 +26,8 @@ pub enum Progress {
     Resolving,
     Downloading { downloaded: u64, total: Option<u64> },
     Installing { version: String },
+    /// The MSI finished; starting the freshly installed app.
+    Launching,
     Done,
 }
 
@@ -182,17 +187,68 @@ impl UninstallCommand {
     }
 }
 
+/// Runs the MSI and **waits** for it to finish. Waiting is what makes the relaunch below
+/// possible: the app can only be started once its files are on disk.
 fn run_installer(msi_path: &Path) -> Result<(), String> {
     if cfg!(debug_assertions) {
         eprintln!("[debug] would run: msiexec /i {} /passive /norestart", msi_path.display());
         return Ok(());
     }
-    Command::new("msiexec")
+    let status = Command::new("msiexec")
         .arg("/i")
         .arg(msi_path)
         .args(["/passive", "/norestart"])
-        .spawn()
+        .status()
         .map_err(|e| format!("Installer failed to launch: {e}"))?;
+
+    match status.code() {
+        // 0 = success, 3010/1641 = success but a reboot was requested.
+        Some(0) | Some(3010) | Some(1641) => Ok(()),
+        Some(code) => Err(format!("The installer failed (msiexec exit code {code}).")),
+        None => Err("The installer was terminated before it finished.".into()),
+    }
+}
+
+/// Locations to try, in order, when looking for the app the MSI just installed:
+/// the install directory the MSI recorded, then the packaged defaults.
+fn candidate_exe_paths() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(dir) = registry_install_dir() {
+        candidates.push(PathBuf::from(dir).join(APP_EXE));
+    }
+    // `main.wxs` defaults INSTALLDIR to %LOCALAPPDATA%\Programs\<product_name> for this
+    // perUser package; Program Files covers installs that overrode it.
+    for var in ["LOCALAPPDATA", "ProgramFiles", "ProgramW6432"] {
+        if let Ok(base) = std::env::var(var) {
+            let dir = if var == "LOCALAPPDATA" {
+                PathBuf::from(base).join("Programs").join("Music Caster")
+            } else {
+                PathBuf::from(base).join("Music Caster")
+            };
+            candidates.push(dir.join(APP_EXE));
+        }
+    }
+    candidates
+}
+
+/// Starts the newly installed Music Caster. The old v5 client tries to do this itself by
+/// appending `&& Music Caster.exe` to the command it used to launch us, but that path is gone
+/// once its uninstaller has run — so relaunching is our job.
+fn launch_app() -> Result<(), String> {
+    let candidates = candidate_exe_paths();
+    if cfg!(debug_assertions) {
+        eprintln!("[dry-run] would launch: {:?}", candidates.first().map(|p| p.display().to_string()));
+        return Ok(());
+    }
+    let exe = candidates
+        .into_iter()
+        .find(|p| p.exists())
+        .ok_or_else(|| format!("Music Caster was installed but {APP_EXE} could not be found to launch."))?;
+    let working_dir = exe.parent().map(Path::to_path_buf).unwrap_or_default();
+    Command::new(&exe)
+        .current_dir(working_dir)
+        .spawn()
+        .map_err(|e| format!("Music Caster was installed but could not be launched: {e}"))?;
     Ok(())
 }
 
@@ -234,6 +290,9 @@ pub fn migrate(on_event: &(dyn Fn(Event) + Sync)) -> Result<(), String> {
     on_event(Event::Update(Progress::Installing { version }));
     run_installer(&dest)?;
 
+    on_event(Event::Update(Progress::Launching));
+    launch_app()?;
+
     on_event(Event::Update(Progress::Done));
     Ok(())
 }
@@ -254,6 +313,22 @@ const UNINSTALL_ROOT: &str =
 /// Inno Setup AppId GUID for Music Caster. The uninstall subkey is named
 /// `{GUID}_is1`, so we match on the subkey name containing this GUID.
 const APP_GUID: &str = "{FBE8A652-58D6-482D-B6A9-B3D7931CC9C5}";
+
+/// Reads `InstallDir` from the key the MSI writes, so we launch whatever location the user
+/// actually installed to rather than guessing.
+fn registry_install_dir() -> Option<String> {
+    for hive in [HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE] {
+        let Some(key) = open_key(hive, APP_INSTALL_KEY, KEY_READ | KEY_WOW64_64KEY) else {
+            continue;
+        };
+        let dir = read_string(key, "InstallDir");
+        unsafe { let _ = RegCloseKey(key); }
+        if let Some(dir) = dir.filter(|d| !d.trim().is_empty()) {
+            return Some(dir);
+        }
+    }
+    None
+}
 
 fn registry_uninstaller() -> Option<UninstallCommand> {
     let hives = [HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER];
