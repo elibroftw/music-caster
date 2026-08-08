@@ -10,3 +10,5 @@ jobs:
         with:
           identifier: ElijahLopez.MusicCaster
           token: ${{ secrets.WINGET_TOKEN }}
+          installers-regex: "Music Caster-.*\\.msi"
+          max-versions-to-keep: 5
