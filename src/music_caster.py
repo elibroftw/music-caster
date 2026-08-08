@@ -1283,6 +1283,7 @@ if __name__ == '__main__':
                         update_settings(timer_setting, False)
                 if setting_key == 'volume':
                     update_volume(0 if settings['muted'] else val, 'api')
+                apply_queue_setting_side_effects(setting_key)
             return 'true'
         return 'false'
 
@@ -1534,6 +1535,28 @@ if __name__ == '__main__':
                 new_i = min(len(values), index_to_remove)
                 if not gui_window.is_closed():
                     gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+
+    def apply_queue_setting_side_effects(setting_key):
+        """
+        Side effects the queue settings need no matter which frontend toggled them.
+        Call after update_settings() has stored the new value.
+        """
+        if setting_key == 'persistent_queue':
+            if settings['persistent_queue']:
+                save_queues()
+            else:
+                update_settings('queues', {'done': [], 'music': [], 'next': []})
+            # persistent_queue and populate_queue_startup are mutually exclusive
+            update_settings('populate_queue_startup', False)
+            if not gui_window.is_closed():
+                gui_window['populate_queue_startup'].update(value=False)
+        elif setting_key == 'populate_queue_startup':
+            update_settings('persistent_queue', False)
+            if not gui_window.is_closed():
+                gui_window['persistent_queue'].update(value=False)
+        elif setting_key == 'show_queue_index':
+            if not gui_window.is_closed():
+                gui_window.metadata['update_listboxes'] = True
 
     def clear_queue():
         if not gui_window.is_closed():
@@ -3940,16 +3963,8 @@ if __name__ == '__main__':
             update_settings(main_event, main_value)
             if main_event == 'run_on_startup':
                 start_on_login_modifications()
-            elif main_event == 'persistent_queue':
-                if main_value:
-                    save_queues()
-                else:
-                    update_settings('queues', {'done': [], 'music': [], 'next': []})
-                update_settings('populate_queue_startup', False)
-                gui_window['populate_queue_startup'].update(value=False)
-            elif main_event in 'populate_queue_startup':
-                gui_window['persistent_queue'].update(value=False)
-                update_settings('persistent_queue', False)
+            elif main_event in {'persistent_queue', 'populate_queue_startup'}:
+                apply_queue_setting_side_effects(main_event)
             elif main_event == 'discord_rpc':
                 with suppress(Exception):
                     if main_value:

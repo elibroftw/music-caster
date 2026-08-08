@@ -1,6 +1,8 @@
-import { Button, Checkbox, Group, Modal, SimpleGrid, Stack, Tabs, TextInput } from '@mantine/core';
-import { useContext } from 'react';
-import { PlayerStateContext } from '../common/contexts';
+import { Alert, Button, Checkbox, Group, Modal, SimpleGrid, Stack, Tabs, Text, TextInput } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { useCallback, useContext, useEffect, useState } from 'react';
+import type { BooleanSetting, DaemonSettings } from '../common/commands';
+import { MusicCasterAPIContext } from '../common/contexts';
 
 interface SettingsModalProps {
 	opened: boolean;
@@ -8,6 +10,54 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
+	const api = useContext(MusicCasterAPIContext)!;
+	const [settings, setSettings] = useState<DaemonSettings | null>(null);
+	const [settingsError, setSettingsError] = useState<string | null>(null);
+
+	const loadSettings = useCallback(async () => {
+		try {
+			setSettings(await api.getSettings());
+			setSettingsError(null);
+		} catch (error) {
+			setSettings(null);
+			// tauri rejects with the command's error message as a plain string
+			setSettingsError(typeof error === 'string' ? error : 'Could not read settings');
+		}
+	}, [api]);
+
+	// re-read on every open, so the modal cannot show a value the tray or the
+	// daemon's own GUI has changed since last time
+	useEffect(() => {
+		if (opened) loadSettings();
+	}, [opened]);
+
+	const toggleSetting = async (key: BooleanSetting, value: boolean) => {
+		// reflect the click right away, then let the daemon's copy have the last word
+		setSettings(current => current && { ...current, [key]: value });
+		try {
+			// the daemon answers 'true' only when it accepted the change
+			if (await api.changeSetting(key, value) !== 'true') throw new Error('the daemon rejected the change');
+		} catch (error) {
+			notifications.show({
+				title: 'Could not save setting',
+				message: String(error),
+				color: 'red'
+			});
+		}
+		// the daemon layers its own rules on top (persistent queue and populate on
+		// startup switch each other off), so re-read instead of trusting the click
+		await loadSettings();
+	};
+
+	const settingCheckbox = (key: BooleanSetting, label: string) => (
+		<Checkbox
+			label={label}
+			checked={settings?.[key] ?? false}
+			disabled={settings === null}
+			onChange={event => toggleSetting(key, event.currentTarget.checked)}
+		/>
+	);
+
 	return (
 		<Modal
 			opened={opened}
@@ -16,20 +66,16 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 			size='auto'
 			centered
 		>
-			<Tabs defaultValue='general' mih={320}>
+			<Tabs defaultValue='queue' mih={320}>
 				<Tabs.List>
-					<Tabs.Tab value='general'>General</Tabs.Tab>
+					{/* <Tabs.Tab value='general'>General</Tabs.Tab> */}
 					<Tabs.Tab value='queue'>Queue</Tabs.Tab>
-					<Tabs.Tab value='appearance'>Appearance</Tabs.Tab>
-					<Tabs.Tab value='library'>Music Library</Tabs.Tab>
-					<Tabs.Tab value='advanced'>Advanced</Tabs.Tab>
-					<Tabs.Tab value='changelog'>Changelog</Tabs.Tab>
+					{/* <Tabs.Tab value='appearance'>Appearance</Tabs.Tab> */}
+					{/* <Tabs.Tab value='library'>Music Library</Tabs.Tab> */}
 				</Tabs.List>
 
 				<Tabs.Panel value='general' pt='md'>
 					<SimpleGrid cols={2} spacing='md'>
-						<Checkbox label='Auto update' defaultChecked />
-						<Checkbox label='Notifications' defaultChecked />
 						<Checkbox label='Run on startup' />
 						<Checkbox label='Exit app on GUI close' />
 						<Checkbox label='Discord presence' />
@@ -40,14 +86,24 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 				</Tabs.Panel>
 
 				<Tabs.Panel value='queue' pt='md'>
-					<SimpleGrid cols={2} spacing='md'>
-						<Checkbox label='Populate queue on startup' />
-						<Checkbox label='Smart queue' defaultChecked />
-						<Checkbox label='Reversed play next' />
-						<Checkbox label='Show index in queue' />
-						<Checkbox label='Always queue library' />
-						<Checkbox label='Persistent queue' defaultChecked />
-					</SimpleGrid>
+					<Stack gap='md'>
+						{settingsError && (
+							<Alert color='red' variant='light' title='Settings unavailable'>
+								<Stack gap='xs' align='flex-start'>
+									<Text size='xs'>{settingsError}</Text>
+									<Button size='xs' variant='light' color='red' onClick={loadSettings}>Retry</Button>
+								</Stack>
+							</Alert>
+						)}
+						<SimpleGrid cols={2} spacing='md'>
+							{settingCheckbox('populate_queue_startup', 'Populate queue on startup')}
+							{settingCheckbox('smart_queue', 'Smart queue')}
+							{settingCheckbox('reversed_play_next', 'Reversed play next')}
+							{settingCheckbox('show_queue_index', 'Show index in queue')}
+							{settingCheckbox('queue_library', 'Always queue library')}
+							{settingCheckbox('persistent_queue', 'Persistent queue')}
+						</SimpleGrid>
+					</Stack>
 				</Tabs.Panel>
 
 				<Tabs.Panel value='appearance' pt='md'>
@@ -74,16 +130,6 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 							<Button variant='light'>Remove Selected</Button>
 						</Group>
 					</Stack>
-				</Tabs.Panel>
-
-				<Tabs.Panel value='advanced' pt='md'>
-					<Stack gap='md'>
-						<Checkbox label='Experimental features' />
-					</Stack>
-				</Tabs.Panel>
-
-				<Tabs.Panel value='changelog' pt='md'>
-					TODO: SHOW CHANGELOG.TXT
 				</Tabs.Panel>
 			</Tabs>
 		</Modal>

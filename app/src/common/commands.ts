@@ -46,6 +46,21 @@ export enum PlayAction {
 
 export type ModifyQueueAction = 'next_up' | 'remove' | 'clear';
 
+/** daemon settings that are plain on/off toggles; see TOGGLEABLE_SETTINGS in src/meta.py */
+export type BooleanSetting =
+	| 'populate_queue_startup'
+	| 'smart_queue'
+	| 'reversed_play_next'
+	| 'show_queue_index'
+	| 'queue_library'
+	| 'persistent_queue';
+
+/**
+ * the daemon's settings.json. Only the settings the UI reads are typed; the rest
+ * come through untyped so new settings need no change here
+ */
+export type DaemonSettings = Partial<Record<BooleanSetting, boolean>> & Record<string, unknown>;
+
 /** keep in sync with AUDIO_FILE_TYPES in src/meta.py */
 export const AUDIO_EXTENSIONS = [
 	'mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav', 'aiff', 'm3u', 'm3u8'
@@ -145,6 +160,11 @@ class MusicCasterAPI {
 
 	async changeSetting(settingName: string, value: any): Promise<string> {
 		return invoke<string>('api_change_setting', { settingName, value });
+	}
+
+	/** current daemon settings, read from settings.json (secrets stripped) */
+	async getSettings(): Promise<DaemonSettings> {
+		return invoke<DaemonSettings>('api_get_settings');
 	}
 
 	async setVolume(volume: number): Promise<string> {

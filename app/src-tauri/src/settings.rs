@@ -16,6 +16,28 @@ pub struct Settings {
   pub device: Option<String>,
 }
 
+/// never handed to the frontend: secrets, and bulk the settings UI has no use for
+const PRIVATE_SETTING_KEYS: [&str; 5] = ["api_key", "upload_pw", "queues", "playlists", "skips"];
+
+/// the daemon's settings.json as-is (minus the keys above), so the settings UI can
+/// show current values without this layer needing to know every setting's type.
+/// the daemon rewrites the file on every change, so this is read fresh each call
+#[tauri::command]
+pub fn api_get_settings(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+  let path = Settings::path(&app);
+  let file =
+    std::fs::File::open(&path).map_err(|e| format!("Failed to open {}: {}", path, e))?;
+  let mut value: serde_json::Value = serde_json::from_reader(std::io::BufReader::new(file))
+    .map_err(|e| format!("Failed to parse {}: {}", path, e))?;
+
+  if let Some(map) = value.as_object_mut() {
+    for key in PRIVATE_SETTING_KEYS {
+      map.remove(key);
+    }
+  }
+  Ok(value)
+}
+
 impl Settings {
   pub fn path(app_handle: &tauri::AppHandle) -> String {
     let app_data_dir = app_handle

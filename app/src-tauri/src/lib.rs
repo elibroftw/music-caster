@@ -179,7 +179,8 @@ pub fn run() {
       api_get_stream_url,
       api_get_album_art_url,
       api_get_web_url,
-      api_modify_queue
+      api_modify_queue,
+      settings::api_get_settings
     ])
     // allow only one instance and propagate args and cwd to existing instance
     .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
