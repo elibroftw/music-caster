@@ -98,14 +98,3 @@ jobs:
         with:
           name: ${{ inputs.upload_artifact }}
           path: signed/*
-
-      # On tagged releases, replace the unsigned bundles tauri-action pushed to
-      # the draft release with the signed ones (glob expansion keeps spaces intact).
-      - name: Replace draft release assets with signed files
-        if: ${{ inputs.clobber_release && github.ref_type == 'tag' }}
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          shopt -s nullglob
-          gh release upload "${{ github.ref_name }}" signed/*.msi signed/*.msi.sig signed/*.exe --clobber --repo "${{ github.repository }}"
