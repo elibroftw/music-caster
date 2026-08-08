@@ -312,11 +312,15 @@ pub fn run() {
         }
       }
 
-      // Hide the main window if started with --minimized
-      if std::env::args().any(|arg| arg == "--minimized" || arg == "-m") {
-        if let Some(window) = app.get_webview_window("main") {
+      // Handle window visibility based on --minimized flag
+      let is_minimized = std::env::args().any(|arg| arg == "--minimized" || arg == "-m");
+      if let Some(window) = app.get_webview_window("main") {
+        if is_minimized {
           log::info!("hiding window because app was started --minimized");
           let _ = window.hide();
+        } else {
+          log::info!("showing main window on startup");
+          let _ = window.show();
         }
       }
 

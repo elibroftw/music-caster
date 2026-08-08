@@ -3,7 +3,6 @@ import { isTauri, invoke } from '@tauri-apps/api/core';
 import * as tauriPath from '@tauri-apps/api/path';
 import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { currentMonitor } from '@tauri-apps/api/window';
-import { Webview } from '@tauri-apps/api/webview';
 import * as fs from '@tauri-apps/plugin-fs';
 import * as os from '@tauri-apps/plugin-os';
 import React, { PropsWithChildren, useContext, useEffect, useState } from 'react';
@@ -114,10 +113,20 @@ export function TauriProvider({ children }: PropsWithChildren) {
 				// The window-state plugin will restore saved position/visibility on subsequent runs,
 				// but on first run we need to explicitly show it since tauri.conf.json has visible: false
 				// See: https://github.com/tauri-apps/tauri/issues/1564
-				const isMinimized = await invoke<boolean>('is_minimized_start');
-				if (!isMinimized) {
-					const mainWebview = await Webview.getByLabel('main');
-					mainWebview?.show();
+				try {
+					const isMinimized = await invoke<boolean>('is_minimized_start');
+					console.log('App started with --minimized:', isMinimized);
+					if (!isMinimized) {
+						const mainWindow = WebviewWindow.getByLabel('main');
+						if (mainWindow) {
+							console.log('Showing main window');
+							await mainWindow.show();
+						} else {
+							console.warn('Could not find main window by label');
+						}
+					}
+				} catch (error) {
+					console.error('Error showing window:', error);
 				}
 			}
 			callTauriAPIs().catch(console.error);
