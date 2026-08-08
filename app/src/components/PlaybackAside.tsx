@@ -3,12 +3,13 @@ import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { appLogDir, join } from '@tauri-apps/api/path';
+import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { QRCodeSVG } from 'qrcode.react';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
-import { PlayAction, type WebUrl } from '../common/commands';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileImport, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
+import { AUDIO_EXTENSIONS, PlayAction, type WebUrl } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
 
@@ -39,6 +40,10 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 	const [infoOpened, { open: openInfo, close: closeInfo }] = useDisclosure(false);
 	const [timerOpened, { open: openTimer, close: closeTimer }] = useDisclosure(false);
 	const [streamURLOpened, { open: openStreamURL, close: closeStreamURL }] = useDisclosure(false);
+	const [filePickerOpened, { open: openFilePicker, close: closeFilePicker }] = useDisclosure(false);
+	const [pickSource, setPickSource] = useState<'files' | 'folders'>('files');
+	const [pickAction, setPickAction] = useState<PlayAction>(PlayAction.PLAY);
+	const [picking, setPicking] = useState(false);
 	const [timerAction, setTimerAction] = useState('stop');
 	const [timerInput, setTimerInput] = useState('');
 	const [timerStatus, setTimerStatus] = useState<string | null>(null);
@@ -83,6 +88,36 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 	const handleStreamURLSubmit = ({ url, action }: typeof streamURLForm.values) => {
 		api.playUri(url, action);
 		closeStreamURL();
+	};
+
+	// the OS picker is the submit step: pick, then dispatch with the chosen action
+	const handleFilePickerSubmit = async () => {
+		setPicking(true);
+		try {
+			const selected = pickSource === 'folders'
+				? await openFileDialog({ directory: true, multiple: true, title: 'Select Folders' })
+				: await openFileDialog({
+					multiple: true,
+					title: 'Select Audio Files',
+					filters: [{ name: 'Audio Files', extensions: AUDIO_EXTENSIONS }]
+				});
+			// null when the dialog was cancelled
+			if (selected === null || selected.length === 0) return;
+			await api.invokePlayUris({
+				uris: selected,
+				queue: pickAction === PlayAction.QUEUE,
+				playNext: pickAction === PlayAction.PLAY_NEXT
+			});
+			closeFilePicker();
+		} catch (error) {
+			notifications.show({
+				title: 'Could not play selection',
+				message: String(error),
+				color: 'red'
+			});
+		} finally {
+			setPicking(false);
+		}
 	};
 
 	const handleTimerSubmit = async () => {
@@ -416,6 +451,40 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 				</form>
 			</Modal>
 
+			<Modal
+				opened={filePickerOpened}
+				onClose={closeFilePicker}
+				title='Play Files or Folders'
+				centered
+			>
+				<Stack gap='md'>
+					<Radio.Group
+						label='Source'
+						value={pickSource}
+						onChange={value => setPickSource(value as typeof pickSource)}
+					>
+						<Group gap='md' mt='xs'>
+							<Radio value='files' label='Files' />
+							<Radio value='folders' label='Folders' />
+						</Group>
+					</Radio.Group>
+					<Radio.Group
+						label='Action'
+						value={pickAction}
+						onChange={value => setPickAction(value as PlayAction)}
+					>
+						<Group gap='md' mt='xs'>
+							<Radio value={PlayAction.PLAY} label='Play now' />
+							<Radio value={PlayAction.QUEUE} label='Add to queue' />
+							<Radio value={PlayAction.PLAY_NEXT} label='Play next' />
+						</Group>
+					</Radio.Group>
+					<Button loading={picking} onClick={handleFilePickerSubmit}>
+						{pickSource === 'folders' ? 'Choose Folders' : 'Choose Files'}
+					</Button>
+				</Stack>
+			</Modal>
+
 			<Stack h='100%' justify='space-between'>
 				<Group align='flex-start' gap='xs' wrap='nowrap'>
 					<Paper p='md' style={{ flex: 1, minWidth: '250px' }}>
@@ -471,7 +540,6 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						<ActionIcon size='lg' variant='default' onClick={openInfo}><TbInfoCircle size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' onClick={openTimer}><TbClock size={20} /></ActionIcon>
 						{/* <ActionIcon size='lg' variant='default'><TbPlus size={20} /></ActionIcon> */}
-						{/* <ActionIcon size='lg' variant='default'><TbFile size={20} /></ActionIcon> */}
 						{/* <ActionIcon size='lg' variant='default'>Play Next</ActionIcon> */}
 						{/* <ActionIcon size='lg' variant='default'><TbCopy size={20} /></ActionIcon> */}
 						{/* <ActionIcon size='lg' variant='default'><TbList size={20} /></ActionIcon> */}
@@ -479,7 +547,8 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						<ActionIcon size='lg' variant='default'><TbX size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default'><TbChevronDown size={20} /></ActionIcon> */}
 						<ActionIcon size='lg' variant='default' onClick={openQrCode}><TbWorld size={20} /></ActionIcon>
-						<ActionIcon size='lg' variant='default' onClick={openStreamURL}><TbLink size={20} /></ActionIcon>
+						<ActionIcon size='lg' variant='default' title='Stream a URL' onClick={openStreamURL}><TbLink size={20} /></ActionIcon>
+						<ActionIcon size='lg' variant='default' title='Play files or folders' onClick={openFilePicker}><TbFileImport size={20} /></ActionIcon>
 						{onInstallUpdate && <ActionIcon size='lg' variant='filled' color='teal' title='Install update and relaunch' onClick={onInstallUpdate}><TbDownload size={20} /></ActionIcon>}
 					</SimpleGrid>
 				</Group>

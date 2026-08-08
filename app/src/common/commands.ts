@@ -44,6 +44,13 @@ export enum PlayAction {
 	QUEUE = 'queue'
 }
 
+export type ModifyQueueAction = 'next_up' | 'remove' | 'clear';
+
+/** keep in sync with AUDIO_FILE_TYPES in src/meta.py */
+export const AUDIO_EXTENSIONS = [
+	'mp3', 'mp4', 'mpeg', 'm4a', 'flac', 'aac', 'ogg', 'opus', 'wma', 'wav', 'aiff', 'm3u', 'm3u8'
+];
+
 export interface Track {
 	file_path: string;
 	title?: string;
@@ -123,8 +130,13 @@ class MusicCasterAPI {
 		})
 	}
 
-	async modifyQueue(indices: number[], action: 'next_up' | 'remove'): Promise<void> {
+	async modifyQueue(indices: number[], action: ModifyQueueAction): Promise<void> {
 		return invoke<void>('api_modify_queue', { indices, action });
+	}
+
+	/** empties the queue and stops playback */
+	async clearQueue(): Promise<void> {
+		return this.modifyQueue([], 'clear');
 	}
 
 	async exit(): Promise<PlayerState> {

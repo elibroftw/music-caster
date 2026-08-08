@@ -589,6 +589,8 @@ pub struct ModifyQueue {
 pub enum ModifyQueueAction {
   NextUp,
   Remove,
+  /// empties the whole queue; `indices` is ignored
+  Clear,
 }
 
 #[tauri::command]

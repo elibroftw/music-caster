@@ -1,6 +1,7 @@
-import { Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
+import { ActionIcon, Flex, Group, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { useContext, useEffect, useMemo, useRef } from 'react';
+import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
@@ -97,21 +98,46 @@ export default function Queue() {
 		navigator.clipboard.writeText(uri);
 	};
 
+	const handleRemove = () => {
+		if (contextMenuTrigger?.item !== undefined) {
+			api.modifyQueue([contextMenuTrigger.item], 'remove');
+		}
+	};
+
+	const queueEmpty = playerState === null || playerState.status === 'NOT_RUNNING' || playerState.queue.length === 0;
+
 	return (
-		<ScrollArea className={classes.tab} viewportRef={viewportRef}>
-			<Paper shadow='sm' p='md' >
-				<Stack gap='xs'>
-					<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
-						<TrackContextMenu
-							onPlayNext={contextMenuTrigger?.item === queuePosition ? undefined : handlePlayNext}
-							onAddToQueue={handleAddToQueue}
-							onShowFile={handleShowFile}
-							onCopyUris={handleCopyUris}
-						/>
-					</ContextMenu>
-					{queueRendered}
-				</Stack>
-			</Paper>
-		</ScrollArea>
+		// the toolbar sits outside the ScrollArea so it stays put while the
+		// queue auto-scrolls to the current track
+		<Stack className={classes.tab} gap='xs'>
+			<Group justify='flex-end'>
+				<ActionIcon
+					variant='default'
+					size='lg'
+					title='Clear queue'
+					aria-label='Clear queue'
+					disabled={queueEmpty}
+					onClick={() => api.clearQueue()}
+				>
+					<TbClearAll size={20} />
+				</ActionIcon>
+			</Group>
+			<ScrollArea style={{ flex: 1, minHeight: 0 }} viewportRef={viewportRef}>
+				<Paper shadow='sm' p='md' >
+					<Stack gap='xs'>
+						<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
+							<TrackContextMenu
+								onPlayNext={contextMenuTrigger?.item === queuePosition ? undefined : handlePlayNext}
+								onAddToQueue={handleAddToQueue}
+								onShowFile={handleShowFile}
+								onCopyUris={handleCopyUris}
+								onRemove={handleRemove}
+							/>
+						</ContextMenu>
+						{queueRendered}
+					</Stack>
+				</Paper>
+			</ScrollArea>
+		</Stack>
 	);
 }

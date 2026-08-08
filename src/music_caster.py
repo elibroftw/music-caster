@@ -1456,7 +1456,8 @@ if __name__ == '__main__':
         data = request.get_json(force=True, silent=True)
         if not isinstance(data, dict):
             return '', 400
-        indices = data.get('indices')
+        # clear ignores indices, so let callers omit them
+        indices = data.get('indices', [] if data.get('action') == 'clear' else None)
         action = data.get('action')
         if not isinstance(indices, list) or not all(isinstance(i, int) and i >= 0 for i in indices):
             return '', 400
@@ -1464,6 +1465,8 @@ if __name__ == '__main__':
             move_to_next_up(indices)
         elif action == 'remove':
             remove_from_queue(indices)
+        elif action == 'clear':
+            clear_queue()
         else:
             return '', 400
         return '', 204
@@ -1531,6 +1534,19 @@ if __name__ == '__main__':
                 new_i = min(len(values), index_to_remove)
                 if not gui_window.is_closed():
                     gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
+
+    def clear_queue():
+        if not gui_window.is_closed():
+            gui_window['queue'].update(set_to_index=0)
+            gui_window['queue'].update(values=[])
+        if playing_status.busy():
+            stop('clear_queue')
+        music_queue.clear()
+        next_queue.clear()
+        done_queue.clear()
+        save_queues()
+        if not gui_window.is_closed():
+            gui_window.refresh()
 
     def cast_try_reconnect(switch_twice=False):
         global cast_browser, zconf
@@ -3754,15 +3770,7 @@ if __name__ == '__main__':
         elif main_event == 'queue_all':
             queue_all()
         elif main_event == 'clear_queue':
-            gui_window['queue'].update(set_to_index=0)
-            gui_window['queue'].update(values=[])
-            if playing_status.busy():
-                stop('clear_queue')
-            music_queue.clear()
-            next_queue.clear()
-            done_queue.clear()
-            save_queues()
-            gui_window.refresh()
+            clear_queue()
         elif main_event == 'save_to_pl':
             indices = gui_window['queue'].get_indexes()
             if len(indices) <= 1:
