@@ -20,11 +20,12 @@ Unique users as of April 23rd 2023: 3,800
 
 ## Install
 
-### [Windows Download Music.Caster.Setup.exe](https://github.com/elibroftw/music-caster/releases/latest)
+### [Windows Download x64 and ARM64 MSI](https://github.com/elibroftw/music-caster/releases/latest)
 
-- **IMPORTANT INFORMATION:** The tray icon will be in the tray, so you will need to move it to your taskbar
+- If you are unsure, just install the x64 MSI or bootstrapper
+  - This is because x64 binaries run _emulated_ on ARM64, but ARM64 binaries do not run on x64!
+- **IMPORTANT INFORMATION:** The icon will be in the tray initially, so you will need to move it to the taskbar
 - Command line installation: `winget install "Music Caster"`
-- [VirusTotal scan](https://www.virustotal.com/gui/file/40a1c61e5cb2c5eed714eb70bb84f138e9fd9742076ea665b4ac85fc8f372abf)
   - If Music Caster is auto-removed, open "Virus & threat protection", then "protection history," and restore all files related to Music Caster
 
 ### Linux
