@@ -5,6 +5,9 @@
 //! a small progress window, runs the old uninstaller, downloads the latest MSI from the
 //! GitHub releases, installs it, launches the new Music Caster, and exits.
 //!
+//! If the MSI build is already installed there is nothing to migrate: the window says so,
+//! Music Caster is started, and we exit without touching the installer or uninstaller.
+//!
 //! Relaunching is done here on purpose: the v5 client appends `&& Music Caster.exe` to the
 //! command that starts us, but that executable is gone by then (its uninstaller removed it),
 //! so the app would never come back without this step.
@@ -91,6 +94,11 @@ impl Status {
                 "Running the installer…",
                 0.90,
             ),
+            Progress::AlreadyInstalled => Self::new(
+                "Music Caster v6 is already installed",
+                "Starting Music Caster…",
+                1.0,
+            ),
             Progress::Launching => {
                 Self::new("Starting Music Caster", "Launching the new version…", 0.97)
             }
@@ -111,6 +119,9 @@ struct App {
     uninstaller: UninstallStatus,
     /// Set once the migration ends (success or failure) so the worker subscription stops.
     finished: bool,
+    /// The MSI build was already installed, so nothing is downloaded or removed and the
+    /// progress/uninstall tracks have nothing to report.
+    already_installed: bool,
 }
 
 impl Default for App {
@@ -119,6 +130,7 @@ impl Default for App {
             installer: Status::new("Preparing update", "Starting…", 0.0),
             uninstaller: UninstallStatus::default(),
             finished: false,
+            already_installed: false,
         }
     }
 }
@@ -136,7 +148,10 @@ impl App {
             Message::Step(event) => {
                 // Route each event to its own track so the two statuses update independently.
                 match event {
-                    Event::Update(progress) => self.installer = Status::from_progress(&progress),
+                    Event::Update(progress) => {
+                        self.already_installed |= matches!(progress, Progress::AlreadyInstalled);
+                        self.installer = Status::from_progress(&progress);
+                    }
                     Event::Uninstall(status) => self.uninstaller = status,
                 }
                 Task::none()
@@ -158,14 +173,17 @@ impl App {
 
     fn view(&self) -> Element<'_, Message> {
         // Two independent status tracks shown at once: the MSI installer (with a progress
-        // bar) and the uninstaller.
-        let content = column![
-            text(self.installer.headline.clone()).size(22),
-            text(format!("Installer: {}", self.installer.detail)).size(14),
-            progress_bar(0.0..=1.0, self.installer.fraction),
-            text(format!("Uninstaller: {}", self.uninstaller.label())).size(14),
-        ]
-        .spacing(14);
+        // bar) and the uninstaller. Neither track runs when the app is already installed, so
+        // that case shows only the headline and its one-line detail.
+        let mut content = column![text(self.installer.headline.clone()).size(22)].spacing(14);
+        content = if self.already_installed {
+            content.push(text(self.installer.detail.clone()).size(14))
+        } else {
+            content
+                .push(text(format!("Installer: {}", self.installer.detail)).size(14))
+                .push(progress_bar(0.0..=1.0, self.installer.fraction))
+                .push(text(format!("Uninstaller: {}", self.uninstaller.label())).size(14))
+        };
 
         container(content)
             .padding(24)

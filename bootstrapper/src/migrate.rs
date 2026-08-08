@@ -26,6 +26,9 @@ pub enum Progress {
     Resolving,
     Downloading { downloaded: u64, total: Option<u64> },
     Installing { version: String },
+    /// The MSI build is already on this machine, so there is nothing to migrate — we only
+    /// start it and exit.
+    AlreadyInstalled,
     /// The MSI finished; starting the freshly installed app.
     Launching,
     Done,
@@ -137,6 +140,9 @@ fn download(url: &str, dest: &Path, on_progress: &dyn Fn(Event)) -> Result<(), S
     Ok(())
 }
 
+/// Locates the **v5 (Inno Setup)** uninstaller. Only Inno uninstallers qualify: the MSI
+/// registers its own `Music Caster` uninstall entry whose command is `MsiExec.exe /X{...}`,
+/// and running that would uninstall the very version we are migrating to.
 fn find_uninstaller() -> Option<UninstallCommand> {
     let cwd_uninstaller = std::env::current_dir()
         .map(|d| d.join(INNO_UNINSTALLER))
@@ -145,6 +151,15 @@ fn find_uninstaller() -> Option<UninstallCommand> {
         .map(UninstallCommand::from_path);
 
     cwd_uninstaller.or_else(registry_uninstaller)
+}
+
+/// Inno names its uninstaller `uninsNNN.exe`; anything else under a "Music Caster" uninstall
+/// key (notably `MsiExec.exe`) belongs to the MSI package, not to v5.
+fn is_inno_uninstaller(cmd: &UninstallCommand) -> bool {
+    cmd.program
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.to_ascii_lowercase().starts_with("unins"))
 }
 
 fn run_uninstaller(
@@ -236,24 +251,50 @@ fn candidate_exe_paths() -> Vec<PathBuf> {
 /// once its uninstaller has run — so relaunching is our job.
 fn launch_app() -> Result<(), String> {
     let candidates = candidate_exe_paths();
+    let exe = candidates.iter().find(|p| p.exists());
     if cfg!(debug_assertions) {
-        eprintln!("[dry-run] would launch: {:?}", candidates.first().map(|p| p.display().to_string()));
+        let shown = exe.or_else(|| candidates.first());
+        eprintln!("[dry-run] would launch: {:?}", shown.map(|p| p.display().to_string()));
         return Ok(());
     }
-    let exe = candidates
-        .into_iter()
-        .find(|p| p.exists())
-        .ok_or_else(|| format!("Music Caster was installed but {APP_EXE} could not be found to launch."))?;
+    launch_exe(exe.ok_or_else(|| {
+        format!("Music Caster was installed but {APP_EXE} could not be found to launch.")
+    })?)
+}
+
+fn launch_exe(exe: &Path) -> Result<(), String> {
+    if cfg!(debug_assertions) {
+        eprintln!("[dry-run] would launch: {}", exe.display());
+        return Ok(());
+    }
     let working_dir = exe.parent().map(Path::to_path_buf).unwrap_or_default();
-    Command::new(&exe)
+    Command::new(exe)
         .current_dir(working_dir)
         .spawn()
-        .map_err(|e| format!("Music Caster was installed but could not be launched: {e}"))?;
+        .map_err(|e| format!("Music Caster could not be launched: {e}"))?;
     Ok(())
+}
+
+/// The already-installed MSI build, if any. Deliberately registry-only: a leftover v5
+/// directory also holds a `Music Caster.exe`, but only the MSI writes `InstallDir` (Inno's
+/// setup script writes no keys under `Software\Elijah Lopez`).
+fn installed_msi_exe() -> Option<PathBuf> {
+    let exe = PathBuf::from(registry_install_dir()?).join(APP_EXE);
+    exe.exists().then_some(exe)
 }
 
 pub fn migrate(on_event: &(dyn Fn(Event) + Sync)) -> Result<(), String> {
     on_event(Event::Update(Progress::Resolving));
+
+    // There is nothing to migrate once the MSI build is on the machine: don't download or
+    // reinstall it (and above all, don't run its `MsiExec /X` uninstall entry) — just start it.
+    if let Some(exe) = installed_msi_exe() {
+        // No `Progress::Done` here: "already installed" is the final word the window should
+        // show, not "Update complete".
+        on_event(Event::Update(Progress::AlreadyInstalled));
+        launch_exe(&exe)?;
+        return Ok(());
+    }
 
     let uninstaller = find_uninstaller();
     on_event(Event::Uninstall(if uninstaller.is_some() {
@@ -375,7 +416,8 @@ fn search_uninstall_hive(hive: HKEY, view: REG_SAM_FLAGS) -> Option<UninstallCom
         if matches {
             let cmd = read_string(subkey, "QuietUninstallString")
                 .or_else(|| read_string(subkey, "UninstallString"))
-                .map(parse_uninstall_string);
+                .map(parse_uninstall_string)
+                .filter(is_inno_uninstaller);
             unsafe { let _ = RegCloseKey(subkey); }
             if cmd.is_some() {
                 break cmd;
