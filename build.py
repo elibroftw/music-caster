@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
 import glob
+import json
 import math
 import os
 import platform
+import re
 import shutil
 import sys
 import threading
@@ -41,6 +43,8 @@ UPDATER_DIST = DIST_DIR / 'Updater.exe'
 REQUIREMENTS_FILE = script_dir / 'requirements.txt'
 REQUIREMENTS_DEV_FILE = script_dir / 'requirements-dev.txt'
 SRC_FRONTEND = script_dir / 'src-frontend'
+TAURI_CONF_FILE = script_dir / 'app' / 'src-tauri' / 'tauri.conf.json'
+CHANGELOG_VERSION_RE = re.compile(r'^\d+\.\d+\.\d+')
 
 IS_VENV = sys.prefix != sys.base_prefix
 
@@ -110,6 +114,50 @@ def get_latest_changelog():
             else:
                 changes.append(line)
     return '\n'.join(changes)
+
+
+def get_app_version():
+    """Return the version of the Tauri app (tauri.conf.json delegates it to app/package.json)"""
+    with open(TAURI_CONF_FILE, encoding='utf-8') as _file:
+        version = json.load(_file)['version']
+    if version.endswith('.json'):
+        with open(TAURI_CONF_FILE.parent / version, encoding='utf-8') as _file:
+            version = json.load(_file)['version']
+    return version
+
+
+def parse_changelog():
+    """Return {version: [change, ...]} in the order the versions appear in CHANGELOG.txt"""
+    changelog = {}
+    version = None
+    with open(CHANGELOG_FILE, encoding='utf-8') as _file:
+        for line in _file:
+            line = line.strip()
+            if not line:
+                version = None
+            elif CHANGELOG_VERSION_RE.match(line):
+                # e.g. "4.60.0 (August 2020)"
+                version = line.split()[0]
+                changelog[version] = []
+            elif version is not None:
+                changelog[version].append(line)
+    return changelog
+
+
+def get_release_notes(version):
+    """Return the release body for `version`: its changes chained with those of the versions
+    below it, down to and including the last x.y.0 release (matches how add_new_changes builds
+    on top of the previous release's body), de-duplicated and sorted"""
+    changelog = parse_changelog()
+    if not changelog.get(version):
+        raise ValueError(f'CHANGELOG.txt has no changes for {version}')
+    versions = list(changelog)
+    changes = set()
+    for changelog_version in versions[versions.index(version):]:
+        changes.update(changelog[changelog_version])
+        if changelog_version.endswith('.0'):
+            break
+    return '\n'.join(sorted(changes, key=lambda item: item.casefold()))
 
 
 def add_new_changes(prev_changes: str):
@@ -385,6 +433,18 @@ if __name__ == '__main__':
         help="print the latest version's changelog and exit",
     )
     parser.add_argument(
+        '--release-notes',
+        default=False,
+        action='store_true',
+        help="print the release body for the app's version and exit",
+    )
+    parser.add_argument(
+        '--app-version',
+        default=False,
+        action='store_true',
+        help='print the version of the Tauri app and exit',
+    )
+    parser.add_argument(
         '--target',
         default=None,
         help='Rust target triplet for the daemon artifact name '
@@ -394,6 +454,18 @@ if __name__ == '__main__':
 
     if args.changelog:
         print(get_latest_changelog())
+        sys.exit()
+
+    if args.app_version:
+        print(get_app_version())
+        sys.exit()
+
+    if args.release_notes:
+        try:
+            print(get_release_notes(get_app_version()))
+        except ValueError as e:
+            print(f'ERROR: {e}', file=sys.stderr)
+            sys.exit(3)
         sys.exit()
 
     if args.clean:

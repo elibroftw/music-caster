@@ -13,6 +13,11 @@ env:
   APP_NAME: "Music Caster"
 
 jobs:
+  # Resolves the app version (tauri.conf.json -> app/package.json) and decides whether this
+  # build should be released: only if that version is higher than the latest published release.
+  # The release body is the CHANGELOG entry for the version chained with the entries below it
+  # down to the last x.y.0 (see build.py get_release_notes). A missing CHANGELOG entry is NOT
+  # fatal here (branches/PRs keep building) - publish-release fails on the empty body instead.
   changelog:
     runs-on: ubuntu-latest
     steps:
@@ -22,15 +27,38 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@main
 
+      - name: Compare version with latest release
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(python build.py --app-version)
+          latest=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name || echo v0.0.0)
+          latest=${latest#v}
+          echo "App version: $version, latest release: $latest"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if python -c "import sys; parse = lambda v: tuple(map(int, v.split('.'))); sys.exit(0 if parse(sys.argv[1]) > parse(sys.argv[2]) else 1)" "$version" "$latest"; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build changelog
         id: build_changelog
+        if: ${{ steps.version.outputs.should_release == 'true' }}
+        continue-on-error: true
         run: |
+          set -euo pipefail
+          changelog=$(python build.py --release-notes)
           {
             echo 'changelog<<EOF'
-            python build.py --changelog
+            echo "$changelog"
             echo EOF
           } >> "$GITHUB_OUTPUT"
     outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.version.outputs.should_release }}
       changelog: ${{ steps.build_changelog.outputs.changelog }}
 
   bootstrapper:
@@ -225,10 +253,9 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      # Upload unsigned installers (after whichever build step ran) so the Linux
-      # signing job can pick them up. On tags this runs after tauri-action, which
-      # has already pushed the unsigned bundles to the DRAFT release; sign-installers
-      # clobbers them with signed copies before the draft is published.
+      # Upload unsigned installers so the Linux signing job can pick them up.
+      # Nothing is attached to a release here: publish-release runs last and only
+      # ever uploads the signed installers.
       - name: Windows Artifacts
         if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'windows-11-arm' }}
         uses: actions/upload-artifact@main
@@ -259,9 +286,8 @@ jobs:
   # Sign the Tauri-built MSI (and the NSIS installer, which ships alongside it)
   # on a Linux runner. sign_updater regenerates the Tauri updater *.msi.sig over
   # the Authenticode-signed MSI (the .sig tauri-action produced covers the
-  # unsigned bytes and would fail updater verification) and clobbers it onto the
-  # release next to the signed MSI, so the authoritative .sig lives in the
-  # windows-msi-<arch> artifact and on the release assets.
+  # unsigned bytes and would fail updater verification), so the authoritative
+  # .sig lives in the windows-msi-<arch> artifact and, from there, on the release.
   sign-installers:
     needs: [release]
     if: ${{ github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
@@ -288,3 +314,41 @@ jobs:
           name: Music Caster Windows Installers
           pattern: windows-*
           delete-merged: true
+
+  # Tag and publish v<version> with the SIGNED installers once everything is built and
+  # signed. Only runs on master and only when the app version is ahead of the latest
+  # release; the tag is created by `gh release create` at the commit that was built.
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: [changelog, merge-windows-artifacts]
+    if: ${{ github.ref == 'refs/heads/master' && needs.changelog.outputs.should_release == 'true' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download signed installers
+        uses: actions/download-artifact@main
+        with:
+          name: Music Caster Windows Installers
+          path: release-assets
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ needs.changelog.outputs.version }}
+          NOTES: ${{ needs.changelog.outputs.changelog }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "::error::CHANGELOG.txt has no changes for $TAG; refusing to publish a release with an empty body"
+            exit 1
+          fi
+          printf '%s\n' "$NOTES" > release_notes.md
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            # a previous run got part way through; replace its assets and body
+            gh release upload "$TAG" release-assets/* --clobber
+            gh release edit "$TAG" --title "Music Caster $TAG" --notes-file release_notes.md --draft=false --latest
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Music Caster $TAG" \
+              --notes-file release_notes.md --latest release-assets/*
+          fi

@@ -1,8 +1,11 @@
 Music Caster Changelog
 
+6.0.1
+- [Fix] Missing queue actions
+
 6.0.0
-- [Fix] Get default music folder
 - [Feat] New UI
+- [Fix] Get default music folder
 
 5.25.3
 - [Fix] Security
