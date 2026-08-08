@@ -245,9 +245,9 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			>
 				<Stack align='center' gap='md'>
 					<Text size='lg' fw={500}>Music Caster</Text>
-					<Text size='sm' c='dimmed'>Version 1.0.0</Text>
+					<Text size='sm' c='dimmed'>Version {__VERSION__}</Text>
 					<Text size='sm'>
-						Developed by Elijah Lopez <Anchor href='mailto:elijahlopez@proton.me'>{'elijahlopez@proton.me'}</Anchor>
+						Developed by Elijah Lopez <Anchor href='mailto:elijahllopezz@gmail.com'>{'elijahllopezz@gmail.com'}</Anchor>
 					</Text>
 					<Anchor href='https://github.com/elibroftw' target='_blank' rel='noopener noreferrer'>
 						<Group gap='xs'>

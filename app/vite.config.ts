@@ -1,9 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
+
 // https://vitejs.dev/config/
 // https://tauri.app/v1/guides/getting-started/setup/vite#create-the-frontend
 export default defineConfig({
+	define: {
+		__VERSION__: JSON.stringify(packageJson.version),
+	},
 	plugins: [
 		react({
 			babel: {
