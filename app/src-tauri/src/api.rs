@@ -9,6 +9,10 @@ use crate::{settings::Settings, tray_icon::tray_update};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PlaybackStatus {
+  /// the daemon spells this "NOT PLAYING" (PlayingStatus.__repr__); without the
+  /// alias every poll fails to parse while playback is stopped, so the frontend
+  /// never learns the daemon is up and sits on a loading state forever
+  #[serde(alias = "NOT PLAYING")]
   NotPlaying,
   Playing,
   Paused,
@@ -595,6 +599,7 @@ pub enum ModifyQueueAction {
 
 #[tauri::command]
 pub async fn api_modify_queue(
+  app: tauri::AppHandle,
   state: State<'_, DaemonState>,
   indices: Vec<u64>,
   action: ModifyQueueAction,
@@ -617,7 +622,72 @@ pub async fn api_modify_queue(
     .send()
     .await
     .map_err(|e| e.to_string())?;
+  // the daemon applies the change before responding, so the state is ready to read
+  refresh_player_state(&app).await;
   Ok(())
+}
+
+/// cache the daemon's state, refresh the tray when it matters, and notify the frontend
+async fn apply_player_state(
+  app_handle: &tauri::AppHandle,
+  player_state: &PlayerState,
+  new_state: PlayerStatus,
+) {
+  let (state_changed, tray_needs_update) = {
+    let current = player_state.read().await;
+    (
+      *current != new_state,
+      current.status != new_state.status
+        || current.lang != new_state.lang
+        // the Repeat Options check mark follows the daemon's repeat setting
+        || current.repeat != new_state.repeat,
+    )
+  };
+
+  if tray_needs_update {
+    tray_update(app_handle.clone(), &new_state);
+  }
+
+  if !state_changed {
+    log::info!("[Player State] player state has not changed");
+    return;
+  }
+
+  *player_state.write().await = new_state.clone();
+  if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
+    log::error!("[Player State] Failed to emit event: {}", e);
+  } else {
+    log::info!("[Player State] emitted playerStateChanged event");
+  }
+}
+
+/// pull the daemon's state once and push it out, so a queue edit shows up
+/// immediately instead of waiting for the next poll tick
+async fn refresh_player_state(app_handle: &tauri::AppHandle) {
+  let (Some(daemon_state), Some(player_state)) = (
+    app_handle.try_state::<DaemonState>(),
+    app_handle.try_state::<PlayerState>(),
+  ) else {
+    return;
+  };
+
+  let url = format!("{}/state/", daemon_state.read().await.get_base_url());
+  let client = reqwest::Client::new();
+  let new_state = match client.get(&url).send().await {
+    Ok(response) => match response.json::<PlayerStatus>().await {
+      Ok(new_state) => new_state,
+      Err(e) => {
+        log::error!("[Refresh Player State] Failed to parse state: {}", e);
+        return;
+      }
+    },
+    Err(e) => {
+      log::error!("[Refresh Player State] Failed to fetch state: {}", e);
+      return;
+    }
+  };
+
+  apply_player_state(app_handle, player_state.inner(), new_state).await;
 }
 
 pub async fn poll_player_state(app_handle: tauri::AppHandle) {
@@ -657,35 +727,11 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
                 }
               };
 
-              let (state_changed, tray_needs_update) = {
-                let player_state = player_state.read().await;
-                let changed = *player_state != new_state;
-                let tray_update = player_state.status != new_state.status
-                  || player_state.lang != new_state.lang
-                  // the Repeat Options check mark follows the daemon's repeat setting
-                  || player_state.repeat != new_state.repeat;
-                (changed, tray_update)
-              };
-
-              if tray_needs_update {
-                tray_update(app_handle.clone(), &new_state);
-              }
-
               if poll_devices {
                 crate::tray_icon::refresh_tray_devices(&app_handle).await;
               }
 
-              if state_changed {
-                let mut player_state = player_state.write().await;
-                *player_state = new_state.clone();
-                if let Err(e) = app_handle.emit("playerStateChanged", &new_state) {
-                  log::error!("[Player State Poll] Failed to emit event: {}", e);
-                } else {
-                  log::info!("[Player State Poll] emitted playerStateChanged event");
-                }
-              } else {
-                log::info!("[Player State Poll] player state has not changed");
-              }
+              apply_player_state(&app_handle, player_state.inner(), new_state).await;
             }
             Err(e) => {
               log::error!("[Player State Poll] Failed to parse state: {}", e);
@@ -702,5 +748,27 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
         break;
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  /// the daemon reports "NOT PLAYING" with a space, but the frontend expects NOT_PLAYING
+  #[test]
+  fn parses_daemon_not_playing_spelling() {
+    assert_eq!(
+      serde_json::from_str::<PlaybackStatus>("\"NOT PLAYING\"").unwrap(),
+      PlaybackStatus::NotPlaying
+    );
+    assert_eq!(
+      serde_json::from_str::<PlaybackStatus>("\"NOT_PLAYING\"").unwrap(),
+      PlaybackStatus::NotPlaying
+    );
+    assert_eq!(
+      serde_json::to_string(&PlaybackStatus::NotPlaying).unwrap(),
+      "\"NOT_PLAYING\""
+    );
   }
 }

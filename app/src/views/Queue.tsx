@@ -18,9 +18,13 @@ export default function Queue() {
 	const api = useContext(MusicCasterAPIContext)!;
 
 	const queuePosition = playerState?.queue_position ?? 0;
+	// tracked as a boolean so the queue only re-renders when the daemon comes up
+	// or goes away, not on every play/pause status change
+	const daemonDown = playerState === null || playerState.status === 'NOT_RUNNING';
 
 	const queueRendered = useMemo(
 		() => {
+			// no state yet, or the daemon is down: genuinely still loading
 			if (playerState === null || playerState.status === 'NOT_RUNNING') return (
 				[...Array(100)].map((_, index) => (
 					<Skeleton key={index} height={40} />
@@ -28,7 +32,11 @@ export default function Queue() {
 			);
 
 			if (playerState.queue.length === 0) return (
-				<Text ta='center' c='dimmed' mt='xl'>Queue is empty</Text>
+				<>
+					{[...Array(10)].map((_, index) => (
+						<Skeleton key={index} height={40} animate={false} />
+					))}
+				</>
 			);
 
 			return playerState.queue.map((track, index) => (
@@ -58,7 +66,7 @@ export default function Queue() {
 						<Text size='sm' fw={500}>{track[1]}</Text>
 					</Flex>
 				</Paper>));
-		}, [JSON.stringify(playerState?.queue), queuePosition]);
+		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown]);
 
 	useEffect(() => {
 		if (targetRef.current !== null) {
@@ -104,24 +112,12 @@ export default function Queue() {
 		}
 	};
 
-	const queueEmpty = playerState === null || playerState.status === 'NOT_RUNNING' || playerState.queue.length === 0;
+	const queueEmpty = daemonDown || playerState!.queue.length === 0;
 
 	return (
 		// the toolbar sits outside the ScrollArea so it stays put while the
 		// queue auto-scrolls to the current track
 		<Stack className={classes.tab} gap='xs'>
-			<Group justify='flex-end'>
-				<ActionIcon
-					variant='default'
-					size='lg'
-					title='Clear queue'
-					aria-label='Clear queue'
-					disabled={queueEmpty}
-					onClick={() => api.clearQueue()}
-				>
-					<TbClearAll size={20} />
-				</ActionIcon>
-			</Group>
 			<ScrollArea style={{ flex: 1, minHeight: 0 }} viewportRef={viewportRef}>
 				<Paper shadow='sm' p='md' >
 					<Stack gap='xs'>
@@ -138,6 +134,18 @@ export default function Queue() {
 					</Stack>
 				</Paper>
 			</ScrollArea>
+			<Group justify='flex-end'>
+				<ActionIcon
+					variant='default'
+					size='lg'
+					title='Clear queue'
+					aria-label='Clear queue'
+					disabled={queueEmpty}
+					onClick={() => api.clearQueue()}
+				>
+					<TbClearAll size={20} />
+				</ActionIcon>
+			</Group>
 		</Stack>
 	);
 }

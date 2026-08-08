@@ -9,7 +9,7 @@ import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
 import * as tauriUpdater from '@tauri-apps/plugin-updater';
-import { JSX, LazyExoticComponent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import { ImCross } from 'react-icons/im';
@@ -201,7 +201,7 @@ export default function () {
 						title: t('updateAvailable', { v: update.version }),
 						color,
 						message: <>
-							<Text>{update.body}</Text>
+							<Text style={{ whiteSpace: 'pre-wrap' }}>{update.body}</Text>
 							<Button color={color} style={{ width: '100%' }} onClick={() => installUpdate(update)}>{t('installAndRelaunch')}</Button>
 						</>,
 						autoClose: false
@@ -276,7 +276,10 @@ export default function () {
 				<AppShell padding='md'
 					header={{ height: 0 }}
 					footer={{ height: showFooter ? 60 : 0 }}
-					aside={{ width: 320, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
+					// never collapse the aside: it holds the playback controls and there's no burger to restore it.
+					// a narrow viewport (high DPI scaling, restored window state) shrinks Main instead, and 320
+					// is a floor here -- PlaybackAside's content has its own 250px min-width plus the p='md'.
+					aside={{ width: 320, breakpoint: 'md', collapsed: { desktop: false, mobile: false } }}
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
