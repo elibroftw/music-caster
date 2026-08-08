@@ -1,10 +1,11 @@
-import { ActionIcon, Anchor, Box, Button, Group, Image, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Alert, Anchor, Box, Button, Group, Image, Loader, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld } from 'react-icons/tb';
-import { PlayAction } from '../common/commands';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileText, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
+import { PlayAction, type WebUrl } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
 
@@ -39,6 +40,11 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 	const [timerInput, setTimerInput] = useState('');
 	const [timerStatus, setTimerStatus] = useState<string | null>(null);
 	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
+	const [webUrl, setWebUrl] = useState<WebUrl | null>(null);
+	const [webUrlLoading, setWebUrlLoading] = useState(false);
+	const [webUrlError, setWebUrlError] = useState<string | null>(null);
+	// bumped on every fetch so a response from a previous open cannot overwrite a newer one
+	const webUrlRequest = useRef(0);
 	// local value while dragging so the player state poll doesn't fight the slider
 	const [pendingVolume, setPendingVolume] = useState<number | null>(null);
 
@@ -104,6 +110,28 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			api.getTimer().then(val => setTimerStatus(val === '0' ? null : val)).catch(() => setTimerStatus(null));
 		}
 	}, [timerOpened]);
+
+	const fetchWebUrl = useCallback(async () => {
+		const request = ++webUrlRequest.current;
+		setWebUrlLoading(true);
+		setWebUrlError(null);
+		try {
+			const result = await api.getWebUrl();
+			if (request !== webUrlRequest.current) return;
+			setWebUrl(result);
+		} catch (error) {
+			if (request !== webUrlRequest.current) return;
+			setWebUrl(null);
+			// tauri rejects with the daemon's error message as a plain string
+			setWebUrlError(typeof error === 'string' ? error : 'Could not reach Music Caster');
+		} finally {
+			if (request === webUrlRequest.current) setWebUrlLoading(false);
+		}
+	}, [api]);
+
+	useEffect(() => {
+		if (qrCodeOpened) fetchWebUrl();
+	}, [qrCodeOpened]);
 
 	useEffect(() => {
 		if (!trayAction) return;
@@ -222,18 +250,37 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 					<Text size='sm'>Scan this QR code to access Music Caster remotely</Text>
 					<Box
 						style={{
-							width: '200px',
-							height: '200px',
+							width: '216px',
+							height: '216px',
+							// the QR code needs a light background in both color schemes
 							backgroundColor: '#fff',
 							border: '1px solid #e0e0e0',
+							borderRadius: '4px',
 							display: 'flex',
 							alignItems: 'center',
 							justifyContent: 'center'
 						}}
 					>
-						<Text c='dimmed'>QR Code</Text>
+						{webUrlLoading
+							? <Loader color='dark' />
+							: webUrl
+								? <QRCodeSVG value={webUrl.url} size={200} level='M' bgColor='#fff' fgColor='#000' />
+								: <TbWorldOff size={64} color='#adb5bd' />}
 					</Box>
-					<Text size='xs' c='dimmed'>http://192.168.1.100:8080</Text>
+					{webUrlLoading && <Skeleton height={16} width='60%' />}
+					{webUrlError && (
+						<Alert color='red' variant='light' w='100%' title='Remote access unavailable'>
+							<Stack gap='xs' align='flex-start'>
+								<Text size='xs'>{webUrlError}</Text>
+								<Button size='xs' variant='light' color='red' onClick={fetchWebUrl}>Retry</Button>
+							</Stack>
+						</Alert>
+					)}
+					{webUrl && (
+						<Anchor href={webUrl.url} target='_blank' rel='noopener noreferrer' size='xs' c='dimmed'>
+							{`http://${webUrl.ip}:${webUrl.port}`}
+						</Anchor>
+					)}
 				</Stack>
 			</Modal>
 

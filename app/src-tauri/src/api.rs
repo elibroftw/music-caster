@@ -486,6 +486,37 @@ pub async fn api_get_album_art_url(state: State<'_, DaemonState>) -> Result<Stri
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct WebUrl {
+  pub url: String,
+  pub ip: String,
+  pub port: u16,
+}
+
+/// LAN URL of the daemon's web GUI, used by the frontend to render a QR code
+#[tauri::command]
+pub async fn api_get_web_url(state: State<'_, DaemonState>) -> Result<WebUrl, String> {
+  let state = state.read().await;
+  let client = reqwest::Client::new();
+  let url = format!("{}/web-url/", state.get_base_url());
+
+  let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+
+  if !response.status().is_success() {
+    // the daemon reports 503 when it cannot resolve a LAN address
+    let status = response.status();
+    let message = response
+      .json::<serde_json::Value>()
+      .await
+      .ok()
+      .and_then(|body| body["error"].as_str().map(str::to_string))
+      .unwrap_or_else(|| format!("daemon returned {}", status));
+    return Err(message);
+  }
+
+  response.json::<WebUrl>().await.map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ModifyQueue {
   pub action: ModifyQueueAction,
   pub indices: Vec<u64>,

@@ -1241,6 +1241,23 @@ if __name__ == '__main__':
         return response
 
 
+    @app.get('/web-url/')
+    def api_get_web_url():
+        """
+        the URL other devices on the LAN can use to reach the web GUI.
+        used by the frontend to render a scannable QR code
+        """
+        try:
+            ipv4 = get_ipv4()
+        except Exception:
+            ipv4 = '127.0.0.1'
+        if ipv4.startswith('127.'):
+            # loopback is useless to another device, so report it as unavailable
+            return jsonify({'error': 'could not determine a LAN address'}), 503
+        return jsonify({'url': f"http://{ipv4}:{State.PORT}/?api_key={settings['api_key']}",
+                        'ip': ipv4, 'port': State.PORT})
+
+
     @app.route('/exit/', methods=['GET', 'POST'])
     def api_exit():
         daemon_commands.put('__EXIT__')

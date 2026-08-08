@@ -113,7 +113,9 @@ pub fn run() {
 	// SAFETY: running on single thread
 	unsafe { main_prelude(); }
 
-  let log_builder = tauri_plugin_log::Builder::new().target(tauri_plugin_log::Target::new(
+  // only reassigned in debug builds, where the webview target is added
+  #[allow(unused_mut)]
+  let mut log_builder = tauri_plugin_log::Builder::new().target(tauri_plugin_log::Target::new(
     tauri_plugin_log::TargetKind::LogDir {
       file_name: Some("logs".to_string()),
     },
@@ -174,6 +176,7 @@ pub fn run() {
       api_get_file_url,
       api_get_stream_url,
       api_get_album_art_url,
+      api_get_web_url,
       api_modify_queue
     ])
     // allow only one instance and propagate args and cwd to existing instance

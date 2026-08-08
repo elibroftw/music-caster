@@ -21,6 +21,12 @@ interface ActionResponse {
 	message: string;
 }
 
+export interface WebUrl {
+	url: string;
+	ip: string;
+	port: number;
+}
+
 interface PlayUrisOptions {
 	uris?: string[];
 	uri?: string;
@@ -167,6 +173,11 @@ class MusicCasterAPI {
 
 	async getAlbumArtUrl(): Promise<string> {
 		return invoke<string>('api_get_album_art_url');
+	}
+
+	/** LAN URL of the daemon's web GUI; rejects when no LAN address is available */
+	async getWebUrl(): Promise<WebUrl> {
+		return invoke<WebUrl>('api_get_web_url');
 	}
 }
 
