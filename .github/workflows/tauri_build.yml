@@ -5,7 +5,10 @@ on:
   workflow_dispatch:
   pull_request:
     branches: '*'
-
+concurrency:
+  cancel-in-progress: true
+  # we want to group based on the push type not the ref
+  group: ${{ github.ref_type }}
 env:
   APP_NAME: "Music Caster"
 
