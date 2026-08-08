@@ -1,10 +1,13 @@
 import { ActionIcon, Alert, Anchor, Box, Button, Group, Image, Loader, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
+import { appLogDir, join } from '@tauri-apps/api/path';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { QRCodeSVG } from 'qrcode.react';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileText, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
 import { PlayAction, type WebUrl } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
@@ -133,6 +136,26 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 		if (qrCodeOpened) fetchWebUrl();
 	}, [qrCodeOpened]);
 
+	// tauri_plugin_log writes to <appLogDir>/logs.log; revealing the file lands the
+	// explorer inside the log dir, whereas revealing the dir only selects it in its parent
+	const handleOpenLogs = useCallback(async () => {
+		const logDir = await appLogDir();
+		try {
+			await revealItemInDir(await join(logDir, 'logs.log'));
+		} catch {
+			try {
+				// no log file yet (or it was deleted), settle for the folder
+				await revealItemInDir(logDir);
+			} catch {
+				notifications.show({
+					title: 'Could not open logs folder',
+					message: logDir,
+					color: 'red'
+				});
+			}
+		}
+	}, []);
+
 	useEffect(() => {
 		if (!trayAction) return;
 		if (trayAction === 'timer-set') {
@@ -238,6 +261,11 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 		}
 	};
 
+	const shuffleEnabled = playerState?.shuffle ?? false;
+	const repeatMode = playerState?.repeat ?? 'off';
+	const RepeatIcon = repeatMode === 'one' ? TbRepeatOnce : repeatMode === 'all' ? TbRepeat : TbRepeatOff;
+	const repeatLabel = { off: 'Repeat off', all: 'Repeat all', one: 'Repeat one' }[repeatMode];
+
 	return (
 		<>
 			<Modal
@@ -301,6 +329,12 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						<Group gap='xs'>
 							<TbFileText size={20} />
 							<Text size='sm'>Changelog</Text>
+						</Group>
+					</Anchor>
+					<Anchor component='button' type='button' onClick={handleOpenLogs}>
+						<Group gap='xs'>
+							<TbFolderOpen size={20} />
+							<Text size='sm'>Open Logs Folder</Text>
 						</Group>
 					</Anchor>
 					<Text size='sm'>
@@ -452,7 +486,15 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 
 				<Stack gap='md'>
 					<Group justify='center' gap='xs'>
-						<ActionIcon size='sm' variant='default' onClick={handleToggleShuffle}><TbArrowsShuffle size={16} /></ActionIcon>
+						<ActionIcon
+							size='sm'
+							variant={shuffleEnabled ? 'filled' : 'default'}
+							title={shuffleEnabled ? 'Shuffle on' : 'Shuffle off'}
+							aria-pressed={shuffleEnabled}
+							onClick={handleToggleShuffle}
+						>
+							<TbArrowsShuffle size={16} />
+						</ActionIcon>
 						<ActionIcon size={36} variant='default' radius='xl' onClick={handlePrev}>
 							<TbPlayerSkipBackFilled size={20} />
 						</ActionIcon>
@@ -466,7 +508,15 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						<ActionIcon size={36} variant='default' radius='xl' onClick={handleNext}>
 							<TbPlayerSkipForwardFilled size={20} />
 						</ActionIcon>
-						<ActionIcon size='sm' variant='default' onClick={handleToggleRepeat}><TbRepeat size={16} /></ActionIcon>
+						<ActionIcon
+							size='sm'
+							variant={repeatMode === 'off' ? 'default' : 'filled'}
+							title={repeatLabel}
+							aria-pressed={repeatMode !== 'off'}
+							onClick={handleToggleRepeat}
+						>
+							<RepeatIcon size={16} />
+						</ActionIcon>
 					</Group>
 
 					<Stack gap='xs'>

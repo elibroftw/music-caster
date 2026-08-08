@@ -8,8 +8,6 @@ Music Caster is a modern music player with the ability to cast audio files, syst
 
 Display languages: English, German, Spanish, French, Italian, Dutch, Russian\*, and Ukrainian\*
 
-Unique users as of April 23rd 2023: 3,800
-
 [Screenshots](https://elijahlopez.ca/music-caster/)
 
 ### Donate or Translate

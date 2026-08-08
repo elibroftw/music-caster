@@ -1133,10 +1133,12 @@ if __name__ == '__main__':
                        'title': str(_metadata['title']), 'artist': str(_metadata['artist']),
                        'album': str(_metadata['album']), 'gui_open': not gui_window.is_closed(),
                        'track_position': get_track_position(), 'track_length': track_end - track_start,
-                       'queue_length': len(done_queue) + len(music_queue) + len(next_queue)}
+                       'queue_length': len(done_queue) + len(music_queue) + len(next_queue),
+                       'shuffle': settings['shuffle'],
+                       'repeat': {None: 'off', True: 'one', False: 'all'}.get(settings['repeat'], 'off')}
         if USING_TAURI_FRONTEND:
             now_playing["queue"] = get_queue_for_frontend()
-            now_playing["file_name"] = music_queue[0] if music_queue else None
+            now_playing["file_name"] = music_queue[0] if music_queue else ''
             now_playing["queue_position"] = len(done_queue)
         return jsonify(now_playing)
 

@@ -201,6 +201,7 @@ pub fn run() {
         is_running: false,
         api_key: None,
       }));
+      app.manage(DevicesState::new(Vec::new()));
       app.manage(Mutex::new(TrayState::NotPlaying));
       app.manage(Mutex::new(settings::Settings::load(app.handle())));
       let _ = create_tray_icon(app.handle());

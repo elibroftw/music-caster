@@ -1,12 +1,15 @@
 use serde::Serialize;
 use std::path::Path;
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{CheckMenuItemBuilder, Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{self, Emitter, Manager, Runtime, command};
 use tauri_plugin_dialog::DialogExt;
 
-use crate::api::{DaemonState, PlayUrisOptions, PlaybackStatus, PlayerStatus};
+use crate::api::{
+  DaemonState, Device, DevicesState, LOCAL_DEVICE_ID, PlayUrisOptions, PlaybackStatus, PlayerState,
+  PlayerStatus, RepeatMode,
+};
 use crate::settings::Settings;
 
 #[derive(Clone, Serialize)]
@@ -41,6 +44,10 @@ pub fn create_tray_menu<R: Runtime>(
   let settings_guard = app.state::<Mutex<Settings>>().lock().unwrap().clone();
   let music_folders = &settings_guard.music_folders;
   let playlist_names: Vec<&String> = settings_guard.playlists.keys().collect();
+  let devices: Vec<Device> = app
+    .try_state::<DevicesState>()
+    .map(|state| state.lock().unwrap().clone())
+    .unwrap_or_default();
 
   let text = match tray_state {
     TrayState::Playing => "Pause",
@@ -48,12 +55,34 @@ pub fn create_tray_menu<R: Runtime>(
     TrayState::NotPlaying => "Play",
   };
 
+  // repeat is a daemon setting, mirrored into the polled player state
+  let repeat = current_repeat(app);
+
   let mut folders_submenu = SubmenuBuilder::new(app, "Folders")
     .item(&MenuItemBuilder::with_id("select-folder", "Select Folder").build(app)?);
   for (i, folder) in music_folders.iter().enumerate() {
     let display = format_folder_name(folder);
     folders_submenu =
       folders_submenu.item(&MenuItemBuilder::with_id(format!("folder-{i}"), display).build(app)?);
+  }
+
+  // `device` is None when the daemon is playing on the local device
+  let selected_device = settings_guard.device.as_deref().unwrap_or(LOCAL_DEVICE_ID);
+  let mut devices_submenu = SubmenuBuilder::new(app, "Select Device");
+  if devices.is_empty() {
+    devices_submenu = devices_submenu.item(
+      &MenuItemBuilder::with_id("devices-empty", "No Devices Found")
+        .enabled(false)
+        .build(app)?,
+    );
+  }
+  for device in &devices {
+    let id = format!("device-{}", device.id);
+    devices_submenu = devices_submenu.item(
+      &CheckMenuItemBuilder::with_id(id, &device.name)
+        .checked(device.id == selected_device)
+        .build(app)?,
+    );
   }
 
   let mut playlists_submenu = SubmenuBuilder::new(app, "Playlists")
@@ -68,10 +97,7 @@ pub fn create_tray_menu<R: Runtime>(
     .items(&[
       &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
       &MenuItemBuilder::with_id("mc-refresh", "Refresh Devices").build(app)?,
-      &SubmenuBuilder::new(app, "Select Device")
-        .item(&MenuItemBuilder::with_id("device-1", "Device 1").build(app)?)
-        .item(&MenuItemBuilder::with_id("device-2", "Device 2").build(app)?)
-        .build()?,
+      &devices_submenu.build()?,
       &SubmenuBuilder::new(app, "Timer")
         .item(&MenuItemBuilder::with_id("timer-set", "Set Timer").build(app)?)
         .item(&MenuItemBuilder::with_id("timer-cancel", "Cancel Timer").build(app)?)
@@ -80,9 +106,21 @@ pub fn create_tray_menu<R: Runtime>(
         .item(&MenuItemBuilder::with_id("locate-track", "Locate Track").build(app)?)
         .item(
           &SubmenuBuilder::new(app, "Repeat Options")
-            .item(&MenuItemBuilder::with_id("repeat-all", "Repeat All").build(app)?)
-            .item(&MenuItemBuilder::with_id("repeat-one", "Repeat One").build(app)?)
-            .item(&MenuItemBuilder::with_id("repeat-off", "Repeat Off").build(app)?)
+            .item(
+              &CheckMenuItemBuilder::with_id("repeat-all", "Repeat All")
+                .checked(repeat == RepeatMode::All)
+                .build(app)?,
+            )
+            .item(
+              &CheckMenuItemBuilder::with_id("repeat-one", "Repeat One")
+                .checked(repeat == RepeatMode::One)
+                .build(app)?,
+            )
+            .item(
+              &CheckMenuItemBuilder::with_id("repeat-off", "Repeat Off")
+                .checked(repeat == RepeatMode::Off)
+                .build(app)?,
+            )
             .build()?,
         )
         .item(&MenuItemBuilder::with_id("mc-controls-prev", "Previous Track").build(app)?)
@@ -114,6 +152,15 @@ pub fn create_tray_menu<R: Runtime>(
     .build()
 }
 
+/// last repeat mode the state poll saw; `Off` until the first poll succeeds. the menu is built
+/// synchronously, so a contended lock falls back to the default rather than blocking
+fn current_repeat<R: Runtime>(app: &tauri::AppHandle<R>) -> RepeatMode {
+  app
+    .try_state::<PlayerState>()
+    .and_then(|state| state.try_read().ok().map(|state| state.repeat))
+    .unwrap_or_default()
+}
+
 fn format_folder_name(folder: &str) -> String {
   let path = Path::new(folder);
   let components: Vec<&std::ffi::OsStr> = path.iter().collect();
@@ -129,6 +176,46 @@ fn format_folder_name(folder: &str) -> String {
     )
   } else {
     folder.replace('\\', "/")
+  }
+}
+
+/// Fetch the devices the daemon knows about (and the settings it owns, which hold the selected
+/// device) and rebuild the tray menu when either changed.
+pub async fn refresh_tray_devices(app: &tauri::AppHandle) {
+  let Some(daemon_state) = app.try_state::<DaemonState>() else {
+    return;
+  };
+  let base_url = daemon_state.read().await.get_base_url();
+
+  let devices = match crate::api::fetch_devices(&base_url).await {
+    Ok(devices) => devices,
+    Err(e) => {
+      log::error!("[Devices] failed to fetch devices: {}", e);
+      return;
+    }
+  };
+  let settings = Settings::load(app);
+  let lang = app.state::<PlayerState>().read().await.lang.clone();
+
+  let changed = {
+    let devices_state = app.state::<DevicesState>();
+    let mut devices_guard = devices_state.lock().unwrap();
+    let settings_state = app.state::<Mutex<Settings>>();
+    let mut settings_guard = settings_state.lock().unwrap();
+
+    let changed = *devices_guard != devices
+      || settings_guard.device != settings.device
+      || settings_guard.music_folders != settings.music_folders
+      || settings_guard.playlists != settings.playlists;
+    *devices_guard = devices;
+    *settings_guard = settings;
+    changed
+  };
+
+  if changed {
+    if let Some(tray_handle) = app.tray_by_id(TRAY_ID) {
+      let _ = tray_handle.set_menu(create_tray_menu(app, lang).ok());
+    }
   }
 }
 
@@ -168,6 +255,7 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
           tauri::async_runtime::spawn(async move {
             let state = app_clone.state::<DaemonState>();
             let _ = crate::api::api_refresh_devices(state).await;
+            refresh_tray_devices(&app_clone).await;
           });
         }
         "mc-controls-prev" => {
@@ -317,30 +405,17 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
         "timer-set" => {
           show_window_and_emit(app, "timer-set");
         }
-        "repeat-all" => {
+        "repeat-all" | "repeat-one" | "repeat-off" => {
+          let mode = match event_id.as_str() {
+            "repeat-all" => RepeatMode::All,
+            "repeat-one" => RepeatMode::One,
+            _ => RepeatMode::Off,
+          };
           let app_clone = app.clone();
           tauri::async_runtime::spawn(async move {
             let state = app_clone.state::<DaemonState>();
             let _ =
-              crate::api::api_change_setting(state, "repeat".to_string(), serde_json::json!("ALL"))
-                .await;
-          });
-        }
-        "repeat-one" => {
-          let app_clone = app.clone();
-          tauri::async_runtime::spawn(async move {
-            let state = app_clone.state::<DaemonState>();
-            let _ =
-              crate::api::api_change_setting(state, "repeat".to_string(), serde_json::json!("ONE"))
-                .await;
-          });
-        }
-        "repeat-off" => {
-          let app_clone = app.clone();
-          tauri::async_runtime::spawn(async move {
-            let state = app_clone.state::<DaemonState>();
-            let _ =
-              crate::api::api_change_setting(state, "repeat".to_string(), serde_json::json!("OFF"))
+              crate::api::api_change_setting(state, "repeat".to_string(), mode.setting_value())
                 .await;
           });
         }
@@ -412,6 +487,8 @@ pub fn create_tray_icon(app: &tauri::AppHandle) -> Result<TrayIcon, tauri::Error
             tauri::async_runtime::spawn(async move {
               let state = app_clone.state::<DaemonState>();
               let _ = crate::api::api_change_device(state, device_id).await;
+              // rebuild the menu so the check mark follows the daemon's selected device
+              refresh_tray_devices(&app_clone).await;
             });
           }
         }

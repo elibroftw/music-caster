@@ -33,6 +33,27 @@ impl PlaybackStatus {
   }
 }
 
+/// the daemon stores repeat as None/False/True, and reports it as one of these
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RepeatMode {
+  #[default]
+  Off,
+  All,
+  One,
+}
+
+impl RepeatMode {
+  /// value the `repeat` setting expects: null is off, false is all, true is one
+  pub fn setting_value(&self) -> serde_json::Value {
+    match self {
+      RepeatMode::Off => serde_json::Value::Null,
+      RepeatMode::All => serde_json::json!(false),
+      RepeatMode::One => serde_json::json!(true),
+    }
+  }
+}
+
 pub struct DaemonStatus {
   pub port: u16,
   pub is_running: bool,
@@ -62,6 +83,8 @@ impl PlayerStatus {
       queue: Vec::new(),
       queue_position: 0,
       file_name: String::from(""),
+      shuffle: false,
+      repeat: RepeatMode::Off,
     }
   }
 }
@@ -80,6 +103,11 @@ pub struct PlayerStatus {
   pub queue: Vec<(String, String)>,
   pub queue_position: i32,
   pub file_name: String,
+  // older daemons do not report these, so fall back to the defaults instead of failing the parse
+  #[serde(default)]
+  pub shuffle: bool,
+  #[serde(default)]
+  pub repeat: RepeatMode,
 }
 
 pub type PlayerState = RwLock<PlayerStatus>;
@@ -116,6 +144,43 @@ pub async fn api_activate(state: State<'_, DaemonState>) -> Result<ActionRespons
     .json::<ActionResponse>()
     .await
     .map_err(|e| e.to_string())
+}
+
+/// the daemon reports the local device with this id, everything else is a cast device uuid
+pub const LOCAL_DEVICE_ID: &str = "0";
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Device {
+  pub id: String,
+  pub name: String,
+}
+
+/// device list reported by the daemon, cached so the tray menu can be built synchronously
+pub type DevicesState = Mutex<Vec<Device>>;
+
+/// GET /devices/ ordered like the daemon orders them: local device first, then cast devices by name
+pub async fn fetch_devices(base_url: &str) -> Result<Vec<Device>, String> {
+  let client = reqwest::Client::new();
+  let url = format!("{}/devices/", base_url);
+
+  let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+  let devices = response
+    .json::<HashMap<String, String>>()
+    .await
+    .map_err(|e| e.to_string())?;
+
+  let mut devices: Vec<Device> = devices
+    .into_iter()
+    .map(|(id, name)| Device { id, name })
+    .collect();
+  devices.sort_by(|a, b| {
+    match (a.id == LOCAL_DEVICE_ID, b.id == LOCAL_DEVICE_ID) {
+      (true, false) => std::cmp::Ordering::Less,
+      (false, true) => std::cmp::Ordering::Greater,
+      _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+    }
+  });
+  Ok(devices)
 }
 
 #[tauri::command]
@@ -555,9 +620,14 @@ pub async fn api_modify_queue(
 
 pub async fn poll_player_state(app_handle: tauri::AppHandle) {
   let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+  // devices change far less often than playback state, so only poll them every 5s
+  const DEVICE_POLL_EVERY: u64 = 10;
+  let mut ticks: u64 = 0;
 
   loop {
     interval.tick().await;
+    let poll_devices = ticks % DEVICE_POLL_EVERY == 0;
+    ticks = ticks.wrapping_add(1);
 
     if let Some(daemon_state) = app_handle.try_state::<DaemonState>() {
       if let Some(player_state) = app_handle.try_state::<PlayerState>() {
@@ -588,13 +658,19 @@ pub async fn poll_player_state(app_handle: tauri::AppHandle) {
               let (state_changed, tray_needs_update) = {
                 let player_state = player_state.read().await;
                 let changed = *player_state != new_state;
-                let tray_update =
-                  player_state.status != new_state.status || player_state.lang != new_state.lang;
+                let tray_update = player_state.status != new_state.status
+                  || player_state.lang != new_state.lang
+                  // the Repeat Options check mark follows the daemon's repeat setting
+                  || player_state.repeat != new_state.repeat;
                 (changed, tray_update)
               };
 
               if tray_needs_update {
                 tray_update(app_handle.clone(), &new_state);
+              }
+
+              if poll_devices {
+                crate::tray_icon::refresh_tray_devices(&app_handle).await;
               }
 
               if state_changed {

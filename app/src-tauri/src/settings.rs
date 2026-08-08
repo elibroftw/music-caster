@@ -11,6 +11,9 @@ pub struct Settings {
   pub music_folders: Vec<String>,
   #[serde(default)]
   pub playlists: BTreeMap<String, serde_json::Value>,
+  /// id of the device the daemon is playing on, `None` means the local device
+  #[serde(default)]
+  pub device: Option<String>,
 }
 
 impl Settings {
@@ -66,6 +69,7 @@ impl Settings {
       gui_exits_app: false,
       music_folders: Vec::new(),
       playlists: BTreeMap::new(),
+      device: None,
     };
 
     // DO NOT WRITE NEW FILE YET, AS DAEMON WILL OVERWRITE IT

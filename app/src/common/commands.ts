@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
-import Queue from './../views/Queue';
 
 export type PlaybackStatus = 'NOT_PLAYING' | 'PLAYING' | 'PAUSED' | 'NOT_RUNNING';
+/** repeat cycles off -> all -> one */
+export type RepeatMode = 'off' | 'all' | 'one';
 export interface PlayerState {
 	status: PlaybackStatus;
 	volume: number;
@@ -15,6 +16,8 @@ export interface PlayerState {
 	queue: [string, string][];
 	queue_position: number;
 	file_name: string;
+	shuffle: boolean;
+	repeat: RepeatMode;
 }
 
 interface ActionResponse {
