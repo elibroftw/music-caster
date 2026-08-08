@@ -246,6 +246,16 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 				<Stack align='center' gap='md'>
 					<Text size='lg' fw={500}>Music Caster</Text>
 					<Text size='sm' c='dimmed'>Version {__VERSION__}</Text>
+					<Anchor
+						href='https://raw.githubusercontent.com/elibroftw/music-caster/refs/heads/master/CHANGELOG.txt'
+						target='_blank'
+						rel='noopener noreferrer'
+					>
+						<Group gap='xs'>
+							<TbFileText size={20} />
+							<Text size='sm'>Changelog</Text>
+						</Group>
+					</Anchor>
 					<Text size='sm'>
 						Developed by Elijah Lopez <Anchor href='mailto:elijahllopezz@gmail.com'>{'elijahllopezz@gmail.com'}</Anchor>
 					</Text>
