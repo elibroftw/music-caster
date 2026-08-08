@@ -258,15 +258,16 @@ def upgrade_yt_dlp():
     with open(package_json, encoding='utf-8') as f:
         package_json_content = f.read()
     current_version = json.loads(package_json_content)['version']
-    # if package.json is already ahead of the latest release, a bump has already been
-    # merged and is just waiting to be released - don't propose another one
     if tuple(map(int, current_version.split('.'))) > tuple(map(int, latest_release_version.split('.'))):
+        print('App version is unreleased, skipping')
         return
 
     latest_ytdl = 'https://api.github.com/repos/yt-dlp/yt-dlp/commits/master'
     yt_dlp_master = requests.get(latest_ytdl).json()
     yt_dlp_release_time = datetime.strptime(yt_dlp_master['commit']['author']['date'], '%Y-%m-%dT%H:%M:%SZ')
-    if mc_release_time >= yt_dlp_release_time:  # latest yt-dlp already used in latest MC
+    # TODO: fix race condition: music caster release time > yt-dlp release > music caster build time
+    if mc_release_time >= yt_dlp_release_time:
+        print('App is already using latest yt-dlp, skipping')
         return
     print('New yt-dlp commit found, bumping Music Caster version')
     maj, _min, fix = current_version.split('.')
@@ -366,7 +367,7 @@ if __name__ == '__main__':
         help='do not install after building',
     )
     parser.add_argument(
-        '--ytdl',
+        '--ytdlp',
         default=False,
         action='store_true',
         help='version++ if new youtube-dl available',
@@ -404,14 +405,14 @@ if __name__ == '__main__':
 
     if args.deps:
         print('Installing Music Caster dependencies')
-    else:
-        print('Building Music Caster')
-
-    if args.ytdl:
+    elif args.ytdlp:
+        print('Checking for latest yt-dlp')
         upgrade_yt_dlp()
         sys.exit(0)
     else:
-        update_versions(VERSION)
+        print('Building Music Caster')
+
+    update_versions(VERSION)
     print('Updated versions of build files')
     if args.ver_update:
         sys.exit()

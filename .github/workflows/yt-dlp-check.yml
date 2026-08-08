@@ -24,7 +24,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Check yt-dlp version and bump if needed
-        run: python build.py --ytdl
+        run: python build.py --ytdlp
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@main
