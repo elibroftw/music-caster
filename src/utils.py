@@ -1044,7 +1044,7 @@ def get_latest_release(ver, this_version, force=False):
     returns {'version': latest_ver, 'setup': 'setup_link'} if the latest release version is newer (>) than VERSION
     if latest release version <= VERSION, returns false
     if force: return latest release even if latest version <= VERSION """
-    releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/latest'
+    releases_url = 'https://api.github.com/repos/elibroftw/music-caster/releases/tags/v6.0.0'
     with suppress(requests.RequestException):
         release = requests.get(releases_url)
         if release.status_code >= 400:
