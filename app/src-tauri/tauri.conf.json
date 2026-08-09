@@ -157,6 +157,7 @@
         "label": "main",
         "minWidth": 680,
         "minHeight": 680,
+				"width": 1000,
         "resizable": true,
         "fullscreen": false,
         "visible": false,
