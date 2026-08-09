@@ -45,6 +45,8 @@ REQUIREMENTS_DEV_FILE = script_dir / 'requirements-dev.txt'
 SRC_FRONTEND = script_dir / 'src-frontend'
 TAURI_CONF_FILE = script_dir / 'app' / 'src-tauri' / 'tauri.conf.json'
 CHANGELOG_VERSION_RE = re.compile(r'^\d+\.\d+\.\d+')
+# the release body is shown verbatim in the in-app update notification, which is a small toast
+MAX_RELEASE_NOTES = 5
 
 IS_VENV = sys.prefix != sys.base_prefix
 
@@ -147,7 +149,8 @@ def parse_changelog():
 def get_release_notes(version):
     """Return the release body for `version`: its changes chained with those of the versions
     below it, down to and including the last x.y.0 release (matches how add_new_changes builds
-    on top of the previous release's body), de-duplicated and sorted"""
+    on top of the previous release's body), de-duplicated, sorted, and capped at
+    MAX_RELEASE_NOTES entries"""
     changelog = parse_changelog()
     if not changelog.get(version):
         raise ValueError(f'CHANGELOG.txt has no changes for {version}')
@@ -157,7 +160,8 @@ def get_release_notes(version):
         changes.update(changelog[changelog_version])
         if changelog_version.endswith('.0'):
             break
-    return '\n'.join(sorted(changes, key=lambda item: item.casefold()))
+    notes = sorted(changes, key=lambda item: item.casefold())
+    return '\n'.join(notes[:MAX_RELEASE_NOTES])
 
 
 def add_new_changes(prev_changes: str):

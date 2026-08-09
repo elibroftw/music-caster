@@ -201,7 +201,7 @@ export default function () {
 						title: t('updateAvailable', { v: update.version }),
 						color,
 						message: <>
-							<Text style={{ whiteSpace: 'pre-wrap' }}>{update.body}</Text>
+							<pre>{update.body}</pre>
 							<Button color={color} style={{ width: '100%' }} onClick={() => installUpdate(update)}>{t('installAndRelaunch')}</Button>
 						</>,
 						autoClose: false
