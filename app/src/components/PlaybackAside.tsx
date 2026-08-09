@@ -218,11 +218,7 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			}
 		};
 
-		if (playerState?.file_name) {
-			fetchAlbumArt();
-		} else {
-			setAlbumArtUrl(null);
-		}
+		fetchAlbumArt();
 	}, [playerState?.file_name]);
 
 	const handlePlayPause = async () => {
@@ -487,7 +483,9 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 
 			<Stack h='100%' justify='space-between'>
 				<Group align='flex-start' gap='xs' wrap='nowrap'>
-					<Paper p='md' style={{ flex: 1, minWidth: '250px' }}>
+					{/* minWidth 0 (not the flex default of auto) so this can shrink below its content size --
+					    at high DPI the whole viewport can be ~400px, and the album art scales with it */}
+					<Paper p='md' style={{ flex: 1, minWidth: 0 }}>
 						<Stack gap='md'>
 							<Box
 								style={{

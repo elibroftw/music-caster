@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.0.3
+- [Fix] Missing UI
+
 6.0.2
 - [Fix] Missing sidebar
 - [Fix] Empty queue UI

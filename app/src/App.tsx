@@ -16,7 +16,7 @@ import { ImCross } from 'react-icons/im';
 import classes from './App.module.css';
 import MusicCasterAPI, { PlayerState } from './common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from './common/contexts';
-import { useLocalForage } from './common/utils';
+import { IS_DEVELOPMENT, useLocalForage } from './common/utils';
 import PlaybackAside from './components/PlaybackAside';
 import SettingsModal from './components/SettingsModal';
 import { useTauriContext } from './tauri/TauriProvider';
@@ -276,10 +276,11 @@ export default function () {
 				<AppShell padding='md'
 					header={{ height: 0 }}
 					footer={{ height: showFooter ? 60 : 0 }}
-					// never collapse the aside: it holds the playback controls and there's no burger to restore it.
-					// a narrow viewport (high DPI scaling, restored window state) shrinks Main instead, and 320
-					// is a floor here -- PlaybackAside's content has its own 250px min-width plus the p='md'.
-					aside={{ width: 320, breakpoint: 'md', collapsed: { desktop: false, mobile: false } }}
+					// breakpoint 0 removes the "mobile" range entirely, so the aside keeps its width and Main
+					// keeps its matching offset at every viewport size. it holds the playback controls and there
+					// is no burger to restore it, and Mantine's mobile aside is a full-width overlay that would
+					// bury Main. narrow viewports (high DPI scaling, restored window state) shrink Main instead.
+					aside={{ width: 320, breakpoint: 0, collapsed: { desktop: false, mobile: false } }}
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
@@ -288,7 +289,7 @@ export default function () {
 								<Tabs.List>
 									<Tabs.Tab value='queue'>Queue</Tabs.Tab>
 									<Tabs.Tab value='library'>Music Library</Tabs.Tab>
-									<Tabs.Tab value='dev'>Developer</Tabs.Tab>
+									{IS_DEVELOPMENT && <Tabs.Tab value='dev'>Developer</Tabs.Tab>}
 								</Tabs.List>
 								<Tabs.Panel value='queue' pt='md'>
 									<Queue />
