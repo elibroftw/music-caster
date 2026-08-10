@@ -4,6 +4,7 @@ import { useContext, useEffect, useMemo, useRef } from 'react';
 import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
+import { formatTime } from '../common/utils';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './Queue.module.css';
@@ -63,7 +64,10 @@ export default function Queue() {
 						<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right' }}>
 							{index - queuePosition}
 						</Text>
-						<Text size='sm' fw={500}>{track[1]}</Text>
+						<Text size='sm' fw={500} style={{ flex: 1, minWidth: 0 }}>{track[1]}</Text>
+						<Text size='sm' c='dimmed'>
+							{track[2] == null ? '' : formatTime(track[2])}
+						</Text>
 					</Flex>
 				</Paper>));
 		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown]);

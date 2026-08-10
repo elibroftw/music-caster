@@ -1143,13 +1143,18 @@ if __name__ == '__main__':
         return jsonify(now_playing)
 
 
+    # Returns UI strings; The data cannot be processed further
     def get_queue_for_frontend() -> list:
         try:
             tracks = []
             for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
                 for uri in items:
                     formatted_track = format_uri(uri, _for='queue')
-                    tracks.append((uri, formatted_track))
+                    length = None
+                    # uncached tracks have no known length; the frontend just omits it
+                    with suppress(KeyError):
+                        length = get_uri_metadata(uri, read_file=False).get('length')
+                    tracks.append((uri, formatted_track, length))
             return tracks
         except RuntimeError:
             return get_queue_for_frontend()

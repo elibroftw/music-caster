@@ -104,7 +104,7 @@ pub struct PlayerStatus {
   pub track_position: f64,
   pub track_length: f64,
   pub queue_length: i32,
-  pub queue: Vec<(String, String)>,
+  pub queue: Vec<QueueTrack>,
   pub queue_position: i32,
   pub file_name: String,
   // older daemons do not report these, so fall back to the defaults instead of failing the parse
@@ -112,6 +112,27 @@ pub struct PlayerStatus {
   pub shuffle: bool,
   #[serde(default)]
   pub repeat: RepeatMode,
+}
+
+/// a queue entry as `[uri, formatted title, length in seconds]`; the length is
+/// null when the track has not been scanned yet, and absent entirely on older
+/// daemons, which report a two element entry
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct QueueTrack(pub String, pub String, pub Option<f64>);
+
+impl<'de> Deserialize<'de> for QueueTrack {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Repr {
+      WithLength(String, String, Option<f64>),
+      Legacy(String, String),
+    }
+    Ok(match Repr::deserialize(deserializer)? {
+      Repr::WithLength(uri, title, length) => QueueTrack(uri, title, length),
+      Repr::Legacy(uri, title) => QueueTrack(uri, title, None),
+    })
+  }
 }
 
 pub type PlayerState = RwLock<PlayerStatus>;
@@ -691,7 +712,7 @@ async fn refresh_player_state(app_handle: &tauri::AppHandle) {
 }
 
 pub async fn poll_player_state(app_handle: tauri::AppHandle) {
-  let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+  let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
   // devices change far less often than playback state, so only poll them every 5s
   const DEVICE_POLL_EVERY: u64 = 10;
   let mut ticks: u64 = 0;
