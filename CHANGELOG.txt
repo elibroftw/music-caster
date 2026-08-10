@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.0.5
+- [Feat] Track length in queue
+
 6.0.4
 - [Fix] Changelog UI
 
