@@ -283,6 +283,157 @@ jobs:
             app/src-tauri/target/release/bundle/deb/*.deb
             app/src-tauri/target/release/bundle/AppImage/*.AppImage
 
+  build-rpm:
+    runs-on: ubuntu-latest
+    # pinned: the RPM runs on this glibc and newer, not older
+    container: fedora:43
+    env:
+      TARGET_TRIPLE: x86_64-unknown-linux-gnu
+      # promoted to job env so the signing steps can test for their presence:
+      # the secrets context is not available in a step-level `if`
+      RPM_GPG_PRIVATE_KEY: ${{ secrets.RPM_GPG_PRIVATE_KEY }}
+      RPM_GPG_PASSPHRASE: ${{ secrets.RPM_GPG_PASSPHRASE }}
+    steps:
+      # git is needed before checkout; tar/xz/which by actions/setup-node
+      - name: Install system dependencies
+        run: |
+          set -eux
+          dnf install -y \
+            git tar xz gzip findutils which \
+            gcc gcc-c++ make \
+            openssl-devel \
+            curl wget file \
+            webkit2gtk4.1-devel \
+            gtk3-devel \
+            libsoup3-devel \
+            librsvg2-devel \
+            libappindicator-gtk3-devel \
+            rpm-build rpmdevtools \
+            python3 python3-pip python3-devel python3-tkinter \
+            portaudio-devel \
+            patchelf \
+            desktop-file-utils
+
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './app/src-tauri -> target'
+          key: fedora-rpm
+
+      # the daemon must exist before the Tauri build picks it up as externalBin
+      - name: Set up venv and install Python dependencies
+        run: |
+          set -eux
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install --upgrade-strategy eager -r requirements.txt -r requirements-dev.txt
+
+      - name: Build Music Caster daemon
+        run: |
+          set -eux
+          .venv/bin/python build.py --ci --no-install --target "$TARGET_TRIPLE"
+          # fail here instead of as a confusing missing externalBin later
+          test -x "dist/music-caster-daemon-${TARGET_TRIPLE}"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@master
+        with:
+          package_json_file: "app/package.json"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@main
+        with:
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+          node-version-file: app/.nvmrc
+
+      - name: Install frontend dependencies
+        run: |
+          cd app
+          pnpm install
+
+      - name: Build RPM
+        run: |
+          set -eux
+          cd app
+          # rpm only; the other tauri.conf.json targets belong to the release job
+          pnpm tauri build --bundles rpm --target "$TARGET_TRIPLE"
+
+      - name: Inspect the built RPM
+        run: |
+          set -eux
+          rpm_path=$(find "app/src-tauri/target/${TARGET_TRIPLE}/release/bundle/rpm" -name '*.rpm' | head -n1)
+          test -n "$rpm_path"
+          echo "RPM_PATH=$rpm_path" >> "$GITHUB_ENV"
+          echo "--- metadata ---"; rpm -qip "$rpm_path"
+          echo "--- requires ---"; rpm -qpR "$rpm_path"
+          echo "--- payload ---";  rpm -qlp "$rpm_path"
+
+      # Tauri has no RPM signing support, so sign with rpmsign after bundling.
+      - name: Sign RPM
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
+        run: |
+          set -eu
+          dnf install -y rpm-sign gnupg2
+          printf '%s' "$RPM_GPG_PRIVATE_KEY" | gpg --batch --import
+          key_id=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec:/ {print $5; exit}')
+          test -n "$key_id"
+          pass_file=$(mktemp)
+          printf '%s' "${RPM_GPG_PASSPHRASE:-}" > "$pass_file"
+          # rpmsign shells out to gpg, which needs loopback pinentry to take a
+          # passphrase without a tty
+          rpmsign --addsign \
+            --define "_gpg_name $key_id" \
+            --define "__gpg_sign_cmd %{__gpg} gpg --batch --no-verbose --no-armor --pinentry-mode loopback --passphrase-file $pass_file --no-secmem-warning -u %{_gpg_name} -sbo %{__signature_filename} --digest-algo sha256 %{__plaintext_filename}" \
+            "$RPM_PATH"
+          shred -u "$pass_file"
+          # export the public key for the repo's gpgkey=
+          gpg --armor --export "$key_id" > RPM-GPG-KEY-music-caster
+          echo 'SIGNED=true' >> "$GITHUB_ENV"
+
+      - name: Verify the RPM signature
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
+        run: |
+          set -eux
+          rpm --import RPM-GPG-KEY-music-caster
+          # --checksig reports NOKEY/NOT OK unless the signature verifies
+          rpm --checksig -v "$RPM_PATH" | tee /dev/stderr | grep -qi 'Signature.*OK\|pgp.*OK'
+
+      # catches an unsatisfiable dependency, a missing sidecar or a bad .desktop.
+      # gpgcheck is on so this also proves the signature satisfies dnf itself.
+      - name: Verify the RPM installs
+        run: |
+          set -eux
+          dnf install -y --setopt=localpkg_gpgcheck="${SIGNED:-false}" "$RPM_PATH"
+          rpm -ql music-caster | grep -i 'music-caster-daemon' \
+            || { echo "::error::daemon sidecar is missing from the RPM"; exit 1; }
+          for desktop in /usr/share/applications/*[Mm]usic*[Cc]aster*.desktop; do
+            desktop-file-validate "$desktop"
+          done
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@main
+        with:
+          name: Music Caster Fedora RPM
+          path: app/src-tauri/target/${{ env.TARGET_TRIPLE }}/release/bundle/rpm/*.rpm
+          if-no-files-found: error
+
+      # separate artifact: this is the same key every run and belongs at the
+      # repo's gpgkey= URL, not attached to each GitHub release
+      - name: Upload public key
+        if: ${{ env.RPM_GPG_PRIVATE_KEY != '' }}
+        uses: actions/upload-artifact@main
+        with:
+          name: RPM GPG public key
+          path: RPM-GPG-KEY-music-caster
+          if-no-files-found: error
+
   # Sign the Tauri-built MSI (and the NSIS installer, which ships alongside it)
   # on a Linux runner. sign_updater regenerates the Tauri updater *.msi.sig over
   # the Authenticode-signed MSI (the .sig tauri-action produced covers the
@@ -320,8 +471,13 @@ jobs:
   # release; the tag is created by `gh release create` at the commit that was built.
   publish-release:
     runs-on: ubuntu-latest
-    needs: [changelog, merge-windows-artifacts]
-    if: ${{ github.ref == 'refs/heads/master' && needs.changelog.outputs.should_release == 'true' }}
+    needs: [changelog, merge-windows-artifacts, build-rpm]
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/master'
+      && needs.changelog.result == 'success'
+      && needs.changelog.outputs.should_release == 'true'
+      && needs.merge-windows-artifacts.result == 'success' }}
     permissions:
       contents: write
     steps:
@@ -330,6 +486,18 @@ jobs:
         with:
           name: Music Caster Windows Installers
           path: release-assets
+
+      - name: Download Fedora RPM
+        if: ${{ needs.build-rpm.result == 'success' }}
+        uses: actions/download-artifact@main
+        with:
+          name: Music Caster Fedora RPM
+          path: release-assets
+
+      - name: Warn that the Fedora RPM is missing
+        if: ${{ needs.build-rpm.result != 'success' }}
+        run: |
+          echo "::warning::build-rpm result was '${{ needs.build-rpm.result }}'; publishing this release WITHOUT the Fedora RPM"
 
       - name: Publish release
         env:

@@ -2,8 +2,11 @@ import FreeSimpleGUI as Sg
 import platform
 from .views import *
 import ctypes
-import ctypes.wintypes
 import sys
+
+if platform.system() == 'Windows':
+    # importing ctypes.wintypes raises ValueError on non-Windows platforms
+    import ctypes.wintypes
 
 ALT_KEY, EXTENDED_KEY, KEY_UP = 0x12, 0x0001, 0x0002
 
@@ -24,8 +27,18 @@ def focus_window(window: Sg.Window, is_frozen=getattr(sys, 'frozen', False)):
             window.normal()
         window.force_focus()
     else:
+        # Linux/macOS: window managers implement focus-stealing prevention, so
+        # deiconify first and briefly mark the window topmost to actually raise it
+        root = window.TKroot
+        if root.state() in {'iconic', 'withdrawn'}:
+            window.normal()
+        root.deiconify()
+        root.lift()
+        root.attributes('-topmost', True)
+        # release topmost on the next event loop iteration so the window does not
+        # stay pinned above everything else
+        root.after(100, lambda: root.attributes('-topmost', False))
         window.force_focus()
-        window.bring_to_front()
 
 
 def window_is_foreground(window: Sg.Window):

@@ -246,6 +246,7 @@ if __name__ == '__main__':
 
     from b64_images import PAUSE_BUTTON_IMG, PLAY_BUTTON_IMG, SHUFFLE_OFF, SHUFFLE_ON, VOLUME_IMG, VOLUME_MUTED_IMG, WINDOW_ICON, DEFAULT_ART
     from audio_player import AudioPlayer
+    from modules import linux
     from modules.win32_media_controls import SystemMediaTransportControlsButton # SystemMediaControls
     from mutagen._util import MutagenError
     from modules.playing_status import PlayingStatus
@@ -285,7 +286,6 @@ if __name__ == '__main__':
         get_deezer_tracks,
         get_ipv6,
         cmd_exists,
-        add_reg_handlers,
         get_latest_release,
         rm_old_startup_shortcuts,
         start_on_login_win32,
@@ -301,7 +301,7 @@ if __name__ == '__main__':
         get_audio_length,
         get_spotify_tracks,
     )
-    from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, is_plugged_in, get_initial_dpi_scale
+    from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, get_current_res, is_plugged_in, get_initial_dpi_scale
     get_initial_dpi_scale()
     from gui import MainWindow, MiniPlayerWindow, focus_window
     import FreeSimpleGUI as Sg
@@ -398,6 +398,13 @@ if __name__ == '__main__':
                     return Path(possible_path)
             except Exception as e:
                 handle_exception(e)
+        elif platform.system() == 'Linux':
+            # XDG counterpart of SHGetKnownFolderPath: the folder is user
+            # configurable and localized, so ~/Downloads is only a fallback
+            try:
+                return linux.get_xdg_user_dir('DOWNLOAD')
+            except Exception as e:
+                handle_exception(e)
         return Path.home() / 'Downloads'
 
 
@@ -414,6 +421,11 @@ if __name__ == '__main__':
             from knownpaths import sh_get_known_folder_path, FOLDERID
             try:
                 return sh_get_known_folder_path(FOLDERID.Music)
+            except Exception as e:
+                handle_exception(e)
+        elif platform.system() == 'Linux':
+            try:
+                return str(linux.get_xdg_user_dir('MUSIC'))
             except Exception as e:
                 handle_exception(e)
         return str(Path.home() / 'Music')
@@ -453,6 +465,28 @@ if __name__ == '__main__':
     def get_line_number():
         cf = currentframe()
         return cf.f_back.f_lineno
+
+
+    # ES_CONTINUOUS keeps the state until it is changed again,
+    # ES_SYSTEM_REQUIRED stops the machine from going to sleep on its own
+    ES_CONTINUOUS, ES_SYSTEM_REQUIRED = 0x80000000, 0x00000001
+
+
+    def prevent_sleep():
+        """ Stop the system from sleeping while audio is playing """
+        if platform.system() == 'Windows':
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+        elif platform.system() == 'Linux':
+            # a systemd-logind inhibitor lock is the SetThreadExecutionState equivalent
+            linux.prevent_sleep('Music Caster is playing audio')
+
+
+    def allow_sleep():
+        """ Undo prevent_sleep(): let the system sleep again """
+        if platform.system() == 'Windows':
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+        elif platform.system() == 'Linux':
+            linux.allow_sleep()
 
 
     def tray_notify(message, title='Music Caster', context=''):
@@ -1955,10 +1989,9 @@ if __name__ == '__main__':
 
     def after_play(title, artists: str, album, autoplay, switching_device):
         app_log.info(f'autoplay={autoplay}, switching_device={switching_device}')
-        # prevent Windows from going to sleep
+        # prevent the system from going to sleep
         if autoplay:
-            if platform.system() == 'Windows':
-                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+            prevent_sleep()
             if settings['notifications'] and not switching_device and gui_window.is_closed():
                 # artists is comma separated string
                 tray_notify(t('Playing') + f': {get_first_artist(artists)} - {title}')
@@ -2011,7 +2044,10 @@ if __name__ == '__main__':
             album = 'Music Caster'
             metadata = {'metadataType': 3, 'albumName': album, 'title': title, 'artist': artist}
             url_metadata['SYSTEM_AUDIO'] = {'artist': artist, 'title': title, 'album': album}
-            sar.start()  # start recording system audio BEFORE the first request for data
+            # start recording system audio BEFORE the first request for data
+            if not sar.start():
+                tray_notify(t('ERROR') + ': ' + t('Could not find an output device to record'))
+                return False
             api_key = settings['api_key']
             url = f'http://{get_ipv4()}:{State.PORT}/system-audio/?api_key={api_key}'
             mc.play_media(url, 'audio/wav', metadata=metadata, thumb=f'{url}/thumb', stream_type='LIVE')
@@ -2623,7 +2659,11 @@ if __name__ == '__main__':
             initial_folder = get_default_music_folder()
         _root = tkinter.Tk()
         _root.withdraw()
-        if platform.system() != 'Linux':
+        if platform.system() == 'Linux':
+            # Tk on X11 cannot read .ico files; iconphoto takes a PhotoImage
+            with suppress(TclError):
+                _root.iconphoto(True, tkinter.PhotoImage(data=WINDOW_ICON))
+        else:
             _root.iconbitmap(WINDOW_ICON)
         if for_dir:
             paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
@@ -2718,8 +2758,7 @@ if __name__ == '__main__':
         global track_position, LAST_PLAYED
         app_log.info(f'pause({source}), playing status = {playing_status}')
         if playing_status.playing():
-            if platform.system() == 'Windows':
-                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+            allow_sleep()
             try:
                 if cast is None:
                     track_position = time.monotonic() - track_start
@@ -2789,8 +2828,7 @@ if __name__ == '__main__':
                 metadata = get_current_metadata()
                 title, artist = metadata['title'], get_first_artist(metadata['artist'])
                 DiscordPresence.update(t('By') + f': {artist}',title, t('Listening'), confirm_connect=settings['discord_rpc'])
-                if platform.system() == 'Windows':
-                    ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+                prevent_sleep()
                 if not gui_window.is_closed():
                     daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
@@ -2809,10 +2847,9 @@ if __name__ == '__main__':
         """
         global track_start, track_end, track_position, track_length, playing_url
         app_log.info(f'stopped from {stopped_from}, stop_cast={stop_cast}')
-        # allow Windows to go to sleep
-        if platform.system() == 'Windows':
-            # system_media_controls.set_stopped()
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+        # allow the system to go to sleep
+        # system_media_controls.set_stopped()
+        allow_sleep()
         playing_status.stop()
         sar.alive = playing_url = False
         DiscordPresence.clear(settings['discord_rpc'])
@@ -3138,7 +3175,6 @@ if __name__ == '__main__':
         """
         global SYNC_WITH_CHROMECAST
 
-        import pynput.keyboard
         global track_position, track_start, track_end
         app_log.info('start')
 
@@ -3150,11 +3186,6 @@ if __name__ == '__main__':
         ) and not args.nupdate
         update_checker.auto_update(install_update=install_update)
         State.installing_update = False
-        if not USING_TAURI_FRONTEND:
-            start_on_login_modifications()
-            p = pynput.keyboard.Listener(on_press=on_press, on_release=lambda key: PRESSED_KEYS.discard(str(key)))
-            p.name = 'pynputListener'
-            p.start()
         # Media key / global shortcut handling is now done by the Tauri frontend,
         # which forwards actions to the daemon via the HTTP API (see /action/<command>).
         while True:
@@ -3194,28 +3225,6 @@ if __name__ == '__main__':
             case SystemMediaTransportControlsButton.PREVIOUS:
                 print('previous')
 
-    def on_press(key):
-        key = str(key)
-        PRESSED_KEYS.add(key)
-        valid_shortcut = len(PRESSED_KEYS) == 4 and "'m'" in PRESSED_KEYS
-        ctrl_clicked = 'Key.ctrl_l' in PRESSED_KEYS or 'Key.ctrl_r' in PRESSED_KEYS
-        shift_clicked = 'Key.shift' in PRESSED_KEYS or 'Key.shift_r' in PRESSED_KEYS
-        alt_clicked = 'Key.alt_l' in PRESSED_KEYS or 'Key.alt_r' in PRESSED_KEYS
-        # Ctrl + Alt + Shift + M open up main window
-        if valid_shortcut and ctrl_clicked and shift_clicked and alt_clicked:
-            daemon_commands.put('__ACTIVATED__')
-        if key not in {'<179>', '<176>', '<177>', '<178>'}:
-            return
-        app_log.info(f'valid key press: {key}')
-        if key == '<179>' and not pause():
-            resume('keyboard')
-        elif key == '<176>' and playing_status.busy():
-            next_track()
-        elif key == '<177>' and playing_status.busy():
-            prev_track()
-        elif key == '<178>':
-            stop('keyboard shortcut')
-
     def get_window_location():
         if not settings['save_window_positions']:
             return None, None
@@ -3225,11 +3234,18 @@ if __name__ == '__main__':
         w, h = settings['window_locations'].get(key, (None, None))
         if w is None or h is None:
             return None, None
-        # clamp window size to screen size
+        # clamp window position to the virtual screen spanning all monitors
         if platform.system() == 'Windows':
             from win32api import GetSystemMetrics
-            w = max(0, min(w, GetSystemMetrics(78) - 500))
-            h = max(0, min(h, GetSystemMetrics(79) - 500))
+            # SM_CXVIRTUALSCREEN / SM_CYVIRTUALSCREEN
+            virtual_size = (GetSystemMetrics(78), GetSystemMetrics(79))
+        elif platform.system() == 'Linux':
+            virtual_size = linux.get_virtual_screen_size()
+        else:
+            virtual_size = None
+        if virtual_size is not None and all(virtual_size):
+            w = max(0, min(w, virtual_size[0] - 500))
+            h = max(0, min(h, virtual_size[1] - 500))
         return w, h
 
 
@@ -3516,15 +3532,11 @@ if __name__ == '__main__':
                 if platform.system() == 'Windows':
                     Popen(f'explorer /select,"{fix_path(uri)}"')
                 elif platform.system() == 'Linux':
-                    try:
-                        Popen(['nautilus', uri])
-                    except FileNotFoundError:
-                        try:
-                            # fallback 1
-                            Popen(['dolphin', uri])
-                        except FileNotFoundError:
-                            # fallback 2
-                            Popen(['xdg-open', Path(uri).parent])
+                    # freedesktop FileManager1 selects the file like explorer
+                    # /select, and falls back to opening the parent directory
+                    linux.show_in_file_manager(uri)
+                else:
+                    startfile(Path(uri).parent)
                 return True
         # tray_notify(gt('ERROR') + ':' + gt('Could not locate URI'))
         return False
@@ -4032,7 +4044,8 @@ if __name__ == '__main__':
                 startfile(changelog_path)
         elif main_event == 'music_folders':
             with suppress(IndexError):
-                Popen(f'explorer "{fix_path(main_values["music_folders"][0])}"')
+                # startfile dispatches to explorer / open / xdg-open
+                startfile(fix_path(main_values['music_folders'][0]))
         # url tab
         elif main_event == 'url_input':
             gui_window.metadata['url_input'] = main_value
@@ -4540,10 +4553,7 @@ if __name__ == '__main__':
         # show important information regardless of notification settings
         update_settings('update_message', UPDATE_MESSAGE)
 
-        # set file handlers only if installed from the setup (Not a portable installation)
-        if os.path.exists(UNINSTALLER) and not USING_TAURI_FRONTEND:
-            with suppress(PermissionError):
-                add_reg_handlers(working_dir / 'Music Caster.exe', add_folder_context=settings['folder_context_menu'])
+        # file type and URL protocol handlers are registered by the Tauri installer
 
         # remove any existing installer file we might've already run (exe and msi variants)
         for _installer in (get_installer_path(), get_installer_path(extension='msi')):
@@ -4671,6 +4681,9 @@ if __name__ == '__main__':
         app_log.debug(f'Time to start (excluding imports) is {TIME_TO_START:.2f} seconds')
         app_log.debug(f'Time to start (including imports) is {TIME_TO_START + TIME_TO_IMPORT:.2f} seconds')
         last_position_save = time.monotonic()
+        # how often to re-check whether the display mode should follow the power source
+        RES_CHECK_INTERVAL = 2
+        next_res_check = 0
 
         # health check
         if is_debug():
@@ -4689,16 +4702,27 @@ if __name__ == '__main__':
                 timer = 0
                 # use lock to prevent corrupting settings
                 with settings_file_lock:
+                    # systemd/logind is the Linux counterpart of shutdown /p /f
+                    # and rundll32 powrprof.dll,SetSuspendState
                     if settings['timer_shut_down']:  # shutdown computer
-                        os.system('shutdown /p /f') if platform.system() == 'Windows' else os.system('shutdown -h now')
+                        if platform.system() == 'Windows':
+                            os.system('shutdown /p /f')
+                        elif platform.system() == 'Linux':
+                            linux.shut_down()
+                        else:
+                            os.system('shutdown -h now')
                     elif settings['timer_hibernate']:  # hibernate computer
                         if platform.system() == 'Windows':
                             os.system(
                                 r'rundll32.exe powrprof.dll,SetSuspendState Hibernate'
                             )
+                        elif platform.system() == 'Linux':
+                            linux.hibernate()
                     elif settings['timer_sleep']:  # sleep computer
                         if platform.system() == 'Windows':
                             os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+                        elif platform.system() == 'Linux':
+                            linux.sleep_computer()
             # if settings.json was updated outside of Music Caster, reload settings
             try:
                 if os.path.getmtime(SETTINGS_FILE) != settings_last_modified:
@@ -4708,27 +4732,35 @@ if __name__ == '__main__':
             if settings['persistent_queue'] and time.monotonic() - last_position_save > 2.5:
                 update_settings('position', get_track_position())
                 last_position_save = time.monotonic()
-            if platform.system() == 'Windows' and None not in (settings['on_battery_res'], settings['plugged_in_res']):
-                if settings['on_battery_res'] != settings['plugged_in_res']:
+            # Linux resolution switching only works under X11 (xrandr); on Wayland
+            # get_all_resolutions() is empty and this block is skipped entirely
+            if (platform.system() in {'Windows', 'Linux'}
+                    and time.monotonic() > next_res_check
+                    and None not in (settings['on_battery_res'], settings['plugged_in_res'])):
+                # reading the current mode costs an xrandr call on Linux, so poll
+                # on a timer rather than on every iteration of this loop
+                next_res_check = time.monotonic() + RES_CHECK_INTERVAL
+                res_map = get_all_resolutions()
+                # an empty map means the platform gives us no mode control
+                if res_map and settings['on_battery_res'] != settings['plugged_in_res']:
                     try:
-                        user32 = ctypes.windll.user32
-                        res_map = get_all_resolutions()
+                        current_width = get_current_res()[0]
                         refresh_rate = None
                         if is_plugged_in(throw_error=False):
                             res_info = res_map[fmt_res(*settings['plugged_in_res'])]
                             # check if res differs from desireed res
-                            if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['plugged_in_res'][0]:
+                            if current_width * res_info['dpi_scale'] != settings['plugged_in_res'][0]:
                                 refresh_rate = max(get_all_refresh_rates())
                         else:  # on battery
                             res_info = res_map[fmt_res(*settings['on_battery_res'])]
                             # check if res differs from desireed res
-                            if user32.GetSystemMetrics(0) * res_info['dpi_scale'] != settings['on_battery_res'][0]:
+                            if current_width * res_info['dpi_scale'] != settings['on_battery_res'][0]:
                                 refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
                         # res differs from desired res
                         if refresh_rate is not None:
                             set_resolution(res_info['w'], res_info['h'], res_info['dpi_scale'], refresh_rate=refresh_rate)
                             refresh_tray_icon()
-                    except KeyError:
+                    except (KeyError, TypeError, ValueError):
                         update_settings('plugged_in_res', get_initial_res())
                         update_settings('on_battery_res', get_initial_res())
                         tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))

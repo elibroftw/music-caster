@@ -9,11 +9,19 @@ import platform
 CONF['distpath'] = './dist' # type: ignore
 # CONF['workpath'] = './build'
 block_cipher = None
+# pystray picks its backend dynamically at import time, so the one for this host
+# has to be named explicitly or it will not be collected
+if platform.system() == 'Windows':
+    PYSTRAY_BACKENDS = ['pystray._win32']
+elif platform.system() == 'Darwin':
+    PYSTRAY_BACKENDS = ['pystray._darwin']
+else:
+    PYSTRAY_BACKENDS = ['pystray._appindicator', 'pystray._gtk', 'pystray._xorg']
 a = Analysis([f'{os.getcwd()}/src/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
              datas=[('../CHANGELOG.TXT', '.')],
-             hiddenimports=['pystray._win32', 'zeroconf._utils.ipaddress', 'zeroconf._handlers.answers'],
+             hiddenimports=[*PYSTRAY_BACKENDS, 'zeroconf._utils.ipaddress', 'zeroconf._handlers.answers'],
              hookspath=[],
              runtime_hooks=[],
              excludes=['crypto', 'cryptography', 'pycryptodome', 'pandas', 'gevent',

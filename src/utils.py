@@ -27,7 +27,7 @@ from math import floor
 from pathlib import Path
 from queue import Empty, LifoQueue
 from random import getrandbits
-from subprocess import DEVNULL, PIPE, CalledProcessError, Popen, check_output
+from subprocess import CalledProcessError, Popen, check_output
 from threading import Lock, Thread
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import getnode
@@ -48,7 +48,8 @@ import mutagen.id3
 import pyaudio
 import pypresence
 import requests
-from meta import AUDIO_EXTS, AUDIO_HANDLER_EXTS, COVER_NORMAL, USER_AGENT, State
+from meta import AUDIO_EXTS, COVER_NORMAL, USER_AGENT, State
+from modules import linux
 from mutagen._util import MutagenError
 from mutagen.aac import AAC
 from mutagen.id3._util import ID3NoHeaderError
@@ -72,6 +73,9 @@ SPOTIFY_API = 'https://api.spotify.com/v1'
 class SystemAudioRecorder:
 
     __slots__ = 'STREAM_CHUNK', 'BITS_PER_SAMPLE', 'pa', 'sample_rate', 'channels', 'alive', 'data_stream', 'lag'
+
+    # seconds between "did the default output device change?" polls
+    DEVICE_CHECK_INTERVAL = 1.0
 
     def __init__(self):
         self.STREAM_CHUNK = 1024
@@ -118,15 +122,23 @@ class SystemAudioRecorder:
         self.alive = True
         selected_device = get_default_output_device()
         stream = self.create_stream(selected_device)
+        next_device_check = time.monotonic() + self.DEVICE_CHECK_INTERVAL
         for chunk in iter(lambda: audioop.mul(stream.read(self.STREAM_CHUNK), 2, 2) if self.alive else None, None):
             self.data_stream.put(chunk)
-            default_output = get_default_output_device()  # check if output device has changed
+            # check if the output device has changed. a chunk is only ~21ms, and
+            # on Linux this spawns pactl, so poll on a timer instead of per chunk
+            if time.monotonic() < next_device_check:
+                continue
+            next_device_check = time.monotonic() + self.DEVICE_CHECK_INTERVAL
+            default_output = get_default_output_device()
             if selected_device != default_output:
                 selected_device = default_output
                 stream.close()
                 stream = self.create_stream(selected_device)
 
     def create_stream(self, output_device):
+        if platform.system() == 'Linux':
+            return self.create_stream_linux(output_device)
         for i in range(self.pa.get_device_count()):
             device_info = self.pa.get_device_info_by_index(i)
             host_api_info = self.pa.get_host_api_info_by_index(device_info['hostApi'])
@@ -138,6 +150,37 @@ class SystemAudioRecorder:
                                     input_device_index=device_info['index'], rate=self.sample_rate,
                                     frames_per_buffer=self.STREAM_CHUNK)
         raise RuntimeError('Default Output Device Not Found')
+
+    def create_stream_linux(self, output_device):
+        """
+        PulseAudio/PipeWire equivalent of a WASAPI loopback stream.
+
+        Every sink exposes a `<sink>.monitor` source carrying exactly what is
+        being played back, so instead of `as_loopback=True` we point PortAudio's
+        `pulse` device at that monitor via the PULSE_SOURCE environment variable
+        (PortAudio offers no API to select a Pulse source directly).
+        """
+        if output_device:
+            os.environ['PULSE_SOURCE'] = output_device
+        device_index = None
+        for i in range(self.pa.get_device_count()):
+            device_info = self.pa.get_device_info_by_index(i)
+            if device_info['maxInputChannels'] <= 0:
+                continue
+            if device_info['name'] == 'pulse':
+                device_index = i
+                break
+            if device_index is None and device_info['name'] == 'default':
+                # ALSA's `default` is routed through Pulse/PipeWire on Fedora too
+                device_index = i
+        if device_index is None:
+            raise RuntimeError('Default Output Device Not Found')
+        device_info = self.pa.get_device_info_by_index(device_index)
+        self.channels = min(int(device_info['maxInputChannels']), 2)
+        self.sample_rate = int(device_info['defaultSampleRate'])
+        return self.pa.open(format=pyaudio.paInt16, input=True, channels=self.channels,
+                            input_device_index=device_index, rate=self.sample_rate,
+                            frames_per_buffer=self.STREAM_CHUNK)
 
     def get_wav_header(self):
         data_size = 2000 * 10 ** 6
@@ -160,14 +203,22 @@ class SystemAudioRecorder:
         self.alive = False
 
     def start(self):
-        if platform.system() == 'Windows':
-            if not self.alive:
-                if self.pa is None:
-                    self.pa = pyaudio.PyAudio()
-                # initialization process takes ~0.2 seconds
-                Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
-        else:
-            print('TODO: SystemAudioRecorder')
+        """Returns True if recording started (or was already running)"""
+        if platform.system() not in {'Windows', 'Linux'}:
+            print('TODO: SystemAudioRecorder is not implemented for', platform.system())
+            return False
+        if platform.system() == 'Linux' and not linux.get_monitor_source():
+            # no PulseAudio/PipeWire monitor source == nothing to loop back
+            logging.getLogger('music_caster').warning(
+                'system audio recording needs a PulseAudio/PipeWire monitor source'
+            )
+            return False
+        if not self.alive:
+            if self.pa is None:
+                self.pa = pyaudio.PyAudio()
+            # initialization process takes ~0.2 seconds
+            Thread(target=self._start_recording, name='SystemAudioRecorder', daemon=True).start()
+        return True
 
 
 class InvalidAudioFile(Exception):
@@ -385,8 +436,20 @@ def get_display_lang():
     if platform.system() == 'Windows':
         kernal32 = ctypes.windll.kernel32
         return locale.windows_locale[kernal32.GetUserDefaultUILanguage()].split('_', 1)[0]
-    else:
-        return os.environ['LANG'].split('_', 1)[0]
+    # POSIX: honour the standard precedence. None of these are guaranteed to be
+    # set (a systemd/Wayland session may export none of them), so fall back to
+    # the C library's idea of the locale and finally to English.
+    for env_var in ('LC_ALL', 'LC_MESSAGES', 'LANG', 'LANGUAGE'):
+        value = os.environ.get(env_var, '')
+        # LANGUAGE is a colon separated priority list, the rest are single values
+        value = value.split(':', 1)[0].split('.', 1)[0].strip()
+        if value and value not in {'C', 'POSIX'}:
+            return value.split('_', 1)[0]
+    with suppress(Exception):
+        value = locale.setlocale(locale.LC_CTYPE)
+        if value and value not in {'C', 'POSIX'}:
+            return value.split('.', 1)[0].split('_', 1)[0]
+    return 'en'
 
 
 @lru_cache
@@ -699,13 +762,27 @@ def get_first_artist(artists: str) -> str: return artists.split(', ', 1)[0]
 def get_ipv6():
     # return next((i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None) if i[0] == socket.AF_INET6))
     if platform.system() == 'Linux':
-        for logical_name in os.listdir('/sys/class/net'):
-            cmd = f"ip addr show dev {logical_name} | awk '{{if ($1==\"inet6\") {{print $2}}}}'"
-            p = Popen(cmd, shell=True,
-                      stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
-            ip = p.stdout.readline().strip()
-            if ip != '':
-                return ip
+        # `ip -6 addr` gives us the addresses without shelling out to awk.
+        # scope global first: link-local addresses are useless to other hosts.
+        for scope in ('global', 'link'):
+            out = linux.run(['ip', '-6', '-oneline', 'addr', 'show', 'scope', scope])
+            for line in out.splitlines():
+                fields = line.split()
+                # e.g. "2: wlp0s20f3    inet6 2001:db8::1/64 scope global ..."
+                if 'inet6' not in fields:
+                    continue
+                # interface may carry an alias suffix, e.g. "lo:1"
+                interface = fields[1]
+                if interface.split(':', 1)[0] == 'lo':
+                    continue
+                # strip the /prefixlen suffix, the caller embeds this in a URL
+                ip = fields[fields.index('inet6') + 1].split('/', 1)[0]
+                if not ip:
+                    continue
+                if ip.startswith('fe80'):
+                    # link-local needs a zone id to be routable
+                    ip = f'{ip}%{interface}'
+                return f'[{ip}]'
     with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
         try:
             # doesn't even have to be reachable
@@ -847,120 +924,12 @@ def get_yt_urls(video_id):
 def is_os_64bit(): return platform.machine().endswith('64')
 
 
-def delete_sub_key(root, current_key):
-    import winreg as wr
-    access = wr.KEY_ALL_ACCESS | wr.KEY_WOW64_64KEY
-    with suppress(FileNotFoundError):
-        with wr.OpenKeyEx(root, current_key, 0, access) as parent_key:
-            info_key = wr.QueryInfoKey(parent_key)
-            for x in range(info_key[0]):
-                sub_key = wr.EnumKey(parent_key, x)
-                try:
-                    wr.DeleteKeyEx(parent_key, sub_key, access)
-                except OSError:
-                    delete_sub_key(root, '\\'.join([current_key, sub_key]))
-            wr.DeleteKeyEx(parent_key, '', access)
-
-
-def add_reg_handlers(path_to_exe, add_folder_context=True):
-    """ Register Music Caster as a program to open audio files and folders """
-    # https://docs.microsoft.com/en-us/visualstudio/extensibility/registering-verbs-for-file-name-extensions?view=vs-2019
-    import winreg as wr
-    classes_path = r'SOFTWARE\Classes'
-    mc_file = 'MusicCaster_file'
-    write_access = wr.KEY_WRITE | wr.KEY_WOW64_64KEY
-    read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY
-    path_to_exe = str(path_to_exe)
-    # create URL protocol handler
-    url_protocol = fr'{classes_path}\music-caster'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'URL:music-caster Protocol')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, url_protocol, 0, write_access) as key:
-        wr.SetValueEx(key, 'URL Protocol', 0, wr.REG_SZ, '')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{url_protocol}\DefaultIcon', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}"')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{url_protocol}\shell\open\command', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --urlprotocol "%1"')
-
-    # create Audio File type
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, 'Audio File')
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\DefaultIcon', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, path_to_exe)  # define icon location
-
-    # create play context | open handler
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\shell\open', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play with Music Caster'))
-        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    command_path = fr'{classes_path}\{mc_file}\shell\open\command'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
-
-    # create queue context
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\shell\queue', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Queue in Music Caster'))
-        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    command_path = fr'{classes_path}\{mc_file}\shell\queue\command'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
-
-    # create play next context
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{classes_path}\{mc_file}\shell\play_next', 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play next in Music Caster'))
-        wr.SetValueEx(key, 'MultiSelectModel', 0, wr.REG_SZ, 'Player')
-        wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-    command_path = fr'{classes_path}\{mc_file}\shell\play_next\command'
-    with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, command_path, 0, write_access) as key:
-        wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
-
-    # set file handlers
-    for ext in AUDIO_HANDLER_EXTS:
-        key_path = fr'{classes_path}\.{ext}'
-        try:  # check if key exists
-            with wr.OpenKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, read_access) as _:
-                pass
-        except (WindowsError, FileNotFoundError):
-            # create key for extension if it does not exist with MC as the default program
-            with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, key_path, 0, write_access) as key:
-                # set as default program unless .mp4 because that's a video format
-                wr.SetValueEx(key, None, 0, wr.REG_SZ, mc_file)
-        # add to Open With (prompts user to set default program when they try playing a file)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{key_path}\\OpenWithProgids', 0, write_access) as key:
-            wr.SetValueEx(key, mc_file, 0, wr.REG_NONE, b'')  # type needs to be bytes
-
-    play_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterPlayFolder'
-    queue_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterQueueFolder'
-    play_next_folder_key_path = fr'{classes_path}\Directory\shell\MusicCasterPlayNextFolder'
-    if add_folder_context:
-        # set "open folder in Music Caster" command
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_folder_key_path, 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play with Music Caster'))
-            wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{play_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" --shell "%1"')
-        # set "queue folder in Music Caster" command
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, queue_folder_key_path, 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Queue in Music Caster'))
-            wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{queue_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -q --shell "%1"')
-        # set "play folder next in Music Caster" command
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, play_next_folder_key_path, 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, t('Play next in Music Caster'))
-            wr.SetValueEx(key, 'Icon', 0, wr.REG_SZ, path_to_exe)
-        with wr.CreateKeyEx(wr.HKEY_CURRENT_USER, fr'{play_next_folder_key_path}\\command', 0, write_access) as key:
-            wr.SetValueEx(key, None, 0, wr.REG_SZ, f'"{path_to_exe}" -n --shell "%1"')
-    else:
-        # remove commands for folders
-        delete_sub_key(wr.HKEY_CURRENT_USER, play_folder_key_path)
-        delete_sub_key(wr.HKEY_CURRENT_USER, queue_folder_key_path)
-        delete_sub_key(wr.HKEY_CURRENT_USER, play_next_folder_key_path)
-
-
 def get_default_output_device():
     """ returns the PyAudio formatted name of the default output device """
+    if platform.system() == 'Linux':
+        # the monitor source of the default sink is what create_stream_linux
+        # records from, so that name is the device identity we track for changes
+        return linux.get_monitor_source()
     import winreg as wr
     read_access = wr.KEY_READ | wr.KEY_WOW64_64KEY
     audio_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
@@ -1015,10 +984,32 @@ def resize_img(base64data: bytes, bg, new_size=COVER_NORMAL, default_art=None) -
     return b64encode(data.getvalue())
 
 
+def get_user_dir(name, fallback):
+    """
+    Cross platform user directory lookup, e.g. get_user_dir('DOWNLOAD', 'Downloads').
+
+    On Linux the folder is user configurable and may be localized, so read the
+    XDG configuration rather than assuming the English name under $HOME.
+    """
+    if platform.system() == 'Linux':
+        with suppress(OSError):
+            return linux.get_xdg_user_dir(name)
+    if platform.system() == 'Windows':
+        with suppress(Exception):
+            from knownpaths import FOLDERID, sh_get_known_folder_path
+
+            known_folder = {'DOWNLOAD': FOLDERID.Downloads, 'MUSIC': FOLDERID.Music}.get(name)
+            if known_folder is not None:
+                path = sh_get_known_folder_path(known_folder)
+                if path:
+                    return Path(path)
+    return Path.home() / fallback
+
+
 def export_playlist(playlist_name, uris):
-    # exports uris to ~/Downloads/safe(playlist_name).m3u
+    # exports uris to <Downloads>/safe(playlist_name).m3u
     playlist_name = re.sub(r'(?u)[^-\w. ]', '', playlist_name)  # clean name
-    playlist_path = Path.home() / 'Downloads'
+    playlist_path = get_user_dir('DOWNLOAD', 'Downloads')
     playlist_path.mkdir(parents=True, exist_ok=True)
     playlist_path /= f'{playlist_name}.m3u'
     with open(playlist_path, 'w', encoding='utf-8') as f:
@@ -1358,6 +1349,35 @@ def get_deezer_tracks(url, login=True):
     return []
 
 
+@lru_cache(maxsize=1)
+def _load_art_font(size=80):
+    """
+    Returns (font, baseline_shift) for the album art overlay.
+
+    Windows fonts are tried first, then the distro fonts Fedora/Debian ship, and
+    finally Pillow's bundled bitmap font so this can never raise.
+    """
+    windows_fonts = []
+    if platform.system() == 'Windows':
+        username = os.getenv('USERNAME')
+        windows_fonts = [
+            (f'C:/Users/{username}/AppData/Local/Microsoft/Windows/Fonts/MYRIADPRO-BOLD.OTF', 5),
+            ('gadugib.ttf', -5),
+            ('arial.ttf', 0),
+        ]
+    candidates = windows_fonts.copy()
+    linux_font = linux.find_font(bold=True)
+    if linux_font is not None:
+        candidates.append((linux_font, 0))
+    # keep the historical Debian path as a last resort for non-Fedora distros
+    candidates.append(('/usr/share/fonts/truetype/freefont/FreeMono.ttf', 0))
+    for font_path, shift in candidates:
+        with suppress(OSError):
+            return ImageFont.truetype(font_path, size), shift
+    # Pillow's built-in font ignores `size` but guarantees we render something
+    return ImageFont.load_default(size=size), 0
+
+
 @lru_cache
 def custom_art(text):
     img_data = io.BytesIO(b64decode(DEFAULT_ART))
@@ -1367,22 +1387,7 @@ def custom_art(text):
     x0 = x1 - len(text) * 0.0625 * size[0]
     y0 = y1 - 0.11 * size[0]
     d = ImageDraw.Draw(art_img)
-    try:
-        username = os.getenv('USERNAME')
-        fnt = ImageFont.truetype(f"C:/Users/{username}/AppData/Local/Microsoft/Windows/Fonts/MYRIADPRO-BOLD.OTF", 80)
-        shift = 5
-    except OSError:
-        try:
-            fnt = ImageFont.truetype('gadugib.ttf', 80)
-            shift = -5
-        except OSError:
-            try:
-                fnt = ImageFont.truetype('arial.ttf', 80)
-                shift = 0
-            except OSError:
-                # Linux
-                fnt = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMono.ttf', 80, encoding='unic')
-                shift = 0
+    fnt, shift = _load_art_font()
     d.rounded_rectangle((x0, y0, x1, y1), fill='#cc1a21', radius=7)
     d.text(((x0 + x1) / 2, (y0 + y1) / 2 + shift), text, fill='#fff', font=fnt, align='center', anchor='mm')
     data = io.BytesIO()
@@ -1528,8 +1533,10 @@ def startfile(file):
             return Popen(f'explorer "{fix_path(file)}"')
     elif platform.system() == 'Darwin':
         return Popen(['open', file])
-    # Linux
-    return Popen(['xdg-open', file])
+    # Linux: detach from our stdio so the handler cannot block or spam our console
+    return Popen(['xdg-open', str(file)], stdout=subprocess.DEVNULL,
+                 stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+                 start_new_session=True)
 
 
 def add_to_path(path):
@@ -1540,11 +1547,8 @@ def add_to_path(path):
 
 
 def cmd_exists(cmd):
-    if platform.system() == 'Windows':
-        return subprocess.call(f'where {cmd}', shell=True,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
-    return subprocess.call(f'type {cmd}', shell=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+    # shutil.which honours PATHEXT on Windows and the exec bit on Linux
+    return shutil.which(cmd) is not None
 
 
 _deno_install_lock = Lock()
@@ -1553,7 +1557,8 @@ _deno_install_lock = Lock()
 def install_deno():
     if not _deno_install_lock.acquire(blocking=False):
         return
-    if subprocess.call(['deno', '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+    # cmd_exists avoids the FileNotFoundError that calling a missing deno raises
+    if not cmd_exists('deno'):
         print('Installing Deno...')
         if platform.system() == 'Windows':
             subprocess.call('irm https://deno.land/install.ps1 | iex', shell=True)

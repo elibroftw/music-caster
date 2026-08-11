@@ -8,6 +8,8 @@ import pystray
 from PIL import Image
 from pystray import MenuItem as item
 
+from modules import linux
+
 # for cross platform https://stackoverflow.com/a/20996948/7732434?
 
 CHANGE_DPI_SCALE = True
@@ -49,7 +51,14 @@ def is_plugged_in(throw_error=True):
                 raise RuntimeError('could not get power status')
             return False
         return powerStatus.ACLineStatus == 1
-    # TODO: Linux implementation
+    if platform.system() == 'Linux':
+        # sysfs is the Linux counterpart of GetSystemPowerStatus
+        try:
+            return linux.is_plugged_in()
+        except RuntimeError:
+            if throw_error:
+                raise
+            return False
     return True
 
 
@@ -59,19 +68,28 @@ def get_aspect_ratio(width, height):
 
 def get_current_res(w=None, h=None):
     with suppress(Exception):
-        user32 = ctypes.windll.user32
-        user32.SetProcessDPIAware()
-        res = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
+        if platform.system() == 'Linux':
+            res = linux.get_current_res()
+            if res is None:
+                return None
+        else:
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            res = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
         if w is not None:
             w.value = res[0]
         if h is not None:
             h.value = res[1]
         return res
-    # TODO: Linux
 
 
 @lru_cache(maxsize=1)
 def get_initial_res():
+    if platform.system() != 'Windows':
+        # the child process only exists to contain SetProcessDPIAware, which is
+        # a Win32 call; forking a process with live threads just to read the
+        # screen size would be worse than reading it directly
+        return get_current_res() or (0, 0)
     w = mp.Value(ctypes.c_int, 0)
     h = mp.Value(ctypes.c_int, 0)
     # use setProcessDPIAware in only child process
@@ -87,7 +105,8 @@ def get_initial_dpi_scale():
         transformed_res = (win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1))
         raw_res = get_initial_res()
         return raw_res[0] / transformed_res[0]  # 125% is 1.25
-    # TODO: Linux
+    if platform.system() == 'Linux':
+        return linux.get_dpi_scale()
     return 1
 
 
@@ -101,6 +120,9 @@ def get_all_refresh_rates():
                 ds = win32api.EnumDisplaySettings(None, i)
                 refresh_rates.add(ds.DisplayFrequency)
                 i += 1
+        elif platform.system() == 'Linux':
+            # xrandr is the EnumDisplaySettings counterpart (X11 only)
+            refresh_rates = linux.get_all_refresh_rates()
     return refresh_rates
 
 
@@ -111,19 +133,25 @@ def get_all_resolutions():
     seen = set()
     max_width = 0
     max_height = 0
+
+    def record(width, height):
+        nonlocal max_width, max_height
+        if (width, height) in seen:
+            return
+        seen.add((width, height))
+        max_width = max(max_width, width)
+        max_height = max(max_height, height)
+        resolutions.append((width, height))
+
     with suppress(Exception):
         if platform.system() == 'Windows':
             while True:
                 ds = win32api.EnumDisplaySettings(None, i)
-                res = (ds.PelsWidth, ds.PelsHeight)
-                if res not in seen:
-                    seen.add(res)
-                    if ds.PelsWidth > max_width:
-                        max_width = ds.PelsWidth
-                    if ds.PelsHeight > max_height:
-                        max_height = ds.PelsHeight
-                    resolutions.append((ds.PelsWidth, ds.PelsHeight))
+                record(ds.PelsWidth, ds.PelsHeight)
                 i += 1
+        elif platform.system() == 'Linux':
+            for width, height in linux.get_all_resolutions():
+                record(width, height)
     try:
         aspect_ratio = get_aspect_ratio(max_width, max_height)
     except ZeroDivisionError:
@@ -160,6 +188,10 @@ def calc_dpi_scale(new_w, _):
 
 
 def set_resolution(width: int, height: int, dpi_scale: int, refresh_rate: int = None):
+    if platform.system() == 'Linux':
+        # xrandr can only drive X11; Wayland compositors own mode setting and
+        # expose no equivalent to ChangeDisplaySettings
+        return linux.set_resolution(width, height, refresh_rate=refresh_rate)
     if platform.system() == 'Windows':
         # adapted from Peter Wood: https://stackoverflow.com/a/54262365
         devmode = pywintypes.DEVMODEType()

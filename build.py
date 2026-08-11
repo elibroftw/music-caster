@@ -649,8 +649,12 @@ if __name__ == '__main__':
                 print(s1.communicate()[1])
                 sys.exit()
 
-        # Portable
-        if platform.system() == 'Windows':
+        # Portable. The Tauri build only produces the daemon sidecar; the
+        # portable zip / OneDir layout below belongs to the legacy frontend and
+        # its inputs are never built when USING_TAURI_FRONTEND.
+        if USING_TAURI_FRONTEND:
+            pass
+        elif platform.system() == 'Windows':
             music_caster_portable = (DIST_DIR / 'Music Caster.exe',
                                      'Music Caster.exe')
             updater_portable = (DIST_DIR / 'Updater.exe', 'Updater.exe')
@@ -680,14 +684,15 @@ if __name__ == '__main__':
               'seconds')
         print('Last commit: ' + getoutput('git log --format="%H" -n 1'))
 
-    daemon_dist = DIST_DIR / 'Music Caster Daemon.exe'
+    # PyInstaller only appends .exe on Windows
+    daemon_dist = DIST_DIR / ('Music Caster Daemon.exe' if platform.system() == 'Windows' else 'Music Caster Daemon')
     dist_files = []
 
-    if platform.system() == 'Windows':
-        if USING_TAURI_FRONTEND:
-            dist_files.append(daemon_dist.name)
-        else:
-            dist_files.extend(('Music Caster Setup.exe', 'Portable.zip'))
+    if USING_TAURI_FRONTEND:
+        # every platform builds only the daemon sidecar for Tauri to embed
+        dist_files.append(daemon_dist.name)
+    elif platform.system() == 'Windows':
+        dist_files.extend(('Music Caster Setup.exe', 'Portable.zip'))
     elif platform.system() == 'Darwin':
         dist_files.append('Music Caster (OSX).zip')
     else:
@@ -721,19 +726,25 @@ if __name__ == '__main__':
                 dist_files_exist = False
 
     if USING_TAURI_FRONTEND:
-        architecture = 'aarch64' if platform.machine() == 'ARM64' else 'x86_64'
+        # platform.machine() spells arm64 as ARM64 on Windows and aarch64 on Linux/macOS
+        architecture = 'aarch64' if platform.machine().casefold() in {'arm64', 'aarch64'} else 'x86_64'
+        # Tauri looks up externalBin as <name>-<target triple><exe suffix>, so the
+        # suffix must match the host: .exe on Windows, nothing on Linux/macOS
+        suffix = ''
         if platform.system() == 'Windows':
             target = args.target or f'{architecture}-pc-windows-msvc'
-            ext = 'exe'
+            suffix = '.exe'
+        elif platform.system() == 'Linux':
+            target = args.target or f'{architecture}-unknown-linux-gnu'
         else:
-            ext = daemon_dist.stem
-            if platform.system() == 'Linux':
-                target = args.target or f'{architecture}-unknown-linux-gnu'
-            else:
-                target = args.target
-                if target is None:
-                    raise Exception(f'target was not supplied for "{platform.system()}" platform')
-        shutil.copy2(daemon_dist, DIST_DIR / f'music-caster-daemon-{target}.{ext}')
+            target = args.target
+            if target is None:
+                raise Exception(f'target was not supplied for "{platform.system()}" platform')
+        sidecar = DIST_DIR / f'music-caster-daemon-{target}{suffix}'
+        shutil.copy2(daemon_dist, sidecar)
+        if platform.system() != 'Windows':
+            # copy2 preserves mode, but be explicit: Tauri must be able to exec it
+            sidecar.chmod(0o755)
         print(f'copied daemon to target triplet {target}')
 
     if not args.skip_tests and dist_files_exist and not USING_TAURI_FRONTEND:

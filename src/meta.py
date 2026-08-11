@@ -1,3 +1,5 @@
+import platform
+
 VERSION = latest_version = '6.0.0'
 UPDATE_MESSAGE = """
 [MSG] v6 coming very soon
@@ -57,12 +59,23 @@ AUDIO_EXTS = {f'.{ext}' for ext in AUDIO_EXTS}
 AUDIO_EXTS.add('.m3u')
 AUDIO_HANDLER_EXTS = ('mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'aiff', 'wma', 'wav', 'mpeg', 'm3u', 'm3u8')
 
-FONT_NORMAL = 'Segoe UI', 11
-FONT_SMALL = 'Segoe UI', 10
-FONT_LINK = 'Segoe UI', 11, 'underline'
-FONT_TITLE = 'Segoe UI', 14
-FONT_MED = 'Segoe UI', 12
-FONT_TAB = 'Meiryo UI', 10
+if platform.system() == 'Linux':
+    # Segoe UI / Meiryo UI are Windows fonts; Tk would silently substitute an
+    # unpredictable fallback, so name fonts that Fedora and friends actually ship
+    UI_FONT = 'DejaVu Sans'
+    TAB_FONT = 'DejaVu Sans'
+elif platform.system() == 'Darwin':
+    UI_FONT = TAB_FONT = 'Helvetica Neue'
+else:
+    UI_FONT = 'Segoe UI'
+    TAB_FONT = 'Meiryo UI'
+
+FONT_NORMAL = UI_FONT, 11
+FONT_SMALL = UI_FONT, 10
+FONT_LINK = UI_FONT, 11, 'underline'
+FONT_TITLE = UI_FONT, 14
+FONT_MED = UI_FONT, 12
+FONT_TAB = TAB_FONT, 10
 LINK_COLOR = '#3ea6ff'
 COVER_MINI = (127, 127)
 COVER_NORMAL = (255, 255)

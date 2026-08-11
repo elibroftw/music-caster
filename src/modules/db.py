@@ -1,4 +1,5 @@
 from shutil import copy2
+import errno
 import sqlite3
 from pathlib import Path
 import appdirs
@@ -45,7 +46,9 @@ class DatabaseConnection:
                 try:
                     os.rename(DatabaseConnection.OLD_OR_PY_DB_FILE, DatabaseConnection.DATABASE_FILE)
                 except OSError as e:
-                    if e.winerror == 17:
+                    # ERROR_NOT_SAME_DEVICE (17) on Windows, EXDEV on Linux/macOS:
+                    # renaming does not work across filesystems, so copy instead
+                    if getattr(e, 'winerror', None) == 17 or e.errno == errno.EXDEV:
                         copy2(DatabaseConnection.OLD_OR_PY_DB_FILE, DatabaseConnection.DATABASE_FILE)
                         os.remove(DatabaseConnection.OLD_OR_PY_DB_FILE)
                     else:

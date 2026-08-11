@@ -40,6 +40,19 @@
     "linux": {
       "deb": {
         "depends": []
+      },
+      "rpm": {
+        "release": "1",
+        "depends": [
+          "webkit2gtk4.1",
+          "libappindicator-gtk3",
+          "pulseaudio-utils",
+          "xdg-utils",
+          "dejavu-sans-fonts"
+        ],
+        "recommends": [
+          "libayatana-appindicator-gtk3"
+        ]
       }
     },
     "createUpdaterArtifacts": true,
