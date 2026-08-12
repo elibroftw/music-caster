@@ -4,9 +4,6 @@ import platform
 from contextlib import suppress
 from functools import lru_cache
 
-import pystray
-from PIL import Image
-from pystray import MenuItem as item
 
 from modules import linux
 
@@ -228,17 +225,3 @@ def fmt_res(width, height, show_width=False):
 def on_exit():
     icon.visible = False
     icon.stop()
-
-
-if __name__ == '__main__':
-    mp.freeze_support()
-    # save cache
-    get_initial_dpi_scale()
-    image = Image.open('icon.png')
-    menu = [
-        item(k, set_res_curry(v['w'], v['h'], v['dpi_scale']))
-        for k, v in get_all_resolutions().items()
-    ]
-    menu.append(item('Exit', on_exit))
-    icon = pystray.Icon('Resolution Switcher', image, 'Resolution Switcher', menu)
-    icon.run()
