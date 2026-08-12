@@ -552,11 +552,12 @@ if __name__ == '__main__':
         time.sleep(1)  # wait for MC to exit
     except requests.exceptions.RequestException:
         player_state = {}
-    for process in get_running_processes('Music Caster.exe'):
-        # force close any other instances of MC
-        pid = process['pid']
-        with suppress(PermissionError):
-            os.kill(pid, 9)
+    if platform.system() == 'Windows':
+        for process in get_running_processes('Music Caster.exe'):
+            # force close any other instances of MC
+            pid = process['pid']
+            with suppress(PermissionError):
+                os.kill(pid, 9)
     if args.debug:
         set_spec_debug(True)
     else:
