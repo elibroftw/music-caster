@@ -95,6 +95,7 @@ pub fn create_tray_menu<R: Runtime>(
 
   MenuBuilder::new(app)
     .items(&[
+      &MenuItemBuilder::with_id("mc-controls-pause", &text).build(app)?,
       &MenuItemBuilder::with_id("mc-rescan", "Rescan Library").build(app)?,
       &MenuItemBuilder::with_id("mc-refresh", "Refresh Devices").build(app)?,
       &devices_submenu.build()?,
@@ -125,7 +126,6 @@ pub fn create_tray_menu<R: Runtime>(
         )
         .item(&MenuItemBuilder::with_id("mc-controls-prev", "Previous Track").build(app)?)
         .item(&MenuItemBuilder::with_id("mc-controls-next", "Next Track").build(app)?)
-        .item(&MenuItemBuilder::with_id("mc-controls-pause", &text).build(app)?)
         .build()?,
       &SubmenuBuilder::new(app, "Play")
         .item(&MenuItemBuilder::with_id("play-system", "System Audio").build(app)?)
