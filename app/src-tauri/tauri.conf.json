@@ -48,7 +48,8 @@
           "libappindicator-gtk3",
           "pulseaudio-utils",
           "xdg-utils",
-          "dejavu-sans-fonts"
+          "dejavu-sans-fonts",
+          "procps-ng"
         ],
         "recommends": [
           "libayatana-appindicator-gtk3"
