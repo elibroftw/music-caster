@@ -42,7 +42,12 @@ def get_running_processes(look_for='', pid=None, add_exe=True):
         cmd = ['ps', '-eo', 'pid=,args=']
         if pid is not None:
             cmd = ['ps', '-o', 'pid=,args=', '-p', str(pid)]
-        p = Popen(cmd, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
+        try:
+            p = Popen(cmd, stdout=PIPE, stdin=DEVNULL, stderr=DEVNULL, text=True)
+        except FileNotFoundError:
+            # procps-ng is absent from minimal containers; report nothing running
+            # rather than taking down the caller (startup instance check, build)
+            return
         look_for_cf = look_for.casefold()
         for task in iter(lambda: p.stdout.readline().strip(), ''):
             process_id, _, args = task.partition(' ')

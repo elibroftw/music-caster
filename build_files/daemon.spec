@@ -20,7 +20,7 @@ else:
 a = Analysis([f'{os.getcwd()}/src/music_caster.py'],
              pathex=[os.getcwd()],
              binaries=[],
-             datas=[('../CHANGELOG.TXT', '.')],
+             datas=[('../CHANGELOG.txt', '.')],
              hiddenimports=[*PYSTRAY_BACKENDS, 'zeroconf._utils.ipaddress', 'zeroconf._handlers.answers'],
              hookspath=[],
              runtime_hooks=[],
