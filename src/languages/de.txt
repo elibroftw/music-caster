@@ -201,3 +201,8 @@ experimentelle Funktionen
 Warteschlange gespeichert
 installiere Update
 Heruntergeladen $VER. Relaunch...
+Sonstiges
+Video
+Fenster wiederherstellen
+Videodateien auswählen
+WARNUNG: Audio-Player konnte nicht gestartet werden. Nicht auf dem lokalen Gerät abspielen.

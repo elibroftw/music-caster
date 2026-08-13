@@ -224,7 +224,7 @@ def QueueTab(queue, listbox_selected, listbox_height):
         [Sg.Button(key='clear_queue', image_data=CLEAR_QUEUE, button_color=btn_color, tooltip=t('Clear the queue'))],
         [Sg.Button(key='save_to_pl', image_data=SAVE_IMG, button_color=btn_color, tooltip=t('Save to playlist'))],
         [Sg.Button(key='locate_uri', image_data=LOCATE_FILE, button_color=btn_color, tooltip=t('locate track'))],
-        [Sg.Button(key='copy_uri', image_data=COPY_ICON, button_color=btn_color, tooltip=t('copy uris'))],
+        [Sg.Button(key='copy_uri', image_data=COPY_ICON, button_color=btn_color, tooltip=t('copy URIs'))],
         [Sg.Button(key='edit_metadata', image_data=EDIT_ICON, button_color=btn_color, tooltip=t('edit metadata'))],
         [Sg.Button(key='move_to_next_up', **move_to_next_up)],
         [IconButton(UP_ICON, 'move_up', t('move up'), GuiContext.bg)],

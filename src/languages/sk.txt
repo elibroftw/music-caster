@@ -201,3 +201,8 @@ Experimentlne funkcie
 Playlist uloen
 Naintalova aktualizciu
 Stiahnut $VER. Relaunching...
+Rôzne
+Video
+obnoviť okno
+Vyberte video súbory
+UPOZORNENIE: Nepodarilo sa spustiť prehrávač zvuku. Neprehrávajte na lokálnom zariadení.

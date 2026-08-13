@@ -362,8 +362,12 @@ jobs:
         run: |
           set -eux
           cd app
-          # rpm only; the other tauri.conf.json targets belong to the release job
-          pnpm tauri build --bundles rpm --target "$TARGET_TRIPLE"
+          # rpm only; the other tauri.conf.json targets belong to the release job.
+          # createUpdaterArtifacts is off here: the updater cannot use an RPM, but
+          # leaving it on makes Tauri demand TAURI_SIGNING_PRIVATE_KEY and fail
+          # after bundling, which would also break forks that have no secrets.
+          pnpm tauri build --bundles rpm --target "$TARGET_TRIPLE" \
+            --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
       - name: Inspect the built RPM
         run: |
@@ -406,12 +410,16 @@ jobs:
           rpm --checksig -v "$RPM_PATH" | tee /dev/stderr | grep -qi 'Signature.*OK\|pgp.*OK'
 
       # catches an unsatisfiable dependency, a missing sidecar or a bad .desktop.
-      # gpgcheck is on so this also proves the signature satisfies dnf itself.
+      # gpgcheck follows SIGNED, so when signing is on this also proves the
+      # signature satisfies dnf itself and not just gpg.
       - name: Verify the RPM installs
         run: |
           set -eux
           dnf install -y --setopt=localpkg_gpgcheck="${SIGNED:-false}" "$RPM_PATH"
-          rpm -ql music-caster | grep -i 'music-caster-daemon' \
+          # read the name back off the package: Tauri derives it from productName,
+          # so it is "Music Caster", not the file-safe "music-caster"
+          pkg_name=$(rpm -qp --queryformat '%{NAME}' "$RPM_PATH")
+          rpm -ql "$pkg_name" | grep -i 'music-caster-daemon' \
             || { echo "::error::daemon sidecar is missing from the RPM"; exit 1; }
           for desktop in /usr/share/applications/*[Mm]usic*[Cc]aster*.desktop; do
             desktop-file-validate "$desktop"

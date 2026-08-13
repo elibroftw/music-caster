@@ -201,3 +201,8 @@ Experimental features
 Playlist saved
 Install Update
 Downloaded $VER. Relaunching...
+Misc
+Video
+restore window
+Select Video Files
+WARNING: Failed to start audio player. Do not play on local device.

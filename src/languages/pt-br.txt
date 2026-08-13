@@ -201,3 +201,8 @@ Recursos experimentais
 Playlist salva
 Instalar Atualização
 Baixado $VER. Reiniciando...
+Diversos
+Vídeo
+restaurar janela
+Selecionar arquivos de vídeo
+AVISO: Falha ao iniciar o reprodutor de áudio. Não reproduza no dispositivo local.

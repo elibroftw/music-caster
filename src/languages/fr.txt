@@ -201,3 +201,8 @@ Fonctionnalités expérimentales
 Liste de lecture enregistrée
 Mise à jour
 Téléchargé $VER. Relance...
+Divers
+Vidéo
+restaurer la fenêtre
+Sélectionner des fichiers vidéo
+AVERTISSEMENT : Impossible de démarrer le lecteur audio. Ne pas lire sur l’appareil local.

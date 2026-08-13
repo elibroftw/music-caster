@@ -201,3 +201,8 @@ Eksperimentelle funktioner
 Playlist gemt
 Opdatering
 Downloadet $VER. Relancering...
+Diverse
+Video
+gendan vindue
+Vælg videofiler
+ADVARSEL: Kunne ikke starte lydafspilleren. Afspil ikke på lokal enhed.

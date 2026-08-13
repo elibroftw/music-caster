@@ -201,3 +201,8 @@ caratteristiche sperimentali
 Playlist salvata
 Aggiornamento
 Scaricato $VER. Riavvio...
+Varie
+Video
+ripristina finestra
+Seleziona file video
+ATTENZIONE: Impossibile avviare il lettore audio. Non riprodurre sul dispositivo locale.

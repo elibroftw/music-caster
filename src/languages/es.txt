@@ -201,3 +201,8 @@ caracteristicas experimentales
 Lista de reproducción guardada
 Actualizar
 Descargado $VER. Reiniciando...
+Varios
+Vídeo
+restaurar ventana
+Seleccionar archivos de vídeo
+ADVERTENCIA: No se pudo iniciar el reproductor de audio. No reproduzcas en el dispositivo local.

@@ -201,3 +201,8 @@ experimentele functies
 Afspeellijst opgeslagen
 Installeer update
 Gedownload $VER. Opnieuw starten...
+Diversen
+Video
+venster herstellen
+Videobestanden selecteren
+WAARSCHUWING: Kan de audiospeler niet starten. Speel niet af op het lokale apparaat.
