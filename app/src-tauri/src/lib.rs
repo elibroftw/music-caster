@@ -117,11 +117,32 @@ pub fn run() {
 
   // only reassigned in debug builds, where the webview target is added
   #[allow(unused_mut)]
-  let mut log_builder = tauri_plugin_log::Builder::new().target(tauri_plugin_log::Target::new(
-    tauri_plugin_log::TargetKind::LogDir {
-      file_name: Some("logs".to_string()),
-    },
-  ));
+  let mut log_builder = tauri_plugin_log::Builder::new()
+    // the default targets are [Stdout, LogDir { file_name: None }] and `target()` appends,
+    // so without clearing we'd also write a duplicate "<product name>.log"
+    .clear_targets()
+    .target(tauri_plugin_log::Target::new(
+      tauri_plugin_log::TargetKind::Stdout,
+    ))
+    .target(tauri_plugin_log::Target::new(
+      tauri_plugin_log::TargetKind::LogDir {
+        file_name: Some("logs".to_string()),
+      },
+    ))
+    // mirror the daemon's Python logging format (local time, comma before milliseconds) so both
+    // logs read alike: `2026-08-12 21:07:34,046 INFO (4670) <module>(): message`.
+    // chrono over `time` because `time::OffsetDateTime::now_local()` fails (and silently falls
+    // back to UTC) in multi-threaded processes on unix.
+    .format(|out, message, record| {
+      out.finish(format_args!(
+        "{} {} ({}) {}(): {}",
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S,%3f"),
+        record.level(),
+        record.line().unwrap_or(0),
+        record.target(),
+        message
+      ))
+    });
   #[cfg(debug_assertions)]
   {
     log_builder = log_builder.target(tauri_plugin_log::Target::new(
