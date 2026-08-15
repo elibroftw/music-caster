@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.0.6
+- Upgrade yt-dlp
+
 6.0.5
 - [Feat] Track length in queue
 
