@@ -9,6 +9,10 @@ import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './Queue.module.css';
 
+// every row is this tall regardless of title length: `sm` padding plus two lines of
+// `sm` text. skeletons match so the queue doesn't jump when the daemon comes up
+const ROW_HEIGHT = 72;
+
 export default function Queue() {
 	const playerState = useContext(PlayerStateContext);
 	const [contextMenuTrigger, setContextMenuTrigger] = useContextMenu<number>();
@@ -28,14 +32,14 @@ export default function Queue() {
 			// no state yet, or the daemon is down: genuinely still loading
 			if (playerState === null || playerState.status === 'NOT_RUNNING') return (
 				[...Array(100)].map((_, index) => (
-					<Skeleton key={index} height={40} />
+					<Skeleton key={index} height={ROW_HEIGHT} />
 				))
 			);
 
 			if (playerState.queue.length === 0) return (
 				<>
 					{[...Array(10)].map((_, index) => (
-						<Skeleton key={index} height={40} animate={false} />
+						<Skeleton key={index} height={ROW_HEIGHT} animate={false} />
 					))}
 				</>
 			);
@@ -53,17 +57,17 @@ export default function Queue() {
 						});
 					}}
 					p='sm'
+					h={ROW_HEIGHT}
 					withBorder
 					style={{
 						cursor: 'pointer',
-						// a long title wraps to many lines in a narrow window; clamping the title caps
-						// every row at the same couple of lines so the queue stays scannable
+						// the title is clamped to two lines, so a long one can't outgrow the fixed height
 						overflow: 'hidden',
 						backgroundColor: index === queuePosition ? 'var(--mantine-color-blue-light)' : undefined
 					}}
 					onClick={() => onTrackClick(index - queuePosition)}
 				>
-					<Flex gap='md' align='center'>
+					<Flex gap='md' align='center' h='100%'>
 						<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right', flexShrink: 0 }}>
 							{index - queuePosition}
 						</Text>
@@ -146,7 +150,7 @@ export default function Queue() {
 				className={classes.clearQueue}
 				// inline: mantine's own unlayered `position: relative` on the ActionIcon root has the
 				// same specificity as a module class and wins on bundle order
-				style={{ position: 'absolute', right: 'var(--mantine-spacing-md)', bottom: 'var(--mantine-spacing-md)', zIndex: 2 }}
+				style={{ position: 'absolute', right: 'var(--mantine-spacing-md)', bottom: 'var(--mantine-spacing-xs)', zIndex: 2 }}
 				variant='default'
 				size='lg'
 				title='Clear queue'
