@@ -289,8 +289,6 @@ if __name__ == '__main__':
         get_audio_length,
         get_spotify_tracks,
     )
-    from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, get_current_res, is_plugged_in, get_initial_dpi_scale
-    get_initial_dpi_scale()
     from modules.db import DatabaseConnection, init_db
     if IS_FROZEN:
         DatabaseConnection.move_to_new_location(args.db_path)
@@ -3517,30 +3515,6 @@ if __name__ == '__main__':
                 # reading the current mode costs an xrandr call on Linux, so poll
                 # on a timer rather than on every iteration of this loop
                 next_res_check = time.monotonic() + RES_CHECK_INTERVAL
-                res_map = get_all_resolutions()
-                # an empty map means the platform gives us no mode control
-                if res_map and settings['on_battery_res'] != settings['plugged_in_res']:
-                    try:
-                        current_width = get_current_res()[0]
-                        refresh_rate = None
-                        if is_plugged_in(throw_error=False):
-                            res_info = res_map[fmt_res(*settings['plugged_in_res'])]
-                            # check if res differs from desireed res
-                            if current_width * res_info['dpi_scale'] != settings['plugged_in_res'][0]:
-                                refresh_rate = max(get_all_refresh_rates())
-                        else:  # on battery
-                            res_info = res_map[fmt_res(*settings['on_battery_res'])]
-                            # check if res differs from desireed res
-                            if current_width * res_info['dpi_scale'] != settings['on_battery_res'][0]:
-                                refresh_rate = 60 if 60 in get_all_refresh_rates() else min(get_all_refresh_rates())
-                        # res differs from desired res
-                        if refresh_rate is not None:
-                            set_resolution(res_info['w'], res_info['h'], res_info['dpi_scale'], refresh_rate=refresh_rate)
-                            refresh_tray_icon()
-                    except (KeyError, TypeError, ValueError):
-                        update_settings('plugged_in_res', get_initial_res())
-                        update_settings('on_battery_res', get_initial_res())
-                        tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
             if cast is not None:
                 cast_monitor(is_callback=False)
             time.sleep(0.3)
