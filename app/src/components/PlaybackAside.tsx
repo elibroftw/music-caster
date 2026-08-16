@@ -482,7 +482,9 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			</Modal>
 
 			<Stack h='100%' justify='space-between'>
-				<Group align='flex-start' gap='xs' wrap='nowrap'>
+				{/* minHeight 0 + hidden overflow so the art/metadata block yields vertical space to the
+				    controls below instead of overflowing them when the window is short */}
+				<Group align='flex-start' gap='xs' wrap='nowrap' style={{ minHeight: 0, overflow: 'hidden' }}>
 					{/* minWidth 0 (not the flex default of auto) so this can shrink below its content size --
 					    at high DPI the whole viewport can be ~400px, and the album art scales with it */}
 					<Paper p='md' style={{ flex: 1, minWidth: 0 }}>
@@ -514,7 +516,9 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 								)}
 							</Box>
 
-							<Stack gap='xs' align='center'>
+							{/* capped and scrollable: a long title/artist/album in a narrow window would
+							    otherwise grow tall enough to push the playback controls off screen */}
+							<Stack gap='xs' align='center' id='now-playing-info' mah={140} w='100%' style={{ overflowY: 'auto' }}>
 								{
 									daemonLoading ?
 										<>
@@ -522,9 +526,13 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 											<Skeleton height={20} width='45%' />
 											<Skeleton height={20} width='55%' />
 										</> : <>
-											<Text size='sm' fw={500}>{playerState.title || 'Nothing Playing'}</Text>
-											<Text size='sm' fw={500}>{playerState.artist || ''}</Text>
-											<Text size='sm' fw={500}>
+											<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.title || undefined} style={{ wordBreak: 'break-word' }}>
+												{playerState.title || 'Nothing Playing'}
+											</Text>
+											<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.artist || undefined} style={{ wordBreak: 'break-word' }}>
+												{playerState.artist || ''}
+											</Text>
+											<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.album || undefined} style={{ wordBreak: 'break-word' }}>
 												{playerState.album === playerState.title ? 'Single' : (playerState.album || '')}
 											</Text>
 										</>
@@ -551,7 +559,7 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 					</SimpleGrid>
 				</Group>
 
-				<Stack gap='md'>
+				<Stack gap='md' style={{ flexShrink: 0 }}>
 					<Group justify='center' gap='xs'>
 						<ActionIcon
 							size='sm'

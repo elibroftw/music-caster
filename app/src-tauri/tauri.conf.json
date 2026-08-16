@@ -136,7 +136,7 @@
     "beforeDevCommand": "pnpm start",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../build",
-    "devUrl": "http://localhost:1420"
+    "devUrl": "http://localhost:14421"
   },
   "productName": "Music Caster",
   "mainBinaryName": "Music Caster",
@@ -170,7 +170,7 @@
         "title": "Music Caster",
         "label": "main",
         "minWidth": 680,
-        "minHeight": 680,
+        "minHeight": 550,
 				"width": 1000,
         "resizable": true,
         "fullscreen": false,

@@ -1,4 +1,4 @@
-import { ActionIcon, Flex, Group, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
+import { ActionIcon, Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { useContext, useEffect, useMemo, useRef } from 'react';
 import { TbClearAll } from 'react-icons/tb';
@@ -56,16 +56,19 @@ export default function Queue() {
 					withBorder
 					style={{
 						cursor: 'pointer',
+						// a long title wraps to many lines in a narrow window; clamping the title caps
+						// every row at the same couple of lines so the queue stays scannable
+						overflow: 'hidden',
 						backgroundColor: index === queuePosition ? 'var(--mantine-color-blue-light)' : undefined
 					}}
 					onClick={() => onTrackClick(index - queuePosition)}
 				>
 					<Flex gap='md' align='center'>
-						<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right' }}>
+						<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right', flexShrink: 0 }}>
 							{index - queuePosition}
 						</Text>
-						<Text size='sm' fw={500} style={{ flex: 1, minWidth: 0 }}>{track[1]}</Text>
-						<Text size='sm' c='dimmed'>
+						<Text size='sm' fw={500} lineClamp={2} title={track[1]} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>{track[1]}</Text>
+						<Text size='sm' c='dimmed' style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
 							{track[2] == null ? '' : formatTime(track[2])}
 						</Text>
 					</Flex>
@@ -119,11 +122,12 @@ export default function Queue() {
 	const queueEmpty = daemonDown || playerState!.queue.length === 0;
 
 	return (
-		// the toolbar sits outside the ScrollArea so it stays put while the
+		// the button sits outside the ScrollArea so it stays put while the
 		// queue auto-scrolls to the current track
 		<Stack className={classes.tab} gap='xs'>
 			<ScrollArea style={{ flex: 1, minHeight: 0 }} viewportRef={viewportRef}>
-				<Paper shadow='sm' p='md' >
+				{/* bottom padding keeps the last track reachable from under the floating button */}
+				<Paper shadow='sm' p='md' pb={60}>
 					<Stack gap='xs'>
 						<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
 							<TrackContextMenu
@@ -138,18 +142,20 @@ export default function Queue() {
 					</Stack>
 				</Paper>
 			</ScrollArea>
-			<Group justify='flex-end'>
-				<ActionIcon
-					variant='default'
-					size='lg'
-					title='Clear queue'
-					aria-label='Clear queue'
-					disabled={queueEmpty}
-					onClick={() => api.clearQueue()}
-				>
-					<TbClearAll size={20} />
-				</ActionIcon>
-			</Group>
+			<ActionIcon
+				className={classes.clearQueue}
+				// inline: mantine's own unlayered `position: relative` on the ActionIcon root has the
+				// same specificity as a module class and wins on bundle order
+				style={{ position: 'absolute', right: 'var(--mantine-spacing-md)', bottom: 'var(--mantine-spacing-md)', zIndex: 2 }}
+				variant='default'
+				size='lg'
+				title='Clear queue'
+				aria-label='Clear queue'
+				disabled={queueEmpty}
+				onClick={() => api.clearQueue()}
+			>
+				<TbClearAll size={20} />
+			</ActionIcon>
 		</Stack>
 	);
 }

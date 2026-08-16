@@ -27,7 +27,7 @@ export default defineConfig({
 	clearScreen: false,
 	// Tauri expects a fixed port, fail if that port is not available
 	server: {
-		port: 1420,
+		port: 14421,
 		strictPort: true,
 		// open in browser if not running with tauri
 		open: process.env.TAURI_ENV_ARCH === undefined

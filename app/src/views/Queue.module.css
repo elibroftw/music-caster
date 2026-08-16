@@ -2,4 +2,13 @@
 	height: calc(100dvh - var(--app-shell-footer-height) - 80px);
 	display: flex;
 	flex-direction: column;
+	/* anchors the floating clear-queue button */
+	position: relative;
+}
+
+/* the button floats over the queue rows, so it needs a stronger edge than the
+   default variant's. --ai-bd is ActionIcon's own border variable, which mantine
+   only ever reads, so setting it here doesn't fight its root styles */
+.clearQueue {
+	--ai-bd: 1px solid light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
 }
