@@ -294,15 +294,6 @@ def get_current_res():
                     w, _, h = geometry.partition('x')
                     if w.isdigit() and h.isdigit():
                         return int(w), int(h)
-    # fall back to tkinter, which works on Wayland too
-    with suppress(Exception):
-        import tkinter
-
-        root = tkinter.Tk()
-        root.withdraw()
-        res = (root.winfo_screenwidth(), root.winfo_screenheight())
-        root.destroy()
-        return res
     return None
 
 
@@ -315,15 +306,6 @@ def get_virtual_screen_size():
     Cached: this may spin up a throwaway Tk root, and the monitor layout does
     not change often enough to justify paying that on every window placement.
     """
-    with suppress(Exception):
-        import tkinter
-
-        root = tkinter.Tk()
-        root.withdraw()
-        size = (root.winfo_vrootwidth(), root.winfo_vrootheight())
-        root.destroy()
-        if size[0] > 0 and size[1] > 0:
-            return size
     return get_current_res()
 
 

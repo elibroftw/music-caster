@@ -1,6 +1,5 @@
 from lzma import PRESET_DEFAULT
 
-from gui.views import GuiContext
 from meta import (
     State,
     SUN_VALLEY_TCL,
@@ -10,18 +9,10 @@ from meta import (
     UNINSTALLER,
     DEFAULT_THEME,
     EMAIL,
-    FONT_NORMAL,
     WAIT_TIMEOUT,
-    COVER_MINI,
-    COVER_NORMAL,
     UPDATE_MESSAGE,
     IMPORTANT_INFORMATION,
-    AUDIO_EXTS,
     AUDIO_FILE_TYPES,
-    IMG_FILE_TYPES,
-    SUBMIT_EVENTS,
-    TOGGLEABLE_SETTINGS,
-    TKDND_ENABLED,
     USING_TAURI_FRONTEND,
     BUNDLE_IDENTIFIER
 )
@@ -235,9 +226,6 @@ if __name__ == '__main__':
     import secrets
     import socket
     from threading import Thread
-    import tkinter
-    from tkinter import filedialog as fd
-    from tkinter import TclError
     import traceback
     import urllib.parse
     from urllib.parse import urlsplit
@@ -303,8 +291,6 @@ if __name__ == '__main__':
     )
     from modules.resolution_switcher import fmt_res, get_all_resolutions, set_resolution, get_all_refresh_rates, get_initial_res, get_current_res, is_plugged_in, get_initial_dpi_scale
     get_initial_dpi_scale()
-    from gui import MainWindow, MiniPlayerWindow, focus_window
-    import FreeSimpleGUI as Sg
     from modules.db import DatabaseConnection, init_db
     if IS_FROZEN:
         DatabaseConnection.move_to_new_location(args.db_path)
@@ -329,11 +315,6 @@ if __name__ == '__main__':
     except ImportError:
         pass
     import scrapetube
-    if not USING_TAURI_FRONTEND:
-        try:
-            from TkinterDnD2 import DND_FILES, DND_ALL
-        except ImportError:
-            from tkinterdnd2 import DND_FILES, DND_ALL
     import zeroconf
     TIME_TO_IMPORT = time.monotonic() - start_time
     try:
@@ -364,9 +345,6 @@ if __name__ == '__main__':
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     logging.getLogger('werkzeug').addHandler(log_handler)
     app_log.debug(f'Time to import is {TIME_TO_IMPORT:.2f} seconds')
-
-    gui_window = Sg.Window('', metadata={})
-    gui_window.close()
 
     WELCOME_MSG = t('Thanks for installing Music Caster.') + '\n' + t('Music Caster is running in the tray.')
     uris_to_scan = Queue()
@@ -545,7 +523,6 @@ if __name__ == '__main__':
                 cast_browser.devices[cast.uuid] = cast.cast_info
             for device in get_devices():
                 device_names.append(device.as_tray_item(settings['device']))
-            daemon_commands.put('__UPDATE_GUI__')
         tray_folders = [t('Select Folder')]
         for i, folder in enumerate(music_folders):
             folder = Path(folder)
@@ -580,10 +557,6 @@ if __name__ == '__main__':
                              [t('Playlists'), *tray_playlists],
                              [t('Select Files'), t('Play Files'), t('Queue Files'), t('Play Files Next')],
                              t('Play All')], (t('Exit'), '__EXIT__')]
-        if platform.system() == 'Linux':
-            # more so for applicationindicator
-            for menu in tray_menu_default, tray_menu_paused, tray_menu_playing:
-                menu.append((t('Open'), '__ACTIVATED__'))
         # refresh playlists
         tray_playlists.clear()
         tray_playlists.append(t('Playlists Tab'))
@@ -615,12 +588,7 @@ if __name__ == '__main__':
         if settings[settings_key] != new_value:
             settings[settings_key] = new_value
             save_settings()
-            if settings_key == 'repeat':
-                daemon_commands.put('__UPDATE_GUI__')
-                refresh_tray()
-            elif settings_key == 'shuffle':
-                if not gui_window.is_closed():
-                    daemon_commands.put('__UPDATE_GUI__')
+            if settings_key == 'shuffle':
                 shuffle_queue() if new_value else un_shuffle_queue()
         return new_value
 
@@ -645,7 +613,6 @@ if __name__ == '__main__':
         AKA set_volume
         """
         app_log.info(f'set to {new_vol} from {_from}')
-        gui_window.metadata['update_volume_slider'] = True
         if not isinstance(new_vol, (float, int)):
             new_vol = update_settings('volume', 20)
         new_vol = new_vol / 100
@@ -875,7 +842,6 @@ if __name__ == '__main__':
                         m.update({'file_path': uri})
                         file_metadata_list.append(m)
                 FileMetadata.batch_save_to_db(file_metadata_list, cur)
-                gui_window.metadata['update_listboxes'] = True
 
                 for url in urls_to_fetch:
                     url_metadata_list = get_url_metadata(url)
@@ -887,7 +853,6 @@ if __name__ == '__main__':
                 conn.commit()
             if use_temp:
                 all_tracks = all_tracks_temp
-            gui_window.metadata['update_listboxes'] = True
             # TODO
             # tracks = cur.execute('SELECT * FROM file_metadata ORDER BY sort_key').fetchall()
             all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
@@ -991,17 +956,6 @@ if __name__ == '__main__':
                 settings['device'] = settings.pop('previous_device')
             State.lang = settings['lang']
             State.track_format = settings['track_format']
-            fg, bg, accent = theme['text'], theme['background'], theme['accent']
-
-            GuiContext.update(fg, bg, accent, settings['experimental_features'])
-
-            Sg.set_options(text_color=fg, element_text_color=fg, input_text_color=fg,
-                           button_color=(bg, accent), element_background_color=bg, scrollbar_color=bg,
-                           text_element_background_color=bg, background_color=bg,
-                           input_elements_background_color=bg, progress_meter_color=accent,
-                           titlebar_background_color=bg, titlebar_text_color=fg,
-                           # progress_meter_style=
-                           border_width=0, slider_border_width=1, progress_meter_border_depth=0, font=FONT_NORMAL)
         if _save_settings:
             save_settings()
         settings_last_modified = os.path.getmtime(SETTINGS_FILE)
@@ -1165,7 +1119,7 @@ if __name__ == '__main__':
         _metadata = get_current_metadata()
         now_playing = {'status': str(playing_status), 'volume': settings['volume'], 'lang': settings['lang'],
                        'title': str(_metadata['title']), 'artist': str(_metadata['artist']),
-                       'album': str(_metadata['album']), 'gui_open': not gui_window.is_closed(),
+                       'album': str(_metadata['album']),
                        'track_position': get_track_position(), 'track_length': track_end - track_start,
                        'queue_length': len(done_queue) + len(music_queue) + len(next_queue),
                        'shuffle': settings['shuffle'],
@@ -1524,10 +1478,6 @@ if __name__ == '__main__':
                 else:
                     next_queue.append(track)
                 if i == len(indices):  # update gui after the last swap
-                    if not gui_window.is_closed():
-                        values = create_track_list()
-                        gui_window['queue'].update(values=values, set_to_index=len(done_queue) + len(next_queue),
-                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 16, 0))
                     save_queues()
             elif index_to_move > dq_len + nq_len:
                 track = music_queue[index_to_move - dq_len - nq_len]
@@ -1537,10 +1487,6 @@ if __name__ == '__main__':
                 else:
                     next_queue.append(track)
                 if i == len(indices):  # update gui after the last swap
-                    if not gui_window.is_closed():
-                        values = create_track_list()
-                        gui_window['queue'].update(values=values, set_to_index=dq_len + len(next_queue),
-                                                    scroll_to_index=max(len(done_queue) + len(next_queue) - 3, 0))
                     save_queues()
 
     def remove_from_queue(indices):
@@ -1569,11 +1515,6 @@ if __name__ == '__main__':
                 del next_queue[index_to_remove - dq_len - 1]
             elif index_to_remove < nq_len + mq_len + dq_len:
                 del music_queue[index_to_remove - dq_len - nq_len]
-            if i == len(indices):  # update gui after the last removal
-                values = create_track_list()
-                new_i = min(len(values), index_to_remove)
-                if not gui_window.is_closed():
-                    gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
 
     def apply_queue_setting_side_effects(setting_key):
         """
@@ -1587,28 +1528,16 @@ if __name__ == '__main__':
                 update_settings('queues', {'done': [], 'music': [], 'next': []})
             # persistent_queue and populate_queue_startup are mutually exclusive
             update_settings('populate_queue_startup', False)
-            if not gui_window.is_closed():
-                gui_window['populate_queue_startup'].update(value=False)
         elif setting_key == 'populate_queue_startup':
             update_settings('persistent_queue', False)
-            if not gui_window.is_closed():
-                gui_window['persistent_queue'].update(value=False)
-        elif setting_key == 'show_queue_index':
-            if not gui_window.is_closed():
-                gui_window.metadata['update_listboxes'] = True
 
     def clear_queue():
-        if not gui_window.is_closed():
-            gui_window['queue'].update(set_to_index=0)
-            gui_window['queue'].update(values=[])
         if playing_status.busy():
             stop('clear_queue')
         music_queue.clear()
         next_queue.clear()
         done_queue.clear()
         save_queues()
-        if not gui_window.is_closed():
-            gui_window.refresh()
 
     def cast_try_reconnect(switch_twice=False):
         global cast_browser, zconf
@@ -1823,7 +1752,6 @@ if __name__ == '__main__':
             # sort and set queue to first item
             music_queue = deque(sorted(done_queue, key=natural_key_file))
             done_queue.clear()
-        gui_window.metadata['update_listboxes'] = True
         save_queues()
 
 
@@ -1844,7 +1772,6 @@ if __name__ == '__main__':
         temp_list = list(music_queue)
         better_shuffle(temp_list, first=first_index)
         music_queue = deque(temp_list)
-        gui_window.metadata['update_listboxes'] = True
         save_queues()
 
 
@@ -1940,61 +1867,11 @@ if __name__ == '__main__':
             return create_track_list()
 
 
-    def update_gui():
-        if gui_window.is_closed():
-            return
-        try:
-            if playing_status.stopped():
-                gui_window['progress_bar'].update(0, disabled=True)
-            else:
-                value, range_max = (1, 1) if track_length is None else (floor(track_position), track_length)
-                gui_window['progress_bar'].update(value, range=(0, range_max), disabled=track_length is None)
-            metadata = get_current_metadata()
-            title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-            if playing_status.busy() and music_queue and not sar.alive:
-                if settings['show_track_number']:
-                    with suppress(KeyError):
-                        track_number = metadata['track_number']
-                        title = f'{track_number}. {title}'
-            if settings['mini_mode']:
-                title = truncate_title(title)
-            else:
-                default_device = None if cast is None else cast.cast_info
-                gui_window['devices'].update(value=Device(default_device), values=get_devices())
-                gui_window['album'].update(album)
-            gui_window['title'].update(title)
-            gui_window['artist'].update(artist)
-            image_data = PAUSE_BUTTON_IMG if playing_status.playing() else PLAY_BUTTON_IMG
-            gui_window['pause/resume'].update(image_data=image_data)
-            if settings['show_album_art']:
-                size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
-                bg = settings['theme']['background']
-                try:
-                    album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
-                except OSError as e:
-                    handle_exception(e)
-                    album_art_data = resize_img(DEFAULT_ART, bg, size)
-                gui_window['artwork'].update(data=album_art_data)
-            repeat_button: Sg.Button = gui_window['repeat']
-            repeat_img, new_tooltip = repeat_img_tooltip(settings['repeat'])
-            repeat_button.metadata = settings['repeat']
-            repeat_button.update(image_data=repeat_img)
-            repeat_button.set_tooltip(new_tooltip)
-            shuffle_image_data = SHUFFLE_ON if settings['shuffle'] else SHUFFLE_OFF
-            gui_window['shuffle'].update(image_data=shuffle_image_data)
-        except TclError as e:
-            app_log.info(f'gui_window.is_closed() = {gui_window.is_closed()}')
-            handle_exception(e)
-
-
     def after_play(title, artists: str, album, autoplay, switching_device):
         app_log.info(f'autoplay={autoplay}, switching_device={switching_device}')
         # prevent the system from going to sleep
         if autoplay:
             prevent_sleep()
-            if settings['notifications'] and not switching_device and gui_window.is_closed():
-                # artists is comma separated string
-                tray_notify(t('Playing') + f': {get_first_artist(artists)} - {title}')
             playing_status.play()
             # system_media_controls.set_playing()
         else:
@@ -2019,10 +1896,6 @@ if __name__ == '__main__':
             # album_art.save(thumb_path)
             # system_media_controls.set_metadata(title, artists, album, thumb_path.as_uri())
             # system_media_controls.update_time()
-
-        if not gui_window.is_closed():
-            gui_window.metadata['update_listboxes'] = True
-            daemon_commands.put('__UPDATE_GUI__')
         return True
 
 
@@ -2594,7 +2467,6 @@ if __name__ == '__main__':
                 next_queue.extendleft(reversed(temp_queue))
             else:
                 next_queue.extend(temp_queue)
-            gui_window.metadata['update_listboxes'] = True
             save_queues()
             return True
         # extend only if merge_tracks == 0 or we are queueing the tracks
@@ -2610,7 +2482,6 @@ if __name__ == '__main__':
                 playing_status.play()
                 next_track()
                 return True
-        gui_window.metadata['update_listboxes'] = True
         save_queues()
         return True
 
@@ -2638,14 +2509,12 @@ if __name__ == '__main__':
                 music_queue.append(next_queue.popleft())
             if music_queue:
                 play()
-        gui_window.metadata['update_listboxes'] = True
         save_queues()
 
 
     def queue_all():
         if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
             Thread(target=play_all, kwargs={'queue_only': True}, daemon=True, name='PlayAll').start()
-
 
     def open_dialog(title, for_dir=False, filetypes=None, single_file=False):
         if settings['use_last_folder']:
@@ -2657,24 +2526,7 @@ if __name__ == '__main__':
                     break
         else:
             initial_folder = get_default_music_folder()
-        _root = tkinter.Tk()
-        _root.withdraw()
-        if platform.system() == 'Linux':
-            # Tk on X11 cannot read .ico files; iconphoto takes a PhotoImage
-            with suppress(TclError):
-                _root.iconphoto(True, tkinter.PhotoImage(data=WINDOW_ICON))
-        else:
-            _root.iconbitmap(WINDOW_ICON)
-        if for_dir:
-            paths = fd.askdirectory(title=title, initialdir=initial_folder, parent=_root)
-        elif single_file:
-            paths = [fd.askopenfilename(title=title, parent=_root, initialdir=initial_folder,
-                                        filetypes=filetypes)]
-        else:
-            paths = fd.askopenfilenames(title=title, parent=_root, initialdir=initial_folder,
-                                        filetypes=filetypes)
-        _root.destroy()
-        return paths
+        return []
 
 
     def file_action(action='pf'):
@@ -2696,22 +2548,6 @@ if __name__ == '__main__':
                 return play_uris(paths, queue_uris=True, natural_sort=natural_sort)
             if action in {t('Play Next'), 'pfn'}:
                 return play_uris(paths, play_next=True, natural_sort=natural_sort)
-            gui_window.metadata['last_event'] = 'file_action'
-
-
-    def video_file_action():
-        path = open_dialog(t('Select Video Files'), filetypes=AUDIO_FILE_TYPES, single_file=True)[0]
-        device_id = gui_window['devices'].get().id
-        url_args = urllib.parse.urlencode({'path': path, 'api_key': settings['api_key']})
-        url = f'http://{get_ipv4()}:{State.PORT}/file?{url_args}'
-        video_device: Chromecast = get_device(device_id)
-        video_device.wait(timeout=WAIT_TIMEOUT)
-        mc = cast.media_controller
-        # https://developers.google.com/cast/docs/reference/web_receiver/cast.framework.messages.MovieMediaMetadata
-        metadata = {'title': Path(path).stem, 'metadataType': 1}
-        ext = path.split('.')[-1]
-        mc.play_media(url, f'video/{ext}', metadata=metadata, autoplay=True)
-        mc.block_until_active(WAIT_TIMEOUT)
 
 
     def folder_action(action='pf'):
@@ -2720,7 +2556,6 @@ if __name__ == '__main__':
         """
         directory = open_dialog(t('Select Folder'), for_dir=True)
         if directory:
-            gui_window.metadata['last_event'] = Sg.TIMEOUT_KEY
             update_settings('last_folder', directory)
             app_log.info(f'folder_action: action={action}')
             if action in {t('Play'), 'pf'}:
@@ -2732,12 +2567,9 @@ if __name__ == '__main__':
             else:
                 res = False
             if res:
-                gui_window.metadata['update_listboxes'] = True
                 save_queues()
             elif settings['notifications']:
                 tray_notify(t('ERROR') + ': ' + t('Folder does not contain audio files'))
-        else:
-            gui_window.metadata['last_event'] = 'folder_action'
 
     def get_track_position():
         global track_position
@@ -2791,8 +2623,6 @@ if __name__ == '__main__':
                     DiscordPresence.update(t('By') + f': {artist}', title, 'Paused', confirm_connect=settings['discord_rpc'])
             except UnsupportedNamespace:
                 stop('pause')
-            if not gui_window.is_closed():
-                daemon_commands.put('__UPDATE_GUI__')
             refresh_tray()
             LAST_PLAYED = time.time()
             return True
@@ -2829,8 +2659,6 @@ if __name__ == '__main__':
                 title, artist = metadata['title'], get_first_artist(metadata['artist'])
                 DiscordPresence.update(t('By') + f': {artist}',title, t('Listening'), confirm_connect=settings['discord_rpc'])
                 prevent_sleep()
-                if not gui_window.is_closed():
-                    daemon_commands.put('__UPDATE_GUI__')
                 refresh_tray()
             except (PyChromecastError, AssertionError) as e:
                 print('error', e)
@@ -2872,8 +2700,6 @@ if __name__ == '__main__':
                         app_log.exception('cast.quit_app failed')
                         handle_exception(e)
         track_start = track_position = track_end = track_length = 0
-        if not gui_window.is_closed():
-            daemon_commands.put('__UPDATE_GUI__')
         refresh_tray()
 
 
@@ -3052,8 +2878,6 @@ if __name__ == '__main__':
                 self.latest_release = release
                 self.latest_version = release['version']
                 State.update_available = True
-                if not gui_window.is_closed():
-                    gui_window['install_update'].update(visible=True)
                 if settings['notifications']:
                     tray_notify('update_available', context=self.latest_version)
 
@@ -3104,8 +2928,6 @@ if __name__ == '__main__':
                                         sys.argv[1:],
                                     )
                                 )
-                            if gui_window.is_closed(quick_check=True):
-                                cmd.append('-m')
                             tray_notify(download_update)
                             tray_process_queue.put({'tooltip': download_update})
                             try:
@@ -3202,9 +3024,6 @@ if __name__ == '__main__':
                 scanned += 1
                 if scanned >= 50:
                     scanned = 0
-                    gui_window.metadata['update_listboxes'] = True
-            if scanned:
-                gui_window.metadata['update_listboxes'] = True
 
             if seek_queue and time.time() > SYNC_WITH_CHROMECAST:
                 time_to_seek = seek_queue.pop()
@@ -3256,26 +3075,8 @@ if __name__ == '__main__':
         if not os.path.isfile(file):
             return False
         try:
-            file_metadata = get_metadata_wrapped(file)
-            gui_window['metadata_file'].update(value=file)
-            gui_window['metadata_file'].set_tooltip(file)
-            gui_window['metadata_title'].update(value=file_metadata['title'])
-            gui_window['metadata_artist'].update(value=file_metadata['artist'])
-            gui_window['metadata_album'].update(value=file_metadata['album'])
-            gui_window['metadata_track_num'].update(value=file_metadata['track_number'])
-            gui_window['metadata_explicit'].update(value=file_metadata['explicit'])
-            mime, artwork = get_album_art(file)
-            artwork = None if artwork == DEFAULT_ART else artwork
-            if artwork is not None:
-                gui_window['metadata_art'].metadata = (mime, artwork)
-                with suppress(OSError):
-                    display_art = resize_img(artwork, settings['theme']['background'], COVER_MINI)
-                    gui_window['metadata_art'].update(data=display_art)
             return True
         except InvalidAudioFile:
-            error = t('ERROR') + ': ' + t('Invalid audio file selected')
-            gui_window['metadata_msg'].update(value=error, text_color='red')
-            gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
             return False
 
 
@@ -3286,222 +3087,11 @@ if __name__ == '__main__':
             if os.path.isdir(folder) and folder not in added_folders:
                 music_folders.append(folder)
                 added_folders.add(folder)
-        gui_window['music_folders'].update(music_folders)
         refresh_tray()
         save_settings()
         if settings['scan_folders']:
             index_all_tracks()
 
-    def set_callbacks():
-        """ Set callbacks for the main window """
-
-        def save_window_position(event):
-            if event.widget is gui_window.TKroot:
-                if settings['mini_mode']:
-                    key = 'main_mini_mode'
-                else:
-                    key = 'main_vertical' if settings['vertical_gui'] else 'main'
-                settings['window_locations'][key] = gui_window.CurrentLocation()
-                save_settings()
-
-        def library_events(event):
-            library_tree_view = gui_window['library'].TKTreeview
-            region = library_tree_view.identify('region', event.x, event.y)
-            column_index = library_tree_view.identify_column(event.x).replace('#', '')
-            gui_window.metadata['library']['region'] = region
-            gui_window.metadata['library']['column'] = int(column_index)
-
-        def dnd_pl_tracks(event):
-            # pl: playlist
-            file_paths = gui_window.TKroot.tk.splitlist(event.data)
-            pl_tracks = gui_window.metadata['pl_tracks']
-            pl_tracks.extend(get_audio_uris(file_paths))
-            update_settings('last_folder', os.path.dirname(file_paths[-1]))
-            new_values, new_length = format_pl_lb(pl_tracks)
-            new_i = len(new_values) - 1
-            gui_window['pl_length'].update(value=new_length)
-            gui_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-
-        def dnd_queue(event):
-            items = tk_lb.tk.splitlist(event.data)
-            files = list(filter(os.path.isfile, items))
-            dirs = filter(os.path.isdir, items)
-            # ASSUMPTION: if there are more than 20 files being queued, that's not an album
-            play_uris(files, queue_uris=True, natural_sort=len(files) > 20)
-            for directory in dirs:
-                # assume album
-                play_uris(directory, queue_uris=True, natural_sort=False)
-
-        def report_callback_exception(exc, _, __):
-            if exc == KeyboardInterrupt:
-                raise KeyboardInterrupt
-
-        gui_window.hidden_master_root.report_callback_exception = report_callback_exception
-
-        # tkdnd stopped working for some reason in python 3.14
-        if platform.system() == 'Windows' and TKDND_ENABLED:
-            gui_window.TKroot.tk.call('package', 'require', 'tkdnd')
-
-        if not settings['mini_mode']:
-            gui_window['url_input'].bind('<<Cut>>', '_cut')
-            gui_window['url_input'].bind('<<Copy>>', '_copy')
-            gui_window['pl_url_input'].bind('<<Cut>>', '_cut')
-            gui_window['pl_url_input'].bind('<<Copy>>', '_copy')
-            gui_window['library'].TKTreeview.bind('<Button-1>', library_events, add='+')
-            gui_window['library'].TKTreeview.bind('<Double-Button-1>', library_events, add='+')
-            scroll_areas = ['queue', 'pl_tracks', 'library']
-            for scroll_area in scroll_areas:
-                gui_window[scroll_area].bind('<Enter>', '_mouse_enter')
-                gui_window[scroll_area].bind('<Leave>', '_mouse_leave')
-            for input_key in {'url_input', 'pl_url_input', 'pl_name', 'timer_input',
-                              'metadata_title', 'metadata_artist', 'metadata_album', 'metadata_track_num'}:
-                gui_window[input_key].Widget.config(insertbackground=settings['theme']['text'])
-
-            if TKDND_ENABLED:
-                try:
-                    # drag and drop callbacks
-                    tk_lb = gui_window['queue'].TKListbox
-                    drop_target_register(tk_lb, DND_ALL)
-                    dnd_bind(tk_lb, '<<Drop>>', dnd_queue)
-
-                    tk_lb = gui_window['pl_tracks'].TKListbox
-                    drop_target_register(tk_lb, DND_ALL)
-                    dnd_bind(tk_lb, '<<Drop>>', dnd_pl_tracks)
-
-                    tk_frame = gui_window['tab_metadata'].TKFrame
-                    drop_target_register(tk_frame, DND_FILES)
-                    dnd_bind(tk_frame, '<<Drop>>', lambda event: metadata_process_file(tk_lb.tk.splitlist(event.data)[0], 'tkdnd'))
-
-                    tk_lb = gui_window['music_folders'].TKListbox
-                    drop_target_register(tk_lb, DND_FILES)
-                    dnd_bind(tk_lb, '<<Drop>>', lambda event: add_music_folder(tk_lb.tk.splitlist(event.data)))
-                except NameError:
-                    # https://github.com/Eliav2/tkinterdnd2
-                    print('TODO: DND Not Implemented')
-        elif TKDND_ENABLED:
-            try:
-                root = gui_window.TKroot
-                drop_target_register(root, DND_ALL)
-                dnd_bind(root, '<<Drop>>', lambda event: play_uris(root.tk.splitlist(event.data), queue_uris=True))
-            except NameError:
-                print('TODO: DND Not Implemented')
-
-        gui_window['volume_slider'].bind('<Enter>', '_mouse_enter')
-        gui_window['volume_slider'].bind('<Leave>', '_mouse_leave')
-        gui_window['progress_bar'].bind('<Enter>', '_mouse_enter')
-        gui_window['progress_bar'].bind('<Leave>', '_mouse_leave')
-        gui_window.TKroot.bind('<Configure> ', save_window_position, add='+')
-        gui_window.bind('<Control-braceright>', 'mini_mode')
-        gui_window.bind('<Control-Q>', 'exit_program')
-        gui_window.bind('<Control-r>', 'repeat')
-        gui_window.bind('<Control-s>', 's:83')
-        gui_window.bind('<Control-m>', 'mute')
-        gui_window.bind('<Control-e>', 'locate_uri')
-        gui_window.bind('<Control-c>', '<<Copy>>')
-        gui_window.bind('<KeyPress>', 'KeyPress')
-        for i in range(1, 10):
-            gui_window.bind(f'<Control-Key-{i}>', f'{i}:{48 + i}')
-        gui_window.TKroot.bind("<KeyRelease>", lambda _: None)
-
-
-    def activate_gui(selected_tab=None, url_option='url_play'):
-        if USING_TAURI_FRONTEND:
-            handle_exception(RuntimeError('activate_gui should not be called when USING_TAURI_FRONTEND is True'))
-            return
-        global gui_window
-        # selected_tab can be 'tab_queue', ['tab_library'], 'tab_playlists', 'tab_timer', or 'tab_settings'
-        app_log.info(f'selected_tab={selected_tab}')
-        if gui_window.is_closed():
-            State.using_tcl_theme = settings['experimental_features'] and os.path.exists(sun_valley_tcl_path)
-            # create window if window not alive
-            lb_tracks = create_track_list()
-            selected_value = lb_tracks[len(done_queue)] if lb_tracks and len(done_queue) < len(lb_tracks) else None
-            mini_mode = settings['mini_mode']
-            window_location = get_window_location()
-            if settings['show_album_art']:
-                size = COVER_MINI if mini_mode else COVER_NORMAL
-                bg = settings['theme']['background']
-                try:
-                    album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
-                except OSError as e:
-                    handle_exception(e)
-                    album_art_data = resize_img(DEFAULT_ART, bg, size)
-            else:
-                album_art_data = None
-            metadata = get_current_metadata()
-            title, artist, album = metadata['title'], get_first_artist(metadata['artist']), metadata['album']
-            _track_position = get_track_position()
-            if settings['mini_mode']:
-                window_layout = MiniPlayerWindow(playing_status, settings, title, artist, album_art_data, track_length, _track_position)
-            else:
-                window_layout = MainWindow(playing_status, settings, title, artist, album, album_art_data, track_length, _track_position,
-                                           lb_tracks, selected_value, timer, all_tracks, get_devices(),
-                                           f"http://{get_ipv4()}:{State.PORT}?api_key={settings['api_key']}")
-            window_metadata: dict = {'last_event': None, 'update_listboxes': False, 'update_volume_slider': False,
-                                     'library': {'sort_by': 0, 'ascending': True, 'region': 'cell', 'column': 1},
-                                     'mouse_hover': '', 'url_input': '', 'pl_url_input': ''}
-            pl_name = window_metadata['pl_name'] = next(iter(settings['playlists']), '')
-            pl_tracks = window_metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
-
-            gui_window = Sg.Window('Music Caster', window_layout, grab_anywhere=mini_mode, no_titlebar=mini_mode,
-                                   margins=(0, 0), finalize=True, icon=WINDOW_ICON, return_keyboard_events=True,
-                                   use_default_focus=False, keep_on_top=mini_mode and settings['mini_on_top'],
-                                   location=window_location, metadata=window_metadata, debugger_enabled=is_debug())
-            if State.using_tcl_theme:
-                Sg.TOOLTIP_BACKGROUND_COLOR = settings['theme']['background']
-                try:
-                    if not State.theme_sourced:
-                        # as per State.using_tcl_theme, sun_valley_tcl_path exists
-                        # source errors out if called more than once
-                        gui_window.TKroot.tk.call('source', sun_valley_tcl_path)
-                        State.theme_sourced = True
-                    # this needs to be called every time the GUI is constructed
-                    gui_window.TKroot.tk.call('set_theme', 'dark')
-                except TclError as e:
-                    # _tkinter.TclError: Theme sun-valley-light already exists
-                    if IS_FROZEN:
-                        handle_exception(e)
-                    else:
-                        raise e
-            if not settings['mini_mode']:
-                gui_window['queue'].update(set_to_index=len(done_queue), scroll_to_index=len(done_queue))
-                pl_tracks_values, pl_length = format_pl_lb(pl_tracks)
-                gui_window['pl_length'].update(value=pl_length)
-                gui_window['pl_tracks'].update(values=pl_tracks_values)
-            set_callbacks()
-        elif settings['mini_mode']:
-            if selected_tab:
-                update_settings('mini_mode', not settings['mini_mode'])
-                gui_window.close()
-                return activate_gui(selected_tab)
-            else:
-                # flash border if already in mini mode
-                accent = settings['theme']['accent']
-                for _ in range(2):
-                    gui_window.TKroot.config(background=accent, bd=1)
-                    gui_window.read(50)
-                    gui_window.TKroot.config(background=accent, bd=0)
-                    gui_window.read(50)
-        if not settings['mini_mode'] and selected_tab is not None:
-            gui_window[selected_tab].select()
-            if selected_tab == 'tab_timer':
-                gui_window['timer_input'].set_focus()
-            elif selected_tab == 'tab_url':
-                gui_window[url_option].update(True)
-                gui_window['url_input'].set_focus()
-                with suppress(pyperclip.PyperclipException):
-                    default_text: str = pyperclip.paste()
-                    if default_text.startswith('http'):
-                        gui_window['url_input'].update(default_text)
-                        gui_window.metadata['url_input'] = default_text
-            elif selected_tab == 'tab_playlists':
-                with suppress(pyperclip.PyperclipException):
-                    default_text: str = pyperclip.paste()
-                    if default_text.startswith('http'):
-                        gui_window['pl_url_input'].update(default_text)
-                        gui_window.metadata['pl_url_input'] = default_text
-        with suppress(TclError):
-            focus_window(gui_window)
 
     def uri_at_idx(idx=0, offset=None):
         # converts listbox idx to uri
@@ -3543,7 +3133,6 @@ if __name__ == '__main__':
 
 
     def exit_program(quick_exit=False):
-        gui_window.close()
         close_tray()
         # stop any active scanning
         with suppress(NameError, asyncio.TimeoutError, concurrent.futures.TimeoutError):
@@ -3598,806 +3187,6 @@ if __name__ == '__main__':
         elif _tray_item.startswith('PF:'):  # play folder
             folder_index = int(re.search(r'\d+', _tray_item).group())
             Thread(target=play_uris, name='PlayFolder', daemon=True, args=[[music_folders[folder_index]]]).start()
-
-
-    def event_is_close(main_event, main_values):
-        ignore_events = {'file_action', 'folder_action', 'pl_add_tracks', 'add_music_folder'}
-        return (main_values == Sg.WIN_CLOSED or
-                main_event in {'Escape:27', ''} and gui_window.metadata['last_event'] not in ignore_events)
-
-    def update_playlist_ui(set_to_index=None):
-        pl_tracks = gui_window.metadata['pl_tracks']
-        pl_values, pl_length = format_pl_lb(pl_tracks)
-        gui_window['pl_length'].update(value=pl_length)
-        gui_window['pl_tracks'].update(values=pl_values, set_to_index=set_to_index)
-
-    def read_main_window():
-        global track_position, track_start, track_end, timer, music_queue, done_queue, SYNC_WITH_CHROMECAST
-        global OLD_CAST_POS, OLD_CAST_VOLUME
-        window_read_tuple: (str, dict) = gui_window.read(timeout=100) # type: ignore
-        main_event, main_values = window_read_tuple
-        if main_event == 'KeyPress':
-            e = gui_window.user_bind_event
-            main_event = e.char if e.char else str(e.keysym) + ':' + str(e.keycode)
-        if event_is_close(main_event, main_values):
-            gui_window.close()
-            if settings['gui_exits_app']:
-                exit_program()
-            return False
-        if settings['mini_mode']:
-            gui_window.TKroot.update_idletasks()
-        main_value = main_values.get(main_event)
-        if 'mouse_leave' not in main_event and 'mouse_enter' not in main_event and main_event != Sg.TIMEOUT_KEY:
-            gui_window.metadata['last_event'] = main_event
-        # update timer text if timer is old
-        if not settings['mini_mode'] and timer == 0 and gui_window['timer_text'].metadata:
-            gui_window['timer_text'].update(t('No Timer Set'))
-            gui_window['timer_text'].metadata = False
-            gui_window['cancel_timer'].update(visible=False)
-        # these events modify main_event (chain events)
-        if main_event.startswith('MouseWheel'):
-            main_event = main_event.split(':', 1)[1]
-            if gui_window.metadata['mouse_hover'] == 'progress_bar':
-                delta = {'Up': settings['scrubbing_delta'], 'Down': -settings['scrubbing_delta']}.get(main_event, 0)
-                if playing_status.busy() and track_length is not None:
-                    OLD_CAST_POS = get_track_position()
-                    new_position = min(max(track_position + delta, 0), track_length)
-                    gui_window['progress_bar'].update(value=new_position)
-                    main_values['progress_bar'] = new_position
-                    main_event = 'progress_bar'
-            elif gui_window.metadata['mouse_hover'] in {'', 'volume_slider'}:  # not in another scroll view
-                with CAST_LOCK:
-                    delta = {'Up': settings['volume_delta'], 'Down': -settings['volume_delta']}.get(main_event, 0)
-                    new_volume = min(max(0, main_values['volume_slider'] + delta), 100)
-                    update_settings('volume', new_volume)
-                    update_settings('muted', False)
-                    update_volume(new_volume, 'mouse_wheel')
-                    OLD_CAST_VOLUME = new_volume
-                    SYNC_WITH_CHROMECAST = time.time() + 0.5
-        elif main_event in {'j', 'l'} and (main_values.get('tab_group', 'tab_queue') == 'tab_queue'):
-            if playing_status.busy() and track_length is not None:
-                delta = {'j': -settings['scrubbing_delta'], 'l': settings['scrubbing_delta']}[main_event]
-                get_track_position()
-                new_position = min(max(track_position + delta, 0), track_length)
-                gui_window['progress_bar'].update(value=new_position)
-                main_values['progress_bar'] = new_position
-                main_event = 'progress_bar'
-                gui_window.refresh()
-        # override keypress events
-        QUEUE_TAB_SELECTED = main_values.get('tab_group') in {'tab_queue', None}
-        if main_event != '__TIMEOUT__':
-            with suppress(KeyError):
-                el = gui_window.find_element_with_focus()
-                if el is not None and el.Key in {'track_format', 'sys_audio_delay'}:
-                    main_event, main_value = el.Key, main_values.get(el.Key)
-        if main_event == '__TIMEOUT__':
-            pass  # avoids checking multiple if statements
-        # change/select tabs
-        elif main_event == '1:49' and not settings['mini_mode']:  # Queue tab [Ctrl + 1]
-            gui_window['tab_queue'].select()
-        elif (main_event == '2:50' and not settings['mini_mode'] or  # URL tab [Ctrl + 2]
-              main_event == 'tab_group' and main_values.get('tab_group') == 'tab_url'):
-            gui_window['tab_url'].select()
-            gui_window['url_input'].set_focus()
-            with suppress(pyperclip.PyperclipException):
-                default_text: str = pyperclip.paste()
-                if default_text.startswith('http'):
-                    gui_window['url_input'].update(value=default_text)
-        elif (main_event == '3:51' and not settings['mini_mode'] or  # Library tab [Ctrl + 3]:
-              main_event == 'tab_group' and main_values['tab_group'] == 'tab_library'):
-            gui_window['tab_library'].select()
-        elif (main_event == '4:52' and not settings['mini_mode'] or  # Playlists tab [Ctrl + 4]:
-              main_event == 'tab_group' and main_values['tab_group'] == 'tab_playlists'):
-            with suppress(pyperclip.PyperclipException):
-                default_text: str = pyperclip.paste()
-                if default_text.startswith('http'):
-                    gui_window['pl_url_input'].update(value=default_text)
-            gui_window['tab_playlists'].select()
-            gui_window['playlist_combo'].set_focus()
-        elif (main_event == '5:53' and not settings['mini_mode'] or  # Timer Tab [Ctrl + 5]
-              main_event == 'tab_group' and main_values['tab_group'] == 'tab_timer'):
-            gui_window['tab_timer'].select()
-            gui_window['timer_input'].set_focus()
-        elif main_event == '6:54' and not settings['mini_mode']:  # Metadata tab [Ctrl + 6]
-            gui_window['tab_metadata'].select()
-            gui_window['metadata_file'].set_focus()
-        elif main_event == '7:55' and not settings['mini_mode']:  # Settings tab [Ctrl + 7]
-            gui_window['tab_settings'].select()
-        elif main_event in {'progress_bar_mouse_enter', 'queue_mouse_enter', 'pl_tracks_mouse_enter',
-                            'volume_slider_mouse_enter', 'library_mouse_enter'}:
-            if main_event in {'progress_bar_mouse_enter', 'volume_slider_mouse_enter'} and settings['mini_mode']:
-                gui_window.grab_any_where_off()
-            gui_window.metadata['mouse_hover'] = '_'.join(main_event.split('_')[:-2])
-        elif main_event in {'progress_bar_mouse_leave', 'queue_mouse_leave', 'pl_tracks_mouse_leave',
-                            'volume_slider_mouse_leave', 'library_mouse_leave'}:
-            if main_event in {'progress_bar_mouse_leave', 'volume_slider_mouse_leave'} and settings['mini_mode']:
-                gui_window.grab_any_where_on()
-            if main_event != 'volume_slider_mouse_leave':
-                gui_window.metadata['mouse_hover'] = ''
-        elif main_event == 'pause/resume' or main_event == 'k' and QUEUE_TAB_SELECTED:
-            if playing_status.paused():
-                resume('gui')
-            elif playing_status.playing():
-                pause()
-            elif music_queue:
-                play()
-            elif next_queue:
-                music_queue.appendleft(next_queue.popleft())
-                play()
-            elif done_queue:  # start from top again
-                music_queue.extend(done_queue)
-                done_queue.clear()
-                play()
-            else:
-                play_all()
-        # Shift + N
-        elif (main_event == 'next' or main_event == 'N' and QUEUE_TAB_SELECTED) and playing_status.busy():
-            next_track()
-        # Shift + P || Shift + B
-        elif (main_event == 'prev' or main_event == 'P' or main_event == 'B' and QUEUE_TAB_SELECTED) and playing_status.busy():
-            prev_track()
-        elif main_event == 'devices':
-            change_device(main_value.id)
-        elif main_event == 'sys_audio_delay':
-            with suppress(ValueError):
-                update_settings('sys_audio_delay', int(main_value))
-        elif main_event == 'track_format':
-            update_settings('track_format', main_value)
-        elif main_event == 'on_battery_res':
-            with suppress(KeyError):
-                res = get_all_resolutions()[main_value]
-                update_settings('on_battery_res', (res['w'], res['h']))
-        elif main_event == 'plugged_in_res':
-            with suppress(KeyError):
-                res = get_all_resolutions()[main_value]
-                update_settings('plugged_in_res', (res['w'], res['h']))
-        elif main_event == 'shuffle':
-            update_settings('shuffle', not settings['shuffle'])
-        elif main_event == 'repeat':
-            cycle_repeat()
-        elif (main_event == 'volume_slider' or ((main_event in {'a', 'd'} or main_event.isdecimal())
-                                                and QUEUE_TAB_SELECTED)):
-            # User scrubbed volume bar or pressed a, d, #
-            try:
-                new_volume = int(main_event) * 10
-            except ValueError:
-                delta = {'a': -settings['volume_delta'], 'd': settings['volume_delta']}.get(main_event, 0)
-                new_volume = main_values['volume_slider'] + delta
-            update_settings('volume', new_volume)
-            # un-mute if volume slider was moved
-            update_settings('muted', False)
-            update_volume(new_volume, 'volume_slider')
-        elif main_event in {'Up:38', 'Down:40'}:
-            focused_element = gui_window.FindElementWithFocus()
-            if settings['mini_mode'] or focused_element not in {gui_window['queue'], gui_window['pl_tracks'],
-                                                                gui_window['music_folders']}:
-                delta = settings['volume_delta'] if main_event == 'Up:38' else -settings['volume_delta']
-                new_volume = main_values['volume_slider'] + delta
-                update_settings('volume', new_volume)
-                # un-mute if volume slider was moved
-                update_settings('muted', False)
-                update_volume(new_volume, 'Up:38')
-        elif main_event == 'mute':  # toggle mute
-            update_volume(0 if update_settings('muted', not settings['muted']) else settings['volume'], 'mute')
-        elif main_event in {'Prior:33', 'Next:34'} and not settings['mini_mode']:  # page up, page down
-            focused_element = gui_window.FindElementWithFocus()
-            move = {'Prior:33': -3, 'Next:34': 3}[main_event]
-            if focused_element == gui_window['queue'] and main_values['queue']:
-                new_i = gui_window['queue'].get_indexes()[0] + move
-                new_i = min(max(new_i, 0), len(gui_window['queue'].Values) - 1)
-                gui_window['queue'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-            elif focused_element == gui_window['pl_tracks'] and main_values['pl_tracks']:
-                new_i = gui_window['pl_tracks'].get_indexes()[0] + move
-                new_i = min(max(new_i, 0), len(gui_window.metadata['pl_tracks']) - 1)
-                gui_window['pl_tracks'].update(set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-        elif main_event == 'queue' and main_value:
-            with suppress(ValueError):
-                selected_uri_index = gui_window['queue'].get_indexes()[0]
-                if selected_uri_index <= len(done_queue):
-                    prev_track(times=len(done_queue) - selected_uri_index, forced=True, ignore_timestamps=True)
-                else:
-                    next_track(times=selected_uri_index - len(done_queue), forced=True, ignore_timestamps=True)
-                values = create_track_list()
-                dq_len = len(done_queue)
-                gui_window['queue'].update(values=values, set_to_index=dq_len, scroll_to_index=dq_len)
-        elif main_event == 'album' and playing_status.busy():
-            locate_uri(len(done_queue))
-        # queue related actions
-        elif main_event == 'mini_mode':
-            update_settings('mini_mode', not settings['mini_mode'])
-            gui_window.close()
-            activate_gui()
-        elif main_event == 'queue_all':
-            queue_all()
-        elif main_event == 'clear_queue':
-            clear_queue()
-        elif main_event == 'save_to_pl':
-            indices = gui_window['queue'].get_indexes()
-            if len(indices) <= 1:
-                tracks_to_add = chain(done_queue, [music_queue[0]] if music_queue else [], next_queue, islice(music_queue, 1, None))
-            else:
-                tracks_to_add = (uri_at_idx(idx) for idx in indices)
-            pl_tracks = gui_window.metadata['pl_tracks'] = []
-            pl_tracks.extend(tracks_to_add)
-            gui_window.metadata['pl_name'] = ''
-            gui_window['tab_playlists'].select()
-            gui_window['pl_name'].set_focus()
-            gui_window['pl_name'].update(value=gui_window.metadata['pl_name'])
-            pl_tracks_values, pl_tracks_length = format_pl_lb(pl_tracks)
-            gui_window['pl_length'].update(value=pl_tracks_length)
-            gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
-        elif main_event == 'locate_uri':
-            if not settings['mini_mode'] and main_values['queue']:
-                for index in gui_window['queue'].get_indexes():
-                    locate_uri(index)
-            else:
-                locate_uri(len(done_queue))
-        elif main_event == 'copy_uri' or (main_event == '<<Copy>>' and QUEUE_TAB_SELECTED):
-            with suppress(IndexError):
-                text_to_copy = ', '.join(( uri_at_idx(index) for index in gui_window['queue'].get_indexes()))
-                if text_to_copy:
-                    pyperclip.copy(text_to_copy)
-        elif main_event == 'edit_metadata':
-            indices = gui_window['queue'].get_indexes()
-            if len(indices) == 1 and metadata_process_file(uri_at_idx(indices[0]), 'read_main_window:edit_metadata'):
-                gui_window['tab_metadata'].select()
-        elif main_event == 'move_to_next_up':
-            move_to_next_up(gui_window['queue'].get_indexes())
-            gui_window.metadata['update_listboxes'] = False
-        elif main_event == 'move_up':
-            for i, index_to_move in enumerate(gui_window['queue'].get_indexes(), 1):
-                new_i = index_to_move - 1
-                dq_len = len(done_queue)
-                nq_len = len(next_queue)
-                if index_to_move < dq_len and new_i >= 0:  # move within dq
-                    # swap places
-                    done_queue[index_to_move], done_queue[new_i] = done_queue[new_i], done_queue[index_to_move]
-                elif index_to_move == dq_len and done_queue:  # move index -1 to 1 or top of next_queue
-                    if next_queue:
-                        next_queue.insert(0, done_queue.pop())
-                    else:
-                        music_queue.insert(1, done_queue.pop())
-                elif index_to_move == dq_len + 1:  # move 1 to -1
-                    if next_queue:
-                        done_queue.append(next_queue.popleft())
-                    else:
-                        track = music_queue[1]
-                        del music_queue[1]
-                        done_queue.append(track)
-                elif next_queue and dq_len < index_to_move <= nq_len + dq_len:  # within next_queue
-                    nq_i = new_i - dq_len - 1
-                    # swap places, could be more efficient using a custom deque with O(n) swaps instead of O(2n)
-                    next_queue[nq_i], next_queue[nq_i + 1] = next_queue[nq_i + 1], next_queue[nq_i]
-                elif next_queue and index_to_move == dq_len + nq_len + 1:  # moving into next queue
-                    track = music_queue[1]
-                    del music_queue[1]
-                    next_queue.insert(nq_len - 1, track)
-                elif new_i >= 0:  # moving within mq
-                    mq_i = new_i - dq_len - nq_len
-                    music_queue[mq_i], music_queue[mq_i + 1] = music_queue[mq_i + 1], music_queue[mq_i]
-                else:
-                    new_i = max(new_i, 0)
-                if i == len(main_values['queue']):  # update gui after moving the last selected track
-                    values = create_track_list()
-                    gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=max(new_i - 7, 0))
-                    save_queues()
-        elif main_event == 'move_down':
-            for i, index_to_move in enumerate(reversed(gui_window['queue'].get_indexes()), 1):
-                dq_len, nq_len, mq_len = len(done_queue), len(next_queue), len(music_queue)
-                if index_to_move < dq_len + nq_len + mq_len - 1:
-                    new_i = index_to_move + 1
-                    if index_to_move == dq_len - 1:  # move index -1 to 1
-                        if next_queue:
-                            next_queue.appendleft(done_queue.pop())
-                        else:
-                            music_queue.insert(1, done_queue.pop())
-                    elif index_to_move < dq_len:  # move within dq
-                        done_queue[index_to_move], done_queue[new_i] = done_queue[new_i], done_queue[index_to_move]
-                    elif index_to_move == dq_len:  # move 1 to -1
-                        if next_queue:
-                            done_queue.append(next_queue.popleft())
-                        else:
-                            track = music_queue[1]
-                            del music_queue[1]
-                            done_queue.append(track)
-                    elif next_queue and index_to_move == dq_len + nq_len:  # moving into music_queue
-                        music_queue.insert(2, next_queue.pop())
-                    elif index_to_move < dq_len + nq_len + 1:  # within next_queue
-                        nq_i = index_to_move - dq_len - 1
-                        next_queue[nq_i], next_queue[nq_i - 1] = next_queue[nq_i - 1], next_queue[nq_i]
-                    else:  # within music_queue
-                        mq_i = new_i - dq_len - nq_len
-                        # swap places
-                        music_queue[mq_i], music_queue[mq_i - 1] = music_queue[mq_i - 1], music_queue[mq_i]
-                    if i == len(main_values['queue']):  # update gui after moving the last selected track
-                        values, scroll_to = create_track_list(), max(new_i - 3, 0)
-                        gui_window['queue'].update(values=values, set_to_index=new_i, scroll_to_index=scroll_to)
-                        save_queues()
-        elif main_event == 'remove_track' and main_values['queue']:
-            remove_from_queue(gui_window['queue'].get_indexes())
-        elif main_event == 'select_files':
-            Thread(target=file_action, name='FileAction', daemon=True,
-                   args=[main_values['fs_action']]).start()
-        elif main_event == 'select_folders':
-            Thread(target=folder_action, name='FolderAction', daemon=True,
-                   args=[main_values['fs_action']]).start()
-        elif main_event == 'install_update':
-            if not State.installing_update:
-                gui_window['install_update'].update(visible=False)
-                Thread(target=update_checker.auto_update, kwargs={'from_gui': True}, daemon=True, name='Updater').start()
-        elif main_event == 'play_all':
-            if not any(filter(lambda thread: thread.name == 'PlayAll', threading.enumerate())):
-                Thread(target=play_all, name='PlayAll', daemon=True).start()
-        elif main_event in {'library', 'Play::library', 'Play Next::library', 'Queue::library', 'Locate::library'}:
-            library_metadata = gui_window.metadata['library']
-            if library_metadata['region'] == 'heading':
-                col_index = library_metadata['column']
-                if col_index == library_metadata['sort_by']:
-                    reverse = library_metadata['ascending'] = not library_metadata['ascending']
-                else:
-                    library_metadata['sort_by'] = col_index
-                    reverse = library_metadata['ascending'] = True
-                library_items = gui_window['library'].Values
-                library_items.sort(key=lambda row: row[col_index - 1].casefold(), reverse=not reverse)
-                gui_window['library'].update(library_items)
-            elif main_event == 'Locate::library':
-                for index in main_values['library']:
-                    locate_uri(uri=gui_window['library'].Values[index][-1])
-            elif main_values['library']:
-                paths_to_play = (gui_window['library'].Values[index][-1] for index in main_values['library'])
-                if main_event in {'library', 'Play::library'}:
-                    if settings['queue_library']:
-                        play_all(paths_to_play)
-                    else:
-                        play_uris(paths_to_play)
-                else:
-                    # play_next has priority over queue_uris
-                    play_uris(paths_to_play, queue_uris=True, play_next=main_event == 'Play Next::library')
-        elif main_event == 'progress_bar' and track_length is not None:
-            if playing_status.stopped():
-                gui_window['progress_bar'].update(disabled=True, value=0)
-                return
-            else:
-                # do not debounce when playing locally
-                track_position = int(main_values['progress_bar'])
-                if cast is None:
-                    set_pos(track_position)
-                else:
-                    # debounce setting the track position
-                    # background_thread will call set_pos
-                    seek_queue.append(track_position)
-                    SYNC_WITH_CHROMECAST = time.time() + 1
-        # main window settings tab
-        elif main_event == 'open_email':
-            open_in_browser(create_support_email_url())
-        elif main_event == 'open_github':
-            open_in_browser('https://github.com/elibroftw/music-caster')
-        elif main_event == 'web_gui':
-            api_key = settings['api_key']
-            open_in_browser(f'http://{get_lan_ip()}:{State.PORT}?api_key={api_key}')
-        # toggle settings
-        elif main_event in TOGGLEABLE_SETTINGS:
-            update_settings(main_event, main_value)
-            if main_event == 'run_on_startup':
-                start_on_login_modifications()
-            elif main_event in {'persistent_queue', 'populate_queue_startup'}:
-                apply_queue_setting_side_effects(main_event)
-            elif main_event == 'discord_rpc':
-                with suppress(Exception):
-                    if main_value:
-                        if playing_status.busy():
-                            metadata = url_metadata['SYSTEM_AUDIO'] if sar.alive else get_uri_metadata(music_queue[0])
-                            title, artist = metadata['title'], get_first_artist(metadata['artist'])
-                            DiscordPresence.connect()
-                            if track_start is not None and track_length is not None:
-                                DiscordPresence.update(t('By') + f': {artist}', title, 'Listening', end=track_start + track_length)
-                    elif not main_value:
-                        DiscordPresence.clear()
-            elif main_event in {'show_album_art', 'vertical_gui', 'flip_main_window'}:
-                # re-render main GUI
-                gui_window.close()
-                activate_gui('tab_settings')
-            elif main_event in {'show_track_number', 'show_queue_index'}:
-                gui_window.metadata['update_listboxes'] = True
-            elif main_event == 'scan_folders' and main_value:
-                index_all_tracks()
-            elif main_event == 'folder_cover_override':
-                size = COVER_MINI if settings['mini_mode'] else COVER_NORMAL
-                bg = settings['theme']['background']
-                try:
-                    album_art_data = resize_img(get_current_art(), bg, size, default_art=DEFAULT_ART)
-                except OSError as e:
-                    handle_exception(e)
-                    album_art_data = resize_img(DEFAULT_ART, bg, size)
-                gui_window['artwork'].update(data=album_art_data)
-            elif main_event == 'lang':
-                State.lang = main_value
-                gui_window.close()
-                activate_gui('tab_settings')
-                refresh_tray(True)
-        elif main_event == 'remove_music_folder' and main_values['music_folders']:
-            with suppress(ValueError):
-                for selected_item in main_values['music_folders']:
-                    music_folders.remove(selected_item)
-                gui_window['music_folders'].update(music_folders)
-                refresh_tray()
-                save_settings()
-                if settings['scan_folders']:
-                    index_all_tracks()
-        elif main_event == 'add_music_folder':
-            initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
-            folder_path = Sg.popup_get_folder(t('Select Folder'), initial_folder=initial_folder, no_window=True,
-                                              icon=WINDOW_ICON)
-            if folder_path:
-                add_music_folder([folder_path])
-        elif main_event == 'settings_file':
-            startfile(SETTINGS_FILE)
-        elif main_event == 'changelog_file':
-            try:
-                changelog_path = f'{sys._MEIPASS}/CHANGELOG.txt'
-            except AttributeError:
-                changelog_path = 'CHANGELOG.txt'
-            if not os.path.exists(changelog_path):
-                changelog_url = 'https://github.com/elibroftw/music-caster/blob/master/CHANGELOG.txt'
-                open_in_browser(changelog_url)
-            else:
-                startfile(changelog_path)
-        elif main_event == 'music_folders':
-            with suppress(IndexError):
-                # startfile dispatches to explorer / open / xdg-open
-                startfile(fix_path(main_values['music_folders'][0]))
-        # url tab
-        elif main_event == 'url_input':
-            gui_window.metadata['url_input'] = main_value
-        elif main_event == 'url_input_cut':
-            cut_text = get_cut_text(gui_window, 'url_input')
-            if cut_text:
-                pyperclip.copy(cut_text)
-                gui_window.metadata['url_input'] = gui_window['url_input'].get()
-        elif main_event == 'url_input_copy':
-            with suppress(TclError):
-                pyperclip.copy(gui_window['url_input'].Widget.selection_get())
-        elif (main_event in {'\r', 'special 16777220', 'special 16777221', 'url_submit'}
-              and main_values.get('tab_group') == 'tab_url' and main_values['url_input']):
-            urls_to_insert = main_values['url_input'].strip()
-            if '\n' in urls_to_insert:
-                urls_to_insert = urls_to_insert.split('\n')
-            else:
-                urls_to_insert = urls_to_insert.split(';')
-            gui_window['url_input'].update(value='')
-            if main_values['url_play'] or not music_queue:
-                music_queue.extendleft(reversed(urls_to_insert))
-                gui_window['url_msg'].update(t('Loading URL(s)'), text_color='yellow')
-                gui_window.read(1)
-                play()
-                gui_window['url_msg'].update('')
-                urls_to_insert.pop(0)
-            elif main_values['url_queue']:
-                music_queue.extend(urls_to_insert)
-                gui_window['url_msg'].update(t('Added URL(s)'), text_color='green')
-                gui_window.TKroot.after(2000, lambda: gui_window['url_msg'].update(value=''))
-            else:  # add to next queue
-                if settings['reversed_play_next']:
-                    next_queue.extendleft(reversed(urls_to_insert))
-                else:
-                    next_queue.extend(urls_to_insert)
-                gui_window['url_msg'].update(t('Added URL(s)'), text_color='green')
-                gui_window.TKroot.after(2000, lambda: gui_window['url_msg'].update(value=''))
-            for inserted_url in urls_to_insert:
-                uris_to_scan.put(inserted_url)
-            gui_window['url_input'].set_focus()
-            gui_window.metadata['update_listboxes'] = True
-        # video tab
-        elif main_event == 'video_select_file':
-            Thread(target=video_file_action(), name='VideoFileAction', daemon=True).start()
-        # timer tab
-        elif main_event == 'cancel_timer':
-            gui_window['timer_text'].update(t('No Timer Set'))
-            gui_window['timer_text'].metadata = False
-            gui_window['timer_error'].update(visible=False)
-            gui_window['cancel_timer'].update(visible=False)
-            cancel_timer()
-        # handle enter/submit event
-        elif main_event in SUBMIT_EVENTS and main_values.get('tab_group') == 'tab_timer':
-            try:
-                timer_value: str = main_values['timer_input']
-                timer_set_to = set_timer(timer_value)
-                gui_window['timer_text'].update(t('Timer set for $TIME').replace('$TIME', timer_set_to))
-                gui_window['timer_text'].metadata = True
-                gui_window['cancel_timer'].update(visible=True)
-                gui_window['timer_error'].update(visible=False)
-                gui_window['timer_input'].update(value='')
-                gui_window['timer_input'].set_focus()
-            except ValueError:
-                # flash timer error
-                for _ in range(3):
-                    gui_window['timer_error'].update(visible=True, text_color='#ffcccb')
-                    gui_window.read(10)
-                    gui_window['timer_error'].update(text_color='red')
-                    gui_window.read(10)
-                gui_window['timer_input'].set_focus()
-        elif main_event in {'shut_down', 'hibernate', 'sleep', 'timer_stop'}:
-            update_settings('timer_hibernate', main_values['hibernate'])
-            update_settings('timer_sleep', main_values['sleep'])
-            update_settings('timer_shut_down', main_values['shut_down'])
-        # playlists tab
-        elif main_event == 'playlist_combo':
-            # user selected a playlist from the drop-down
-            pl_name = gui_window.metadata['pl_name'] = main_value if main_value in settings['playlists'] else ''
-            pl_tracks = gui_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
-            gui_window['pl_name'].update(value=pl_name)
-            pl_tracks_values, pl_length = format_pl_lb(pl_tracks)
-            gui_window['pl_length'].update(value=pl_length)
-            gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
-        elif main_event in {'new_pl', 'n:78'}:
-            gui_window.metadata['pl_name'] = ''
-            gui_window.metadata['pl_tracks'] = []
-            gui_window['pl_name'].update(value='')
-            gui_window['pl_name'].set_focus()
-            gui_window['pl_length'].update(value='')
-            gui_window['pl_tracks'].update(values=[])
-            gui_window['playlist_combo'].update(value='')
-        elif main_event == 'export_pl':
-            if main_values['playlist_combo'] and settings['playlists'].get(main_values['playlist_combo']):
-                playlist_uris = settings['playlists'][main_values['playlist_combo']]
-                playlist_path = export_playlist(main_values['playlist_combo'], playlist_uris)
-                locate_uri(uri=playlist_path)
-        elif main_event == 'delete_pl':
-            pl_name = gui_window.metadata['pl_name'] = main_values.get('playlist_combo', '')
-            settings['playlists'].pop(pl_name, None)
-            pl_name = gui_window.metadata['pl_name'] = next(iter(settings['playlists']), '')
-            gui_window['playlist_combo'].update(value=pl_name, values=tuple(settings['playlists']))
-            pl_tracks = gui_window.metadata['pl_tracks'] = settings['playlists'].get(pl_name, []).copy()
-            # update playlist editor
-            gui_window['pl_name'].update(value=pl_name)
-            pl_tracks_values, pl_tracks_length = format_pl_lb(pl_tracks)
-            gui_window['pl_length'].update(value=pl_tracks_length)
-            gui_window['pl_tracks'].update(values=pl_tracks_values, set_to_index=0)
-            save_settings()
-            refresh_tray()
-        elif main_event == 'play_pl':
-            playlist_action(main_values['playlist_combo'])
-        elif main_event == 'queue_pl':
-            playlist_action(main_values['playlist_combo'], 'queue')
-            gui_window.metadata['update_listboxes'] = True
-        elif main_event == 'add_next_pl':
-            playlist_action(main_values['playlist_combo'], 'next')
-            gui_window.metadata['update_listboxes'] = True
-        elif main_event in {'pl_save', 's:83'} and main_values.get('tab_group') == 'tab_playlists':
-            # save playlist
-            if main_values['pl_name']:
-                pl_name = gui_window.metadata['pl_name']
-                save_name = main_values['pl_name']
-                if pl_name != save_name:
-                    # if user is renaming a playlist, remove old data
-                    settings['playlists'].pop(pl_name, '')
-                    pl_name = gui_window.metadata['pl_name'] = save_name
-                settings['playlists'][pl_name] = gui_window.metadata['pl_tracks']
-                # sort playlists alphabetically
-                playlist_names = sorted(settings['playlists'])
-                settings['playlists'] = {k: settings['playlists'][k] for k in playlist_names}
-                gui_window['playlist_combo'].update(value=pl_name, values=playlist_names)
-            save_settings()
-            gui_window['pl_saved'].update(visible=True)
-            gui_window.read(1)
-            gui_window.TKroot.after(2000, lambda: gui_window['pl_saved'].update(visible=False))
-            refresh_tray()
-        elif (main_event == 'pl_rm_items' and main_values['pl_tracks']
-              and main_values.get('tab_group') == 'tab_playlists'):
-            # remove items from playlist
-            # remove bottom to top to avoid dynamic indices
-            pl_tracks = gui_window.metadata['pl_tracks']
-            for i, to_remove in enumerate(reversed(gui_window['pl_tracks'].get_indexes()), 1):
-                pl_tracks.pop(to_remove)
-                if i == len(main_values['pl_tracks']):  # update gui after the last removal
-                    scroll_to_index = max(to_remove - 3, 0)
-                    new_values, new_length = format_pl_lb(pl_tracks)
-                    gui_window['pl_length'].update(value=new_length)
-                    gui_window['pl_tracks'].update(new_values, set_to_index=to_remove, scroll_to_index=scroll_to_index)
-        elif main_event == 'pl_add_tracks':
-            initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
-            file_paths = Sg.popup_get_file('Select Audio Files', no_window=True, initial_folder=initial_folder,
-                                           multiple_files=True, file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
-            if file_paths:
-                pl_tracks = gui_window.metadata['pl_tracks']
-                pl_tracks.extend(get_audio_uris(file_paths))
-                update_settings('last_folder', os.path.dirname(file_paths[-1]))
-                with suppress(TclError):
-                    gui_window.TKroot.focus_force()
-                    gui_window.normal()
-                    new_values, pl_length = format_pl_lb(pl_tracks)
-                    gui_window['pl_length'].update(value=pl_length)
-                    new_i = len(new_values) - 1
-                    gui_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-        elif main_event == 'pl_url_input':
-            gui_window.metadata['pl_url_input'] = main_value
-        elif main_event == 'pl_url_input_cut':
-            cut_text = get_cut_text(gui_window, 'pl_url_input')
-            if cut_text:
-                pyperclip.copy(cut_text)
-                gui_window.metadata['pl_url_input'] = gui_window['pl_url_input'].get()
-        elif main_event == 'pl_url_input_copy':
-            with suppress(TclError):
-                pyperclip.copy(gui_window['pl_url_input'].Widget.selection_get())
-        elif main_event == 'pl_add_url' or (main_event in SUBMIT_EVENTS and main_values.get('tab_group') == 'tab_playlists'):
-            links = main_values['pl_url_input']
-            if '\n' in links:
-                links = links.split('\n')
-            else:
-                links = links.split(';')
-            for link in links:
-                if link.startswith('http://') or link.startswith('https://'):
-                    uris_to_scan.put(link)
-                    pl_tracks = gui_window.metadata['pl_tracks']
-                    pl_tracks.append(link)
-                    new_values, pl_length = format_pl_lb(pl_tracks)
-                    gui_window['pl_length'].update(value=pl_length)
-                    new_i = len(new_values) - 1
-                    gui_window['pl_tracks'].update(new_values, set_to_index=new_i, scroll_to_index=max(new_i - 3, 0))
-                    # empty the input field
-                    gui_window['pl_url_input'].update(value='')
-                    gui_window['pl_url_input'].set_focus()
-                else:
-                    tray_notify(t('ERROR') + ': ' + t("Invalid URL. URL's need to start with http:// or https://"))
-        elif main_event == 'pl_move_up':
-            # only allow moving up if 1 item is selected and pl_files is not empty
-            for i, to_move in enumerate(gui_window['pl_tracks'].get_indexes(), 1):
-                if to_move:  # can't move the first index up
-                    new_i = to_move - 1
-                    pl_tracks = gui_window.metadata['pl_tracks']
-                    pl_tracks.insert(new_i, pl_tracks.pop(to_move))
-                    if i == len(main_values['pl_tracks']):  # update gui after the last swap
-                        new_values, pl_length = format_pl_lb(pl_tracks)
-                        gui_window['pl_length'].update(value=pl_length)
-                        gui_window['pl_tracks'].update(new_values, set_to_index=new_i,
-                                                       scroll_to_index=max(new_i - 3, 0))
-        elif main_event == 'pl_move_down':
-            # only allow moving down if 1 item is selected and pl_files is not empty
-            for i, to_move in enumerate(gui_window['pl_tracks'].get_indexes(), 1):
-                pl_tracks = gui_window.metadata['pl_tracks']
-                if to_move < len(pl_tracks) - 1:
-                    new_i = to_move + 1
-                    pl_tracks.insert(new_i, pl_tracks.pop(to_move))
-                    if i == len(main_values['pl_tracks']):  # update gui after the last swap
-                        pl_new_values, pl_length = format_pl_lb(pl_tracks)
-                        gui_window['pl_length'].update(value=pl_length)
-                        gui_window['pl_tracks'].update(values=pl_new_values, set_to_index=new_i,
-                                                       scroll_to_index=max(new_i - 3, 0))
-        elif main_event in {'pl_locate_selected', 'pl_tracks'}:
-            for i in gui_window['pl_tracks'].get_indexes():
-                locate_uri(uri=gui_window.metadata['pl_tracks'][i])
-        elif main_event == 'pl_copy_selected':
-            with suppress(IndexError):
-                text_to_copy = ', '.join(( gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes()))
-                if text_to_copy:
-                    pyperclip.copy(text_to_copy)
-        elif main_event in {'play_pl_selected', 'queue_pl_selected', 'add_next_pl_selected'}:
-            uris = (gui_window.metadata['pl_tracks'][i] for i in gui_window['pl_tracks'].get_indexes())
-            play_uris(uris, queue_uris=main_event == 'queue_pl_selected',
-                      play_next=main_event == 'add_next_pl_selected', natural_sort=settings['shuffle'])
-        # metadata editor tab
-        elif main_event in {'metadata_browse', 'metadata_file'}:
-            initial_folder = settings['last_folder'] if settings['use_last_folder'] else get_default_music_folder()
-            selected_file = Sg.popup_get_file('Select audio file', initial_folder=initial_folder, no_window=True,
-                                              file_types=AUDIO_FILE_TYPES, icon=WINDOW_ICON)
-            metadata_process_file(selected_file, f'read_main_window:{main_event}')
-        elif main_event == 'metadata_select_art' and gui_window['metadata_file'].get():
-            selected_file = Sg.popup_get_file('Select image/audio file', no_window=True,
-                                              file_types=IMG_FILE_TYPES, icon=WINDOW_ICON)
-            if selected_file:
-                if Path(selected_file).suffix.casefold() in AUDIO_EXTS:
-                    mime, artwork = get_album_art(selected_file, settings['folder_cover_override'])
-                else:
-                    img = Image.open(selected_file).convert('RGB')
-                    data = io.BytesIO()
-                    img.save(data, format='jpeg', quality=95)
-                    mime, artwork = 'image/jpeg', b64encode(data.getvalue())
-                artwork = None if artwork == DEFAULT_ART else artwork
-                if artwork is not None:
-                    try:
-                        display_art = resize_img(artwork, settings['theme']['background'], COVER_MINI)
-                        gui_window['metadata_art'].metadata = (mime, artwork)
-                        gui_window['metadata_art'].update(data=display_art)
-                    except OSError as e:
-                        handle_exception(e)
-        elif main_event == 'metadata_search_art' and gui_window['metadata_file'].get():
-            # search for artwork using spotify API
-            gui_window['metadata_msg'].update(value=t('Searching for artwork...'), text_color='yellow')
-            found_artwork = False
-            for mkt in {'MX', 'CA', 'US', 'UK', 'HK'}:
-                title = main_values['metadata_title']
-                artist = main_values['metadata_artist']
-                url = f'https://api.spotify.com/v1/search?q={title}'
-                if artist:
-                    url += f'+artist:{artist}'
-                url += f'&type=track&market={mkt}'
-                r = requests.get(url, headers=get_spotify_headers()).json()
-                if 'tracks' in r:
-                    for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
-                        original_art = b64encode(requests.get(art_link).content).decode()
-                        found_artwork = True
-                        try:
-                            display_art = resize_img(original_art, settings['theme']['background'], COVER_MINI)
-                            gui_window['metadata_art'].metadata = ('image/jpeg', original_art)
-                            gui_window['metadata_art'].update(data=display_art)
-                        except OSError as e:
-                            handle_exception(e)
-                            found_artwork = False
-                        break
-            if found_artwork:
-                gui_window['metadata_msg'].update(value=t('Artwork found'), text_color='green')
-                gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
-            else:
-                gui_window['metadata_msg'].update(value=t('No artwork found'), text_color='red')
-                gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
-        elif main_event == 'metadata_remove_art':
-            gui_window['metadata_art'].metadata = (None, None)
-            gui_window['metadata_art'].update(data=None)
-        elif main_event in {'metadata_save', 's:83'} and main_values.get('tab_group') == 'tab_metadata':
-            if gui_window['metadata_file'].get():
-                new_metadata = {'title': main_values['metadata_title'], 'artist': main_values['metadata_artist'],
-                            'album': main_values['metadata_album'], 'explicit': main_values['metadata_explicit'],
-                            'track_number': main_values['metadata_track_num']}
-                # album art optional
-                if gui_window['metadata_art'].metadata is not None:
-                    mime, art = gui_window['metadata_art'].metadata
-                    new_metadata['mime'] = mime
-                    new_metadata['art'] = art
-                gui_window['metadata_msg'].update(value=t('Saving metadata'), text_color='yellow')
-                try:
-                    set_metadata(gui_window['metadata_file'].get(), new_metadata)
-                    gui_window['metadata_msg'].update(value=t('Metadata saved'), text_color='green')
-                except Exception as e:  # e.g. ValueError track number incorrectly entered
-                    print('error', repr(e))
-                    error = t('ERROR') + ': ' + repr(e)
-                    gui_window['metadata_msg'].update(value=error, text_color='red')
-                gui_window.TKroot.after(2000, lambda: gui_window['metadata_msg'].update(value=''))
-                gui_window['title'].update(' ' + gui_window['title'].DisplayText + ' ')  # try updating now playing
-        elif main_event == 'exit_program':
-            exit_program()
-        # other GUI updates
-        if gui_window.metadata['update_listboxes'] and not settings['mini_mode']:
-            gui_window.metadata['update_listboxes'] = False
-            dq_len = len(done_queue)
-            lb_tracks = create_track_list()
-            gui_window['queue'].update(values=lb_tracks, set_to_index=dq_len, scroll_to_index=dq_len)
-            pl_tracks = gui_window.metadata['pl_tracks']
-            pl_values, pl_length = format_pl_lb(pl_tracks)
-            gui_window['pl_length'].update(value=pl_length)
-            gui_window['pl_tracks'].update(values=pl_values)
-            if len(all_tracks) != len(gui_window['library'].Values):
-                lib_data = sorted(
-                    (
-                        [
-                            track['title'],
-                            get_first_artist(track['artist']),
-                            track['album'],
-                            uri,
-                        ]
-                        for uri, track in index_all_tracks(False).items()
-                    ),
-                    key=lambda cols: cols[1],
-                )
-                gui_window['library'].update(values=lib_data)
-        if gui_window.metadata['update_volume_slider']:
-            gui_window['mute'].update(image_data=VOLUME_MUTED_IMG if settings['muted'] else VOLUME_IMG)
-            gui_window['mute'].set_tooltip(t('unmute') if settings['muted'] else t('mute'))
-            gui_window['volume_slider'].update(0 if settings['muted'] else settings['volume'])
-            gui_window.metadata['update_volume_slider'] = False
-        # update progress bar
-        if time.time() > SYNC_WITH_CHROMECAST:
-            progress_bar: Sg.Slider = gui_window['progress_bar']
-            time_elapsed_text, time_left_text = create_progress_bar_texts(
-                get_track_position(), track_length
-            )
-            if time_elapsed_text != gui_window['time_elapsed'].get():
-                gui_window['time_elapsed'].update(time_elapsed_text)
-            if time_left_text != gui_window['time_left'].get():
-                gui_window['time_left'].update(time_left_text)
-            if music_queue and playing_status.busy() and not sar.alive:
-                progress_bar.update(floor(track_position))
-        return True
-
 
     def start_on_login_modifications():
         """ Run platform specific implementation of startup modification """
@@ -4480,7 +3269,6 @@ if __name__ == '__main__':
                             OLD_CAST_VOLUME = cast_volume
                             if update_settings('volume', cast_volume) and settings['muted']:
                                 update_settings('muted', False)
-                            gui_window.metadata['update_volume_slider'] = True
             elif playing_status.playing() and cast.media_controller.status.player_is_idle and time.time() - LAST_PLAYED > 300:
                 # paused for more than 5 minutes
                 stop('cast_monitor. app was not running')
@@ -4501,23 +3289,15 @@ if __name__ == '__main__':
 
     def handle_action(action):
         actions = {
-            '__ACTIVATED__': activate_gui,
-            '__UPDATE_GUI__': update_gui,
             '__EXIT__': exit_program,
             # from tray menu
             t('Exit'): exit_program,
             t('Rescan Library'): index_all_tracks,
             t('Refresh Devices'): lambda: refresh_tray(True),
             # isdigit should be an if statement
-            t('Settings'): lambda: activate_gui('tab_settings'),
-            t('Playlists Tab'): lambda: activate_gui('tab_playlists'),
             # PL should be an if statement
-            t('Set Timer'): lambda: activate_gui('tab_timer'),
             t('Cancel Timer'): cancel_timer,
             t('System Audio'): play_system_audio,
-            t('Play URL'): lambda: activate_gui('tab_url', 'url_play'),
-            t('Queue URL'): lambda: activate_gui('tab_url', 'url_queue'),
-            t('Play URL Next'): lambda: activate_gui('tab_url', 'url_play_next'),
             t('Play Files'): file_action,
             t('Queue Files'): lambda: file_action('qf'),
             t('Play Files Next'): lambda: file_action('pfn'),
@@ -4672,9 +3452,6 @@ if __name__ == '__main__':
                 play_all(queue_only=not args.start_playing or args.queue)
             except RuntimeError:
                 tray_notify(t('ERROR') + ':' + t('Could not populate queue because library scan is disabled'))
-        # open window if minimized argument not given
-        if not USING_TAURI_FRONTEND and not args.minimized and not settings.get('DEBUG', False):
-            daemon_commands.put('__ACTIVATED__')
         TIME_TO_START = time.monotonic() - start_time
         app_log.info('--------------------------------')
         app_log.info(f'Music Caster Version: {VERSION}')
@@ -4766,10 +3543,7 @@ if __name__ == '__main__':
                         tray_notify(t('ERROR') + ': ' + t('Could not set resolution'))
             if cast is not None:
                 cast_monitor(is_callback=False)
-            if not gui_window.is_closed():
-                read_main_window()
-            else:
-                time.sleep(0.3)
+            time.sleep(0.3)
     except KeyboardInterrupt:
         exit_program()
     except Exception as exception:
