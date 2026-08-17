@@ -309,7 +309,7 @@ jobs:
             librsvg2-devel \
             libappindicator-gtk3-devel \
             rpm-build rpmdevtools \
-            python3 python3-pip python3-devel python3-tkinter \
+            python3 python3-pip python3-devel \
             portaudio-devel \
             patchelf \
             desktop-file-utils
