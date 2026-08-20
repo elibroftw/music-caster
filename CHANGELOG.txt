@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.0.8
+- Upgrade yt-dlp
+
 6.0.7
 - [Fix] UI fixes
 - [Fix] Daemon init
