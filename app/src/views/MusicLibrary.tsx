@@ -42,6 +42,22 @@ export default function MusicLibrary() {
 		})();
 	}, []);
 
+	// the daemon serves per-file cover thumbnails at /file/?path=...&thumbnail_only=true.
+	// resolve one URL to learn the daemon's base (and api key suffix), then build every
+	// row's URL from it locally instead of one IPC round-trip per track
+	const [artUrlTemplate, setArtUrlTemplate] = useState<string | null>(null);
+	useEffect(() => {
+		(async () => {
+			try {
+				setArtUrlTemplate(await api.getFileUrl('DEFAULT_ART', true));
+			} catch {
+				// daemon not up yet: rows simply render without art
+			}
+		})();
+	}, []);
+	const artUrl = (filePath: string) =>
+		artUrlTemplate?.replace('path=DEFAULT_ART', `path=${encodeURIComponent(filePath)}`);
+
 	const handleSort = (column: keyof Track) => {
 		setSortColumn(column);
 	};
@@ -103,7 +119,7 @@ export default function MusicLibrary() {
 				<ScrollArea style={{ flex: 1 }}>
 					<Stack gap='xs'>
 						{[...Array(15)].map((_, index) => (
-							<Skeleton key={index} height={40} />
+							<Skeleton key={index} height={80} />
 						))}
 					</Stack>
 				</ScrollArea>
@@ -163,6 +179,7 @@ export default function MusicLibrary() {
 					<Table highlightOnHover>
 						<Table.Thead>
 							<Table.Tr>
+								<Table.Th aria-label='Album art' />
 								{columns.map((column) => (
 									<Table.Th
 										key={column.key}
@@ -179,7 +196,8 @@ export default function MusicLibrary() {
 								<Table.Tr
 									key={index}
 									// onClick={() => setSelectedTrack(track)}
-									style={{ cursor: 'pointer' }}
+									// height on a tr behaves as a min-height: cells can still grow
+									style={{ cursor: 'pointer', height: 80 }}
 									onContextMenu={e => {
 										e.preventDefault();
 										setMenuItem({
@@ -197,6 +215,19 @@ export default function MusicLibrary() {
 										});
 									}}
 								>
+									<Table.Td style={{ width: 72 }}>
+										{artUrl(track.file_path) && (
+											// lazy so only the covers scrolled into view are fetched
+											<img
+												src={artUrl(track.file_path)}
+												alt=''
+												width={64}
+												height={64}
+												loading='lazy'
+												style={{ objectFit: 'cover', borderRadius: 'var(--mantine-radius-sm)', display: 'block' }}
+											/>
+										)}
+									</Table.Td>
 									{columns.map((column) =>
 										<TableCell key={column.key} track={track} columnKey={column.key} />
 									)}

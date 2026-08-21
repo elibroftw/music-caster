@@ -6,7 +6,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import { formatTime, IS_DEVELOPMENT } from '../common/utils';
+import { formatTime } from '../common/utils';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './Queue.module.css';
@@ -31,18 +31,28 @@ export default function Queue() {
 
 	const api = useContext(MusicCasterAPIContext)!;
 
-	// dev-only preview: the current track's art shown in its queue row until
-	// the daemon serves per-track art for the whole queue
-	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
-	useEffect(() => {
-		if (!IS_DEVELOPMENT) return;
-		api.getAlbumArtUrl().then(setAlbumArtUrl).catch(() => setAlbumArtUrl(null));
-	}, [playerState?.file_name]);
-
 	const queuePosition = playerState?.queue_position ?? 0;
 	// tracked as a boolean so the queue only re-renders when the daemon comes up
 	// or goes away, not on every play/pause status change
 	const daemonDown = playerState === null || playerState.status === 'NOT_RUNNING';
+
+	// the daemon serves per-file cover thumbnails at /file/?path=...&thumbnail_only=true.
+	// resolve one URL to learn the daemon's base (and api key suffix), then build every
+	// row's URL from it locally instead of one IPC round-trip per track
+	const [artUrlTemplate, setArtUrlTemplate] = useState<string | null>(null);
+	useEffect(() => {
+		(async () => {
+			try {
+				setArtUrlTemplate(await api.getFileUrl('DEFAULT_ART', true));
+			} catch {
+				// daemon not up yet: rows simply render without art
+			}
+		})();
+	}, [daemonDown]);
+	// http URIs have no local file for the daemon to read a cover from
+	const artUrl = (uri: string) => uri.startsWith('http')
+		? undefined
+		: artUrlTemplate?.replace('path=DEFAULT_ART', `path=${encodeURIComponent(uri)}`);
 
 	// title/artist per file path from the daemon's library db, keyed with posix separators
 	// (queue URIs may use backslashes). rows without a db entry (urls, unindexed files)
@@ -105,27 +115,30 @@ export default function Queue() {
 					onClick={() => onTrackClick(index - queuePosition)}
 				>
 					<Flex gap='md' align='stretch' h='100%'>
-						{/* queue index badge tucked into the row's bottom left corner: the negative
-						    margins pull it into the paper's padding */}
-						<Flex direction='column' justify='flex-end' style={{ flexShrink: 0, marginLeft: -ROW_PADDING, marginBottom: -ROW_PADDING }}>
-							<Badge size='sm' variant='light' color={index === queuePosition ? 'blue' : 'gray'}>
-								{index - queuePosition}
-							</Badge>
-						</Flex>
-						{/* the negative margin shrinks the row's md gap to xs on the badge side only */}
 						{!hideArt && (
-							<div style={{ width: ART_SIZE, flexShrink: 0, marginLeft: -15 }}>
-								{IS_DEVELOPMENT && index === queuePosition && albumArtUrl !== null && (
+							<div style={{ width: ART_SIZE, flexShrink: 0 }}>
+								{artUrl(track[0]) && (
+									// lazy so only the covers scrolled into view are fetched
 									<img
-										src={albumArtUrl}
-										alt='Album Art'
+										src={artUrl(track[0])}
+										alt=''
 										width={ART_SIZE}
 										height={ART_SIZE}
+										loading='lazy'
 										style={{ objectFit: 'cover', borderRadius: 'var(--mantine-radius-sm)', display: 'block' }}
 									/>
 								)}
 							</div>
 						)}
+						{/* queue index badge in its own column between the art and the track text;
+						    the negative margins fully collapse the row's md gap on the art side
+						    and leave 4px before the text. with the art hidden the badge is the
+						    first element, so the left pull-in must not apply */}
+						<Flex direction='column' justify='center' style={{ flexShrink: 0, marginLeft: hideArt ? undefined : 'calc(-1 * var(--mantine-spacing-md))', marginRight: 'calc(4px - var(--mantine-spacing-md))' }}>
+							<Badge size='sm' variant='light' color={index === queuePosition ? 'blue' : 'gray'}>
+								{index - queuePosition}
+							</Badge>
+						</Flex>
 						{meta ? (
 							// db metadata: track name over artist, one point larger/smaller than the sm base
 							<Stack gap={0} style={{ flex: 1, minWidth: 0, alignSelf: 'center' }}>
@@ -148,7 +161,7 @@ export default function Queue() {
 					</Flex>
 				</Paper>);
 			});
-		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, albumArtUrl, dbMeta, hideArt]);
+		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, hideArt]);
 
 	useEffect(() => {
 		if (targetRef.current !== null) {
