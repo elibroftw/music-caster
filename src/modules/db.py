@@ -107,8 +107,8 @@ class FileMetadata:
                 conn.commit()
 
     _SAVE_SQL = '''INSERT OR REPLACE INTO file_metadata
-              (file_path, title, artist, album, length, explicit, track_number, sort_key, time_modified)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+              (file_path, title, artist, album, genre, length, explicit, track_number, sort_key, time_modified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
 
     @staticmethod
     def _build_values(file_path, m: dict) -> tuple:
@@ -118,6 +118,7 @@ class FileMetadata:
             m['title'],
             m['artist'],
             m['album'],
+            m.get('genre', ''),
             length,
             m['explicit'],
             m['track_number'],
@@ -143,6 +144,7 @@ CREATE TABLE IF NOT EXISTS file_metadata (
     title TEXT,
     artist TEXT,
     album TEXT,
+    genre TEXT,
     length INTEGER UNSIGNED,
     explicit BOOLEAN DEFAULT 0 NOT NULL CHECK (explicit IN (0, 1)),
     track_number INTEGER UNSIGNED DEFAULT 1 NOT NULL,
@@ -187,4 +189,10 @@ def init_db():
             if current_version < version:
                 connection.executescript(schema_migration)
                 connection.execute(f'PRAGMA user_version = {version};')
+        # the Tauri sql plugin already stamps user_version past the python migrations,
+        # so a versioned SCHEMA_3 would never run; alter idempotently instead
+        try:
+            connection.execute('ALTER TABLE file_metadata ADD COLUMN genre TEXT')
+        except sqlite3.OperationalError:
+            pass
         connection.commit()

@@ -659,6 +659,181 @@ pub async fn api_modify_queue(
   Ok(())
 }
 
+/// tag values the metadata editor edits; the daemon reports `art` as base64
+/// (null when the file has no embedded artwork)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrackMetadata {
+  pub title: String,
+  pub artist: String,
+  pub album: String,
+  #[serde(default)]
+  pub genre: String,
+  pub track_number: Option<String>,
+  pub track_total: Option<String>,
+  #[serde(default)]
+  pub explicit: bool,
+  #[serde(default)]
+  pub length: Option<f64>,
+  #[serde(default)]
+  pub art: Option<String>,
+  #[serde(default)]
+  pub mime: Option<String>,
+}
+
+/// the POST /metadata/ body: `art`+`mime` replace the artwork, `remove_art`
+/// strips it, and omitting both leaves the artwork untouched
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SetMetadataOptions {
+  pub path: String,
+  pub title: String,
+  pub artist: String,
+  pub album: String,
+  #[serde(default)]
+  pub genre: String,
+  #[serde(default)]
+  pub track_number: String,
+  #[serde(default)]
+  pub explicit: bool,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub art: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub mime: Option<String>,
+  #[serde(default)]
+  pub remove_art: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Artwork {
+  pub art: String,
+  pub mime: String,
+}
+
+/// pull the `{"error": ...}` body the daemon attaches to failures, falling back
+/// to the status code when the body is missing or malformed
+async fn daemon_error(response: reqwest::Response) -> String {
+  let status = response.status();
+  response
+    .json::<serde_json::Value>()
+    .await
+    .ok()
+    .and_then(|body| body["error"].as_str().map(str::to_string))
+    .unwrap_or_else(|| format!("daemon returned {}", status))
+}
+
+#[tauri::command]
+pub async fn api_get_metadata(
+  state: State<'_, DaemonState>,
+  file_path: String,
+) -> Result<TrackMetadata, String> {
+  let state = state.read().await;
+  let client = reqwest::Client::new();
+  let url = format!("{}/metadata/", state.get_base_url());
+
+  let response = client
+    .get(&url)
+    .query(&[("path", file_path)])
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+
+  if !response.status().is_success() {
+    return Err(daemon_error(response).await);
+  }
+
+  response
+    .json::<TrackMetadata>()
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn api_set_metadata(
+  app: tauri::AppHandle,
+  state: State<'_, DaemonState>,
+  options: SetMetadataOptions,
+) -> Result<TrackMetadata, String> {
+  let (api_key, base_url) = {
+    let guard = state.read().await;
+    (
+      guard.api_key.clone().ok_or("API Key not set".to_string())?,
+      guard.get_base_url(),
+    )
+  };
+  let client = reqwest::Client::new();
+  let url = format!("{}/metadata/", base_url);
+
+  let response = client
+    .post(&url)
+    .header("x-api-key", api_key)
+    .json(&options)
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+
+  if !response.status().is_success() {
+    return Err(daemon_error(response).await);
+  }
+
+  let metadata = response
+    .json::<TrackMetadata>()
+    .await
+    .map_err(|e| e.to_string())?;
+  // the daemon refreshed its caches before responding, so the now-playing title
+  // and queue labels pick up the edit immediately
+  refresh_player_state(&app).await;
+  Ok(metadata)
+}
+
+#[tauri::command]
+pub async fn api_search_artwork(
+  state: State<'_, DaemonState>,
+  title: String,
+  artist: String,
+) -> Result<Artwork, String> {
+  let state = state.read().await;
+  let client = reqwest::Client::new();
+  let url = format!("{}/metadata/search-artwork/", state.get_base_url());
+
+  let response = client
+    .get(&url)
+    .query(&[("title", title), ("artist", artist)])
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+
+  if !response.status().is_success() {
+    return Err(daemon_error(response).await);
+  }
+
+  response.json::<Artwork>().await.map_err(|e| e.to_string())
+}
+
+/// read an image the user picked with the frontend's file dialog; a command
+/// rather than the fs plugin because music libraries live outside fs scopes
+#[tauri::command]
+pub async fn api_read_artwork(file_path: String) -> Result<Artwork, String> {
+  let bytes = tokio::fs::read(&file_path)
+    .await
+    .map_err(|e| format!("could not read {}: {}", file_path, e))?;
+  let extension = std::path::Path::new(&file_path)
+    .extension()
+    .and_then(|e| e.to_str())
+    .unwrap_or_default()
+    .to_ascii_lowercase();
+  let mime = match extension.as_str() {
+    "png" => "image/png",
+    "gif" => "image/gif",
+    "bmp" => "image/bmp",
+    "webp" => "image/webp",
+    _ => "image/jpeg",
+  };
+  let art = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+  Ok(Artwork {
+    art,
+    mime: mime.to_string(),
+  })
+}
+
 /// cache the daemon's state, refresh the tray when it matters, and notify the frontend
 async fn apply_player_state(
   app_handle: &tauri::AppHandle,

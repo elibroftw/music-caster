@@ -2,12 +2,13 @@ import { ActionIcon, Badge, Flex, Paper, ScrollArea, Skeleton, Stack, Text } fro
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import Database from '@tauri-apps/plugin-sql';
 import { useElementSize } from '@mantine/hooks';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
+import MetadataEditorModal from '../components/MetadataEditorModal';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './Queue.module.css';
 
@@ -31,6 +32,11 @@ export default function Queue() {
 
 	const api = useContext(MusicCasterAPIContext)!;
 
+	const [editingUri, setEditingUri] = useState<string | null>(null);
+	// bumped after a metadata save so the daemon-served thumbnails (sent with a
+	// long max-age) aren't served from the browser cache
+	const [artVersion, setArtVersion] = useState(0);
+
 	const queuePosition = playerState?.queue_position ?? 0;
 	// tracked as a boolean so the queue only re-renders when the daemon comes up
 	// or goes away, not on every play/pause status change
@@ -50,27 +56,29 @@ export default function Queue() {
 		})();
 	}, [daemonDown]);
 	// http URIs have no local file for the daemon to read a cover from
-	const artUrl = (uri: string) => uri.startsWith('http')
-		? undefined
-		: artUrlTemplate?.replace('path=DEFAULT_ART', `path=${encodeURIComponent(uri)}`);
+	const artUrl = (uri: string) => {
+		if (uri.startsWith('http') || artUrlTemplate === null) return undefined;
+		return `${artUrlTemplate.replace('path=DEFAULT_ART', `path=${encodeURIComponent(uri)}`)}&v=${artVersion}`;
+	};
 
 	// title/artist per file path from the daemon's library db, keyed with posix separators
 	// (queue URIs may use backslashes). rows without a db entry (urls, unindexed files)
 	// fall back to the daemon-formatted single title
 	const [dbMeta, setDbMeta] = useState<Map<string, { title: string, artist: string }>>(new Map());
+	const loadDbMeta = useCallback(async () => {
+		try {
+			const db = await Database.load('sqlite:music_caster.db');
+			const rows = await db.select<{ file_path: string, title: string, artist: string }[]>(
+				'SELECT file_path, title, artist FROM file_metadata');
+			setDbMeta(new Map(rows.map(row => [row.file_path.replaceAll('\\', '/'), row])));
+		} catch {
+			// db missing or table absent: keep whatever we had and rely on the fallback
+		}
+	}, []);
 	const queueKey = JSON.stringify(playerState?.queue);
 	useEffect(() => {
-		(async () => {
-			try {
-				const db = await Database.load('sqlite:music_caster.db');
-				const rows = await db.select<{ file_path: string, title: string, artist: string }[]>(
-					'SELECT file_path, title, artist FROM file_metadata');
-				setDbMeta(new Map(rows.map(row => [row.file_path.replaceAll('\\', '/'), row])));
-			} catch {
-				// db missing or table absent: keep whatever we had and rely on the fallback
-			}
-		})();
-	}, [queueKey]);
+		loadDbMeta();
+	}, [queueKey, loadDbMeta]);
 
 	const queueRendered = useMemo(
 		() => {
@@ -161,7 +169,7 @@ export default function Queue() {
 					</Flex>
 				</Paper>);
 			});
-		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, hideArt]);
+		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, hideArt, artVersion]);
 
 	useEffect(() => {
 		if (targetRef.current !== null) {
@@ -201,6 +209,21 @@ export default function Queue() {
 		navigator.clipboard.writeText(uri);
 	};
 
+	const triggerUri = contextMenuTrigger !== null
+		? playerState?.queue[contextMenuTrigger.item]?.[0]
+		: undefined;
+
+	const handleEditMetadata = () => {
+		if (triggerUri !== undefined && !triggerUri.startsWith('http')) {
+			setEditingUri(triggerUri);
+		}
+	};
+
+	const handleMetadataSaved = () => {
+		loadDbMeta();
+		setArtVersion(version => version + 1);
+	};
+
 	const handleRemove = () => {
 		if (contextMenuTrigger?.item !== undefined) {
 			api.modifyQueue([contextMenuTrigger.item], 'remove');
@@ -213,12 +236,18 @@ export default function Queue() {
 		// the button sits outside the ScrollArea so it stays put while the
 		// queue auto-scrolls to the current track
 		<Stack ref={queueRef} className={classes.tab} gap='xs'>
+			<MetadataEditorModal
+				filePath={editingUri}
+				onClose={() => setEditingUri(null)}
+				onSaved={handleMetadataSaved}
+			/>
 			<ScrollArea style={{ flex: 1, minHeight: 0 }} viewportRef={viewportRef}>
 				{/* bottom padding keeps the last track reachable from under the floating button */}
 				<Paper shadow='sm' p='md' pb={60}>
 					<Stack gap='xs'>
 						<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
 							<TrackContextMenu
+								onEditMetadata={triggerUri !== undefined && !triggerUri.startsWith('http') ? handleEditMetadata : undefined}
 								onPlayNext={contextMenuTrigger?.item === queuePosition ? undefined : handlePlayNext}
 								onAddToQueue={handleAddToQueue}
 								onShowFile={handleShowFile}

@@ -19,7 +19,7 @@ tauri-plugin-store = "2"
 open = "5.3.5"
 [target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
-tokio = { version = "1.45.0", features = ["time"] }
+tokio = { version = "1.45.0", features = ["time", "fs"] }
 tauri-plugin-fs = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-notification = "2"

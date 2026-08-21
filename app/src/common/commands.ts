@@ -72,6 +72,7 @@ export interface Track {
 	title?: string;
 	artist?: string;
 	album?: string;
+	genre?: string | null;
 	length: number;
 	explicit: boolean;
 	track_number: number;
@@ -79,6 +80,40 @@ export interface Track {
 	time_modified: number;
 	bpm?: number;
 	bitrate?: number;
+}
+
+/** tag values served by the daemon's GET/POST /metadata/ endpoints */
+export interface TrackMetadata {
+	title: string;
+	artist: string;
+	album: string;
+	genre: string;
+	track_number: string | null;
+	track_total: string | null;
+	explicit: boolean;
+	length: number | null;
+	/** embedded artwork as base64, null when the file has none */
+	art: string | null;
+	mime: string | null;
+}
+
+/** keys are snake_case to match the Rust command's SetMetadataOptions struct */
+export interface SetMetadataOptions {
+	title: string;
+	artist: string;
+	album: string;
+	genre: string;
+	/** 'X' or 'X/Y' where Y is the album's track total */
+	track_number: string;
+	explicit: boolean;
+	art?: string;
+	mime?: string;
+	remove_art?: boolean;
+}
+
+export interface Artwork {
+	art: string;
+	mime: string;
 }
 
 class MusicCasterAPI {
@@ -153,6 +188,25 @@ class MusicCasterAPI {
 	/** empties the queue and stops playback */
 	async clearQueue(): Promise<void> {
 		return this.modifyQueue([], 'clear');
+	}
+
+	/** tag values for one file, read by the daemon with mutagen */
+	async getMetadata(filePath: string): Promise<TrackMetadata> {
+		return invoke<TrackMetadata>('api_get_metadata', { filePath });
+	}
+
+	async setMetadata(filePath: string, options: SetMetadataOptions): Promise<TrackMetadata> {
+		return invoke<TrackMetadata>('api_set_metadata', { filePath, options });
+	}
+
+	/** Spotify artwork search for the given title/artist */
+	async searchArtwork(title: string, artist: string): Promise<Artwork> {
+		return invoke<Artwork>('api_search_artwork', { title, artist });
+	}
+
+	/** read a locally picked image file as base64 artwork */
+	async readArtwork(filePath: string): Promise<Artwork> {
+		return invoke<Artwork>('api_read_artwork', { filePath });
 	}
 
 	async exit(): Promise<PlayerState> {

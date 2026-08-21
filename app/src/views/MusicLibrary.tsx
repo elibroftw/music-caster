@@ -1,12 +1,13 @@
-import { Box, Button, Group, Modal, Paper, ScrollArea, Skeleton, Stack, Table, TextInput } from '@mantine/core';
+import { Box, Paper, ScrollArea, Skeleton, Stack, Table } from '@mantine/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import Database from '@tauri-apps/plugin-sql';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlayAction, Track } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
+import MetadataEditorModal from '../components/MetadataEditorModal';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './MusicLibrary.module.css';
 
@@ -18,13 +19,15 @@ export default function MusicLibrary() {
 	const [loading, setLoading] = useState(true);
 	const [tracks, setTracks] = useState<Track[]>([]);
 	const [sortColumn, setSortColumn] = useState<keyof Track>('artist');
-	const [metadataModalOpened, setMetadataModalOpened] = useState(false);
 	const [editingTrack, setEditingTrack] = useState<Track | null>(null);
-	const [metadataForm, setMetadataForm] = useState({ artist: '', album: '', title: '' });
+	// bumped after a metadata save so the daemon-served thumbnails (sent with a
+	// long max-age) aren't served from the browser cache
+	const [artVersion, setArtVersion] = useState(0);
 
 	const columns: Array<{ key: keyof Track; label: string }> = [
 		{ key: 'artist', label: 'ARTIST' },
 		{ key: 'album', label: 'ALBUM' },
+		{ key: 'genre', label: 'GENRE' },
 		{ key: 'title', label: 'TITLE' },
 		{ key: 'track_number', label: 'TRACK' },
 		{ key: 'length', label: 'LENGTH' },
@@ -32,15 +35,19 @@ export default function MusicLibrary() {
 		// { key: 'bitrate', label: 'BITRATE' }
 	];
 
+	const loadTracks = useCallback(async () => {
+		const db = await Database.load('sqlite:music_caster.db');
+		const result = await db.select('SELECT * FROM file_metadata');
+		setTracks(result as Track[]);
+	}, []);
+
 	useEffect(() => {
 		(async () => {
 			setLoading(true);
-			const db = await Database.load('sqlite:music_caster.db');
-			const result = await db.select('SELECT * FROM file_metadata');
-			setTracks(result as Track[]);
+			await loadTracks();
 			setLoading(false);
 		})();
-	}, []);
+	}, [loadTracks]);
 
 	// the daemon serves per-file cover thumbnails at /file/?path=...&thumbnail_only=true.
 	// resolve one URL to learn the daemon's base (and api key suffix), then build every
@@ -55,26 +62,23 @@ export default function MusicLibrary() {
 			}
 		})();
 	}, []);
-	const artUrl = (filePath: string) =>
-		artUrlTemplate?.replace('path=DEFAULT_ART', `path=${encodeURIComponent(filePath)}`);
+	const artUrl = (filePath: string) => artUrlTemplate === null
+		? undefined
+		: `${artUrlTemplate.replace('path=DEFAULT_ART', `path=${encodeURIComponent(filePath)}`)}&v=${artVersion}`;
 
 	const handleSort = (column: keyof Track) => {
 		setSortColumn(column);
 	};
 
-	const handleEditMetadata = (track: Track) => {
-		setEditingTrack(track);
-		setMetadataForm({
-			artist: track.artist ?? '',
-			album: track.album ?? '',
-			title: track.title ?? ','
-		});
-		setMetadataModalOpened(true);
+	const handleEditMetadata = () => {
+		if (contextMenu?.item) {
+			setEditingTrack(contextMenu.item);
+		}
 	};
 
-	const handleSaveMetadata = () => {
-		console.log('Saving metadata:', metadataForm);
-		setMetadataModalOpened(false);
+	const handleMetadataSaved = () => {
+		loadTracks();
+		setArtVersion(version => version + 1);
 	};
 
 	const handlePlay = () => {
@@ -132,40 +136,15 @@ export default function MusicLibrary() {
 
 	return (
 		<>
-			<Modal
-				opened={metadataModalOpened}
-				onClose={() => setMetadataModalOpened(false)}
-				title='Edit Metadata'
-				centered
-			>
-				<Stack gap='md'>
-					<TextInput
-						label='Artist'
-						value={metadataForm.artist}
-						onChange={(e) => setMetadataForm({ ...metadataForm, artist: e.currentTarget.value })}
-					/>
-					<TextInput
-						label='Album'
-						value={metadataForm.album}
-						onChange={(e) => setMetadataForm({ ...metadataForm, album: e.currentTarget.value })}
-					/>
-					<TextInput
-						label='Title'
-						value={metadataForm.title}
-						onChange={(e) => setMetadataForm({ ...metadataForm, title: e.currentTarget.value })}
-					/>
-					<Group justify='flex-end'>
-						<Button variant='default' onClick={() => setMetadataModalOpened(false)}>
-							Cancel
-						</Button>
-						<Button onClick={handleSaveMetadata}>Save</Button>
-					</Group>
-				</Stack>
-			</Modal>
+			<MetadataEditorModal
+				filePath={editingTrack?.file_path ?? null}
+				onClose={() => setEditingTrack(null)}
+				onSaved={handleMetadataSaved}
+			/>
 
 			<ContextMenu trigger={contextMenu} offsetLeft={88} offsetTop={-10}>
-				{/* onEditMetadata omitted: editing metadata is not supported yet */}
 				<TrackContextMenu
+					onEditMetadata={handleEditMetadata}
 					onPlay={handlePlay}
 					onPlayNext={isPlayingTrack ? undefined : handlePlayNext}
 					onAddToQueue={handleAddToQueue}

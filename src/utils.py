@@ -529,13 +529,14 @@ def set_metadata(file_path: str, metadata: dict):
     title = metadata['title']
     artists = metadata['artist'].split(', ') if ', ' in metadata['artist'] else metadata['artist'].split(',')
     album = metadata['album']
+    genre = metadata.get('genre', '')
     track_place = metadata['track_number']      # X/Y
     track_number = track_place.split('/')[0]    # X
     rating = '1' if metadata['explicit'] else '0'
     # b64 album art data should be b64 as a string not as bytes
     if isinstance(metadata.get('art'), bytes):
         metadata['art'] = metadata['art'].decode()
-    if '/' not in track_place:
+    if track_number and '/' not in track_place:
         tracks = max(1, int(track_place))
         track_place = f'{track_place}/{tracks}'
     if isinstance(audio, (MP3, WAVE)) or ext in {'.mp3', '.wav'}:
@@ -544,20 +545,22 @@ def set_metadata(file_path: str, metadata: dict):
         if artists:
             audio['TPE1'] = mutagen.id3._frames.TPE1(text=artists)
             audio['TPE2'] = mutagen.id3._frames.TPE1(text=artists[0])  # album artist
-        audio['TCMP'] = mutagen.id3._frames.TCMP(text=track_number)
-        audio['TRCK'] = mutagen.id3._frames.TRCK(text=track_place)
-        audio['TPOS'] = mutagen.id3._frames.TPOS(text=track_place)
+        if track_number:
+            audio['TCMP'] = mutagen.id3._frames.TCMP(text=track_number)
+            audio['TRCK'] = mutagen.id3._frames.TRCK(text=track_place)
+            audio['TPOS'] = mutagen.id3._frames.TPOS(text=track_place)
         if album:
             audio['TALB'] = mutagen.id3._frames.TALB(text=album)
+        if genre:
+            audio['TCON'] = mutagen.id3._frames.TCON(text=genre)
         # audio['TDRC'] = mutagen.id3.TDRC(text=metadata['year'])
-        # audio['TCON'] = mutagen.id3.TCON(text=metadata['genre'])
         # audio['TPUB'] = mutagen.id3.TPUB(text=metadata['publisher'])
         audio['TXXX:RATING'] = mutagen.id3._frames.TXXX(text=rating, desc='RATING')
         audio['TXXX:ITUNESADVISORY'] = mutagen.id3._frames.TXXX(text=rating, desc='ITUNESADVISORY')
         if metadata.get('art') is not None:
             img_data = b64decode(metadata['art'])
             audio['APIC:'] = mutagen.id3._frames.APIC(encoding=0, mime=metadata['mime'], type=3, data=img_data)
-        else:  # remove all album art
+        elif 'art' in metadata:  # remove all album art
             for k in tuple(audio.keys()):
                 if 'APIC:' in k:
                     audio.pop(k)
@@ -568,13 +571,16 @@ def set_metadata(file_path: str, metadata: dict):
             audio['©ART'] = artists
         if album:
             audio['©alb'] = [album]
-        audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
+        if genre:
+            audio['©gen'] = [genre]
+        if track_number:
+            audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
         audio['rtng'] = [int(rating)]
         if metadata.get('art') is not None:
             image_format = 14 if metadata['mime'].endswith('png') else 13
             img_data = b64decode(metadata['art'])
             audio['covr'] = [MP4Cover(img_data, imageformat=image_format)]
-        elif 'covr' in audio:
+        elif 'covr' in audio and 'art' in metadata:
             del audio['covr']
     elif isinstance(audio, (OggOpus, OggVorbis)):
         if title:
@@ -583,13 +589,16 @@ def set_metadata(file_path: str, metadata: dict):
             audio['artist'] = artists
         if album:
             audio['album'] = [album]
+        if genre:
+            audio['genre'] = [genre]
         audio['rtng'] = [rating]
-        audio['trkn'] = track_place
+        if track_number:
+            audio['trkn'] = track_place
         if metadata.get('art') is not None:
             img_data = metadata['art']  # b64 data
             audio['metadata_block_picture'] = img_data
             audio['mime'] = metadata['mime']
-        else:
+        elif 'art' in metadata:
             audio.pop('APIC:', None)
             audio.pop('metadata_block_picture', None)
     else:  # FLAC?
@@ -599,9 +608,12 @@ def set_metadata(file_path: str, metadata: dict):
             audio['ARTIST'] = artists # type: ignore
         if album:
             audio['ALBUM'] = album # type: ignore
-        audio['TRACKNUMBER'] = track_number  # type: ignore
-        audio['TRACKTOTAL'] = track_place.split('/')[1]  # type: ignore
-        audio['ITUNESADVISORY'] = rating  # type: ignore
+        if genre:
+            audio['GENRE'] = genre # type: ignore
+        if track_number:
+            audio['TRACKNUMBER'] = track_number  # type: ignore
+            audio['TRACKTOTAL'] = track_place.split('/')[1]  # type: ignore
+        audio['ITUNESADVISORY'] = rating # type: ignore
         if metadata.get('art') is not None:
             if ext == '.flac':
                 img_data = b64decode(metadata['art'])
@@ -614,7 +626,7 @@ def set_metadata(file_path: str, metadata: dict):
             else:
                 audio['APIC:'] = metadata['art'] # type: ignore
                 audio['mime'] = metadata['mime'] # type: ignore
-        else:
+        elif 'art' in metadata:
             # remove existing album art
             if ext == '.flac':
                 audio.clear_pictures() # type: ignore
@@ -641,7 +653,7 @@ def get_metadata(file_path: str):
         elif isinstance(a, MP4):
             audio = dict(mutagen.File(file_path))
             audio['rating'] = audio.get('rtng', [0])
-            for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
+            for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist'), ('©gen', 'genre')):
                 if tag in audio:
                     audio[normalized] = audio.pop(tag)
             # trkn is a (track, total) tuple; normalize to the 'X/Y' form the other formats use.
@@ -672,6 +684,8 @@ def get_metadata(file_path: str):
         audio = {}
     title = str(audio.get('title', [title])[0])
     album = str(audio.get('album', [album])[0])
+    # vorbis/flac/easyid3 use 'genre'; WMA's ASF descriptor casefolds to 'wm/genre'
+    genre = str((audio.get('genre') or audio.get('wm/genre') or [''])[0])
     try:
         is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
     except IndexError:
@@ -705,7 +719,7 @@ def get_metadata(file_path: str):
         sort_key = State.track_format.replace('&title', title).replace('&artist', artist)
         sort_key.replace('&album', album if album != unknown_album else '')
         sort_key = sort_key.replace('&trck', track_number or '')
-    metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
+    metadata = {'title': title, 'artist': artist, 'album': album, 'genre': genre, 'explicit': is_explicit,
                 'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number,
                 'track_total': track_total,
                 # float works with sqlite REAL
@@ -1140,14 +1154,11 @@ def get_spotify_headers():
     return {'Authorization': f'Bearer {access_token}'}
 
 
-# TODO: main_event == 'metadata_search_art' and gui_window['metadata_file'].get():
 def search_album_art_spotify(title, artist, mkt):
     for mkt in {'MX', 'CA', 'US', 'UK', 'HK'}:
-        url = f'https://api.spotify.com/v1/search?q={title}'
-        if artist:
-            url += f'+artist:{artist}'
-        url += f'&type=track&market={mkt}'
-        r = requests.get(url, headers=get_spotify_headers()).json()
+        query = title if not artist else f'{title} artist:{artist}'
+        r = requests.get('https://api.spotify.com/v1/search', headers=get_spotify_headers(),
+                         params={'q': query, 'type': 'track', 'market': mkt}).json()
         if 'tracks' in r:
             for art_link in (item['album']['images'][0]['url'] for item in r['tracks']['items']):
                 original_art = base64.b64encode(requests.get(art_link).content).decode()

@@ -201,6 +201,10 @@ pub fn run() {
       api_get_album_art_url,
       api_get_web_url,
       api_modify_queue,
+      api_get_metadata,
+      api_set_metadata,
+      api_search_artwork,
+      api_read_artwork,
       settings::api_get_settings
     ])
     // allow only one instance and propagate args and cwd to existing instance

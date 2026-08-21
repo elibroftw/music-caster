@@ -129,16 +129,17 @@ NAT_SORTED_LIST_2 = [
 ]
 
 GET_METADATA_FROM = [
-    r'C:\Users\maste\Documents\MEGA\Music\$teven Cannon - Inxanity.mp3',
-    r'C:\Users\maste\Documents\MEGA\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3',
-    r'C:\Users\maste\Documents\MEGA\Music\88GLAM, Lil Yachty - Lil Boat.mp3',
-    r'C:\Users\maste\Documents\MEGA\Music\Adam K & Soha - Twilight.mp3',
+    r'C:\Users\maste\OneDrive\Music\$teven Cannon - Inxanity.mp3',
+    r'C:\Users\maste\OneDrive\Music\6ixbuzz, Pressa, Houdini - Up & Down.mp3',
+    r'C:\Users\maste\OneDrive\Music\88GLAM, Lil Yachty - Lil Boat.mp3',
+    r'C:\Users\maste\OneDrive\Music\Adam K & Soha - Twilight.mp3',
 ]
 EXPECTED_METADATA = [
     {
         'album': 'Inxanity',
         'artist': '$teven Cannon',
         'explicit': True,
+        'genre': 'Rap/Hip Hop',
         'sort_key': 'inxanity - $teven cannon',
         'title': 'Inxanity',
         'track_number': '1',
@@ -147,6 +148,7 @@ EXPECTED_METADATA = [
         'album': '6ixupsidedown',
         'artist': '6ixbuzz, Pressa, Houdini',
         'explicit': True,
+        'genre': 'Rap/Hip Hop',
         'title': 'Up & Down',
         'sort_key': 'up & down - 6ixbuzz, pressa, houdini',
         'track_number': '1',
@@ -155,6 +157,7 @@ EXPECTED_METADATA = [
         'album': '88GLAM2.5',
         'artist': '88GLAM, Lil Yachty',
         'explicit': True,
+        'genre': 'Rap/Hip Hop',
         'title': 'Lil Boat',
         'sort_key': 'lil boat - 88glam, lil yachty',
         'track_number': '6',
@@ -163,6 +166,7 @@ EXPECTED_METADATA = [
         'album': 'Rebirth Classics - Ibiza',
         'artist': 'Adam K & Soha',
         'explicit': False,
+        'genre': 'Electro',
         'title': 'Twilight',
         'sort_key': 'twilight - adam k & soha',
         'track_number': '4',

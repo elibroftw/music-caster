@@ -279,6 +279,7 @@ if __name__ == '__main__':
         start_on_login_win32,
         create_progress_bar_texts,
         set_metadata,
+        search_album_art_spotify,
         get_spotify_headers,
         get_cut_text,
         export_playlist,
@@ -1467,6 +1468,87 @@ if __name__ == '__main__':
         else:
             return '', 400
         return '', 204
+
+    def metadata_response(file_path: str) -> dict:
+        """ tag values the metadata editor edits; Unknown placeholders become empty strings """
+        m = get_metadata(file_path)
+        mime, art = get_album_art(file_path, False)
+        if art == DEFAULT_ART:
+            art, mime = None, None
+        elif isinstance(art, bytes):
+            art = art.decode()
+
+        def clean(value):
+            return '' if isinstance(value, Unknown) else str(value)
+
+        return {'title': clean(m['title']), 'artist': clean(m['artist']), 'album': clean(m['album']),
+                'genre': clean(m.get('genre', '')), 'track_number': m.get('track_number'),
+                'track_total': m.get('track_total'), 'explicit': m['explicit'], 'length': m.get('length'),
+                'art': art, 'mime': mime}
+
+    @app.get('/metadata/')
+    def api_get_metadata():
+        file_path = request.args.get('path', '')
+        if not os.path.isfile(file_path) or not valid_audio_file(file_path):
+            return {'error': 'invalid file path'}, 400
+        try:
+            return jsonify(metadata_response(file_path))
+        except (InvalidAudioFile, MutagenError, OSError, ValueError) as e:
+            return {'error': repr(e)}, 400
+
+    @app.post('/metadata/')
+    def api_set_metadata():
+        global all_tracks_sorted
+        if request.headers.get('x-api-key') != settings['api_key']:
+            return {'error': 'Unauthorized, api_key=not-provided'}, 401
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict) or not isinstance(data.get('path'), str):
+            return {'error': 'path required'}, 400
+        file_path = data['path']
+        if not os.path.isfile(file_path) or not valid_audio_file(file_path):
+            return {'error': 'invalid file path'}, 400
+        new_metadata = {'title': str(data.get('title', '')), 'artist': str(data.get('artist', '')),
+                        'album': str(data.get('album', '')), 'genre': str(data.get('genre', '')),
+                        'track_number': str(data.get('track_number', '') or ''),
+                        'explicit': bool(data.get('explicit', False))}
+        # art semantics: absent = leave unchanged, b64 = replace, remove_art = strip
+        if data.get('remove_art'):
+            new_metadata['art'] = None
+        elif data.get('art'):
+            new_metadata['art'] = data['art']
+            new_metadata['mime'] = data.get('mime') or 'image/jpeg'
+        try:
+            set_metadata(file_path, new_metadata)
+        except Exception as e:
+            app_log.exception(f'failed to set metadata for {file_path}')
+            return {'error': repr(e)}, 400
+        uri = Path(file_path).as_posix()
+        try:
+            m = get_metadata(file_path)
+            m['file_path'] = uri
+            all_tracks[uri] = m
+            with DatabaseConnection() as conn:
+                FileMetadata.save_to_db(uri, m, conn.cursor())
+                conn.commit()
+            all_tracks_sorted = sorted(all_tracks.items(), key=lambda item: item[1]['sort_key'])
+        except Exception:
+            app_log.exception(f'failed to refresh caches after setting metadata for {file_path}')
+        get_cover_jpg_data.cache_clear()
+        return jsonify(metadata_response(file_path))
+
+    @app.get('/metadata/search-artwork/')
+    def api_search_artwork():
+        title = request.args.get('title', '')
+        artist = request.args.get('artist', '')
+        if not title:
+            return {'error': 'title required'}, 400
+        try:
+            art = search_album_art_spotify(title, artist, None)
+        except Exception as e:
+            return {'error': repr(e)}, 502
+        if art is None:
+            return {'error': 'no artwork found'}, 404
+        return jsonify({'art': art, 'mime': 'image/jpeg'})
 
     def move_to_next_up(indices):
         indices.sort()
