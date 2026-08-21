@@ -1,14 +1,15 @@
-import { ActionIcon, Alert, Anchor, Box, Button, Group, Image, Loader, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Alert, Anchor, Box, Button, Flex, Group, Image, Loader, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { appLogDir, join } from '@tauri-apps/api/path';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { QRCodeSVG } from 'qrcode.react';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { IoMusicalNotes } from 'react-icons/io5';
-import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileImport, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
+import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileImport, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbPin, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
 import { AUDIO_EXTENSIONS, PlayAction, type WebUrl } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
 import { formatTime } from '../common/utils';
@@ -53,8 +54,32 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 	const [webUrlError, setWebUrlError] = useState<string | null>(null);
 	// bumped on every fetch so a response from a previous open cannot overwrite a newer one
 	const webUrlRequest = useRef(0);
+	// short windows have no room for art, artist/album, or the full icon column;
+	// only the track name and the pin-to-top icon stay
+	const shortViewport = useMediaQuery('(height < 500px)', false, { getInitialValueInEffect: false });
+
 	// local value while dragging so the player state poll doesn't fight the slider
 	const [pendingVolume, setPendingVolume] = useState<number | null>(null);
+
+	// initialized from the window since this component remounts when it moves
+	// between the aside and the playing tab, while the pin state survives
+	const [alwaysOnTop, setAlwaysOnTop] = useState(false);
+	useEffect(() => {
+		getCurrentWindow().isAlwaysOnTop().then(setAlwaysOnTop).catch(() => {});
+	}, []);
+	const handleToggleAlwaysOnTop = async () => {
+		const next = !alwaysOnTop;
+		try {
+			await getCurrentWindow().setAlwaysOnTop(next);
+			setAlwaysOnTop(next);
+		} catch (error) {
+			notifications.show({
+				title: 'Could not toggle pin to top',
+				message: String(error),
+				color: 'red'
+			});
+		}
+	};
 
 	useEffect(() => {
 		setPendingVolume(null);
@@ -484,64 +509,75 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 			<Stack h='100%' justify='space-between'>
 				{/* minHeight 0 + hidden overflow so the art/metadata block yields vertical space to the
 				    controls below instead of overflowing them when the window is short */}
-				<Group align='flex-start' gap='xs' wrap='nowrap' style={{ minHeight: 0, overflow: 'hidden' }}>
+				<Group align='flex-start' justify='space-between' gap='xs' wrap='nowrap' style={{ minHeight: 0, overflow: 'hidden' }}>
 					{/* minWidth 0 (not the flex default of auto) so this can shrink below its content size --
 					    at high DPI the whole viewport can be ~400px, and the album art scales with it */}
 					<Paper p='md' style={{ flex: 1, minWidth: 0 }}>
-						<Stack gap='md'>
-							<Box
-								style={{
-									width: '100%',
-									aspectRatio: '1',
-									backgroundColor: '#2c2c2c',
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									borderRadius: '4px',
-									overflow: 'hidden'
-								}}
-							>
-								{albumArtUrl ? (
-									<Image
-										src={albumArtUrl}
-										alt='Album Art'
-										style={{
-											width: '100%',
-											height: '100%',
-											objectFit: 'cover'
-										}}
-									/>
-								) : (
-									<IoMusicalNotes size={64} color='#6c757d' />
-								)}
-							</Box>
+						{/* wrap='wrap' puts the track info beside the art when the card is wide enough
+						    (the flex-basis values below set that threshold) and below it otherwise */}
+						<Flex gap='md' wrap='wrap' align='center' justify='center'>
+							{!shortViewport && (
+								<Box
+									style={{
+										flex: '1 1 200px',
+										minWidth: 0,
+										aspectRatio: '1',
+										backgroundColor: '#2c2c2c',
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										borderRadius: '4px',
+										overflow: 'hidden',
+										maxWidth: 220
+									}}
+								>
+									{albumArtUrl ? (
+										<Image
+											src={albumArtUrl}
+											alt='Album Art'
+											style={{
+												width: '100%',
+												height: '100%',
+												objectFit: 'cover'
+											}}
+										/>
+									) : (
+										<IoMusicalNotes size={64} color='#6c757d' />
+									)}
+								</Box>
+							)}
 
 							{/* capped and scrollable: a long title/artist/album in a narrow window would
 							    otherwise grow tall enough to push the playback controls off screen */}
-							<Stack gap='xs' align='center' id='now-playing-info' mah={140} w='100%' style={{ overflowY: 'auto' }}>
+							<Stack gap='xs' align='center' id='now-playing-info' mah={140} style={{ overflowY: 'auto', flex: '1 1 180px', minWidth: 0 }}>
 								{
 									daemonLoading ?
 										<>
 											<Skeleton height={20} width='50%' />
-											<Skeleton height={20} width='45%' />
-											<Skeleton height={20} width='55%' />
+											{!shortViewport && <>
+												<Skeleton height={20} width='45%' />
+												<Skeleton height={20} width='55%' />
+											</>}
 										</> : <>
 											<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.title || undefined} style={{ wordBreak: 'break-word' }}>
 												{playerState.title || 'Nothing Playing'}
 											</Text>
-											<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.artist || undefined} style={{ wordBreak: 'break-word' }}>
-												{playerState.artist || ''}
-											</Text>
-											<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.album || undefined} style={{ wordBreak: 'break-word' }}>
-												{playerState.album === playerState.title ? 'Single' : (playerState.album || '')}
-											</Text>
+											{!shortViewport && <>
+												<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.artist || undefined} style={{ wordBreak: 'break-word' }}>
+													{playerState.artist || ''}
+												</Text>
+												<Text size='sm' fw={500} ta='center' lineClamp={2} title={playerState.album || undefined} style={{ wordBreak: 'break-word' }}>
+													{playerState.album === playerState.title ? 'Single' : (playerState.album || '')}
+												</Text>
+											</>}
 										</>
 								}
 							</Stack>
-						</Stack>
+						</Flex>
 					</Paper>
 
 					<SimpleGrid cols={1} spacing='lg' verticalSpacing='5'>
+						{!shortViewport && <>
 						<ActionIcon disabled={daemonLoading} size='lg' variant='filled' onClick={onOpenSettings}><TbSettings size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' onClick={openInfo}><TbInfoCircle size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' onClick={openTimer}><TbClock size={20} /></ActionIcon>
@@ -555,7 +591,17 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						<ActionIcon size='lg' variant='default' onClick={openQrCode}><TbWorld size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' title='Stream a URL' onClick={openStreamURL}><TbLink size={20} /></ActionIcon>
 						<ActionIcon size='lg' variant='default' title='Play files or folders' onClick={openFilePicker}><TbFileImport size={20} /></ActionIcon>
-						{onInstallUpdate && <ActionIcon size='lg' variant='filled' color='teal' title='Install update and relaunch' onClick={onInstallUpdate}><TbDownload size={20} /></ActionIcon>}
+						</>}
+						<ActionIcon
+							size='lg'
+							variant={alwaysOnTop ? 'filled' : 'default'}
+							title={alwaysOnTop ? 'Unpin from top' : 'Pin to top'}
+							aria-pressed={alwaysOnTop}
+							onClick={handleToggleAlwaysOnTop}
+						>
+							<TbPin size={20} />
+						</ActionIcon>
+						{!shortViewport && onInstallUpdate && <ActionIcon size='lg' variant='filled' color='teal' title='Install update and relaunch' onClick={onInstallUpdate}><TbDownload size={20} /></ActionIcon>}
 					</SimpleGrid>
 				</Group>
 
@@ -639,15 +685,17 @@ export default function PlaybackAside({ onOpenSettings, trayAction, onTrayAction
 						</Stack>
 					</Box>
 
-					<Group justify='space-between'>
-						<Text size='sm' fw={500}>Device</Text>
-						{
-							daemonLoading ?
-								<Skeleton style={{ flex: 1 }} height={36} /> :
-								<Select value='LOCAL DEVICE' style={{ flex: 1 }} data={['LOCAL DEVICE']}></Select>
-						}
+					{!shortViewport && (
+						<Group justify='space-between'>
+							<Text size='sm' fw={500}>Device</Text>
+							{
+								daemonLoading ?
+									<Skeleton style={{ flex: 1 }} height={36} /> :
+									<Select value='LOCAL DEVICE' style={{ flex: 1 }} data={['LOCAL DEVICE']}></Select>
+							}
 
-					</Group>
+						</Group>
+					)}
 				</Stack>
 			</Stack>
 		</>

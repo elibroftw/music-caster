@@ -1,7 +1,8 @@
 Music Caster Changelog
 
 6.1.0
-- [Feat] UI improvements
+- [Feat] Stay on top
+- [Feat] Resize window smaller
 
 6.0.7
 - [Fix] UI fixes

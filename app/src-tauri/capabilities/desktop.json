@@ -18,6 +18,8 @@
     "autostart:default",
     "log:default",
     "core:window:allow-toggle-maximize",
+		"core:window:allow-is-always-on-top",
+		"core:window:allow-set-always-on-top",
     "core:webview:allow-webview-show",
     "fs:allow-download-write-recursive",
     "sql:default",

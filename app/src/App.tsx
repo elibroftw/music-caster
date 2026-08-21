@@ -1,5 +1,5 @@
 import { AppShell, Button, Progress, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
-import { useDisclosure, useHotkeys } from '@mantine/hooks';
+import { useDisclosure, useElementSize, useHotkeys, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
 import * as tauriEvent from '@tauri-apps/api/event';
@@ -9,7 +9,7 @@ import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
 import * as tauriUpdater from '@tauri-apps/plugin-updater';
-import { useEffect, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import { ImCross } from 'react-icons/im';
@@ -36,6 +36,17 @@ export default function () {
 
 	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 	const [activeTab, setActiveTab] = useState<string | null>('queue');
+	// on narrow windows the playback aside is hidden and its content moves into a tab instead.
+	// this media query, not AppShell's breakpoint, is the single source of truth so the CSS
+	// collapse and the tab's existence can never disagree
+	const asideHidden = useMediaQuery('(width < 680px)', false, { getInitialValueInEffect: false });
+	// measured because the tab list can wrap to multiple lines on narrow windows; the tab
+	// panels subtract the real height (via --tabs-list-height) instead of assuming one line
+	const { ref: tabsListRef, height: tabsListHeight } = useElementSize();
+	useEffect(() => {
+		// the playing tab disappears when the aside comes back, so don't stay on it
+		if (!asideHidden && activeTab === 'playing') setActiveTab('queue');
+	}, [asideHidden]);
 	const [trayAction, setTrayAction] = useState<string | null>(null);
 	// TODO: the player state should not be updated so often
 	// Rather, keep track of each state independently, and try best to reduce re-renders
@@ -276,21 +287,32 @@ export default function () {
 				<AppShell padding='md'
 					header={{ height: 0 }}
 					footer={{ height: showFooter ? 60 : 0 }}
-					// breakpoint 0 removes the "mobile" range entirely, so the aside keeps its width and Main
-					// keeps its matching offset at every viewport size. it holds the playback controls and there
-					// is no burger to restore it, and Mantine's mobile aside is a full-width overlay that would
-					// bury Main. narrow viewports (high DPI scaling, restored window state) shrink Main instead.
-					aside={{ width: 320, breakpoint: 0, collapsed: { desktop: false, mobile: false } }}
+					// breakpoint 0 removes the "mobile" range entirely so Mantine never swaps to its
+					// full-width overlay aside; instead `asideHidden` collapses the aside on narrow
+					// viewports and the playback controls move into the Playing tab
+					aside={{ width: 320, breakpoint: 0, collapsed: { desktop: asideHidden, mobile: asideHidden } }}
+					// lets the css module drop its aside width/offset override while the aside is hidden
+					data-aside-hidden={asideHidden || undefined}
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
 						<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
-							<Tabs value={activeTab} onChange={setActiveTab}>
-								<Tabs.List>
+							<Tabs value={activeTab} onChange={setActiveTab} style={{ '--tabs-list-height': tabsListHeight ? `${tabsListHeight}px` : undefined } as CSSProperties}>
+								<Tabs.List ref={tabsListRef}>
+									{asideHidden && <Tabs.Tab value='playing'>Playing</Tabs.Tab>}
 									<Tabs.Tab value='queue'>Queue</Tabs.Tab>
 									<Tabs.Tab value='library'>Music Library</Tabs.Tab>
 									{IS_DEVELOPMENT && <Tabs.Tab value='dev'>Developer</Tabs.Tab>}
 								</Tabs.List>
+								{asideHidden && (
+									<Tabs.Panel value='playing' pt='md'>
+										{/* bounded height so PlaybackAside's track info block yields space to the
+										    playback controls instead of pushing them below the fold */}
+										<div className={classes.playingTab}>
+											<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
+										</div>
+									</Tabs.Panel>
+								)}
 								<Tabs.Panel value='queue' pt='md'>
 									<Queue />
 								</Tabs.Panel>
@@ -306,9 +328,11 @@ export default function () {
 						<Space h={showFooter ? 70 : 50} />
 					</AppShell.Main>
 
-					<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-						<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
-					</AppShell.Aside>
+					{!asideHidden && (
+						<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
+							<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
+						</AppShell.Aside>
+					)}
 
 					{showFooter &&
 						<AppShell.Footer ref={footerRef} p='md' className={classes.footer}>

@@ -49,15 +49,23 @@
     background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
 }
 
-/* Mantine emits these on :root from the `aside` prop as a fixed px pair. Redeclaring them here (a
-   descendant of :root, so it wins for this subtree) keeps the aside from starving Main on a small
-   viewport -- at high Windows DPI the whole webview can be ~400 CSS px, because Tauri's logical-px
-   minWidth is unsatisfiable when the scaled desktop is itself smaller than that.
-   Both vars must stay identical: `width` sizes the aside, `offset` is Main's padding-inline-end
-   (and the footer's margin), so they drift apart into overlap or a gap if only one is set. */
-.appShell {
-    --app-shell-aside-width: clamp(200px, 38vw, 320px);
-    --app-shell-aside-offset: clamp(200px, 38vw, 320px);
+/* Mantine emits these on :root as a fixed px pair; redeclaring both here (they must stay identical:
+   `width` sizes the aside, `offset` is Main's padding) keeps the aside from starving Main when high
+   Windows DPI leaves the webview narrower than Tauri's logical-px minWidth. The :not() guard drops
+   the override while the aside is collapsed (App.tsx stamps data-aside-hidden), since Mantine zeroes
+   the offset then and forcing one would leave a dead gap on the right. */
+.appShell:not([data-aside-hidden]) {
+    --app-shell-aside-width: clamp(250px, 320px, 320px);
+    --app-shell-aside-offset: clamp(250px, 320px, 320px);
+}
+
+/* the playing tab hosts PlaybackAside, whose layout is a full-height column that shrinks its
+   track info block first (and keeps the controls) only when its height is bounded. same
+   viewport math as Queue.module.css's .tab */
+.playingTab {
+    /* --tabs-list-height is measured in App.tsx since the tab list can wrap on narrow windows;
+       the 44px covers Main's padding and the panel's top padding */
+    height: calc(100dvh - var(--app-shell-footer-height) - var(--tabs-list-height, 36px) - 44px);
 }
 
 .mediaQuery {
