@@ -12,7 +12,7 @@ import { IoMusicalNotes } from 'react-icons/io5';
 import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDownload, TbFileImport, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbPin, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
 import { AUDIO_EXTENSIONS, PlayAction, type WebUrl } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import { formatTime } from '../common/utils';
+import { formatTime } from '../common/format';
 
 interface Track {
 	artist: string;

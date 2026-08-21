@@ -1,8 +1,13 @@
 Music Caster Changelog
 
+6.1.1
+- [Feat] Metadata editor
+- [Fix] Track numbering in queue
+
 6.1.0
 - [Feat] Stay on top
 - [Feat] Resize window smaller
+- [Feat] Album art in queue and library
 
 6.0.7
 - [Fix] UI fixes

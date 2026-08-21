@@ -6,7 +6,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import { formatTime } from '../common/utils';
+import { formatTime, formatTrackPlace } from '../common/format';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import MetadataEditorModal from '../components/MetadataEditorModal';
 import TrackContextMenu from '../components/TrackContextMenu';
@@ -18,6 +18,7 @@ const ROW_HEIGHT = 72;
 const ROW_PADDING = 7;
 // the album art slot is square at the row's content height
 const ART_SIZE = ROW_HEIGHT - 2 * ROW_PADDING;
+
 
 export default function Queue() {
 	const playerState = useContext(PlayerStateContext);
@@ -99,6 +100,7 @@ export default function Queue() {
 
 			return playerState.queue.map((track, index) => {
 				const meta = dbMeta.get(track[0].replaceAll('\\', '/'));
+				const trackPlace = formatTrackPlace(track[3], track[4]);
 				return (
 				<Paper
 					key={index}
@@ -160,10 +162,8 @@ export default function Queue() {
 							<Text size='sm' c='dimmed' style={{ whiteSpace: 'nowrap' }}>
 								{track[2] == null ? '' : formatTime(track[2])}
 							</Text>
-							{track[3] != null && (
-								<Text size='xs' c='dimmed' style={{ whiteSpace: 'nowrap' }}>
-									#{track[3]}{track[4] != null && ` / ${track[4]}`}
-								</Text>
+							{trackPlace !== null && (
+								<Text size='sm' c='dimmed' style={{ whiteSpace: 'nowrap' }}>{trackPlace}</Text>
 							)}
 						</Stack>
 					</Flex>

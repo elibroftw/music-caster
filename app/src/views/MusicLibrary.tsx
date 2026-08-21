@@ -5,7 +5,7 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlayAction, Track } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import { formatTime } from '../common/utils';
+import { formatTime } from '../common/format';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import MetadataEditorModal from '../components/MetadataEditorModal';
 import TrackContextMenu from '../components/TrackContextMenu';

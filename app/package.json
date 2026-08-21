@@ -1,6 +1,6 @@
 {
   "name": "music-caster",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "type": "module",
   "private": true,
   "dependencies": {
@@ -61,7 +61,8 @@
     "preinstall": "pnpm add -g add sloc @tauri-apps/cli",
     "sloc": "sloc src src-tauri/src",
     "upgrade": "concurrently \"pnpm up\" \"cd src-tauri && cargo update && cargo clean\"",
-    "test": "mocha"
+    "test": "mocha \"test/unit/*.spec.ts\"",
+    "test:e2e": "mocha \"test/*.spec.js\""
   },
   "eslintConfig": {
     "extends": [
