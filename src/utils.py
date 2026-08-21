@@ -644,7 +644,9 @@ def get_metadata(file_path: str):
             for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist')):
                 if tag in audio:
                     audio[normalized] = audio.pop(tag)
-            audio['tracknumber'] = audio.get('trkn', [('1', '1')])[0]
+            # trkn is a (track, total) tuple; normalize to the 'X/Y' form the other formats use.
+            # a 0 total means untagged, so drop it rather than report an album of zero tracks
+            audio['tracknumber'] = ['/'.join(str(part) for part in audio.get('trkn', [(1, 0)])[0] if part)]
         elif isinstance(a, (OggOpus, OggVorbis)):
             audio = dict(a)
             if 'rtng' in audio:
@@ -674,7 +676,14 @@ def get_metadata(file_path: str):
         is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
     except IndexError:
         is_explicit = False
-    track_number = str(audio['tracknumber'][0]).split('/', 1)[0] if 'tracknumber' in audio else None
+    # tags store the track place as 'X' or 'X/Y' where Y is the album's track total
+    track_place = str(audio['tracknumber'][0]) if 'tracknumber' in audio else ''
+    track_number, _, track_total = track_place.partition('/')
+    track_number, track_total = track_number or None, track_total or None
+    if track_total is None:
+        # vorbis comments (flac/ogg) keep the total in a separate TRACKTOTAL tag
+        with suppress(KeyError, IndexError):
+            track_total = str(audio['tracktotal'][0]) or None
     with suppress(KeyError, TypeError):
         if len(audio['artist']) == 1:
             # in case the sep char is a slash
@@ -698,6 +707,7 @@ def get_metadata(file_path: str):
         sort_key = sort_key.replace('&trck', track_number or '')
     metadata = {'title': title, 'artist': artist, 'album': album, 'explicit': is_explicit,
                 'sort_key': sort_key.casefold(), 'track_number': '1' if track_number is None else track_number,
+                'track_total': track_total,
                 # float works with sqlite REAL
                 'time_modified': os.path.getmtime(file_path)}
     if length is not None:

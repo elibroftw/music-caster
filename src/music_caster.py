@@ -1135,12 +1135,17 @@ if __name__ == '__main__':
             tracks = []
             for items in (done_queue, islice(music_queue, 0, 1), next_queue, islice(music_queue, 1, None)):
                 for uri in items:
-                    formatted_track = format_uri(uri, _for='queue')
-                    length = None
-                    # uncached tracks have no known length; the frontend just omits it
+                    # no _for: the frontend clamps long titles to two lines itself,
+                    # so don't pre-cut to the old GUI's 70 char single-line limit
+                    formatted_track = format_uri(uri)
+                    length = track_number = track_total = None
+                    # uncached tracks have no known length or track place; the frontend just omits them
                     with suppress(KeyError):
-                        length = get_uri_metadata(uri, read_file=False).get('length')
-                    tracks.append((uri, formatted_track, length))
+                        metadata = get_uri_metadata(uri, read_file=False)
+                        length = metadata.get('length')
+                        track_number = metadata.get('track_number')
+                        track_total = metadata.get('track_total')
+                    tracks.append((uri, formatted_track, length, track_number, track_total))
             return tracks
         except RuntimeError:
             return get_queue_for_frontend()

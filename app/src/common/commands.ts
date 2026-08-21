@@ -13,8 +13,8 @@ export interface PlayerState {
 	track_position: number;
 	track_length: number;
 	queue_length: number;
-	/** [uri, formatted title, length in seconds (null if unknown)] */
-	queue: [string, string, number | null][];
+	/** [uri, formatted title, length in seconds (null if unknown), tagged track number (null if untagged), album track total (null if untagged)] */
+	queue: [string, string, number | null, string | null, string | null][];
 	queue_position: number;
 	file_name: string;
 	shuffle: boolean;

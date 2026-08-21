@@ -114,23 +114,34 @@ pub struct PlayerStatus {
   pub repeat: RepeatMode,
 }
 
-/// a queue entry as `[uri, formatted title, length in seconds]`; the length is
-/// null when the track has not been scanned yet, and absent entirely on older
-/// daemons, which report a two element entry
+/// a queue entry as `[uri, formatted title, length in seconds, track number, album track total]`;
+/// the length is null when the track has not been scanned yet, and the track number/total come
+/// from the file's tags (null when untagged). older daemons report fewer elements, so each
+/// shorter form falls back to nulls for what it lacks
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct QueueTrack(pub String, pub String, pub Option<f64>);
+pub struct QueueTrack(
+  pub String,
+  pub String,
+  pub Option<f64>,
+  pub Option<String>,
+  pub Option<String>,
+);
 
 impl<'de> Deserialize<'de> for QueueTrack {
   fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
     #[derive(Deserialize)]
     #[serde(untagged)]
     enum Repr {
+      WithTrackPlace(String, String, Option<f64>, Option<String>, Option<String>),
       WithLength(String, String, Option<f64>),
       Legacy(String, String),
     }
     Ok(match Repr::deserialize(deserializer)? {
-      Repr::WithLength(uri, title, length) => QueueTrack(uri, title, length),
-      Repr::Legacy(uri, title) => QueueTrack(uri, title, None),
+      Repr::WithTrackPlace(uri, title, length, number, total) => {
+        QueueTrack(uri, title, length, number, total)
+      }
+      Repr::WithLength(uri, title, length) => QueueTrack(uri, title, length, None, None),
+      Repr::Legacy(uri, title) => QueueTrack(uri, title, None, None, None),
     })
   }
 }

@@ -1,10 +1,10 @@
-import { ActionIcon, Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
+import { ActionIcon, Badge, Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { useContext, useEffect, useMemo, useRef } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
-import { formatTime } from '../common/utils';
+import { formatTime, IS_DEVELOPMENT } from '../common/utils';
 import { ContextMenu, useContextMenu } from '../components/ContextMenu';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './Queue.module.css';
@@ -21,6 +21,14 @@ export default function Queue() {
 	const targetRef = useRef<HTMLDivElement>(null);
 
 	const api = useContext(MusicCasterAPIContext)!;
+
+	// dev-only preview: the current track's art shown in its queue row until
+	// the daemon serves per-track art for the whole queue
+	const [albumArtUrl, setAlbumArtUrl] = useState<string | null>(null);
+	useEffect(() => {
+		if (!IS_DEVELOPMENT) return;
+		api.getAlbumArtUrl().then(setAlbumArtUrl).catch(() => setAlbumArtUrl(null));
+	}, [playerState?.file_name]);
 
 	const queuePosition = playerState?.queue_position ?? 0;
 	// tracked as a boolean so the queue only re-renders when the daemon comes up
@@ -67,17 +75,38 @@ export default function Queue() {
 					}}
 					onClick={() => onTrackClick(index - queuePosition)}
 				>
-					<Flex gap='md' align='center' h='100%'>
-						<Text size='sm' c='dimmed' style={{ minWidth: '2em', textAlign: 'right', flexShrink: 0 }}>
-							{index - queuePosition}
-						</Text>
-						<Text size='sm' fw={500} lineClamp={2} title={track[1]} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>{track[1]}</Text>
-						<Text size='sm' c='dimmed' style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+					<Flex gap='md' align='stretch' h='100%'>
+						{/* queue index badge tucked into the row's bottom left corner: the negative
+						    margins pull it into the paper's sm padding */}
+						<Flex direction='column' justify='flex-end' style={{ flexShrink: 0, marginLeft: 'calc(-1 * var(--mantine-spacing-sm))', marginBottom: 'calc(-1 * var(--mantine-spacing-sm))' }}>
+							<Badge size='sm' variant='light' color={index === queuePosition ? 'blue' : 'gray'}>
+								{index - queuePosition}
+							</Badge>
+						</Flex>
+						{/* the negative margin shrinks the row's md gap to xs on the badge side only */}
+						<div style={{ width: ROW_HEIGHT - 24, flexShrink: 0, marginLeft: -15 }}>
+							{IS_DEVELOPMENT && index === queuePosition && albumArtUrl !== null && (
+								<img
+									src={albumArtUrl}
+									alt='Album Art'
+									width={ROW_HEIGHT - 24}
+									height={ROW_HEIGHT - 24}
+									style={{ objectFit: 'cover', borderRadius: 'var(--mantine-radius-sm)', display: 'block' }}
+								/>
+							)}
+						</div>
+						<Text size='sm' fw={500} lineClamp={2} title={track[1]} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word', alignSelf: 'center' }}>{track[1]}</Text>
+						{track[3] != null && (
+							<Text size='xs' c='dimmed' style={{ flexShrink: 0, whiteSpace: 'nowrap', alignSelf: 'center' }}>
+								#{track[3]}{track[4] != null && ` / ${track[4]}`}
+							</Text>
+						)}
+						<Text size='sm' c='dimmed' style={{ flexShrink: 0, whiteSpace: 'nowrap', alignSelf: 'center' }}>
 							{track[2] == null ? '' : formatTime(track[2])}
 						</Text>
 					</Flex>
 				</Paper>));
-		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown]);
+		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, albumArtUrl]);
 
 	useEffect(() => {
 		if (targetRef.current !== null) {

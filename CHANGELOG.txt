@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.1.0
+- [Feat] UI improvements
+
 6.0.7
 - [Fix] UI fixes
 - [Fix] Daemon init
