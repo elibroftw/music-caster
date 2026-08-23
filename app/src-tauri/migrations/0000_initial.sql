@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS file_metadata (
 	title TEXT,
 	artist TEXT,
 	album TEXT,
-	genre TEXT,
 	length INTEGER UNSIGNED,
 	explicit BOOLEAN DEFAULT 0 NOT NULL CHECK (explicit IN (0, 1)),
 	track_number INTEGER UNSIGNED DEFAULT 1 NOT NULL,

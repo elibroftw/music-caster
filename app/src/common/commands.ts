@@ -196,7 +196,8 @@ class MusicCasterAPI {
 	}
 
 	async setMetadata(filePath: string, options: SetMetadataOptions): Promise<TrackMetadata> {
-		return invoke<TrackMetadata>('api_set_metadata', { filePath, options });
+		// the Rust SetMetadataOptions struct carries the file path as `path`
+		return invoke<TrackMetadata>('api_set_metadata', { options: { path: filePath, ...options } });
 	}
 
 	/** Spotify artwork search for the given title/artist */

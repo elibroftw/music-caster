@@ -1,5 +1,10 @@
 Music Caster Changelog
 
+6.1.2
+- [Feat] Metadata editor
+- [Fix] Track numbering in queue
+- [Fix] Crash on launch
+
 6.1.1
 - [Feat] Metadata editor
 - [Fix] Track numbering in queue

@@ -54,28 +54,6 @@ class DatabaseConnection:
                     else:
                         raise e
 
-SCHEMA_2 = """
-DROP TABLE IF EXISTS concert_events;
-DROP TABLE IF EXISTS url_metadata;
-CREATE TABLE IF NOT EXISTS url_metadata (
-    src TEXT PRIMARY KEY NOT NULL,
-    title TEXT,
-    artist TEXT,
-    album TEXT,
-    length REAL,
-    url TEXT,
-    audio_url TEXT,
-    ext TEXT,
-    album_cover_url TEXT,
-    expiry REAL,
-    id TEXT,
-    type TEXT,
-    playlist_url TEXT,
-    live BOOLEAN DEFAULT 0 NOT NULL CHECK (live IN (0, 1)),
-    timestamps TEXT
-);
-"""
-
 class FileMetadata:
     @staticmethod
     def cleanup_db_table():
@@ -138,61 +116,6 @@ class FileMetadata:
     def save_to_db(file_path, m: dict, cur: sqlite3.Cursor):
         cur.execute(FileMetadata._SAVE_SQL, FileMetadata._build_values(file_path, m))
 
-SCHEMA_1 = """
-CREATE TABLE IF NOT EXISTS file_metadata (
-    file_path TEXT PRIMARY KEY NOT NULL,
-    title TEXT,
-    artist TEXT,
-    album TEXT,
-    genre TEXT,
-    length INTEGER UNSIGNED,
-    explicit BOOLEAN DEFAULT 0 NOT NULL CHECK (explicit IN (0, 1)),
-    track_number INTEGER UNSIGNED DEFAULT 1 NOT NULL,
-    sort_key TEXT DEFAULT file_path NOT NULL,
-    time_modified REAL
-);
-
-CREATE TABLE IF NOT EXISTS url_metadata (
-    src TEXT PRIMARY KEY NOT NULL,
-    title TEXT,
-    artist TEXT,
-    album TEXT,
-    length REAL,
-    url TEXT,
-    audio_url TEXT,
-    ext TEXT,
-    art TEXT,
-    expiry REAL,
-    id TEXT,
-    pl_src TEXT,
-    live BOOLEAN DEFAULT 0 NOT NULL CHECK (live IN (0, 1))
-);
-"""
-
-MIGRATIONS = [SCHEMA_1, SCHEMA_2]
-
-
-def init_db():
-    RESET_DB = False
-    with DatabaseConnection() as connection:
-        current_version = connection.execute('PRAGMA user_version').fetchone()[0]
-
-        if RESET_DB:
-            connection.executescript(
-                'DROP TABLE IF EXISTS file_metadata;DROP TABLE IF EXISTS url_metadata;DROP TABLE IF EXISTS concert_events;'
-            )
-            connection.executescript('PRAGMA user_version = 0;')
-            current_version = 0
-
-        for i, schema_migration in enumerate(MIGRATIONS):
-            version = i + 1
-            if current_version < version:
-                connection.executescript(schema_migration)
-                connection.execute(f'PRAGMA user_version = {version};')
-        # the Tauri sql plugin already stamps user_version past the python migrations,
-        # so a versioned SCHEMA_3 would never run; alter idempotently instead
-        try:
-            connection.execute('ALTER TABLE file_metadata ADD COLUMN genre TEXT')
-        except sqlite3.OperationalError:
-            pass
-        connection.commit()
+# schema creation and migrations live in the Tauri sql plugin
+# (app/src-tauri/migrations), which runs them at app startup before the daemon
+# is in a position to touch the tables

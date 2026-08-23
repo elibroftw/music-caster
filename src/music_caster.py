@@ -290,7 +290,7 @@ if __name__ == '__main__':
         get_audio_length,
         get_spotify_tracks,
     )
-    from modules.db import DatabaseConnection, init_db
+    from modules.db import DatabaseConnection
     if IS_FROZEN:
         DatabaseConnection.move_to_new_location(args.db_path)
     # 0.5 seconds gone to 3rd party imports
@@ -437,7 +437,6 @@ if __name__ == '__main__':
     OLD_CAST_VOLUME = 0
     OLD_CAST_POS = 0
     LAST_PLAYED = time.time()
-    init_db()
 
     def get_line_number():
         cf = currentframe()
