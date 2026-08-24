@@ -1,7 +1,6 @@
 {
 	"announcement_1": "Introducing the new and improved Music Caster UI! This release brings back drag n drop, and comes with Authenticode.",
 	"Close": "Close",
-	"ExampleView": "Example View",
 	"installAndRelaunch": "Install update and relaunch",
 	"installingAndRelaunching": "Installing and Relaunching",
 	"installingUpdate": "Installing update v{{ v }}",

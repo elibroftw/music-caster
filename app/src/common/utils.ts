@@ -135,15 +135,3 @@ export function arraysEqual<T>(a: T[], b: T[]) {
 	}
 	return true;
 }
-
-/**
- * Synchronously joins path segments with a specified separator
- * @param separator The separator to use between segments (e.g., '/', '\', '.')
- * @param segments The path segments to join
- * @returns The joined path string
- */
-export function join(separator: string, ...segments: string[]): string | null {
-	if (!segments || segments.length === 0) return '';
-	if (segments.find(x => !(typeof x === 'string'))) return null;
-	return segments.join(separator);
-}
