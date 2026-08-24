@@ -11,6 +11,9 @@ import MetadataEditorModal from '../components/MetadataEditorModal';
 import TrackContextMenu from '../components/TrackContextMenu';
 import classes from './MusicLibrary.module.css';
 
+// fixed row height; cell text is clamped (see .cellText) so no row can outgrow it
+const ROW_HEIGHT = 78;
+
 export default function MusicLibrary() {
 	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
@@ -24,13 +27,16 @@ export default function MusicLibrary() {
 	// long max-age) aren't served from the browser cache
 	const [artVersion, setArtVersion] = useState(0);
 
-	const columns: Array<{ key: keyof Track; label: string }> = [
-		{ key: 'artist', label: 'ARTIST' },
-		{ key: 'album', label: 'ALBUM' },
-		{ key: 'genre', label: 'GENRE' },
-		{ key: 'title', label: 'TITLE' },
-		{ key: 'track_number', label: 'TRACK' },
+	// width is a min-width on the header cell: a plain width on a th is only a hint in auto
+	// table layout and gets squeezed by the text-heavy columns. maxWidth goes on the cell's
+	// text div since table cells ignore max-width; it caps the column via its content
+	const columns: Array<{ key: keyof Track; label: string; width?: number; maxWidth?: number }> = [
+		{ key: 'album', label: 'ALBUM', width: 100 },
+		{ key: 'title', label: 'TITLE', width: 100 },
+		{ key: 'artist', label: 'ARTIST', width: 100 },
+		{ key: 'genre', label: 'GENRE', maxWidth: 200, width: 80 },
 		{ key: 'length', label: 'LENGTH' },
+		{ key: 'track_number', label: '#', width: 40 },
 		// { key: 'bpm', label: 'BPM' },
 		// { key: 'bitrate', label: 'BITRATE' }
 	];
@@ -117,23 +123,6 @@ export default function MusicLibrary() {
 	const isPlayingTrack = !!contextMenu?.item && !!playerState?.file_name
 		&& normalizePath(contextMenu.item.file_path) === normalizePath(playerState.file_name);
 
-	if (loading && tracks.length === 0) {
-		return (
-			<Paper shadow='sm' p='md' style={{ height: 'calc(100vh - 140px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-				<ScrollArea style={{ flex: 1 }}>
-					<Stack gap='xs'>
-						{[...Array(15)].map((_, index) => (
-							<Skeleton key={index} height={80} />
-						))}
-					</Stack>
-				</ScrollArea>
-				<Box px='md' py='xs' style={{ borderTop: '1px solid #e0e0e0' }}>
-					<Skeleton height={40} />
-				</Box>
-			</Paper>
-		);
-	}
-
 	return (
 		<>
 			<MetadataEditorModal
@@ -163,7 +152,7 @@ export default function MusicLibrary() {
 									<Table.Th
 										key={column.key}
 										onClick={() => handleSort(column.key)}
-										style={{ cursor: 'pointer' }}
+										style={{ cursor: 'pointer', minWidth: column.width, whiteSpace: 'nowrap' }}
 									>
 										{column.label} {sortColumn === column.key && '▼'}
 									</Table.Th>
@@ -171,12 +160,24 @@ export default function MusicLibrary() {
 							</Table.Tr>
 						</Table.Thead>
 						<Table.Tbody>
-							{tracks.map((track, index) => (
+							{
+								loading && tracks.length === 0 && (
+									[...Array(15)].map((_, index) => (
+										<Table.Tr key={index} style={{ height: ROW_HEIGHT }}>
+											{/* +1 accounts for artwork */}
+											<Table.Td colSpan={columns.length + 1}>
+												<Skeleton height={ROW_HEIGHT} />
+											</Table.Td>
+										</Table.Tr>
+									))
+								)
+							}
+							{tracks.length > 0 && tracks.map((track, index) => (
 								<Table.Tr
 									key={index}
 									// onClick={() => setSelectedTrack(track)}
-									// height on a tr behaves as a min-height: cells can still grow
-									style={{ cursor: 'pointer', height: 80 }}
+									className={classes.row}
+									style={{ height: ROW_HEIGHT }}
 									onContextMenu={e => {
 										e.preventDefault();
 										setMenuItem({
@@ -208,7 +209,7 @@ export default function MusicLibrary() {
 										)}
 									</Table.Td>
 									{columns.map((column) =>
-										<TableCell key={column.key} track={track} columnKey={column.key} />
+										<TableCell key={column.key} track={track} columnKey={column.key} maxWidth={column.maxWidth} />
 									)}
 								</Table.Tr>
 
@@ -222,17 +223,17 @@ export default function MusicLibrary() {
 	);
 }
 
-function TableCell({ track, columnKey }: { track: Track, columnKey: keyof Track }) {
+function TableCell({ track, columnKey, maxWidth }: { track: Track, columnKey: keyof Track, maxWidth?: number }) {
 	if (columnKey === 'length') {
 		return (
 			<Table.Td key={columnKey}>
-				{formatTime(track[columnKey])}
+				<div className={classes.cellText} style={{ maxWidth }}>{formatTime(track[columnKey])}</div>
 			</Table.Td>
 		);
 	}
 	return (
 		<Table.Td key={columnKey}>
-			{track[columnKey]}
+			<div className={classes.cellText} style={{ maxWidth }}>{track[columnKey]}</div>
 		</Table.Td>
 	);
 }

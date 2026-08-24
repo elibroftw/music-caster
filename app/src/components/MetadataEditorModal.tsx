@@ -5,6 +5,7 @@ import { useContext, useEffect, useState } from 'react';
 import { TbSearch, TbTrash, TbUpload } from 'react-icons/tb';
 import { MusicCasterAPIContext } from '../common/contexts';
 import type { TrackMetadata } from '../common/commands';
+import { fmtError } from '../common/utils';
 
 type ArtAction = 'unchanged' | 'replace' | 'remove';
 
@@ -60,7 +61,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 				setArtAction('unchanged');
 			} catch (error) {
 				if (!cancelled) {
-					setLoadError(typeof error === 'string' ? error : 'Could not read metadata');
+					setLoadError(fmtError(error));
 				}
 			} finally {
 				if (!cancelled) setLoading(false);
@@ -80,7 +81,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 			setArt({ data: artwork.art, mime: artwork.mime });
 			setArtAction('replace');
 		} catch (error) {
-			notifications.show({ title: 'Could not read image', message: String(error), color: 'red' });
+			notifications.show({ title: 'Could not read image', message: fmtError(error), color: 'red' });
 		}
 	};
 
@@ -91,7 +92,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 			setArt({ data: artwork.art, mime: artwork.mime });
 			setArtAction('replace');
 		} catch (error) {
-			notifications.show({ title: 'Could not find artwork', message: String(error), color: 'red' });
+			notifications.show({ title: 'Could not find artwork', message: fmtError(error), color: 'red' });
 		} finally {
 			setSearching(false);
 		}
@@ -120,7 +121,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 			onSaved?.();
 			onClose();
 		} catch (error) {
-			notifications.show({ title: 'Could not save metadata', message: String(error), color: 'red' });
+			notifications.show({ title: 'Could not save metadata', message: fmtError(error), color: 'red' });
 		} finally {
 			setSaving(false);
 		}

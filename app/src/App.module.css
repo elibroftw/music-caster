@@ -49,6 +49,13 @@
     background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
 }
 
+/* height available to a tab panel: the viewport minus the footer, Main's padding, the tab
+   list and the panel's top padding. shared by Queue.module.css and MusicLibrary.module.css;
+   .playingTab below does the same math with a measured tab list height instead of 70px */
+.appShell {
+    --tab-view-height: calc(100dvh - var(--app-shell-footer-height) - 70px);
+}
+
 /* Mantine emits these on :root as a fixed px pair; redeclaring both here (they must stay identical:
    `width` sizes the aside, `offset` is Main's padding) keeps the aside from starving Main when high
    Windows DPI leaves the webview narrower than Tauri's logical-px minWidth. The :not() guard drops

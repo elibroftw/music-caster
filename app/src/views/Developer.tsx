@@ -1,8 +1,9 @@
-import { Button, Paper, Stack, Text, Alert, Code, ScrollArea } from '@mantine/core';
+import { Accordion, Button, Stack, Text, Alert, Code, ScrollArea } from '@mantine/core';
 import { useContext, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { TbAlertCircle, TbCheck } from 'react-icons/tb';
 import { PlayerStateContext } from '../common/contexts';
+import { fmtError } from '../common/utils';
 
 export default function Developer() {
 	const playerState = useContext(PlayerStateContext);
@@ -17,7 +18,7 @@ export default function Developer() {
 			const isRunning = await invoke<boolean>('api_is_running');
 			setHealthStatus(isRunning);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Unknown error');
+			setError(fmtError(err));
 			setHealthStatus(null);
 		} finally {
 			setIsChecking(false);
@@ -25,47 +26,20 @@ export default function Developer() {
 	};
 
 	return (
-		<ScrollArea>
-			<Stack gap='md' style={{height: 'calc(100dvh - var(--app-shell-footer-height) - 80px'}}>
-				<Paper shadow='sm' p='md'>
-					<Stack gap='md'>
-						<Text size='lg' fw={500}>Music Caster Backend Health Check</Text>
-
-						<Button onClick={checkHealth} loading={isChecking}>
-							Check Backend Status
-						</Button>
-
-						{healthStatus !== null && (
-							<Alert
-								icon={healthStatus ? <TbCheck size={20} /> : <TbAlertCircle size={20} />}
-								title={healthStatus ? 'Backend is Running' : 'Backend is Not Running'}
-								color={healthStatus ? 'green' : 'red'}
-							>
-								{healthStatus
-									? 'The Music Caster backend is running and responding on port ?.'
-									: 'The Music Caster backend is not running or not responding on port ?.'}
-							</Alert>
-						)}
-
-						{error && (
-							<Alert icon={<TbAlertCircle size={20} />} title='Error' color='red'>
-								{error}
-							</Alert>
-						)}
-					</Stack>
-				</Paper>
-
-				<Paper shadow='sm' p='md'>
-					<Stack gap='xs'>
-						<Text size='lg' fw={500}>API Information</Text>
+		/* hosted in the settings modal, so the player-state dump scrolls inside a
+		   bounded area instead of growing the modal past the window */
+		<ScrollArea.Autosize mah={400} miw={480}>
+			<Accordion defaultValue='player-state' variant='separated'>
+				<Accordion.Item value='api'>
+					<Accordion.Control><Text fw={500}>API Information</Text></Accordion.Control>
+					<Accordion.Panel>
 						<Text size='sm' c='dimmed'>Backend URL: http://localhost:?</Text>
-						<Text size='sm' c='dimmed'>Health endpoint: /running/</Text>
-					</Stack>
-				</Paper>
+					</Accordion.Panel>
+				</Accordion.Item>
 
-				<Paper shadow='sm' p='md'>
-					<Stack gap='md'>
-						<Text size='lg' fw={500}>Player State</Text>
+				<Accordion.Item value='player-state'>
+					<Accordion.Control><Text fw={500}>Player State</Text></Accordion.Control>
+					<Accordion.Panel>
 						{playerState ? (
 							<Code block>
 								{JSON.stringify(playerState, null, 2)}
@@ -73,9 +47,9 @@ export default function Developer() {
 						) : (
 							<Text c='dimmed'>No player state available</Text>
 						)}
-					</Stack>
-				</Paper>
-			</Stack>
-		</ScrollArea>
+					</Accordion.Panel>
+				</Accordion.Item>
+			</Accordion>
+		</ScrollArea.Autosize>
 	);
 }

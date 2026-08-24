@@ -6,6 +6,7 @@ import { currentMonitor } from '@tauri-apps/api/window';
 import * as fs from '@tauri-apps/plugin-fs';
 import * as os from '@tauri-apps/plugin-os';
 import React, { PropsWithChildren, useContext, useEffect, useState } from 'react';
+import { PATH_SEP } from './tauriUtils';
 
 const WIN32_CUSTOM_TITLEBAR = false;
 export const APP_NAME = __APP_NAME__;
@@ -25,7 +26,6 @@ interface SystemProvideContext {
 	documents?: string,
 	appDocuments?: string,
 	osType?: os.OsType,
-	fileSep: string,
 	isFullScreen: boolean,
 	usingCustomTitleBar: boolean
 	scaleFactor: number
@@ -37,7 +37,6 @@ const TauriContext = React.createContext<SystemProvideContext>({
 	documents: undefined,
 	appDocuments: undefined,
 	osType: undefined,
-	fileSep: '/',
 	isFullScreen: false,
 	usingCustomTitleBar: false,
 	scaleFactor: 1
@@ -53,7 +52,6 @@ export function TauriProvider({ children }: PropsWithChildren) {
 	const [downloads, setDownloadDir] = useState<string>();
 	const [documents, setDocumentDir] = useState<string>();
 	const [osType, setOsType] = useState<os.OsType>();
-	const [fileSep, setFileSep] = useState('/');
 	const [appDocuments, setAppDocuments] = useState<string>();
 	const [isFullScreen, setFullscreen] = useState(false);
 	// false because might be running in web
@@ -101,10 +99,7 @@ export function TauriProvider({ children }: PropsWithChildren) {
 				setDownloadDir(await tauriPath.downloadDir());
 				const _documents = await tauriPath.documentDir();
 				setDocumentDir(_documents);
-				const _osType = os.type();
-				setOsType(_osType);
-				const _fileSep = _osType === 'windows' ? '\\' : '/';
-				setFileSep(_fileSep);
+				setOsType(os.type());
 				await fs.mkdir(APP_NAME, { baseDir: fs.BaseDirectory.Document, recursive: true });
 				setAppDocuments(`${_documents}${APP_NAME}`);
 				setLoading(false);
@@ -132,7 +127,7 @@ export function TauriProvider({ children }: PropsWithChildren) {
 		}, []);
 	}
 
-	return <TauriContext.Provider value={{ loading, fileSep, downloads, documents, osType, appDocuments, isFullScreen, usingCustomTitleBar, scaleFactor }}>
+	return <TauriContext.Provider value={{ loading, downloads, documents, osType, appDocuments, isFullScreen, usingCustomTitleBar, scaleFactor }}>
 		{children}
 	</TauriContext.Provider>;
 }
@@ -146,9 +141,7 @@ export async function getUserAppFiles() {
 	await fs.mkdir(APP_NAME, { baseDir: fs.BaseDirectory.Document, recursive: true });
 	const entries = await fs.readDir(APP_NAME, { baseDir: fs.BaseDirectory.AppData });
 
-	const osType = os.type();
-	const sep = osType === 'windows' ? '\\' : '/'
-	const appFolder = `${documents}${sep}${APP_NAME}`;
+	const appFolder = `${documents}${PATH_SEP}${APP_NAME}`;
 	for (const path of await readDirRecursively(APP_NAME, fs.BaseDirectory.AppData)) {
 		const friendlyName = path.substring(appFolder.length + 1, path.length);
 		if (EXTS.has(getExtension(path).toLowerCase())) saveFiles.push({ path, name: friendlyName });

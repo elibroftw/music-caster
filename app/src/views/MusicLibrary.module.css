@@ -1,5 +1,20 @@
 .tab {
-	height: calc(100dvh - var(--app-shell-footer-height) - 80px);
+	height: var(--tab-view-height);
 	flex-direction: column;
 	overflow: hidden;
+}
+
+/* a tr's height is really a min-height: cells grow with wrapped text. .cellText caps each
+   cell at two lines so every row stays exactly ROW_HEIGHT (two lines fit beside the 64px art) */
+.row {
+	cursor: pointer;
+}
+
+.cellText {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: anywhere;
 }

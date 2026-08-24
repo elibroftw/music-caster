@@ -3,6 +3,8 @@ import { notifications } from '@mantine/notifications';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import type { BooleanSetting, DaemonSettings } from '../common/commands';
 import { MusicCasterAPIContext } from '../common/contexts';
+import { fmtError, IS_DEVELOPMENT } from '../common/utils';
+import Developer from '../views/Developer';
 
 interface SettingsModalProps {
 	opened: boolean;
@@ -20,8 +22,7 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 			setSettingsError(null);
 		} catch (error) {
 			setSettings(null);
-			// tauri rejects with the command's error message as a plain string
-			setSettingsError(typeof error === 'string' ? error : 'Could not read settings');
+			setSettingsError(fmtError(error));
 		}
 	}, [api]);
 
@@ -40,7 +41,7 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 		} catch (error) {
 			notifications.show({
 				title: 'Could not save setting',
-				message: String(error),
+				message: fmtError(error),
 				color: 'red'
 			});
 		}
@@ -72,6 +73,7 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 					<Tabs.Tab value='queue'>Queue</Tabs.Tab>
 					{/* <Tabs.Tab value='appearance'>Appearance</Tabs.Tab> */}
 					{/* <Tabs.Tab value='library'>Music Library</Tabs.Tab> */}
+					{IS_DEVELOPMENT && <Tabs.Tab value='developer'>Developer</Tabs.Tab>}
 				</Tabs.List>
 
 				<Tabs.Panel value='general' pt='md'>
@@ -131,6 +133,12 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 						</Group>
 					</Stack>
 				</Tabs.Panel>
+
+				{IS_DEVELOPMENT && (
+					<Tabs.Panel value='developer' pt='md'>
+						<Developer />
+					</Tabs.Panel>
+				)}
 			</Tabs>
 		</Modal>
 	);

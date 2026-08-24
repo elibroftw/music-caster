@@ -1,5 +1,5 @@
 import { AppShell, Button, Progress, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
-import { useDisclosure, useElementSize, useHotkeys, useMediaQuery } from '@mantine/hooks';
+import { useElementSize, useHotkeys, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
 import * as tauriEvent from '@tauri-apps/api/event';
@@ -9,19 +9,17 @@ import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import * as tauriLogger from '@tauri-apps/plugin-log';
 import { relaunch } from '@tauri-apps/plugin-process';
 import * as tauriUpdater from '@tauri-apps/plugin-updater';
-import { CSSProperties, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import { ImCross } from 'react-icons/im';
 import classes from './App.module.css';
 import MusicCasterAPI, { PlayerState } from './common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from './common/contexts';
-import { IS_DEVELOPMENT, useLocalForage } from './common/utils';
+import { fmtError, useLocalForage } from './common/utils';
 import PlaybackAside from './components/PlaybackAside';
-import SettingsModal from './components/SettingsModal';
 import { useTauriContext } from './tauri/TauriProvider';
 import { TitleBar } from './tauri/TitleBar';
-import Developer from './views/Developer';
 import FallbackAppRender from './views/FallbackErrorBoundary';
 import MusicLibrary from './views/MusicLibrary';
 import Queue from './views/Queue';
@@ -34,7 +32,6 @@ export default function () {
 	const colorScheme = useComputedColorScheme();
 	useHotkeys([['ctrl+J', toggleColorScheme]]);
 
-	const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 	const [activeTab, setActiveTab] = useState<string | null>('queue');
 	// on narrow windows the playback aside is hidden and its content moves into a tab instead.
 	// this media query, not AppShell's breakpoint, is the single source of truth so the CSS
@@ -112,12 +109,12 @@ export default function () {
 			tauriLogger.info('Updater: install complete, relaunching');
 			await relaunch();
 		} catch (error) {
-			tauriLogger.error(`Updater: failed to install v${update.version}: ${error}`);
+			tauriLogger.error(`Updater: failed to install v${update.version}: ${fmtError(error)}`);
 			notifications.update({
 				id: 'UPDATE_NOTIF',
 				title: t('updateFailed', { v: update.version }),
 				color: 'red',
-				message: <Text size='sm'>{String(error)}</Text>,
+				message: <Text size='sm'>{fmtError(error)}</Text>,
 				autoClose: false
 			});
 		}
@@ -163,7 +160,7 @@ export default function () {
 						});
 					}
 				} catch (error) {
-					tauriLogger.error(`Failed to parse URL: ${error}`);
+					tauriLogger.error(`Failed to parse URL: ${fmtError(error)}`);
 				}
 			});
 
@@ -282,9 +279,8 @@ export default function () {
 	return (
 		<PlayerStateContext.Provider value={playerState}>
 			<MusicCasterAPIContext.Provider value={api}>
-				<SettingsModal opened={settingsOpened} onClose={closeSettings} />
 				{usingCustomTitleBar && <TitleBar />}
-				<AppShell padding='md'
+				<AppShell padding='xs'
 					header={{ height: 0 }}
 					footer={{ height: showFooter ? 60 : 0 }}
 					// breakpoint 0 removes the "mobile" range entirely so Mantine never swaps to its
@@ -296,20 +292,19 @@ export default function () {
 					className={classes.appShell}>
 					<AppShell.Main>
 						{usingCustomTitleBar && <Space h='xl' />}
-						<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(e: Error) => tauriLogger.error(e.message)}>
-							<Tabs value={activeTab} onChange={setActiveTab} style={{ '--tabs-list-height': tabsListHeight ? `${tabsListHeight}px` : undefined } as CSSProperties}>
+						<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(error, info) => tauriLogger.error(`Render error: ${fmtError(error)}${info.componentStack ?? ''}`)}>
+							<Tabs value={activeTab} onChange={setActiveTab}>
 								<Tabs.List ref={tabsListRef}>
 									{asideHidden && <Tabs.Tab value='playing'>Playing</Tabs.Tab>}
 									<Tabs.Tab value='queue'>Queue</Tabs.Tab>
 									<Tabs.Tab value='library'>Music Library</Tabs.Tab>
-									{IS_DEVELOPMENT && <Tabs.Tab value='dev'>Developer</Tabs.Tab>}
 								</Tabs.List>
 								{asideHidden && (
 									<Tabs.Panel value='playing' pt='md'>
 										{/* bounded height so PlaybackAside's track info block yields space to the
 										    playback controls instead of pushing them below the fold */}
 										<div className={classes.playingTab}>
-											<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
+											<PlaybackAside trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
 										</div>
 									</Tabs.Panel>
 								)}
@@ -319,18 +314,15 @@ export default function () {
 								<Tabs.Panel value='library' pt='md'>
 									<MusicLibrary />
 								</Tabs.Panel>
-								<Tabs.Panel value='dev' pt='md'>
-									<Developer />
-								</Tabs.Panel>
 							</Tabs>
 						</ErrorBoundary>
 						{/* prevent the footer from covering bottom text of a route view */}
-						<Space h={showFooter ? 70 : 50} />
+						{showFooter && <Space h={70} />}
 					</AppShell.Main>
 
 					{!asideHidden && (
 						<AppShell.Aside className={classes.titleBarAdjustedHeight} p='md'>
-							<PlaybackAside onOpenSettings={openSettings} trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
+							<PlaybackAside trayAction={trayAction} onTrayActionConsumed={() => setTrayAction(null)} onInstallUpdate={update ? () => installUpdate(update) : undefined} />
 						</AppShell.Aside>
 					)}
 

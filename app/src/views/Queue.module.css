@@ -1,7 +1,5 @@
 .tab {
-	/* --tabs-list-height is measured in App.tsx since the tab list can wrap on narrow windows;
-	   the 44px covers Main's padding and the panel's top padding */
-	height: calc(100dvh - var(--app-shell-footer-height) - var(--tabs-list-height, 36px) - 44px);
+	height: var(--tab-view-height);
 	display: flex;
 	flex-direction: column;
 	/* anchors the floating clear-queue button */
