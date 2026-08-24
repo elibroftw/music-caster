@@ -13,8 +13,6 @@ import shutil
 import socket
 import subprocess
 import sys
-import tarfile
-import tempfile
 import time
 from typing import Tuple
 import unicodedata
@@ -48,7 +46,8 @@ import mutagen.id3
 import pyaudio
 import pypresence
 import requests
-from meta import AUDIO_EXTS, COVER_NORMAL, USER_AGENT, State
+import appdirs
+from meta import AUDIO_EXTS, BUNDLE_IDENTIFIER, COVER_NORMAL, USER_AGENT, State
 from modules import linux
 from mutagen._util import MutagenError
 from mutagen.aac import AAC
@@ -897,6 +896,8 @@ def ydl(proxy=None, quiet=False):
     }
     if proxy is not None:
         opts['proxy'] = proxy
+    if (deno := deno_path()) is not None:
+        opts['js_runtimes'] = {'deno': {'path': deno}}
     return YoutubeDL(opts)
 
 
@@ -1560,59 +1561,61 @@ def startfile(file):
                  start_new_session=True)
 
 
-def add_to_path(path):
-    if platform.system() == 'Windows':
-        os.environ['PATH'] += f'{path};'
-    else:
-        os.environ['PATH'] += f':{path}'
-
-
-def cmd_exists(cmd):
-    # shutil.which honours PATHEXT on Windows and the exec bit on Linux
-    return shutil.which(cmd) is not None
-
-
+# yt-dlp needs a JS runtime to solve YouTube's challenges. Deno is downloaded on
+# demand from GitHub releases into the app's data dir: a plain HTTPS download of a
+# zip is fine with Windows Defender, unlike the former `irm install.ps1 | iex`,
+# which Defender flagged (and which never worked from cmd.exe anyway).
+DENO_EXE = 'deno.exe' if platform.system() == 'Windows' else 'deno'
+DENO_DIR = Path(appdirs.user_data_dir(roaming=True)) / BUNDLE_IDENTIFIER / 'deno'
 _deno_install_lock = Lock()
 
 
+def deno_path():
+    """Path to an existing deno executable, or None. Does not install."""
+    if (managed := DENO_DIR / DENO_EXE).is_file():
+        return str(managed)
+    if (found := shutil.which('deno')) is not None:
+        return found
+    # deno's own installer puts it here, which a running process' PATH may not include yet
+    default_install = Path(os.environ.get('DENO_INSTALL', Path.home() / '.deno')) / 'bin' / DENO_EXE
+    return str(default_install) if default_install.is_file() else None
+
+
+def deno_release_asset():
+    arch = 'aarch64' if platform.machine().casefold() in {'arm64', 'aarch64'} else 'x86_64'
+    system = {'Windows': 'pc-windows-msvc', 'Darwin': 'apple-darwin'}.get(platform.system(), 'unknown-linux-gnu')
+    return f'deno-{arch}-{system}.zip'
+
+
 def install_deno():
-    if not _deno_install_lock.acquire(blocking=False):
-        return
-    # cmd_exists avoids the FileNotFoundError that calling a missing deno raises
-    if not cmd_exists('deno'):
-        print('Installing Deno...')
-        if platform.system() == 'Windows':
-            subprocess.call('irm https://deno.land/install.ps1 | iex', shell=True)
-        else:
-            subprocess.call('curl -fsSL https://deno.land/install.sh | sh -s -- -y', shell=True)
+    """Ensures deno is available for yt-dlp, downloading the latest GitHub release if needed.
 
-
-def install_phantomjs(install_directory):
-    """Downloads PhantomJS zip, extracts to install_dir. Does not bin dir to path
-    Raises multiple exceptions!
-
-    Args:
-        install_directory (Pathlike): path to extract phantomjs to
+    Blocks while downloading so the YouTube extraction that follows can use it. Concurrent
+    callers wait on the lock and then find the install already done. Failures are logged and
+    swallowed: yt-dlp still works for many videos without a JS runtime.
     """
-    # download phantomJS
-    tags = requests.get('https://api.github.com/repos/ariya/phantomjs/tags').json()
-    latest_tag = tags[0]['name']
+    with _deno_install_lock:
+        if deno_path() is not None:
+            return
+        log = logging.getLogger('music_caster')
+        asset = deno_release_asset()
+        url = f'https://github.com/denoland/deno/releases/latest/download/{asset}'
+        log.info('Downloading deno from %s', url)
+        try:
+            r = requests.get(url, timeout=60, headers={'User-Agent': USER_AGENT})
+            r.raise_for_status()
+            DENO_DIR.mkdir(parents=True, exist_ok=True)
+            with ZipFile(io.BytesIO(r.content)) as zf:
+                # extract to a temp name so a crash mid-write never leaves a half-written deno
+                tmp = DENO_DIR / f'{DENO_EXE}.part'
+                with zf.open(DENO_EXE) as src, open(tmp, 'wb') as dst:
+                    shutil.copyfileobj(src, dst)
+                tmp.chmod(0o755)
+                tmp.replace(DENO_DIR / DENO_EXE)
+            log.info('Installed deno to %s', DENO_DIR)
+        except (requests.RequestException, OSError, KeyError) as e:
+            log.error('Could not download deno (%s): %r', asset, e)
+            return
+    # ydl() is lru_cached, so drop instances created before deno existed
+    ydl.cache_clear()
 
-    if platform.system() == 'Windows':
-        dir_name = f'phantomjs-{latest_tag}-windows'
-        dl_link = f'https://bitbucket.org/ariya/phantomjs/downloads/{dir_name}.zip'
-    elif platform.system() == 'Linux':
-        dir_name = f'phantomjs-{latest_tag}-linux'
-        dl_link = f'https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-{latest_tag}-linux-x86_64.tar.bz2'
-    elif platform.system() == 'Darwin':  # Mac OSX
-        dir_name = f'phantomjs-{latest_tag}-windows'
-        dl_link = f'https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-{latest_tag}-macosx.zip'
-    r = requests.get(dl_link, stream=True)
-    temp_dir = tempfile.mkdtemp()
-    if dl_link.endswith('zip'):
-        with ZipFile(io.BytesIO(r.content)) as zf:
-            zf.extractall(temp_dir)
-    else:
-        with tarfile.open(fileobj=r.raw, mode='r|bz2') as tf:
-            tf.extractall(temp_dir)
-    shutil.move(Path(temp_dir) / dir_name, install_directory)

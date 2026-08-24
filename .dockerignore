@@ -53,4 +53,3 @@ settings.json.bak
 *.pid
 music_caster.lock
 music_caster.db
-src/phantomjs/

@@ -1,5 +1,9 @@
 Music Caster Changelog
 
+6.2.0
+- [Fix] Responsive UI
+- [Fix] Windows Defender false-positive (yt-dlp)
+
 6.1.2
 - [Feat] Metadata editor
 - [Fix] Track numbering in queue

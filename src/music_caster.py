@@ -161,7 +161,6 @@ if __name__ == '__main__':
             os.remove(OLD_SETTINGS_FILE)
 
 
-    PHANTOMJS_DIR = Path('phantomjs')
     # c:\Users\maste\AppData\Local\Programs\Music Caster\settings.json
 
     def json_dumps(d):
@@ -267,13 +266,10 @@ if __name__ == '__main__':
         urlparse,
         get_yt_id,
         get_yt_urls,
-        install_phantomjs,
-        add_to_path,
         open_in_browser,
         get_video_timestamps,
         get_deezer_tracks,
         get_ipv6,
-        cmd_exists,
         get_latest_release,
         rm_old_startup_shortcuts,
         start_on_login_win32,
@@ -2167,12 +2163,6 @@ if __name__ == '__main__':
                     app_log.error(f'yt-dlp failed to extract {url}')
                     trace_back_msg = traceback.format_exc().replace('\\', '/')
                     if not attribute_error_reported:
-                        if 'PhantomJS' in trace_back_msg:
-                            try:
-                                install_phantomjs(PHANTOMJS_DIR)
-                                add_to_path(PHANTOMJS_DIR / 'bin')
-                            except Exception:
-                                open_in_browser('https://phantomjs.org/download.html')
                         if 'blocked it on copyright grounds' not in trace_back_msg:
                             attribute_error_reported = True
                             handle_exception(e)
@@ -3490,8 +3480,6 @@ if __name__ == '__main__':
         except StopIteration:
             app_log.info('Could not get LAN IPV6 address')
         DiscordPresence.connect(settings['discord_rpc'])
-        if PHANTOMJS_DIR.is_dir() and not cmd_exists('phantomjs'):
-            add_to_path(PHANTOMJS_DIR / 'bin')
         if args.device is not None:
             end_time = time.monotonic() + WAIT_TIMEOUT
             while not change_device(args.device) and time.monotonic() < end_time:
