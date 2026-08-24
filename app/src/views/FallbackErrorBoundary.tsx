@@ -1,4 +1,5 @@
 import { FallbackProps } from 'react-error-boundary';
+import { fmtError } from '../common/utils';
 
 // NOTE: this component CANNOT USE HOOKS
 export default function FallbackAppRender({ error, resetErrorBoundary }: FallbackProps) {
@@ -7,7 +8,7 @@ export default function FallbackAppRender({ error, resetErrorBoundary }: Fallbac
 		<div role='alert' style={{ margin: 10 }}>
 			<h2>Fatal Error While Rendering</h2>
 			<h3>What went wrong</h3>
-			<pre style={{ color: 'red', fontWeight: 'bold', whiteSpace: 'break-spaces', marginBottom: '1.5em', marginLeft: '1.5em' }}>{error.toString()}</pre>
+			<pre style={{ color: 'red', fontWeight: 'bold', whiteSpace: 'break-spaces', marginBottom: '1.5em', marginLeft: '1.5em' }}>{fmtError(error)}</pre>
 			<button style={{ background: '#ff5f25', borderRadius: 5 }} onClick={resetErrorBoundary}>Refresh</button>
 		</div>
 	);
