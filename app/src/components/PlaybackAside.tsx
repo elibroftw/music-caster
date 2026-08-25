@@ -8,6 +8,7 @@ import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { QRCodeSVG } from 'qrcode.react';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { TbArrowsShuffle, TbBrandGithub, TbClock, TbDots, TbDownload, TbFileImport, TbFileText, TbFolderOpen, TbInfoCircle, TbLink, TbPlayerPauseFilled, TbPlayerPlayFilled, TbPlayerSkipBackFilled, TbPlayerSkipForwardFilled, TbPin, TbRepeat, TbRepeatOff, TbRepeatOnce, TbSettings, TbVolume, TbWorld, TbWorldOff } from 'react-icons/tb';
 import { AUDIO_EXTENSIONS, PlayAction, type WebUrl } from '../common/commands';
@@ -45,6 +46,7 @@ interface PlaybackAsideProps {
 }
 
 export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInstallUpdate }: PlaybackAsideProps) {
+	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
 	const daemonLoading = playerState === null || playerState.status === 'NOT_RUNNING';
 	const api = useContext(MusicCasterAPIContext)!;
@@ -349,9 +351,9 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 	// rendered either directly in the icon column (enough vertical room) or inside
 	// the "..." overflow menu's grid (short windows)
 	const menuIcons = <>
-		<ActionIcon disabled={daemonLoading} size='lg' variant='filled' title='Settings' onClick={() => setActiveModal(ActiveModal.Settings)}><TbSettings size={20} /></ActionIcon>
-		<ActionIcon size='lg' variant='default' title='About' onClick={() => setActiveModal(ActiveModal.Info)}><TbInfoCircle size={20} /></ActionIcon>
-		<ActionIcon size='lg' variant='default' title='Sleep timer' onClick={() => setActiveModal(ActiveModal.Timer)}><TbClock size={20} /></ActionIcon>
+		<ActionIcon disabled={daemonLoading} size='lg' variant='filled' title={t('Settings')} onClick={() => setActiveModal(ActiveModal.Settings)}><TbSettings size={20} /></ActionIcon>
+		<ActionIcon size='lg' variant='default' title={t('About')} onClick={() => setActiveModal(ActiveModal.Info)}><TbInfoCircle size={20} /></ActionIcon>
+		<ActionIcon size='lg' variant='default' title={t('Sleep timer')} onClick={() => setActiveModal(ActiveModal.Timer)}><TbClock size={20} /></ActionIcon>
 		{/* <ActionIcon size='lg' variant='default'><TbPlus size={20} /></ActionIcon> */}
 		{/* <ActionIcon size='lg' variant='default'>Play Next</ActionIcon> */}
 		{/* <ActionIcon size='lg' variant='default'><TbCopy size={20} /></ActionIcon> */}
@@ -359,9 +361,9 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 		{/* <ActionIcon size='lg' variant='default'><TbChevronUp size={20} /></ActionIcon>
 		<ActionIcon size='lg' variant='default'><TbX size={20} /></ActionIcon>
 		<ActionIcon size='lg' variant='default'><TbChevronDown size={20} /></ActionIcon> */}
-		<ActionIcon size='lg' variant='default' title='Remote access' onClick={() => setActiveModal(ActiveModal.QrCode)}><TbWorld size={20} /></ActionIcon>
-		<ActionIcon size='lg' variant='default' title='Stream a URL' onClick={() => setActiveModal(ActiveModal.StreamURL)}><TbLink size={20} /></ActionIcon>
-		<ActionIcon size='lg' variant='default' title='Play files or folders' onClick={() => setActiveModal(ActiveModal.FilePicker)}><TbFileImport size={20} /></ActionIcon>
+		<ActionIcon size='lg' variant='default' title={t('Remote access')} onClick={() => setActiveModal(ActiveModal.QrCode)}><TbWorld size={20} /></ActionIcon>
+		<ActionIcon size='lg' variant='default' title={t('Stream a URL')} onClick={() => setActiveModal(ActiveModal.StreamURL)}><TbLink size={20} /></ActionIcon>
+		<ActionIcon size='lg' variant='default' title={t('Play files or folders')} onClick={() => setActiveModal(ActiveModal.FilePicker)}><TbFileImport size={20} /></ActionIcon>
 	</>;
 
 	return (
@@ -371,11 +373,11 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 			<Modal
 				opened={activeModal === ActiveModal.QrCode}
 				onClose={closeModal}
-				title='Remote Access'
+				title={t('Remote Access')}
 				centered
 			>
 				<Stack align='center' gap='md'>
-					<Text size='sm'>Scan this QR code to access Music Caster remotely</Text>
+					<Text size='sm'>{t('scanQRCode')}</Text>
 					<Box
 						style={{
 							width: '216px',
@@ -397,7 +399,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 					</Box>
 					{webUrlLoading && <Skeleton height={16} width='60%' />}
 					{webUrlError && (
-						<Alert color='red' variant='light' w='100%' title='Remote access unavailable'>
+						<Alert color='red' variant='light' w='100%' title={t('Remote access unavailable')}>
 							<Stack gap='xs' align='flex-start'>
 								<Text size='xs'>{webUrlError}</Text>
 								<Button size='xs' variant='light' color='red' onClick={fetchWebUrl}>Retry</Button>
@@ -415,7 +417,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 			<Modal
 				opened={activeModal === ActiveModal.Info}
 				onClose={closeModal}
-				title='About'
+				title={t('About')}
 				centered
 			>
 				<Stack align='center' gap='md'>
@@ -458,16 +460,16 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 			<Modal
 				opened={activeModal === ActiveModal.Timer}
 				onClose={closeModal}
-				title='Sleep Timer'
+				title={t('Sleep Timer')}
 				centered
 			>
 				<Stack gap='md'>
 					<Radio.Group value={timerAction} onChange={setTimerAction}>
 						<Stack gap='xs'>
-							<Radio value='shutdown' label='Shut down when timer runs out' />
-							<Radio value='sleep' label='Sleep when timer runs out' />
-							<Radio value='hibernate' label='Hibernate when timer runs out' />
-							<Radio value='stop' label='Only stop playback' />
+							<Radio value='shutdown' label={t('Shut down when timer runs out')} />
+							<Radio value='sleep' label={t('Sleep when timer runs out')} />
+							<Radio value='hibernate' label={t('Hibernate when timer runs out')} />
+							<Radio value='stop' label={t('Only stop playback')} />
 						</Stack>
 					</Radio.Group>
 					<Group>
@@ -494,7 +496,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 			<Modal
 				opened={activeModal === ActiveModal.StreamURL}
 				onClose={closeModal}
-				title='Stream URL'
+				title={t('Stream URL')}
 				centered
 			>
 				<form onSubmit={streamURLForm.onSubmit(handleStreamURLSubmit)}>
@@ -506,9 +508,9 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 						/>
 						<Radio.Group {...streamURLForm.getInputProps('action')}>
 							<Group gap='md'>
-								<Radio value={PlayAction.PLAY} label='Play now' />
-								<Radio value={PlayAction.QUEUE} label='Add to queue' />
-								<Radio value={PlayAction.PLAY_NEXT} label='Play next' />
+								<Radio value={PlayAction.PLAY} label={t('Play now')} />
+								<Radio value={PlayAction.QUEUE} label={t('Add to queue')} />
+								<Radio value={PlayAction.PLAY_NEXT} label={t('Play next')} />
 							</Group>
 						</Radio.Group>
 						<Button type='submit'>Submit</Button>
@@ -519,29 +521,29 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 			<Modal
 				opened={activeModal === ActiveModal.FilePicker}
 				onClose={closeModal}
-				title='Play Files or Folders'
+				title={t('Play Files or Folders')}
 				centered
 			>
 				<Stack gap='md'>
 					<Radio.Group
-						label='Source'
+						label={t('Source')}
 						value={pickSource}
 						onChange={value => setPickSource(value as typeof pickSource)}
 					>
 						<Group gap='md' mt='xs'>
-							<Radio value='files' label='Files' />
-							<Radio value='folders' label='Folders' />
+							<Radio value='files' label={t('Files')} />
+							<Radio value='folders' label={t('Folders')} />
 						</Group>
 					</Radio.Group>
 					<Radio.Group
-						label='Action'
+						label={t('Action')}
 						value={pickAction}
 						onChange={value => setPickAction(value as PlayAction)}
 					>
 						<Group gap='md' mt='xs'>
-							<Radio value={PlayAction.PLAY} label='Play now' />
-							<Radio value={PlayAction.QUEUE} label='Add to queue' />
-							<Radio value={PlayAction.PLAY_NEXT} label='Play next' />
+							<Radio value={PlayAction.PLAY} label={t('Play now')} />
+							<Radio value={PlayAction.QUEUE} label={t('Add to queue')} />
+							<Radio value={PlayAction.PLAY_NEXT} label={t('Play next')} />
 						</Group>
 					</Radio.Group>
 					<Button loading={picking} onClick={handleFilePickerSubmit}>
@@ -666,7 +668,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 							   modal; popovers default to 300 */
 							<HoverCard shadow='md' position='left-start' withArrow openDelay={0} closeDelay={150} zIndex={190}>
 								<HoverCard.Target>
-									<ActionIcon size='lg' variant='default' title='More actions'><TbDots size={20} /></ActionIcon>
+									<ActionIcon size='lg' variant='default' title={t('More actions')}><TbDots size={20} /></ActionIcon>
 								</HoverCard.Target>
 								<HoverCard.Dropdown p='xs'>
 									<SimpleGrid cols={3} spacing='xs' verticalSpacing='xs'>
@@ -685,7 +687,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 							<TbPin size={20} />
 						</ActionIcon>
 						{/* an available update is always actionable, so it survives the icon-column collapse */}
-						{onInstallUpdate && <ActionIcon size='lg' variant='filled' color='teal' title='Install update and relaunch' onClick={onInstallUpdate}><TbDownload size={20} /></ActionIcon>}
+						{onInstallUpdate && <ActionIcon size='lg' variant='filled' color='teal' title={t('installAndRelaunch')} onClick={onInstallUpdate}><TbDownload size={20} /></ActionIcon>}
 					</SimpleGrid>
 				</Group>
 

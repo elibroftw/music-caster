@@ -1,6 +1,7 @@
 import { Alert, Button, Checkbox, Group, Modal, SimpleGrid, Stack, Tabs, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useCallback, useContext, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { BooleanSetting, DaemonSettings } from '../common/commands';
 import { MusicCasterAPIContext } from '../common/contexts';
 import { fmtError, IS_DEVELOPMENT } from '../common/utils';
@@ -12,6 +13,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
+	const { t } = useTranslation();
 	const api = useContext(MusicCasterAPIContext)!;
 	const [settings, setSettings] = useState<DaemonSettings | null>(null);
 	const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 		<Modal
 			opened={opened}
 			onClose={onClose}
-			title='Settings'
+			title={t('Settings')}
 			size='auto'
 			centered
 		>
@@ -78,19 +80,19 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 
 				<Tabs.Panel value='general' pt='md'>
 					<SimpleGrid cols={2} spacing='md'>
-						<Checkbox label='Run on startup' />
-						<Checkbox label='Exit app on GUI close' />
-						<Checkbox label='Discord presence' />
-						<Checkbox label='Folder context menu' defaultChecked />
-						<Checkbox label='Remember last folder' />
-						<TextInput label='System Audio Delay' defaultValue='0' />
+						<Checkbox label={t('Run on startup')} />
+						<Checkbox label={t('Exit app on GUI close')} />
+						<Checkbox label={t('Discord presence')} />
+						<Checkbox label={t('Folder context menu')} defaultChecked />
+						<Checkbox label={t('Remember last folder')} />
+						<TextInput label={t('System Audio Delay')} defaultValue='0' />
 					</SimpleGrid>
 				</Tabs.Panel>
 
 				<Tabs.Panel value='queue' pt='md'>
 					<Stack gap='md'>
 						{settingsError && (
-							<Alert color='red' variant='light' title='Settings unavailable'>
+							<Alert color='red' variant='light' title={t('Settings unavailable')}>
 								<Stack gap='xs' align='flex-start'>
 									<Text size='xs'>{settingsError}</Text>
 									<Button size='xs' variant='light' color='red' onClick={loadSettings}>Retry</Button>
@@ -110,23 +112,23 @@ export default function SettingsModal({ opened, onClose }: SettingsModalProps) {
 
 				<Tabs.Panel value='appearance' pt='md'>
 					<SimpleGrid cols={2} spacing='md'>
-						<Checkbox label='Save window positions' defaultChecked />
-						<Checkbox label='Left-side music controls' />
-						<Checkbox label='Show album art' defaultChecked />
-						<Checkbox label='Use cover.* for album art' defaultChecked />
-						<Checkbox label='Show track number' />
-						<Checkbox label='Vertical GUI' />
-						<Checkbox label='Mini mode on top' />
-						<TextInput label='Track Format' defaultValue='&artist - &title' />
-						<TextInput label='On battery resolution' defaultValue='' />
-						<TextInput label='Plugged in resolution' defaultValue='' />
+						<Checkbox label={t('Save window positions')} defaultChecked />
+						<Checkbox label={t('Left-side music controls')} />
+						<Checkbox label={t('Show album art')} defaultChecked />
+						<Checkbox label={t('Use cover.* for album art')} defaultChecked />
+						<Checkbox label={t('Show track number')} />
+						<Checkbox label={t('Vertical GUI')} />
+						<Checkbox label={t('Mini mode on top')} />
+						<TextInput label={t('Track Format')} defaultValue='&artist - &title' />
+						<TextInput label={t('On battery resolution')} defaultValue='' />
+						<TextInput label={t('Plugged in resolution')} defaultValue='' />
 					</SimpleGrid>
 				</Tabs.Panel>
 
 				<Tabs.Panel value='library' pt='md'>
 					<Stack gap='md'>
-						<Checkbox label='Scan folders' />
-						<TextInput label='Music Directory' placeholder='Select a folder...' />
+						<Checkbox label={t('Scan folders')} />
+						<TextInput label={t('Music Directory')} placeholder='Select a folder...' />
 						<Group>
 							<Button variant='light'>Add Directory</Button>
 							<Button variant='light'>Remove Selected</Button>

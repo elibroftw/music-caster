@@ -1,18 +1,22 @@
 import { Menu } from '@mantine/core';
-import { Track } from 'common/commands';
-import { TbClipboard, TbCopy, TbEdit, TbFile, TbPlayerPlay, TbPlayerTrackNext, TbPlus, TbX } from 'react-icons/tb';
+import { useTranslation } from 'react-i18next';
+import { TbClipboard, TbEdit, TbExternalLink, TbFile, TbPlayerPlay, TbPlayerTrackNext, TbPlus, TbX } from 'react-icons/tb';
 
 interface TrackContextMenuProps {
+	/** the track is a url rather than a local file: the file items become browser ones */
+	isUrl?: boolean;
 	onEditMetadata?: () => void;
 	onPlay?: () => void;
 	onPlayNext?: () => void;
 	onAddToQueue?: () => void;
 	onRemove?: () => void;
+	/** reveals the file in the OS file manager, or opens the url in the browser when `isUrl` */
 	onShowFile?: () => void;
 	onCopyUris?: () => void;
 }
 
 export default function TrackContextMenu({
+	isUrl = false,
 	onEditMetadata,
 	onPlay,
 	onPlayNext,
@@ -21,6 +25,7 @@ export default function TrackContextMenu({
 	onShowFile,
 	onCopyUris
 }: TrackContextMenuProps) {
+	const { t } = useTranslation();
 	return (
 		<Menu.Dropdown>
 			{onPlay && (
@@ -28,7 +33,7 @@ export default function TrackContextMenu({
 					leftSection={<TbPlayerPlay size={16} />}
 					onClick={() => onPlay()}
 				>
-					Play
+					{t('Play')}
 				</Menu.Item>
 			)}
 			{onPlayNext && (
@@ -36,7 +41,7 @@ export default function TrackContextMenu({
 					leftSection={<TbPlayerTrackNext size={16} />}
 					onClick={() => onPlayNext()}
 				>
-					Play Next
+					{t('Play Next')}
 				</Menu.Item>
 			)}
 			{onAddToQueue && (
@@ -44,21 +49,21 @@ export default function TrackContextMenu({
 					leftSection={<TbPlus size={16} />}
 					onClick={() => onAddToQueue()}
 				>
-					Add to Queue
+					{t('Add to Queue')}
 				</Menu.Item>
 			)}
 			{onEditMetadata && <Menu.Item
 				leftSection={<TbEdit size={16} />}
 				onClick={() => onEditMetadata()}
 			>
-				Edit Metadata
+				{t('Edit Metadata')}
 			</Menu.Item>}
 			{onShowFile && (
 				<Menu.Item
-					leftSection={<TbFile size={16} />}
+					leftSection={isUrl ? <TbExternalLink size={16} /> : <TbFile size={16} />}
 					onClick={() => onShowFile()}
 				>
-					Show File Location
+					{isUrl ? t('Open in Browser') : t('Show File Location')}
 				</Menu.Item>
 			)}
 			{onCopyUris && (
@@ -66,7 +71,7 @@ export default function TrackContextMenu({
 					leftSection={<TbClipboard size={16} />}
 					onClick={() => onCopyUris()}
 				>
-					Copy URIs
+					{isUrl ? t('Copy URL') : t('Copy URIs')}
 				</Menu.Item>
 			)}
 			{onRemove && (
@@ -77,7 +82,7 @@ export default function TrackContextMenu({
 						onClick={() => onRemove()}
 						color='red'
 					>
-						Remove
+						{t('Remove')}
 					</Menu.Item>
 				</>
 			)}

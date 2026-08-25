@@ -2,6 +2,7 @@ import { Alert, Button, Checkbox, Group, Modal, Paper, Stack, Text, TextInput } 
 import { notifications } from '@mantine/notifications';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { useContext, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TbSearch, TbTrash, TbUpload } from 'react-icons/tb';
 import { MusicCasterAPIContext } from '../common/contexts';
 import type { TrackMetadata } from '../common/commands';
@@ -23,6 +24,7 @@ interface MetadataEditorModalProps {
 const ART_PREVIEW_SIZE = 150;
 
 export default function MetadataEditorModal({ filePath, onClose, onSaved }: MetadataEditorModalProps) {
+	const { t } = useTranslation();
 	const api = useContext(MusicCasterAPIContext)!;
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -150,7 +152,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 		<Modal
 			opened={filePath !== null}
 			onClose={onClose}
-			title='Edit Metadata'
+			title={t('Edit Metadata')}
 			centered
 		>
 			<Stack gap='md'>
@@ -158,41 +160,41 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 					<Text size='xs' c='dimmed' lineClamp={1} title={filePath}>{filePath}</Text>
 				)}
 				{loadError !== null && (
-					<Alert color='red' variant='light' title='Could not read metadata'>{loadError}</Alert>
+					<Alert color='red' variant='light' title={t('Could not read metadata')}>{loadError}</Alert>
 				)}
 				<TextInput
-					label='Title'
+					label={t('Title')}
 					value={title}
 					onChange={e => setTitle(e.currentTarget.value)}
 					disabled={loading}
 				/>
 				<TextInput
-					label='Artist'
+					label={t('Artist')}
 					value={artist}
 					onChange={e => setArtist(e.currentTarget.value)}
 					disabled={loading}
 				/>
 				<TextInput
-					label='Album'
+					label={t('Album')}
 					value={album}
 					onChange={e => setAlbum(e.currentTarget.value)}
 					disabled={loading}
 				/>
 				<TextInput
-					label='Genre'
+					label={t('Genre')}
 					value={genre}
 					onChange={e => setGenre(e.currentTarget.value)}
 					disabled={loading}
 				/>
 				<TextInput
-					label='Track Number'
+					label={t('Track Number')}
 					placeholder='e.g. 7 or 7/12'
 					value={trackNumber}
 					onChange={e => setTrackNumber(e.currentTarget.value)}
 					disabled={loading}
 				/>
 				<Checkbox
-					label='Explicit'
+					label={t('Explicit')}
 					checked={explicit}
 					onChange={e => setExplicit(e.currentTarget.checked)}
 					disabled={loading}

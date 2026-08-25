@@ -263,9 +263,11 @@ export default function () {
 		}, []);
 	}
 
-	const ANNOUNCEMENTS: number = 1;
-	const showFooter = !announcementsReadLoading && ANNOUNCEMENTS > announcementsRead;
-	const footerText = t('announcement', { context: `${ANNOUNCEMENTS}` });
+	const footerText = 'Introducing the new and improved Music Caster UI! This release brings back drag n drop, and comes with Authenticode.';
+	// bump for new announcements
+	const announcementNumber = 1;
+	// --------------------------
+	const showFooter = !announcementsReadLoading && announcementNumber > announcementsRead;
 
 	// hack for global styling the vertical simplebar based on state
 	useEffect(() => {
@@ -295,9 +297,9 @@ export default function () {
 						<ErrorBoundary FallbackComponent={FallbackAppRender} /*onReset={_details => resetState()} */ onError={(error, info) => tauriLogger.error(`Render error: ${fmtError(error)}${info.componentStack ?? ''}`)}>
 							<Tabs value={activeTab} onChange={setActiveTab}>
 								<Tabs.List ref={tabsListRef}>
-									{asideHidden && <Tabs.Tab value='playing'>Playing</Tabs.Tab>}
-									<Tabs.Tab value='queue'>Queue</Tabs.Tab>
-									<Tabs.Tab value='library'>Music Library</Tabs.Tab>
+									{asideHidden && <Tabs.Tab value='playing'>{t('Playing')}</Tabs.Tab>}
+									<Tabs.Tab value='queue'>{t('Queue')}</Tabs.Tab>
+									<Tabs.Tab value='library'>{t('Music Library')}</Tabs.Tab>
 								</Tabs.List>
 								{asideHidden && (
 									<Tabs.Panel value='playing' pt='md'>

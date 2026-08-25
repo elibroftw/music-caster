@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.2.2
+- [Fix] Queue for URLs
+
 6.2.1
 - [Fix] Responsive track info
 

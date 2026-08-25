@@ -194,8 +194,8 @@ class URLMetadata:
             url_type=row['type'],
             expiry=row['expiry'],
             id=row['id'],
-            album_cover_url=row.get('art'),
-            playlist_url=row.get('pl_src'),
+            album_cover_url=row.get('album_cover_url'),
+            playlist_url=row.get('playlist_url'),
             src=url,
             timestamps=json.loads(row.get('timestamps', '[]'))
         )

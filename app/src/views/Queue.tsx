@@ -1,8 +1,9 @@
 import { ActionIcon, Badge, Flex, Paper, ScrollArea, Skeleton, Stack, Text } from '@mantine/core';
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import Database from '@tauri-apps/plugin-sql';
 import { useElementSize } from '@mantine/hooks';
+import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
+import Database from '@tauri-apps/plugin-sql';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TbClearAll } from 'react-icons/tb';
 import { PlayAction } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
@@ -18,9 +19,30 @@ const ROW_HEIGHT = 72;
 const ROW_PADDING = 7;
 // the album art slot is square at the row's content height
 const ART_SIZE = ROW_HEIGHT - 2 * ROW_PADDING;
+// the daemon resolves url metadata on a background thread, so a url queued a moment ago
+// has no db row yet: re-read the db this many times, this far apart, while art is missing
+const ART_RETRIES = 3;
+const ART_RETRY_MS = 2000;
+
+const isUrl = (uri: string) => uri.startsWith('http');
+
+/** the video id shared by every form of a youtube link, or null for any other url */
+function youtubeId(uri: string): string | null {
+	try {
+		const { hostname, pathname, searchParams } = new URL(uri);
+		if (hostname === 'youtu.be') return pathname.slice(1) || null;
+		if (!/(^|\.)youtube\.com$/.test(hostname)) return null;
+		if (pathname === '/watch') return searchParams.get('v');
+		return /^\/(?:embed|shorts|v|watch)\/([^/?]+)/.exec(pathname)?.[1] ?? null;
+	} catch {
+		// not a parseable url: nothing to match a url_metadata row on
+		return null;
+	}
+}
 
 
 export default function Queue() {
+	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
 	const [contextMenuTrigger, setContextMenuTrigger] = useContextMenu<number>();
 
@@ -56,9 +78,17 @@ export default function Queue() {
 			}
 		})();
 	}, [daemonDown]);
-	// http URIs have no local file for the daemon to read a cover from
+	// cover urls for http queue items, keyed by the url_metadata row's src and, for youtube,
+	// by the video id too: a queued youtu.be or shorts link shares the canonical row
+	const [urlArt, setUrlArt] = useState<Map<string, string>>(new Map());
+	// http URIs have no local file for the daemon to read a cover from: their cover is the
+	// remote thumbnail the daemon stored in url_metadata
 	const artUrl = (uri: string) => {
-		if (uri.startsWith('http') || artUrlTemplate === null) return undefined;
+		if (isUrl(uri)) {
+			const id = youtubeId(uri);
+			return urlArt.get(uri) ?? (id === null ? undefined : urlArt.get(id));
+		}
+		if (artUrlTemplate === null) return undefined;
 		return `${artUrlTemplate.replace('path=DEFAULT_ART', `path=${encodeURIComponent(uri)}`)}&v=${artVersion}`;
 	};
 
@@ -72,14 +102,35 @@ export default function Queue() {
 			const rows = await db.select<{ file_path: string, title: string, artist: string }[]>(
 				'SELECT file_path, title, artist FROM file_metadata');
 			setDbMeta(new Map(rows.map(row => [row.file_path.replaceAll('\\', '/'), row])));
+			const urlRows = await db.select<{ src: string, id: string | null, type: string | null, album_cover_url: string }[]>(
+				'SELECT src, id, type, album_cover_url FROM url_metadata WHERE album_cover_url IS NOT NULL');
+			setUrlArt(new Map(urlRows.flatMap(row => {
+				const keys = row.type === 'youtube' && row.id ? [row.src, row.id] : [row.src];
+				return keys.map(key => [key, row.album_cover_url] as [string, string]);
+			})));
 		} catch {
 			// db missing or table absent: keep whatever we had and rely on the fallback
 		}
 	}, []);
 	const queueKey = JSON.stringify(playerState?.queue);
+	const [artRetries, setArtRetries] = useState(0);
 	useEffect(() => {
+		setArtRetries(0);
 		loadDbMeta();
 	}, [queueKey, loadDbMeta]);
+
+	// a url the daemon has not finished resolving has no cover yet: give it a beat and
+	// re-read, so it fills in without waiting on the next queue change
+	useEffect(() => {
+		if (artRetries >= ART_RETRIES) return;
+		const pending = playerState?.queue.some(track => isUrl(track[0]) && artUrl(track[0]) === undefined);
+		if (!pending) return;
+		const timeout = setTimeout(() => {
+			setArtRetries(retries => retries + 1);
+			loadDbMeta();
+		}, ART_RETRY_MS);
+		return () => clearTimeout(timeout);
+	}, [queueKey, urlArt, artRetries, loadDbMeta]);
 
 	const queueRendered = useMemo(
 		() => {
@@ -169,7 +220,7 @@ export default function Queue() {
 					</Flex>
 				</Paper>);
 			});
-		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, hideArt, artVersion]);
+		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, urlArt, hideArt, artVersion]);
 
 	useEffect(() => {
 		if (targetRef.current !== null) {
@@ -197,13 +248,6 @@ export default function Queue() {
 		api.playUri(uri, PlayAction.QUEUE);
 	};
 
-	const handleShowFile = async () => {
-		if (contextMenuTrigger?.item !== undefined) {
-			const uri = playerState!.queue[contextMenuTrigger.item]![0];
-			await revealItemInDir(uri);
-		}
-	};
-
 	const handleCopyUris = () => {
 		const uri = playerState!.queue[contextMenuTrigger!.item]![0];
 		navigator.clipboard.writeText(uri);
@@ -212,9 +256,17 @@ export default function Queue() {
 	const triggerUri = contextMenuTrigger !== null
 		? playerState?.queue[contextMenuTrigger.item]?.[0]
 		: undefined;
+	const triggerIsUrl = triggerUri !== undefined && isUrl(triggerUri);
+
+	// a url has no file to reveal, so the menu opens it in the browser instead
+	const handleShowFile = async () => {
+		if (triggerUri === undefined) return;
+		if (triggerIsUrl) await openUrl(triggerUri);
+		else await revealItemInDir(triggerUri);
+	};
 
 	const handleEditMetadata = () => {
-		if (triggerUri !== undefined && !triggerUri.startsWith('http')) {
+		if (triggerUri !== undefined && !triggerIsUrl) {
 			setEditingUri(triggerUri);
 		}
 	};
@@ -247,7 +299,8 @@ export default function Queue() {
 					<Stack gap='xs'>
 						<ContextMenu trigger={contextMenuTrigger} offsetLeft={70} offsetTop={-75}>
 							<TrackContextMenu
-								onEditMetadata={triggerUri !== undefined && !triggerUri.startsWith('http') ? handleEditMetadata : undefined}
+								isUrl={triggerIsUrl}
+								onEditMetadata={triggerUri !== undefined && !triggerIsUrl ? handleEditMetadata : undefined}
 								onPlayNext={contextMenuTrigger?.item === queuePosition ? undefined : handlePlayNext}
 								onAddToQueue={handleAddToQueue}
 								onShowFile={handleShowFile}
@@ -266,7 +319,7 @@ export default function Queue() {
 				style={{ position: 'absolute', right: 'var(--mantine-spacing-md)', bottom: 'var(--mantine-spacing-xs)', zIndex: 2 }}
 				variant='default'
 				size='lg'
-				title='Clear queue'
+				title={t('Clear queue')}
 				aria-label='Clear queue'
 				disabled={queueEmpty}
 				onClick={() => api.clearQueue()}
