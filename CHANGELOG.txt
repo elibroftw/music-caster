@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.2.1
+- [Fix] Responsive track info
+
 6.2.0
 - [Fix] Responsive UI
 - [Fix] Windows Defender false-positive (yt-dlp)

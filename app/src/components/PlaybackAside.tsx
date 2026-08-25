@@ -1,6 +1,6 @@
 import { ActionIcon, Alert, Anchor, Box, Button, Flex, Group, HoverCard, Image, Loader, Modal, Paper, Radio, Select, SimpleGrid, Skeleton, Slider, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useMediaQuery } from '@mantine/hooks';
+import { useElementSize, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { appLogDir, join } from '@tauri-apps/api/path';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -64,7 +64,23 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 	// bumped on every fetch so a response from a previous open cannot overwrite a newer one
 	const webUrlRequest = useRef(0);
 	const collapseIconColumn = useMediaQuery('(height < 520px)', false, { getInitialValueInEffect: false });
-	const compactNowPlaying = useMediaQuery('(height < 480px)', false, { getInitialValueInEffect: false });
+	// the art takes whatever height is left after the always-visible controls, so it shrinks
+	// continuously with the window instead of jumping between sizes. measured, not a media
+	// query, so it is right in both hosts (aside vs. playing tab). both host heights derive
+	// from the viewport, so measuring them cannot feed back on the content being sized
+	const { ref: rootRef, height: rootHeight } = useElementSize();
+	const { ref: controlsRef, height: controlsHeight } = useElementSize();
+	// paper padding (32) + art/text gap (16) + root stack gap (16) + three text lines (~90);
+	// a constant rather than a measurement so switching layouts cannot oscillate
+	const NOW_PLAYING_CHROME = 154;
+	const MAX_ART = 220;
+	// below this the art is too small to be worth its own row; use the thumbnail layout
+	const MIN_ART = 96;
+	const measured = rootHeight > 0 && controlsHeight > 0;
+	const artSize = measured ? Math.min(MAX_ART, rootHeight - controlsHeight - NOW_PLAYING_CHROME) : MAX_ART;
+	// until the first measurement lands, fall back to the viewport heuristic to avoid a flash
+	const shortViewport = useMediaQuery('(height < 480px)', false, { getInitialValueInEffect: false });
+	const compactNowPlaying = measured ? artSize < MIN_ART : shortViewport;
 	const hideDeviceRow = useMediaQuery('(height < 340px)', false, { getInitialValueInEffect: false });
 
 	// local value while dragging so the player state poll doesn't fight the slider
@@ -534,77 +550,73 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 				</Stack>
 			</Modal>
 
-			<Stack h='100%' justify='space-between'>
-				{/* minHeight 0 + hidden overflow so the art/metadata block yields vertical space to the
-				    controls below instead of overflowing them when the window is short */}
+			<Stack ref={rootRef} h='100%' justify='space-between'>
 				<Group align='flex-start' justify='space-between' gap='xs' wrap='nowrap' style={{ minHeight: 0, overflow: 'hidden' }}>
-					{/* minWidth 0 (not the flex default of auto) so this can shrink below its content size --
-					    at high DPI the whole viewport can be ~400px, and the album art scales with it */}
 					<Paper p='md' style={{ flex: 1, minWidth: 0 }}>
 						{compactNowPlaying ? (
-							/* short windows: 58px thumbnail (matches the queue rows) beside
-							   single-line title/artist/album, instead of dropping them */
-							<Group gap='sm' wrap='nowrap'>
+							<Stack gap={4} id='now-playing-info'>
+								<Group gap='sm' wrap='nowrap'>
+									<Box
+										style={{
+											width: 58,
+											height: 58,
+											flexShrink: 0,
+											backgroundColor: '#2c2c2c',
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center',
+											borderRadius: 'var(--mantine-radius-sm)',
+											overflow: 'hidden'
+										}}
+									>
+										{albumArtUrl ? (
+											<Image
+												src={albumArtUrl}
+												alt='Album Art'
+												style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+											/>
+										) : (
+											<IoMusicalNotes size={28} color='#6c757d' />
+										)}
+									</Box>
+									<Stack gap={2} justify='center' style={{ flex: 1, minWidth: 0 }}>
+										{
+											daemonLoading ?
+												<>
+													<Skeleton height={13} width='45%' />
+													<Skeleton height={13} width='50%' />
+												</> : <>
+													<Text fz={13} c='dimmed' lineClamp={1} title={playerState.artist || undefined}>
+														{playerState.artist || ''}
+													</Text>
+													<Text fz={13} c='dimmed' lineClamp={1} title={playerState.album || undefined}>
+														{playerState.album === playerState.title ? 'Single' : (playerState.album || '')}
+													</Text>
+												</>
+										}
+									</Stack>
+								</Group>
+								{
+									daemonLoading ?
+										<Skeleton height={15} width='60%' /> :
+										<Text fz={15} fw={500} title={playerState.title || undefined} style={{ wordBreak: 'break-word' }}>
+											{playerState.title || 'Nothing Playing'}
+										</Text>
+								}
+							</Stack>
+						) : (
+							<Flex gap='md' wrap='wrap' align='center' justify='center'>
 								<Box
 									style={{
-										width: 58,
-										height: 58,
+										width: artSize,
+										height: artSize,
 										flexShrink: 0,
 										backgroundColor: '#2c2c2c',
 										display: 'flex',
 										alignItems: 'center',
 										justifyContent: 'center',
-										borderRadius: 'var(--mantine-radius-sm)',
-										overflow: 'hidden'
-									}}
-								>
-									{albumArtUrl ? (
-										<Image
-											src={albumArtUrl}
-											alt='Album Art'
-											style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-										/>
-									) : (
-										<IoMusicalNotes size={28} color='#6c757d' />
-									)}
-								</Box>
-								<Stack gap={2} id='now-playing-info' style={{ flex: 1, minWidth: 0 }}>
-									{
-										daemonLoading ?
-											<>
-												<Skeleton height={15} width='60%' />
-												<Skeleton height={13} width='45%' />
-												<Skeleton height={13} width='50%' />
-											</> : <>
-												<Text fz={15} fw={500} lineClamp={1} title={playerState.title || undefined}>
-													{playerState.title || 'Nothing Playing'}
-												</Text>
-												<Text fz={13} c='dimmed' lineClamp={1} title={playerState.artist || undefined}>
-													{playerState.artist || ''}
-												</Text>
-												<Text fz={13} c='dimmed' lineClamp={1} title={playerState.album || undefined}>
-													{playerState.album === playerState.title ? 'Single' : (playerState.album || '')}
-												</Text>
-											</>
-									}
-								</Stack>
-							</Group>
-						) : (
-							/* wrap='wrap' puts the track info beside the art when the card is wide enough
-							   (the flex-basis values below set that threshold) and below it otherwise */
-							<Flex gap='md' wrap='wrap' align='center' justify='center'>
-								<Box
-									style={{
-										flex: '1 1 200px',
-										minWidth: 0,
-										aspectRatio: '1',
-										backgroundColor: '#2c2c2c',
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
 										borderRadius: '4px',
-										overflow: 'hidden',
-										maxWidth: 220
+										overflow: 'hidden'
 									}}
 								>
 									{albumArtUrl ? (
@@ -677,7 +689,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 					</SimpleGrid>
 				</Group>
 
-				<Stack gap='xs' style={{ flexShrink: 0 }}>
+				<Stack ref={controlsRef} gap='xs' style={{ flexShrink: 0 }}>
 					<Group justify='center' gap='xs'>
 						<ActionIcon
 							size='sm'
