@@ -1,5 +1,5 @@
 import { AppShell, Button, Progress, Space, Tabs, Text, useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
-import { useElementSize, useHotkeys, useMediaQuery } from '@mantine/hooks';
+import { useElementSize, useHotkeys, useInterval, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { isTauri } from '@tauri-apps/api/core';
 import * as tauriEvent from '@tauri-apps/api/event';
@@ -197,27 +197,31 @@ export default function () {
 			return () => { promise.then(unlisten => unlisten()) };
 		}, []);
 
-		// update checker
+		const checkForUpdate = async () => {
+			const update = await tauriUpdater.check();
+			if (update) {
+				setUpdate(update);
+				const color = colorScheme === 'dark' ? 'teal' : 'teal.8';
+				notifications.show({
+					id: 'UPDATE_NOTIF',
+					title: t('updateAvailable', { v: update.version }),
+					color,
+					message: <>
+						<pre>{update.body}</pre>
+						<Button color={color} style={{ width: '100%' }} onClick={() => installUpdate(update)}>{t('installAndRelaunch')}</Button>
+					</>,
+					autoClose: false
+				});
+			} else {
+				tauriLogger.info('No update available');
+			}
+		};
+		const updateInterval = useInterval(checkForUpdate, 6 * 60 * 60 * 1000);
+
 		useEffect(() => {
-			(async () => {
-				const update = await tauriUpdater.check();
-				if (update) {
-					setUpdate(update);
-					const color = colorScheme === 'dark' ? 'teal' : 'teal.8';
-					notifications.show({
-						id: 'UPDATE_NOTIF',
-						title: t('updateAvailable', { v: update.version }),
-						color,
-						message: <>
-							<pre>{update.body}</pre>
-							<Button color={color} style={{ width: '100%' }} onClick={() => installUpdate(update)}>{t('installAndRelaunch')}</Button>
-						</>,
-						autoClose: false
-					});
-				} else {
-					tauriLogger.info('No update available');
-				}
-			})()
+			void checkForUpdate();
+			updateInterval.start();
+			return updateInterval.stop;
 		}, []);
 
 		// Handle additional app launches (url, etc.)
