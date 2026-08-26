@@ -5,7 +5,7 @@
 				"title": "Music Caster",
 				"label": "main",
 				"minWidth": 300,
-				"minHeight": 350,
+				"minHeight": 375,
 				"width": 1000,
 				"resizable": true,
 				"fullscreen": false,

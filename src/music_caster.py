@@ -1192,7 +1192,7 @@ if __name__ == '__main__':
                 else:
                     app_log.info(f"called play_uris with opt = {opt} uri = {request_data['uri']}, merge_tracks = {merge_plays}, queue all? {settings['queue_library']}")
                     play_uris([request_data['uri']], queue_uris=queue_only, play_next=play_next, merge_tracks=merge_plays)
-                    if settings['queue_library']:
+                    if not queue_only and not play_next and settings['queue_library'] and merge_plays == 0:
                         queue_all()
         else:
             recent_api_plays['play'] += 1

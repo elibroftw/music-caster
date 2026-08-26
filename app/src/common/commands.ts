@@ -35,7 +35,8 @@ interface PlayUrisOptions {
 	uris?: string[];
 	uri?: string;
 	queue?: boolean;
-	playNext?: boolean;
+	/** Matches the daemon's `/play/` request field name. */
+	play_next?: boolean;
 	device?: string;
 }
 
@@ -177,7 +178,7 @@ class MusicCasterAPI {
 
 	async playUri(uri: string, action: PlayAction): Promise<PlayerState> {
 		return await this.invokePlayUris({
-			uri, playNext: action === PlayAction.PLAY_NEXT, queue: action === PlayAction.QUEUE,
+			uri, play_next: action === PlayAction.PLAY_NEXT, queue: action === PlayAction.QUEUE,
 		})
 	}
 

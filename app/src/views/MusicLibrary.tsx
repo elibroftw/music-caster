@@ -1,7 +1,8 @@
-import { Box, Paper, ScrollArea, Skeleton, Stack, Table } from '@mantine/core';
+import { Box, Paper, ScrollArea, Skeleton, Stack, Table, TextInput } from '@mantine/core';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import Database from '@tauri-apps/plugin-sql';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { TbSearch } from 'react-icons/tb';
 import { useTranslation } from 'react-i18next';
 import { PlayAction, Track } from '../common/commands';
 import { MusicCasterAPIContext, PlayerStateContext } from '../common/contexts';
@@ -13,6 +14,9 @@ import classes from './MusicLibrary.module.css';
 
 // fixed row height; cell text is clamped (see .cellText) so no row can outgrow it
 const ROW_HEIGHT = 78;
+const SEARCHABLE_TRACK_KEYS: Array<keyof Track> = [
+	'album', 'artist', 'title', 'genre', 'length', 'track_number', 'file_path'
+];
 
 export default function MusicLibrary() {
 	const { t } = useTranslation();
@@ -21,7 +25,9 @@ export default function MusicLibrary() {
 	const [contextMenu, setMenuItem] = useContextMenu<Track>({ showOnClick: true });
 	const [loading, setLoading] = useState(true);
 	const [tracks, setTracks] = useState<Track[]>([]);
-	const [sortColumn, setSortColumn] = useState<keyof Track>('artist');
+	const [sortColumn, setSortColumn] = useState<keyof Track | null>(null);
+	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+	const [search, setSearch] = useState('');
 	const [editingTrack, setEditingTrack] = useState<Track | null>(null);
 	// bumped after a metadata save so the daemon-served thumbnails (sent with a
 	// long max-age) aren't served from the browser cache
@@ -73,8 +79,51 @@ export default function MusicLibrary() {
 		: `${artUrlTemplate.replace('path=DEFAULT_ART', `path=${encodeURIComponent(filePath)}`)}&v=${artVersion}`;
 
 	const handleSort = (column: keyof Track) => {
-		setSortColumn(column);
+		if (sortColumn === column) {
+			setSortDirection(direction => direction === 'asc' ? 'desc' : 'asc');
+		} else {
+			setSortColumn(column);
+			setSortDirection('asc');
+		}
 	};
+
+	const filteredTracks = useMemo(() => {
+		// Commas separate alternatives, while spaces combine terms. For example,
+		// "trance, techno" finds either genre and "techno remix, trance" finds
+		// Techno tracks with "remix" metadata or any Trance track. Matching is
+		// case-insensitive and partial: "electro" finds "Electronic".
+		const alternatives = search.toLocaleLowerCase()
+			.split(',')
+			.map(query => query.trim().split(/\s+/).filter(Boolean))
+			.filter(terms => terms.length > 0);
+		if (alternatives.length === 0) return tracks;
+
+		return tracks.filter(track => {
+			const searchableText = SEARCHABLE_TRACK_KEYS
+				.map(key => String(track[key] ?? ''))
+				.join(' ')
+				.toLocaleLowerCase();
+			return alternatives.some(terms => terms.every(term => searchableText.includes(term)));
+		});
+	}, [tracks, search]);
+
+	const sortedTracks = useMemo(() => {
+		if (sortColumn === null) return filteredTracks;
+
+		return [...filteredTracks].sort((a, b) => {
+			const first = a[sortColumn];
+			const second = b[sortColumn];
+			let comparison: number;
+
+			if (first == null && second == null) comparison = 0;
+			else if (first == null) comparison = -1;
+			else if (second == null) comparison = 1;
+			else if (typeof first === 'number' && typeof second === 'number') comparison = first - second;
+			else comparison = String(first).localeCompare(String(second), undefined, { numeric: true, sensitivity: 'base' });
+
+			return sortDirection === 'asc' ? comparison : -comparison;
+		});
+	}, [filteredTracks, sortColumn, sortDirection]);
 
 	const handleEditMetadata = () => {
 		if (contextMenu?.item) {
@@ -142,7 +191,17 @@ export default function MusicLibrary() {
 				/>
 			</ContextMenu>
 
-			<Paper className={classes.tab} shadow='sm' p='md' display='flex'>
+			<Paper className={classes.tab} shadow='sm' px='md' pb='xs' pt='xs' display='flex'>
+				<TextInput
+					label={t('Search')}
+					styles={{ label: { marginTop: 0 } }}
+					aria-label={t('Search')}
+					value={search}
+					onChange={event => setSearch(event.currentTarget.value)}
+					placeholder={t('Search music library')}
+					leftSection={<TbSearch size={16} />}
+					mb='sm'
+				/>
 				<ScrollArea>
 					<Table highlightOnHover>
 						<Table.Thead>
@@ -154,7 +213,7 @@ export default function MusicLibrary() {
 										onClick={() => handleSort(column.key)}
 										style={{ cursor: 'pointer', minWidth: column.width, whiteSpace: 'nowrap' }}
 									>
-										{column.label} {sortColumn === column.key && '▼'}
+										{column.label} {sortColumn === column.key && (sortDirection === 'asc' ? '▲' : '▼')}
 									</Table.Th>
 								))}
 							</Table.Tr>
@@ -172,7 +231,7 @@ export default function MusicLibrary() {
 									))
 								)
 							}
-							{tracks.length > 0 && tracks.map((track, index) => (
+							{sortedTracks.length > 0 && sortedTracks.map((track, index) => (
 								<Table.Tr
 									key={index}
 									// onClick={() => setSelectedTrack(track)}

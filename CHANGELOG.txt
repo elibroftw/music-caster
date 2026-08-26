@@ -1,5 +1,10 @@
 Music Caster Changelog
 
+6.3.0
+- [Feat] Music Library search
+- [Fix] Music Library sorting
+- [Fix] Play next
+
 6.2.2
 - [Fix] Queue for URLs
 

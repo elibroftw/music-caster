@@ -74,7 +74,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 	const { ref: controlsRef, height: controlsHeight } = useElementSize();
 	// paper padding (32) + art/text gap (16) + root stack gap (16) + three text lines (~90);
 	// a constant rather than a measurement so switching layouts cannot oscillate
-	const NOW_PLAYING_CHROME = 154;
+	const NOW_PLAYING_CHROME = 130;
 	const MAX_ART = 220;
 	// below this the art is too small to be worth its own row; use the thumbnail layout
 	const MIN_ART = 96;
@@ -158,7 +158,7 @@ export default function PlaybackAside({ trayAction, onTrayActionConsumed, onInst
 			await api.invokePlayUris({
 				uris: selected,
 				queue: pickAction === PlayAction.QUEUE,
-				playNext: pickAction === PlayAction.PLAY_NEXT
+				play_next: pickAction === PlayAction.PLAY_NEXT
 			});
 			closeModal();
 		} catch (error) {

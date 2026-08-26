@@ -1,7 +1,6 @@
 {
 	"compilerOptions": {
 		"allowJs": false,
-		"baseUrl": ".",
 		"esModuleInterop": true,
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
