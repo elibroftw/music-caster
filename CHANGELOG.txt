@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.4.0
+- [Feat] Music Library bpm
+
 6.3.0
 - [Feat] Music Library search
 - [Fix] Music Library sorting

@@ -217,7 +217,7 @@ if __name__ == '__main__':
     from functools import lru_cache
     import logging
     from logging.handlers import RotatingFileHandler
-    from math import log10, floor
+    from math import log10, floor, isfinite
     import pprint
     from random import shuffle
     from shutil import copyfileobj, rmtree
@@ -1477,9 +1477,9 @@ if __name__ == '__main__':
             return '' if isinstance(value, Unknown) else str(value)
 
         return {'title': clean(m['title']), 'artist': clean(m['artist']), 'album': clean(m['album']),
-                'genre': clean(m.get('genre', '')), 'track_number': m.get('track_number'),
-                'track_total': m.get('track_total'), 'explicit': m['explicit'], 'length': m.get('length'),
-                'art': art, 'mime': mime}
+                'genre': clean(m.get('genre', '')), 'bpm': m.get('bpm'),
+                'track_number': m.get('track_number'), 'track_total': m.get('track_total'),
+                'explicit': m['explicit'], 'length': m.get('length'), 'art': art, 'mime': mime}
 
     @app.get('/metadata/')
     def api_get_metadata():
@@ -1506,6 +1506,19 @@ if __name__ == '__main__':
                         'album': str(data.get('album', '')), 'genre': str(data.get('genre', '')),
                         'track_number': str(data.get('track_number', '') or ''),
                         'explicit': bool(data.get('explicit', False))}
+        # Missing means an older client wants to leave BPM unchanged; null/empty removes it.
+        if 'bpm' in data:
+            raw_bpm = data['bpm']
+            if raw_bpm in (None, ''):
+                new_metadata['bpm'] = None
+            else:
+                try:
+                    bpm = float(raw_bpm)
+                except (TypeError, ValueError):
+                    return {'error': 'bpm must be a positive number or null'}, 400
+                if bpm <= 0 or not isfinite(bpm):
+                    return {'error': 'bpm must be a positive number or null'}, 400
+                new_metadata['bpm'] = int(bpm) if bpm.is_integer() else bpm
         # art semantics: absent = leave unchanged, b64 = replace, remove_art = strip
         if data.get('remove_art'):
             new_metadata['art'] = None

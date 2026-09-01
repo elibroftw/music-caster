@@ -14,5 +14,11 @@ pub fn get_migrations() -> Vec<Migration> {
       sql: include_str!("../migrations/0001_add_genre.sql"),
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 5,
+      description: "add_bpm_column",
+      sql: include_str!("../migrations/0002_add_bpm.sql"),
+      kind: MigrationKind::Up,
+    },
   ]
 }

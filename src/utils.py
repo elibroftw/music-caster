@@ -21,7 +21,7 @@ from base64 import b64decode, b64encode
 from contextlib import suppress
 from functools import lru_cache, wraps
 from itertools import chain, cycle, repeat
-from math import floor
+from math import floor, isfinite
 from pathlib import Path
 from queue import Empty, LifoQueue
 from random import getrandbits
@@ -51,6 +51,7 @@ from meta import AUDIO_EXTS, BUNDLE_IDENTIFIER, COVER_NORMAL, USER_AGENT, State
 from modules import linux
 from mutagen._util import MutagenError
 from mutagen.aac import AAC
+from mutagen.asf import ASF
 from mutagen.id3._util import ID3NoHeaderError
 from mutagen.mp3 import MP3, EasyMP3, HeaderNotFoundError
 from mutagen.mp4 import MP4, MP4Cover
@@ -529,6 +530,9 @@ def set_metadata(file_path: str, metadata: dict):
     artists = metadata['artist'].split(', ') if ', ' in metadata['artist'] else metadata['artist'].split(',')
     album = metadata['album']
     genre = metadata.get('genre', '')
+    bpm_supplied = 'bpm' in metadata
+    bpm = metadata.get('bpm')
+    bpm_text = str(bpm) if bpm is not None else None
     track_place = metadata['track_number']      # X/Y
     track_number = track_place.split('/')[0]    # X
     rating = '1' if metadata['explicit'] else '0'
@@ -552,6 +556,11 @@ def set_metadata(file_path: str, metadata: dict):
             audio['TALB'] = mutagen.id3._frames.TALB(text=album)
         if genre:
             audio['TCON'] = mutagen.id3._frames.TCON(text=genre)
+        if bpm_supplied:
+            if bpm_text is None:
+                audio.pop('TBPM', None)
+            else:
+                audio['TBPM'] = mutagen.id3._frames.TBPM(text=bpm_text)
         # audio['TDRC'] = mutagen.id3.TDRC(text=metadata['year'])
         # audio['TPUB'] = mutagen.id3.TPUB(text=metadata['publisher'])
         audio['TXXX:RATING'] = mutagen.id3._frames.TXXX(text=rating, desc='RATING')
@@ -572,6 +581,11 @@ def set_metadata(file_path: str, metadata: dict):
             audio['©alb'] = [album]
         if genre:
             audio['©gen'] = [genre]
+        if bpm_supplied:
+            if bpm is None:
+                audio.pop('tmpo', None)
+            else:
+                audio['tmpo'] = [round(bpm)]
         if track_number:
             audio['trkn'] = [tuple((int(x) for x in track_place.split('/')))]
         audio['rtng'] = [int(rating)]
@@ -591,6 +605,11 @@ def set_metadata(file_path: str, metadata: dict):
         if genre:
             audio['genre'] = [genre]
         audio['rtng'] = [rating]
+        if bpm_supplied:
+            if bpm_text is None:
+                audio.pop('bpm', None)
+            else:
+                audio['bpm'] = [bpm_text]
         if track_number:
             audio['trkn'] = track_place
         if metadata.get('art') is not None:
@@ -600,7 +619,7 @@ def set_metadata(file_path: str, metadata: dict):
         elif 'art' in metadata:
             audio.pop('APIC:', None)
             audio.pop('metadata_block_picture', None)
-    else:  # FLAC?
+    else:  # FLAC, WMA, and other mapping-style tag formats
         if title:
             audio['TITLE'] = title # type: ignore
         if artists:
@@ -609,6 +628,14 @@ def set_metadata(file_path: str, metadata: dict):
             audio['ALBUM'] = album # type: ignore
         if genre:
             audio['GENRE'] = genre # type: ignore
+        if bpm_supplied:
+            bpm_key = 'WM/BeatsPerMinute' if isinstance(audio, ASF) else 'BPM'
+            if bpm_text is None:
+                for key in tuple(audio.keys()):
+                    if key.casefold() in {'bpm', 'wm/beatsperminute'}:
+                        audio.pop(key)
+            else:
+                audio[bpm_key] = bpm_text # type: ignore
         if track_number:
             audio['TRACKNUMBER'] = track_number  # type: ignore
             audio['TRACKTOTAL'] = track_place.split('/')[1]  # type: ignore
@@ -652,7 +679,8 @@ def get_metadata(file_path: str):
         elif isinstance(a, MP4):
             audio = dict(mutagen.File(file_path))
             audio['rating'] = audio.get('rtng', [0])
-            for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist'), ('©gen', 'genre')):
+            for (tag, normalized) in (('©nam', 'title'), ('©alb', 'album'), ('©ART', 'artist'),
+                                      ('©gen', 'genre'), ('tmpo', 'bpm')):
                 if tag in audio:
                     audio[normalized] = audio.pop(tag)
             # trkn is a (track, total) tuple; normalize to the 'X/Y' form the other formats use.
@@ -665,8 +693,11 @@ def get_metadata(file_path: str):
             if 'trkn' in audio:
                 audio['tracknumber'] = audio.pop('trkn')
         elif isinstance(a, WAVE) or file_path.endswith('.wav'):
-            audio = WavInfoReader(file_path).info.to_dict()
-            audio = {'title': [audio['title']], 'artist': [audio['artist']], 'album': [audio['product']]}
+            wav_info = WavInfoReader(file_path).info.to_dict()
+            audio = {'title': [wav_info['title']], 'artist': [wav_info['artist']], 'album': [wav_info['product']]}
+            # wavinfo reads RIFF INFO but not the ID3 TBPM frame written by set_metadata.
+            with suppress(KeyError, AttributeError):
+                audio['bpm'] = list(a['TBPM'].text)
         elif a is not None:
             audio = dict(a)
             audio = {k.casefold(): audio[k] for k in audio}
@@ -685,6 +716,15 @@ def get_metadata(file_path: str):
     album = str(audio.get('album', [album])[0])
     # vorbis/flac/easyid3 use 'genre'; WMA's ASF descriptor casefolds to 'wm/genre'
     genre = str((audio.get('genre') or audio.get('wm/genre') or [''])[0])
+    # EasyID3 and Vorbis expose BPM directly, MP4's tmpo was normalized above, and
+    # ASF/WMA uses WM/BeatsPerMinute. Invalid and non-positive values stay unset.
+    bpm = None
+    raw_bpm = audio.get('bpm') or audio.get('wm/beatsperminute')
+    with suppress(TypeError, ValueError, IndexError):
+        raw_bpm = raw_bpm[0] if isinstance(raw_bpm, (list, tuple)) else raw_bpm
+        parsed_bpm = float(raw_bpm)
+        if parsed_bpm > 0 and isfinite(parsed_bpm):
+            bpm = int(parsed_bpm) if parsed_bpm.is_integer() else parsed_bpm
     try:
         is_explicit = audio.get('rating', audio.get('itunesadvisory', ['0']))[0] not in {'C', 'T', '0', 0}
     except IndexError:
@@ -725,6 +765,8 @@ def get_metadata(file_path: str):
                 'time_modified': os.path.getmtime(file_path)}
     if length is not None:
         metadata['length'] = length
+    if bpm is not None:
+        metadata['bpm'] = bpm
     return metadata
 
 

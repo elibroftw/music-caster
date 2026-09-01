@@ -89,6 +89,7 @@ export interface TrackMetadata {
 	artist: string;
 	album: string;
 	genre: string;
+	bpm: number | null;
 	track_number: string | null;
 	track_total: string | null;
 	explicit: boolean;
@@ -104,6 +105,8 @@ export interface SetMetadataOptions {
 	artist: string;
 	album: string;
 	genre: string;
+	/** null removes an existing BPM tag */
+	bpm: number | null;
 	/** 'X' or 'X/Y' where Y is the album's track total */
 	track_number: string;
 	explicit: boolean;

@@ -17,6 +17,14 @@ const ROW_HEIGHT = 78;
 const SEARCHABLE_TRACK_KEYS: Array<keyof Track> = [
 	'album', 'artist', 'title', 'genre', 'length', 'track_number', 'file_path'
 ];
+const SEARCH_SCOPES: Record<string, keyof Track> = {
+	album: 'album',
+	title: 'title',
+	name: 'title',
+	artist: 'artist',
+	genre: 'genre',
+	bpm: 'bpm',
+};
 
 export default function MusicLibrary() {
 	const { t } = useTranslation();
@@ -43,7 +51,7 @@ export default function MusicLibrary() {
 		{ key: 'genre', label: 'GENRE', maxWidth: 200, width: 80 },
 		{ key: 'length', label: 'LENGTH' },
 		{ key: 'track_number', label: '#', width: 40 },
-		// { key: 'bpm', label: 'BPM' },
+		{ key: 'bpm', label: 'BPM', width: 60 },
 		// { key: 'bitrate', label: 'BITRATE' }
 	];
 
@@ -88,10 +96,9 @@ export default function MusicLibrary() {
 	};
 
 	const filteredTracks = useMemo(() => {
-		// Commas separate alternatives, while spaces combine terms. For example,
-		// "trance, techno" finds either genre and "techno remix, trance" finds
-		// Techno tracks with "remix" metadata or any Trance track. Matching is
-		// case-insensitive and partial: "electro" finds "Electronic".
+		// Commas separate alternatives, while spaces combine terms. Prefix a term with
+		// album:, title:/name:, artist:, genre:, or bpm: to search only that field.
+		// Unscoped searches intentionally exclude BPM, so a BPM only matches bpm:120.
 		const alternatives = search.toLocaleLowerCase()
 			.split(',')
 			.map(query => query.trim().split(/\s+/).filter(Boolean))
@@ -103,7 +110,16 @@ export default function MusicLibrary() {
 				.map(key => String(track[key] ?? ''))
 				.join(' ')
 				.toLocaleLowerCase();
-			return alternatives.some(terms => terms.every(term => searchableText.includes(term)));
+			return alternatives.some(terms => terms.every(term => {
+				const separator = term.indexOf(':');
+				const scope = separator === -1 ? undefined : SEARCH_SCOPES[term.slice(0, separator)];
+				if (scope === undefined) return searchableText.includes(term);
+
+				const value = term.slice(separator + 1);
+				const fieldValue = String(track[scope] ?? '').toLocaleLowerCase();
+				// BPM is numeric metadata, so avoid bpm:12 also matching 120.
+				return scope === 'bpm' ? fieldValue === value : fieldValue.includes(value);
+			}));
 		});
 	}, [tracks, search]);
 

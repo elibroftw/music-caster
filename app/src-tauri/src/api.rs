@@ -668,6 +668,8 @@ pub struct TrackMetadata {
   pub album: String,
   #[serde(default)]
   pub genre: String,
+  #[serde(default)]
+  pub bpm: Option<f64>,
   pub track_number: Option<String>,
   pub track_total: Option<String>,
   #[serde(default)]
@@ -690,6 +692,9 @@ pub struct SetMetadataOptions {
   pub album: String,
   #[serde(default)]
   pub genre: String,
+  /// `None` is serialized as null so the daemon can remove an existing BPM tag.
+  #[serde(default)]
+  pub bpm: Option<f64>,
   #[serde(default)]
   pub track_number: String,
   #[serde(default)]

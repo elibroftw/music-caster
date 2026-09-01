@@ -85,8 +85,8 @@ class FileMetadata:
                 conn.commit()
 
     _SAVE_SQL = '''INSERT OR REPLACE INTO file_metadata
-              (file_path, title, artist, album, genre, length, explicit, track_number, sort_key, time_modified)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+              (file_path, title, artist, album, genre, length, explicit, track_number, sort_key, time_modified, bpm)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
 
     @staticmethod
     def _build_values(file_path, m: dict) -> tuple:
@@ -102,6 +102,7 @@ class FileMetadata:
             m['track_number'],
             m['sort_key'],
             m['time_modified'],
+            m.get('bpm'),
         )
 
     @staticmethod

@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Group, Modal, Paper, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Button, Checkbox, Group, Modal, NumberInput, Paper, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import { useContext, useEffect, useState } from 'react';
@@ -32,6 +32,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 	const [artist, setArtist] = useState('');
 	const [album, setAlbum] = useState('');
 	const [genre, setGenre] = useState('');
+	const [bpm, setBpm] = useState<string | number>('');
 	const [trackNumber, setTrackNumber] = useState('');
 	const [explicit, setExplicit] = useState(false);
 	const [art, setArt] = useState<ArtworkData | null>(null);
@@ -52,6 +53,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 				setArtist(metadata.artist);
 				setAlbum(metadata.album);
 				setGenre(metadata.genre ?? '');
+				setBpm(metadata.bpm ?? '');
 				const trackPlace = metadata.track_number == null || metadata.track_total == null
 					? metadata.track_number ?? ''
 					: `${metadata.track_number}/${metadata.track_total}`;
@@ -107,6 +109,11 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 
 	const handleSave = async () => {
 		if (filePath === null) return;
+		const parsedBpm = bpm === '' ? null : Number(bpm);
+		if (parsedBpm !== null && (!Number.isFinite(parsedBpm) || parsedBpm <= 0)) {
+			notifications.show({ message: 'BPM must be a positive number', color: 'red' });
+			return;
+		}
 		setSaving(true);
 		try {
 			await api.setMetadata(filePath, {
@@ -114,6 +121,7 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 				artist,
 				album,
 				genre,
+				bpm: parsedBpm,
 				track_number: trackNumber,
 				explicit,
 				...(artAction === 'replace' && art !== null ? { art: art.data, mime: art.mime } : {}),
@@ -184,6 +192,15 @@ export default function MetadataEditorModal({ filePath, onClose, onSaved }: Meta
 					label={t('Genre')}
 					value={genre}
 					onChange={e => setGenre(e.currentTarget.value)}
+					disabled={loading}
+				/>
+				<NumberInput
+					label={t('BPM')}
+					placeholder='e.g. 120'
+					value={bpm}
+					onChange={setBpm}
+					min={1}
+					decimalScale={2}
 					disabled={loading}
 				/>
 				<TextInput

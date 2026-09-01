@@ -23,6 +23,7 @@ const ART_SIZE = ROW_HEIGHT - 2 * ROW_PADDING;
 // has no db row yet: re-read the db this many times, this far apart, while art is missing
 const ART_RETRIES = 3;
 const ART_RETRY_MS = 2000;
+const FALLBACK_ART_URL = '/music-caster-cover.png';
 
 const isUrl = (uri: string) => uri.startsWith('http');
 
@@ -178,17 +179,21 @@ export default function Queue() {
 					<Flex gap='md' align='stretch' h='100%'>
 						{!hideArt && (
 							<div style={{ width: ART_SIZE, flexShrink: 0 }}>
-								{artUrl(track[0]) && (
-									// lazy so only the covers scrolled into view are fetched
-									<img
-										src={artUrl(track[0])}
-										alt=''
-										width={ART_SIZE}
-										height={ART_SIZE}
-										loading='lazy'
-										style={{ objectFit: 'cover', borderRadius: 'var(--mantine-radius-sm)', display: 'block' }}
-									/>
-								)}
+								{/* lazy so only the covers scrolled into view are fetched */}
+								<img
+									src={artUrl(track[0]) ?? FALLBACK_ART_URL}
+									alt=''
+									width={ART_SIZE}
+									height={ART_SIZE}
+									loading='lazy'
+									onError={event => {
+										// Remote thumbnails can disappear; always leave the row with usable art.
+										if (event.currentTarget.getAttribute('src') !== FALLBACK_ART_URL) {
+											event.currentTarget.src = FALLBACK_ART_URL;
+										}
+									}}
+									style={{ objectFit: 'cover', borderRadius: 'var(--mantine-radius-sm)', display: 'block' }}
+								/>
 							</div>
 						)}
 						{/* queue index badge in its own column between the art and the track text;
