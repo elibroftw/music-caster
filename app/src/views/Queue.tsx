@@ -82,12 +82,33 @@ export default function Queue() {
 	// cover urls for http queue items, keyed by the url_metadata row's src and, for youtube,
 	// by the video id too: a queued youtu.be or shorts link shares the canonical row
 	const [urlArt, setUrlArt] = useState<Map<string, string>>(new Map());
-	// http URIs have no local file for the daemon to read a cover from: their cover is the
-	// remote thumbnail the daemon stored in url_metadata
+	// Some URL providers still keep their metadata only in the daemon's in-memory cache.
+	// Remember the current-art response under its queue URI so those tracks have art too.
+	const [runtimeUrlArt, setRuntimeUrlArt] = useState<Map<string, string>>(new Map());
+	const currentUri = playerState?.queue[queuePosition]?.[0];
+	useEffect(() => {
+		if (currentUri === undefined || !isUrl(currentUri) || daemonDown) return;
+		let cancelled = false;
+		api.getAlbumArtUrl().then(url => {
+			if (cancelled) return;
+			setRuntimeUrlArt(previous => {
+				if (previous.get(currentUri) === url) return previous;
+				const next = new Map(previous);
+				next.set(currentUri, url);
+				return next;
+			});
+		}).catch(() => {
+			// The DB-backed thumbnail (or fallback art) remains available.
+		});
+		return () => { cancelled = true; };
+	}, [currentUri, daemonDown, api]);
+
+	// http URIs have no local file for the daemon to read a cover from: use either the
+	// daemon's current-art response or the remote thumbnail stored in url_metadata
 	const artUrl = (uri: string) => {
 		if (isUrl(uri)) {
 			const id = youtubeId(uri);
-			return urlArt.get(uri) ?? (id === null ? undefined : urlArt.get(id));
+			return runtimeUrlArt.get(uri) ?? urlArt.get(uri) ?? (id === null ? undefined : urlArt.get(id));
 		}
 		if (artUrlTemplate === null) return undefined;
 		return `${artUrlTemplate.replace('path=DEFAULT_ART', `path=${encodeURIComponent(uri)}`)}&v=${artVersion}`;
@@ -225,7 +246,7 @@ export default function Queue() {
 					</Flex>
 				</Paper>);
 			});
-		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, urlArt, hideArt, artVersion]);
+		}, [JSON.stringify(playerState?.queue), queuePosition, daemonDown, artUrlTemplate, dbMeta, urlArt, runtimeUrlArt, hideArt, artVersion]);
 
 	useEffect(() => {
 		if (targetRef.current !== null) {
