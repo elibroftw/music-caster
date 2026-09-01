@@ -26,6 +26,13 @@ const SEARCH_SCOPES: Record<string, keyof Track> = {
 	bpm: 'bpm',
 };
 
+// Treat common spellings of drum and bass as the same genre. Removing the
+// separators also keeps the alias together when the query is split into terms.
+const normalizeGenreAliases = (value: string) => value.replace(
+	/\b(?:dnb|drum\s*(?:and|n|&)\s*bass)\b/gi,
+	'drumandbass',
+);
+
 export default function MusicLibrary() {
 	const { t } = useTranslation();
 	const playerState = useContext(PlayerStateContext);
@@ -99,7 +106,7 @@ export default function MusicLibrary() {
 		// Commas separate alternatives, while spaces combine terms. Prefix a term with
 		// album:, title:/name:, artist:, genre:, or bpm: to search only that field.
 		// Unscoped searches intentionally exclude BPM, so a BPM only matches bpm:120.
-		const alternatives = search.toLocaleLowerCase()
+		const alternatives = normalizeGenreAliases(search.toLocaleLowerCase())
 			.split(',')
 			.map(query => query.trim().split(/\s+/).filter(Boolean))
 			.filter(terms => terms.length > 0);
@@ -107,7 +114,9 @@ export default function MusicLibrary() {
 
 		return tracks.filter(track => {
 			const searchableText = SEARCHABLE_TRACK_KEYS
-				.map(key => String(track[key] ?? ''))
+				.map(key => key === 'genre'
+					? normalizeGenreAliases(String(track[key] ?? ''))
+					: String(track[key] ?? ''))
 				.join(' ')
 				.toLocaleLowerCase();
 			return alternatives.some(terms => terms.every(term => {
@@ -116,7 +125,8 @@ export default function MusicLibrary() {
 				if (scope === undefined) return searchableText.includes(term);
 
 				const value = term.slice(separator + 1);
-				const fieldValue = String(track[scope] ?? '').toLocaleLowerCase();
+				const rawFieldValue = String(track[scope] ?? '').toLocaleLowerCase();
+				const fieldValue = scope === 'genre' ? normalizeGenreAliases(rawFieldValue) : rawFieldValue;
 				// BPM is numeric metadata, so avoid bpm:12 also matching 120.
 				return scope === 'bpm' ? fieldValue === value : fieldValue.includes(value);
 			}));
