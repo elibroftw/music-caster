@@ -62,6 +62,10 @@ export default function Queue() {
 	const [artVersion, setArtVersion] = useState(0);
 
 	const queuePosition = playerState?.queue_position ?? 0;
+	// Queue rows are memoized independently of play/pause updates. Keep the latest
+	// status in a ref so their click handlers can still decide whether to resume.
+	const playerStatusRef = useRef(playerState?.status);
+	playerStatusRef.current = playerState?.status;
 	// tracked as a boolean so the queue only re-renders when the daemon comes up
 	// or goes away, not on every play/pause status change
 	const daemonDown = playerState === null || playerState.status === 'NOT_RUNNING';
@@ -260,6 +264,11 @@ export default function Queue() {
 		}
 		else if (index > 0) {
 			api.next(index);
+		}
+		else if (playerStatusRef.current !== 'PLAYING') {
+			// Navigating by zero tracks is a no-op, so explicitly resume the
+			// selected track when playback is stopped or paused.
+			api.play();
 		}
 	}
 

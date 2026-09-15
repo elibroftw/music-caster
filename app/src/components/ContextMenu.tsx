@@ -28,22 +28,41 @@ interface useContextMenuOptions {
 export function useContextMenu<T>({ showOnClick }: useContextMenuOptions = { showOnClick: false }): [ContextMenuTrigger<T> | null, Dispatch<SetStateAction<ContextMenuTrigger<T> | null>>] {
 	const [menuTrigger, setMenuTrigger] = useState<ContextMenuTrigger<T> | null>(null);
 	useEffect(() => {
-		const handler = () => setMenuTrigger(null);
-		window.addEventListener('scroll', handler, true);
+		const closeMenu = () => setMenuTrigger(null);
+		const closeWhenHidden = () => {
+			if (document.visibilityState === 'hidden') closeMenu();
+		};
+
+		// A controlled Mantine menu will otherwise remain open when its window or
+		// browser tab loses focus, and reappear when the user returns.
+		window.addEventListener('blur', closeMenu);
+		window.addEventListener('pagehide', closeMenu);
+		window.addEventListener('resize', closeMenu);
+		window.addEventListener('scroll', closeMenu, true);
+		document.addEventListener('visibilitychange', closeWhenHidden);
 		return () => {
-			window.removeEventListener('scroll', handler);
-		}
+			window.removeEventListener('blur', closeMenu);
+			window.removeEventListener('pagehide', closeMenu);
+			window.removeEventListener('resize', closeMenu);
+			window.removeEventListener('scroll', closeMenu, true);
+			document.removeEventListener('visibilitychange', closeWhenHidden);
+		};
 	}, []);
+	// Listen in the window's capture phase. Components such as tabs may stop the
+	// event while it bubbles, but changing views must still dismiss an open menu.
 	useWindowEvent('click', event => {
-		if (!showOnClick && event.clientX !== menuTrigger?.x || event.clientY !== menuTrigger?.y) {
+		if (menuTrigger && (!showOnClick || event.clientX !== menuTrigger.x || event.clientY !== menuTrigger.y)) {
 			setMenuTrigger(null);
 		}
-	});
+	}, true);
 	useWindowEvent('contextmenu', event => {
-		if (event.clientX !== menuTrigger?.x || event.clientY !== menuTrigger.y) {
+		if (menuTrigger && (event.clientX !== menuTrigger.x || event.clientY !== menuTrigger.y)) {
 			setMenuTrigger(null);
 		}
-	});
+	}, true);
+	useWindowEvent('keydown', event => {
+		if (event.key === 'Escape') setMenuTrigger(null);
+	}, true);
 	return [menuTrigger, setMenuTrigger];
 }
 
