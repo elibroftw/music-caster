@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.4.3
+- [Fix] Context menu not working
+
 6.4.2
 - [Fix] Playing first track when stopped
 - [Fix] Context menu stuck

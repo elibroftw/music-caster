@@ -48,21 +48,27 @@ export function useContextMenu<T>({ showOnClick }: useContextMenuOptions = { sho
 			document.removeEventListener('visibilitychange', closeWhenHidden);
 		};
 	}, []);
-	// Listen in the window's capture phase. Components such as tabs may stop the
-	// event while it bubbles, but changing views must still dismiss an open menu.
+	// Tabs may stop bubbling click events. Handle only tab clicks during capture;
+	// capturing every click would unmount Menu.Item before its onClick can run.
+	useWindowEvent('click', event => {
+		const target = event.target;
+		if (menuTrigger && target instanceof Element && target.closest('[role="tab"]')) {
+			setMenuTrigger(null);
+		}
+	}, true);
 	useWindowEvent('click', event => {
 		if (menuTrigger && (!showOnClick || event.clientX !== menuTrigger.x || event.clientY !== menuTrigger.y)) {
 			setMenuTrigger(null);
 		}
-	}, true);
+	});
 	useWindowEvent('contextmenu', event => {
 		if (menuTrigger && (event.clientX !== menuTrigger.x || event.clientY !== menuTrigger.y)) {
 			setMenuTrigger(null);
 		}
-	}, true);
+	});
 	useWindowEvent('keydown', event => {
 		if (event.key === 'Escape') setMenuTrigger(null);
-	}, true);
+	});
 	return [menuTrigger, setMenuTrigger];
 }
 
