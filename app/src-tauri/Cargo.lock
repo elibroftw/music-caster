@@ -93,6 +93,7 @@ dependencies = [
  "rust-i18n",
  "serde",
  "serde_json",
+ "sqlx",
  "sysinfo",
  "tauri",
  "tauri-build",
@@ -114,6 +115,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tokio",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

@@ -119,8 +119,12 @@
 
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="DesktopFolder" Name="Desktop">
-                <Component Id="ApplicationShortcutDesktop" Guid="*">
-                    <Shortcut Id="ApplicationDesktopShortcut" Name="{{product_name}}" Description="Runs {{product_name}}" Target="[!Path]" WorkingDirectory="INSTALLDIR" />
+                <!-- Keep shortcut components and targets stable across major upgrades. Taskbar pins
+                     are copies of these shortcuts and break if MSI gives them a new identity. -->
+                <Component Id="ApplicationShortcutDesktop" Guid="7FBBF928-A9DC-50B6-8931-7AD5307E9F32">
+                    <Shortcut Id="ApplicationDesktopShortcut" Name="{{product_name}}" Description="Runs {{product_name}}" Target="[#Path]" WorkingDirectory="INSTALLDIR">
+                        <ShortcutProperty Key="System.AppUserModel.ID" Value="{{bundle_id}}"/>
+                    </Shortcut>
                     <RemoveFolder Id="DesktopFolder" On="uninstall" />
                     <RegistryValue Root="HKCU" Key="Software\\{{manufacturer}}\\{{product_name}}" Name="Desktop Shortcut" Type="integer" Value="1" KeyPath="yes" />
                 </Component>
@@ -250,11 +254,11 @@
         </DirectoryRef>
 
         <DirectoryRef Id="ApplicationProgramsFolder">
-            <Component Id="ApplicationShortcut" Guid="*">
+            <Component Id="ApplicationShortcut" Guid="337FE706-DFFE-52D4-953B-604397741156">
                 <Shortcut Id="ApplicationStartMenuShortcut"
                     Name="{{product_name}}"
                     Description="Runs {{product_name}}"
-                    Target="[!Path]"
+                    Target="[#Path]"
                     Icon="ProductIcon"
                     WorkingDirectory="INSTALLDIR">
                     <ShortcutProperty Key="System.AppUserModel.ID" Value="{{bundle_id}}"/>

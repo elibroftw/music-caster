@@ -103,9 +103,23 @@ unsafe fn webkit_hidpi_workaround() {
   std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
 }
 
+#[cfg(target_os = "windows")]
+fn set_windows_app_user_model_id() {
+  use windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
+
+  // This must match the installer shortcut property. Keeping the process identity independent of
+  // the MSI ProductCode lets Windows reconnect an existing taskbar pin after a major upgrade.
+  let app_id: Vec<u16> = "ca.elijahlopez.music-caster\0".encode_utf16().collect();
+  unsafe {
+    SetCurrentProcessExplicitAppUserModelID(app_id.as_ptr());
+  }
+}
+
 unsafe fn main_prelude() {
   #[cfg(target_os = "linux")]
   webkit_hidpi_workaround();
+  #[cfg(target_os = "windows")]
+  set_windows_app_user_model_id();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -231,6 +245,24 @@ pub fn run() {
       app.manage(Mutex::new(TrayState::NotPlaying));
       app.manage(Mutex::new(settings::Settings::load(app.handle())));
       let _ = create_tray_icon(app.handle());
+
+      // Validate the library after migrations have run, without delaying startup. Files may have
+      // been moved or deleted while Music Caster was closed, so stale metadata is removed here.
+      match app.path().app_data_dir() {
+        Ok(app_data_dir) => {
+          let database_path = app_data_dir.join("music_caster.db");
+          tauri::async_runtime::spawn(async move {
+            match db::remove_invalid_file_paths(database_path).await {
+              Ok(removed) => log::info!(
+                "Finished validating file metadata; removed {} invalid row(s)",
+                removed
+              ),
+              Err(error) => log::error!("Failed to validate file metadata: {}", error),
+            }
+          });
+        }
+        Err(error) => log::error!("Could not locate database for validation: {}", error),
+      }
 
       let app_handle = app.handle().clone();
       tauri::async_runtime::spawn(async move { long_running_thread(&app_handle).await });
