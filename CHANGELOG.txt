@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.4.5
+- Upgrade yt-dlp
+
 6.4.4
 - [Fix] Remove bad files in database
 - [Fix] Dead icon when pinned to taskbar
