@@ -1449,17 +1449,18 @@ if __name__ == '__main__':
         data = request.get_json(force=True, silent=True)
         if not isinstance(data, dict):
             return '', 400
-        # clear ignores indices, so let callers omit them
-        indices = data.get('indices', [] if data.get('action') == 'clear' else None)
         action = data.get('action')
+        # clear ignores indices, so handle it before validating them
+        if action == 'clear':
+            clear_queue()
+            return '', 204
+        indices = data.get('indices')
         if not isinstance(indices, list) or not all(isinstance(i, int) and i >= 0 for i in indices):
             return '', 400
         if action == 'next_up':
             move_to_next_up(indices)
         elif action == 'remove':
             remove_from_queue(indices)
-        elif action == 'clear':
-            clear_queue()
         else:
             return '', 400
         return '', 204

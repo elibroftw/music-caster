@@ -226,19 +226,14 @@ export default function () {
 
 		// Handle additional app launches (url, etc.)
 		useEffect(() => {
-			const promise = tauriEvent.listen('newInstance', async ({ payload, ...eventObj }: { payload: { args: string[], cwd: string } }) => {
+			// file arguments are played by the Rust single-instance handler
+			const promise = tauriEvent.listen('newInstance', async () => {
 				const appWindow = getCurrentWebviewWindow();
 				if (!(await appWindow.isVisible())) await appWindow.show();
 
 				if (await appWindow.isMinimized()) {
 					await appWindow.unminimize();
 					await appWindow.setFocus();
-				}
-
-				let args = payload?.args;
-				let cwd = payload?.cwd;
-				if (args?.length > 1) {
-
 				}
 			});
 			return () => { promise.then(unlisten => unlisten()) };
@@ -335,7 +330,7 @@ export default function () {
 					{showFooter &&
 						<AppShell.Footer ref={footerRef} p='md' className={classes.footer}>
 							{footerText}
-							<Button variant='subtle' size='xs' onClick={() => setAnnouncementsRead(ANNOUNCEMENTS)}>
+							<Button variant='subtle' size='xs' onClick={() => setAnnouncementsRead(announcementNumber)}>
 								<ImCross />
 							</Button>
 						</AppShell.Footer>}

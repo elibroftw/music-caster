@@ -47,6 +47,51 @@ struct SingleInstancePayload {
 #[cfg(target_os = "linux")]
 pub struct DbusState(Mutex<Option<dbus::blocking::SyncConnection>>);
 
+/// Extract the file paths passed on the command line (e.g. by opening files from the file explorer).
+/// The first argument is the executable, flags and deep links are skipped, and relative paths are
+/// resolved against `cwd` because the launching instance's working directory may differ from ours.
+fn file_args(args: &[String], cwd: &str) -> Vec<String> {
+  args
+    .iter()
+    .skip(1)
+    .filter(|arg| !arg.starts_with('-') && !arg.starts_with("music-caster:"))
+    .map(|arg| {
+      let path = PathBuf::from(arg);
+      if path.is_absolute() { path } else { PathBuf::from(cwd).join(path) }
+    })
+    .filter(|path| path.exists())
+    .map(|path| path.to_string_lossy().into_owned())
+    .collect()
+}
+
+/// Play `uris` once the daemon is reachable. When Music Caster was launched by opening a file, the
+/// daemon is still starting, so wait for the player state poll to report that it is running.
+fn play_uris_when_ready(app_handle: tauri::AppHandle, uris: Vec<String>) {
+  if uris.is_empty() {
+    return;
+  }
+  tauri::async_runtime::spawn(async move {
+    let daemon_state = app_handle.state::<DaemonState>();
+    let mut attempts = 0;
+    while !daemon_state.read().await.is_running {
+      attempts += 1;
+      if attempts > 240 {
+        log::error!("Daemon did not start in time; could not play {:?}", uris);
+        return;
+      }
+      tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+    }
+    log::info!("Playing files from command line: {:?}", uris);
+    let options = api::PlayUrisOptions {
+      uris: Some(uris),
+      ..Default::default()
+    };
+    if let Err(e) = api_play_uris(daemon_state, options).await {
+      log::error!("Failed to play files from command line: {}", e);
+    }
+  });
+}
+
 #[tauri::command]
 fn process_file(filepath: String) -> String {
   log::info!("Processing file: {}", filepath);
@@ -223,6 +268,7 @@ pub fn run() {
     ])
     // allow only one instance and propagate args and cwd to existing instance
     .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+      play_uris_when_ready(app.clone(), file_args(&args, &cwd));
       app
         .emit("newInstance", SingleInstancePayload { args, cwd })
         .unwrap();
@@ -282,6 +328,13 @@ pub fn run() {
       if let Err(e) = start_music_caster_daemon(&app_handle) {
         log::error!("Failed to start Music Caster daemon: {}", e);
       }
+
+      // play any files Music Caster was opened with (e.g. double-clicked in the file explorer)
+      let args: Vec<String> = std::env::args().collect();
+      let cwd = std::env::current_dir()
+        .map(|dir| dir.to_string_lossy().into_owned())
+        .unwrap_or_default();
+      play_uris_when_ready(app.handle().clone(), file_args(&args, &cwd));
 
       #[cfg(desktop)]
       {

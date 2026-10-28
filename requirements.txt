@@ -16,7 +16,7 @@ winrt-runtime; sys_platform == 'win32'
 testresources; sys_platform == 'linux'
 ujson==5.13.0
 mutagen==1.48.1
-Pillow==12.3.0
+Pillow==13.0.0
 PyChromecast~=14.0
 zeroconf~=0.150.0
 # INTENTIONALLY HARD CODED
