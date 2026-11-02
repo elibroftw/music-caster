@@ -26,6 +26,8 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@main
+        with:
+          python-version-file: '.python-version'
 
       - name: Compare version with latest release
         id: version
@@ -125,7 +127,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@main
         with:
-          python-version: '3.x'
+          python-version-file: '.python-version'
           cache: 'pip'
           cache-dependency-path: |
             requirements.txt

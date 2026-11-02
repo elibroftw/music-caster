@@ -20,9 +20,10 @@ jobs:
     runs-on: ${{matrix.platform}}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           cache: pip
+          python-version-file: '.python-version'
       - uses: actions/setup-go@v6
 
       - name: Install Inno Setup
