@@ -85,7 +85,7 @@
     "rollup-plugin-visualizer": "^7.0.1",
     "selenium-webdriver": "^4.46.0",
     "terser": "^5.49.2",
-    "toml": "^5.0.0",
+    "toml": "^5.0.1",
     "vite": "^8.2.1"
   },
   "overrides": {
