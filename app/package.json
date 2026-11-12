@@ -86,7 +86,7 @@
     "selenium-webdriver": "^4.46.0",
     "terser": "^5.49.2",
     "toml": "^5.0.0",
-    "vite": "^8.2.1"
+    "vite": "^8.2.4"
   },
   "overrides": {
     "mocha": {
