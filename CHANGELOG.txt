@@ -1,5 +1,8 @@
 Music Caster Changelog
 
+6.4.7
+- Upgrade yt-dlp
+
 6.4.6
 - Upgrade yt-dlp
 
